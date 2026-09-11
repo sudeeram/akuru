@@ -1,0 +1,35 @@
+AKURU: GETTING STARTED
+===========================
+
+The person managing the computer starts the portal from source-code using
+"npm start" after a build. Open http://127.0.0.1:5181/ on that computer.
+Development mode uses "npm run dev" and http://127.0.0.1:5180/.
+Stop a server with Ctrl+C in its terminal. Use one mode at a time.
+
+Sign in with your own account. Local demo buttons include Admin, Parent and
+the original students. Newly created accounts use the username/password supplied
+by the Admin and do not appear as demo buttons. Sign out on shared computers.
+
+Admin first login:
+1. Open Accounts & enrolments. Create a parent account before its child accounts.
+2. Set each child's iGCSE subjects, Grade 10 or 11, and Grade + Term progression.
+   For a Grade 10 Term2 student, select Grade 10 Term1 and Grade 10 Term2.
+3. Confirm migrated learners marked as requiring configuration.
+4. Follow ADMIN-GUIDE.txt to prepare textbooks, units and term questions.
+
+Parent first login:
+1. Check the children linked to your account in Family overview.
+2. View Children & courses. Ask Admin to correct any grade, term or subject.
+3. Use Assessment reviews and Assignments for your own children.
+
+Student first login:
+1. Check your name, current grade and term. Earlier completed terms are used
+   when selecting mock questions.
+2. Open My subjects. Tell Admin or your parent if your enrolment is wrong.
+3. Start practice when approved questions are available for your covered units.
+
+An empty question list is expected until Admin completes curriculum setup.
+The portal does not fill an empty term with questions from untaught units.
+
+If the page cannot open, check that the server is running and the port is right.
+Sessions reset when the server restarts; sign in again when asked.

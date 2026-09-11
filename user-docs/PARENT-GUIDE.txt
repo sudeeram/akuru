@@ -1,0 +1,41 @@
+AKURU PARENT GUIDE
+=======================
+
+Your account gives access only to children linked to you by the Admin.
+Admin creates accounts, assigns courses/grades/terms/subjects and manages all
+learning documents. Parents no longer perform those administration tasks.
+
+AFTER LOGIN
+
+1. Open Family overview and check that the expected children appear.
+2. Open Children & courses to view each child's iGCSE current grade, current term and subjects. Ask Admin to maintain the full progression.
+3. Ask Admin to correct missing children or incorrect enrolments.
+4. Open Content library to read approved textbooks and reference materials.
+
+REVIEW ANSWERS
+
+Open Assessment reviews. Select a child or review the pending list. Confirm the
+child and question before reading the typed answer and attached working.
+Compare it with the marking points. Enter a whole-number mark from zero to the
+available marks, add specific feedback and select Save review.
+
+Tell the child what was correct and what to improve. Previous marks/feedback
+are retained. Exact numeric checking only checks a final answer; it does not
+prove the method or award all possible method marks. Written and handwritten
+answers need human review.
+
+ASSIGN PRACTICE
+
+Open Assignments. Select your child, an available question and a due date.
+Add a useful title and create the assignment. The list is restricted to covered
+units for every Grade + Term combination that child has reached. If it is empty, ask Admin to
+finish coverage and approved question mappings. Do not use a sibling's account.
+
+FOLLOW PROGRESS
+
+Use Learning progress to review each child separately. Look at attempts, marks,
+pending reviews and feedback. Scores describe assessed work, not predicted exam
+grades or proof that the full syllabus is mastered. Discuss the child's study
+plan and repeated difficulties, then assign a small amount of focused practice.
+
+Sign out after using a shared device. Report wrong family links to Admin.

@@ -1,0 +1,182 @@
+# AKURU overall architecture
+
+Status: authoritative Phase 1 domain specification, with an implemented local frontend/mock API and a planned FastAPI backend. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
+
+## Repository boundaries
+
+One repository contains two application folders. No additional repository is required.
+
+```text
+source-code/
+  docs/architecture.md           Shared domain rules and system boundaries
+  frontend/                     React/TypeScript application
+    app/                        Portal shell and role navigation
+    features/                   Admin, Parent and Student screens
+    lib/api.ts                  Frontend API boundary
+    local-server/               Temporary Node mock backend
+    tests/                      Mock API integration tests
+    docs/architecture.md        Frontend implementation and mock contract
+    .local-data/                Ignored local records, hashes and files
+  backend/
+    docs/architecture.md        FastAPI design and implementation requirements
+    README.md                   Backend status; no service implemented yet
+  scripts/run-web.mjs           Existing local frontend launcher
+```
+
+The local Node API remains inside `frontend`. It is a development adapter, not the real backend. The future Python/FastAPI application will live entirely in `backend`. The frontend must never hold provider API keys or implement authoritative permissions.
+
+## System layout
+
+```mermaid
+flowchart TD
+    A[Admin portal] --> F[Frontend API client]
+    P[Parent portal] --> F
+    S[Student portal] --> F
+    F --> API[FastAPI: identity, permissions and domain services]
+    F -. current local mode .-> MOCK[frontend/local-server]
+    MOCK --> JSON[Private local JSON and files]
+    API --> DB[(PostgreSQL + pgvector)]
+    API --> OBJ[Private object storage]
+    API --> JOB[Document and media job queue]
+    JOB --> OCR[PDF pages, OCR, equations and diagrams]
+    OCR --> REVIEW[Admin review and unit mapping]
+    REVIEW --> DB
+    API --> ELIG[Deterministic curriculum eligibility]
+    ELIG --> TUTOR[Tutor, assessment and study planning]
+```
+
+FastAPI, PostgreSQL, object storage, workers and AI services are planned, not implemented in this revision. The mock implements the domain workflow with manual document/question entry.
+
+## Roles and family ownership
+
+| Action | Admin | Parent | Student |
+| --- | --- | --- | --- |
+| Create parent accounts | Yes | No | No |
+| Create child accounts and link to a parent | Yes | No | No |
+| Assign course, grade, term and subjects | Yes | No | No |
+| Upload and approve learning documents | Yes | No | No |
+| Define textbook units and term coverage | Yes | No | No |
+| Map and approve paper questions | Yes | No | No |
+| View student records | All, audited in production | Own children only | Own records only |
+| Review answers and create practice assignments | Administrative access as required in production | Own children only | No |
+| Submit practice/exams | No | No | Own account only |
+| Upload answer working | No learning-work impersonation | No | Own submission attachments only |
+
+A parent has zero or more children. Each child belongs to exactly one parent account in Phase 1. Multi-guardian access is a future explicit schema change, not implied by the Parent role. An Admin must create the parent first. Parent role alone does not grant access to every family.
+
+Admin-created usernames must be unique. Password hashes belong to server storage. A child's client-supplied `studentId` or `parentId` never grants ownership. Every read, mutation, attachment retrieval, review and report checks the authenticated actor. If an Admin changes a child's parent, access follows the current parent relationship; historical actor/audit information remains. Family/enrolment changes are blocked during an active mock in the local implementation.
+
+## Course and enrolment catalog
+
+There are exactly three course identifiers: `iPrimary`, `iLower Secondary`, `iGCSE`. Only `iGCSE` is active in Phase 1. Other course names remain in the catalog for future implementation; Phase 1 enrolment and ingestion reject them rather than silently converting them.
+
+iGCSE supports exactly:
+
+- Grades: `Grade 10`, `Grade 11`.
+- Terms within each grade: `Term1`, `Term2`, `Term3`.
+- Subjects: English, Maths, ICT, Biology, Chemistry, Physics, French, Human Biology.
+
+Biology, Chemistry, Physics and Human Biology are separate subjects. There is no combined `Science` subject in this Phase 1 catalog. Example references to a science paper mean a paper within its specific science subject; they never authorize cross-subject unit relationships.
+
+A student has one active course, one current grade, one current term and one or more enrolled subjects. The student also has an ordered progression list of Grade + Term combinations already reached. For example, Grade 10 Term2 stores both Grade 10 Term1 and Grade 10 Term2. The phase-one course applies to every selected subject. The old feature allowing arbitrary qualifications per subject is superseded. Keep syllabus/specification and textbook edition identities in the production curriculum model so two specifications or editions are not accidentally mixed.
+
+Production stores enrolment periods by academic year and retains the progression history. The mock stores current enrolment plus the progression list and an original legacy profile, and captures the full accumulated scope in each new mock exam. Advancement is an Admin action; no automatic promotion is assumed.
+
+## Textbooks, units and coverage
+
+A textbook belongs to one course and one subject, with an edition/version identity in the production schema. A unit belongs to exactly one textbook. Its subject and course are inherited from that textbook. Unit codes are unique within a textbook, not globally.
+
+Admin defines the complete covered-unit set for `(course, subject, grade, term)`. This is shared curriculum coverage for students with that enrolment in Phase 1. If different schools or academic years need different coverage, add a versioned curriculum plan and assign each student explicitly before supporting that case.
+
+Coverage is defined per Grade + Term, and student eligibility is cumulative across the student's saved progression list. For example, Grade 10 Term2 includes the union of Grade 10 Term1 and Grade 10 Term2 coverage. Grade 11 does not automatically inherit Grade 10 units; the Admin must add Grade 11 progression combinations and coverage explicitly. An empty union means no eligible questions. There is no fallback to the entire syllabus.
+
+The mock associates each past paper with one approved textbook that provides its mapping vocabulary. Each question may map to multiple units within that textbook. Production may support curated equivalences across editions later, but must never equate units solely by number or title.
+
+## Document ingestion and publishing
+
+Supported learning document types are `Textbook`, `Past paper`, `Marking scheme`, `Examiner report`, `Reference material`. Only Admin can upload them. Student answer attachments are a separate permission and do not become learning documents.
+
+Required workflow:
+
+1. Admin selects iGCSE and the subject, uploads the textbook and verifies its identity/edition.
+2. Admin reviews the textbook and records its units. With OCR later, extracted unit proposals remain untrusted until reviewed.
+3. Admin assigns the units covered in each grade and term.
+4. Only after an approved same-subject textbook with registered units exists may Admin upload a past paper. Upload validates this server-side.
+5. Admin uploads the matching marking scheme and examiner report linked to that past paper in the same subject/course. In production also validate session, year, paper/component, variant and specification.
+6. Every question or independently usable subpart is entered/extracted with question number, marks, prompt, equations, diagrams and source page references. A subpart requiring a common stem or shared diagram must retain that dependency.
+7. Every question is linked to one or more units of the selected textbook, all in the same course and subject. An empty, missing, foreign-subject or foreign-textbook mapping is invalid.
+8. Admin checks the question, mapping, worked explanation and marking points. Pending questions cannot be used for study or mocks.
+9. Admin confirms that the entire paper has been captured and reviewed before approving the paper. The mock requires a completeness attestation plus at least one reviewed question; it cannot independently count questions in a PDF. The real extraction pipeline must reconcile the source question inventory and subparts before publication.
+
+Paper questions are tagged by unit, not by an artificial term assigned to the original full-syllabus paper. Marking schemes and examiner reports stay linked to their source paper and, where possible, to individual questions/subparts. A source paper may cover the whole syllabus; a student's generated term mock must still pass the covered-unit filter.
+
+Question edits invalidate paper sign-off. Holding a textbook or paper for review removes its questions from new candidate pools. Historical attempts remain readable. Production uses immutable document/question versions and explicit publication transitions; never rewrite an exam that a student has already started or submitted.
+
+## Mandatory term-mock selection rule
+
+For student `s`, subject `x`, and question `q`, let `C` be the union of covered-unit sets for every saved Grade + Term progression combination for the student's current course and subject, and `U(q)` the question's required unit set.
+
+```text
+eligible(s, q) =
+  active valid enrolment
+  AND q.subject is enrolled by s
+  AND q.course = s.course
+  AND approved textbook, paper and question
+  AND U(q) is non-empty
+  AND every linked unit belongs to q's textbook/course/subject
+  AND U(q) is a subset of C
+```
+
+Example: covered units are `{1, 2}`. A question mapped to `{1}` or `{1, 2}` is eligible. A question mapped to `{2, 3}` is excluded because Unit 3 is not covered. Overlap alone is insufficient.
+
+Server computes the candidate pool. Clients cannot choose arbitrary question IDs or broaden scope. The local implementation applies the same rule to practice, lessons, hints, assignments and study suggestions, as well as mocks, to keep the term experience consistent. It returns an explicit no-eligible-questions response when coverage or mappings are incomplete. It never invents source questions or silently includes untaught units.
+
+Production assembles papers from this eligible pool using requested marks, duration, topic balance and difficulty. Those optimizations must not relax eligibility. If the pool is insufficient, return a shortage report and ask Admin to prepare more content. AI-generated variants must inherit validated source-unit constraints, be checked and reviewed under a separately defined publication policy before being presented as assessed content.
+
+At exam start, persist an immutable snapshot of student enrolment, coverage version, question versions/order, required units, marks, source references and deadline. Later coverage changes affect new exams only. Hints and explanations are unavailable during an active mock. Server enforces timing, answer ownership and idempotent submission.
+
+Full past papers, marking schemes and examiner reports remain Admin-only in the current portal; exposing full-syllabus files could bypass term filtering or reveal answers. Parents and students can read approved enrolled-subject textbooks/reference materials and eligible question content. Approved textbooks may contain units outside the current term; term filtering applies to assessed question selection. The production tutor should restrict retrieved passages to the active question/lesson's units where appropriate.
+
+## Data model and referential rules
+
+| Entity | Required relationships |
+| --- | --- |
+| User | Unique username, role, password hash/identity provider, account status |
+| StudentProfile | Student user, exactly one Parent user |
+| EnrolmentPeriod | Student, academic year, course, grade, term, selected subject enrolments |
+| CurriculumPlanVersion | Course/specification, effective academic period, publication status |
+| DocumentVersion | Kind, course, subject, edition/source metadata, private object key, review state |
+| TextbookUnit | Textbook version, same course/subject, unique unit code within book |
+| TermCoverage | Plan version, course, subject, grade, term, one-to-many selected unit rows |
+| Paper | Past-paper document version, selected textbook version, exam session/component |
+| QuestionVersion | Paper, question/subpart number, marks, prompt/assets/stem dependencies, status |
+| QuestionUnit | Many-to-many question-to-unit mapping; same textbook/course/subject |
+| SourceAnnotation | Question, marking-scheme/report document, page/bounding box, marking point |
+| MockExam / ExamItem | Student and immutable enrolment/coverage/question snapshot |
+| Attempt / Review | Student, question version, submitted work, marks, feedback, audit history |
+| Assignment / StudyPlan | Student; all suggested questions pass current eligibility |
+
+PostgreSQL foreign keys, unique/check constraints and transactional domain validation jointly enforce these rules. Subject isolation is not entrusted to an LLM, dropdown, similarity search or filename. Retrieval uses metadata filters before vector ranking; same-subject checks occur again before returning content.
+
+## Current implementation and future work
+
+Implemented locally: three roles, Admin account creation, hashed storage for new accounts, parent-child isolation, active iGCSE catalog, Admin enrolments, textbook/unit workflow, coverage sets, manual question mappings, paper sign-off, term-filtered mocks/practice, parent reviews, private answer attachments, and architecture documentation.
+
+Still planned: FastAPI service, SQL migrations, production authentication/account lifecycle, OCR and mathematical extraction, page crops and equation rendering for newly ingested questions, automatic question inventory, source-aligned mark-scheme extraction, RAG, AI assessment/tutoring, generated media, full question versioning and deployment to OCI.
+
+The old local records are moved with the frontend. On first use of the revised API, a pre-migration state backup is saved. Existing learners require Admin confirmation rather than an invented grade/term migration. Original Science/demo material and completed work remain historical; unreviewed old questions are excluded from the active bank. Previously active legacy exams are archived with their saved answers rather than resumed as compliant term mocks.
+
+## Acceptance criteria for future generated code
+
+- Parent A cannot read, review, assign to or fetch private working from Parent B's children.
+- Parent/Student cannot create accounts, change enrolments, approve documents, define coverage or map questions through direct API requests.
+- Phase 1 rejects other courses, unsupported grades/terms and combined Science enrolments.
+- Paper upload fails without the correct approved textbook and registered units.
+- A Mathematics paper cannot map to a Chemistry unit or an unrelated Mathematics textbook edition.
+- Unmapped/pending questions and incomplete/unapproved papers never enter candidate pools.
+- A question spanning covered and uncovered units is excluded.
+- Grade and term matching is exact and absence of coverage fails closed.
+- Existing exams retain their frozen content/scope when curriculum versions change.
+- Invalid mutations are atomic; upload and publication failures cannot leave eligible partial records.
+- Math equations, diagrams and source references survive ingestion with reviewable provenance.
+- No API exposes passwords, hashes, session tokens or answer keys in ordinary student state.

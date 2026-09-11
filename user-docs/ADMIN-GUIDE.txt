@@ -1,0 +1,79 @@
+AKURU ADMIN GUIDE
+======================
+
+Local demo sign-in: admin / admin123. This is for local testing only.
+
+1. ACCOUNTS AND ENROLMENTS
+
+Open Accounts & enrolments. Select the parent role, enter a unique username,
+name and initial password of at least 8 characters, then Create account.
+
+To add a child, choose student, enter their own username/name/password and
+select the existing parent account. Choose iGCSE, Grade 10 or Grade 11,
+then select every completed/current Grade + Term combination. For Grade 10
+Term2, select Grade 10 Term1 and Grade 10 Term2. Also select the subjects.
+Create account.
+
+Use Edit beside an existing child to change their parent, current grade/term,
+progression combinations or subjects.
+Submit an active mock before changing the child's enrolment. Legacy learners
+need confirmation; do not infer an iGCSE grade from an old school-year label.
+
+2. TEXTBOOKS FIRST
+
+Open Documents & textbooks. Choose the subject and Textbook, then select a PDF,
+PNG, JPEG or WebP file up to 5 MB. Select the uploaded document under Review
+documents, open its original, add notes and Approve document when correct.
+
+Open Textbook units. Choose that subject and approved textbook. Add each unit
+using its code and title. Codes must be unique within that book.
+
+3. DEFINE TERM COVERAGE
+
+Open Grade & term coverage. Choose the subject, grade and term. Use Load saved
+coverage to see the existing selection. Select the complete set of units that
+the term exam covers and Save term coverage. Repeat for other grade/term pairs.
+
+Student coverage is cumulative across saved progression combinations. A Grade 10
+Term2 student receives the union of Grade 10 Term1 and Grade 10 Term2 coverage.
+Grade 11 does not inherit Grade 10 automatically. An empty union makes no
+questions eligible.
+
+4. PAST PAPERS AND SUPPORTING DOCUMENTS
+
+Return to Documents & textbooks. Select Past paper and choose an approved
+textbook in the same subject. The textbook must already have registered units.
+Upload the paper. Then upload its Marking scheme and Examiner report, selecting
+the related same-subject past paper. Upload Reference material separately.
+
+5. MAP EVERY QUESTION
+
+Open Question mapping. Select the subject and paper. Read the original document
+in Documents & textbooks and manually enter each question/subpart, title, text,
+marks, answer type, worked explanation and marking points. Add optional hints.
+Select every textbook unit required to answer it, then Save reviewed question.
+
+Every question needs at least one unit. A multi-unit question is allowed only
+when all its units belong to the selected textbook and subject. Mathematics
+questions cannot use Chemistry units. Biology, Chemistry, Physics and Human
+Biology are separate subjects.
+
+The local editor does not extract PDF questions or diagrams. Include necessary
+equations in the text; diagram crops and rich extraction remain future work.
+Do not publish a question whose essential diagram/context is missing.
+
+6. APPROVE THE COMPLETE PAPER
+
+After every question is entered and reviewed, return to the paper in Documents
+& textbooks. Check the confirmation that the entire paper has been entered,
+mapped and approved, then Approve document. Question edits require this sign-off
+again. Confirm completeness against the original PDF; the local portal cannot
+automatically count its questions.
+
+A term mock includes a question only if EVERY required unit is covered for the
+student's current grade and term. With covered units 1 and 2, a question requiring
+units 2 and 3 is excluded. Missing material never triggers a full-syllabus fallback.
+
+Full papers, marking schemes and examiner reports stay in the Admin library.
+Students practise eligible questions. Approved textbooks and reference resources
+are visible to families enrolled in that subject.

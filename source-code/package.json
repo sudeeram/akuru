@@ -1,0 +1,17 @@
+{
+  "name": "akuru-family-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/run-web.mjs dev",
+    "build": "node scripts/run-web.mjs build",
+    "start": "node scripts/run-web.mjs start",
+    "typecheck": "node scripts/run-web.mjs typecheck",
+    "lint": "node scripts/run-web.mjs lint",
+    "backend:dev": "node scripts/run-backend.mjs dev",
+    "backend:migrate": "node scripts/run-backend.mjs migrate",
+    "test:frontend": "node --test frontend/tests/*.test.mjs",
+    "test:backend": "node scripts/run-backend.mjs test",
+    "test": "npm run test:frontend && npm run test:backend"
+  }
+}

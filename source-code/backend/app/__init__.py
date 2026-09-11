@@ -1,0 +1,1 @@
+"""AKURU backend application package."""
