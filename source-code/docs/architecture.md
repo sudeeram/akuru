@@ -1,6 +1,6 @@
 # AKURU overall architecture
 
-Status: authoritative Phase 1 domain specification, with an implemented local frontend/mock API and a planned FastAPI backend. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
+Status: authoritative Phase 1 domain specification, with an implemented local frontend/mock API and an initial FastAPI/PostgreSQL authentication foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
 
 ## Repository boundaries
 
@@ -19,7 +19,7 @@ source-code/
     .local-data/                Ignored local records, hashes and files
   backend/
     docs/architecture.md        FastAPI design and implementation requirements
-    README.md                   Backend status; no service implemented yet
+    README.md                   Backend setup, authentication and deployment notes
   scripts/run-web.mjs           Existing local frontend launcher
 ```
 
@@ -45,7 +45,7 @@ flowchart TD
     ELIG --> TUTOR[Tutor, assessment and study planning]
 ```
 
-FastAPI, PostgreSQL, object storage, workers and AI services are planned, not implemented in this revision. The mock implements the domain workflow with manual document/question entry.
+FastAPI authentication and the initial PostgreSQL schema are implemented. Feature API migration, object storage, workers and AI services remain planned. The mock currently implements the complete domain workflow with manual document/question entry.
 
 ## Roles and family ownership
 
@@ -162,7 +162,7 @@ PostgreSQL foreign keys, unique/check constraints and transactional domain valid
 
 Implemented locally: three roles, Admin account creation, hashed storage for new accounts, parent-child isolation, active iGCSE catalog, Admin enrolments, textbook/unit workflow, coverage sets, manual question mappings, paper sign-off, term-filtered mocks/practice, parent reviews, private answer attachments, and architecture documentation.
 
-Still planned: FastAPI service, SQL migrations, production authentication/account lifecycle, OCR and mathematical extraction, page crops and equation rendering for newly ingested questions, automatic question inventory, source-aligned mark-scheme extraction, RAG, AI assessment/tutoring, generated media, full question versioning and deployment to OCI.
+Still planned: remaining FastAPI feature APIs, full account lifecycle, OCR and mathematical extraction, page crops and equation rendering for newly ingested questions, automatic question inventory, source-aligned mark-scheme extraction, RAG, AI assessment/tutoring, generated media, full question versioning and deployment to OCI.
 
 The old local records are moved with the frontend. On first use of the revised API, a pre-migration state backup is saved. Existing learners require Admin confirmation rather than an invented grade/term migration. Original Science/demo material and completed work remain historical; unreviewed old questions are excluded from the active bank. Previously active legacy exams are archived with their saved answers rather than resumed as compliant term mocks.
 
