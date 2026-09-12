@@ -138,6 +138,11 @@ export default function Portal() {
       setBusy(false);
     }
   }
+  function submitLoginOnEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Enter' || e.nativeEvent.isComposing || busy) return;
+    e.preventDefault();
+    e.currentTarget.form?.requestSubmit();
+  }
   if (loading)
     return (
       <div className="loading">
@@ -197,6 +202,7 @@ export default function Portal() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={submitLoginOnEnter}
               required
             />
             <label htmlFor="password">Password</label>
@@ -206,6 +212,7 @@ export default function Portal() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={submitLoginOnEnter}
               required
             />
             {error && (

@@ -48,6 +48,13 @@ test('frontend contains no bundled mock credentials', () => {
   assert.doesNotMatch(vite, /local-server/);
 });
 
+test('login submits from the keyboard', () => {
+  assert.match(page, /submitLoginOnEnter/);
+  assert.match(page, /e\.key !== 'Enter'/);
+  assert.match(page, /e\.currentTarget\.form\?\.requestSubmit\(\)/);
+  assert.equal((page.match(/onKeyDown=\{submitLoginOnEnter\}/g) ?? []).length, 2);
+});
+
 test('admin UI reference is routed and API-authorized', () => {
   assert.match(page, /href="\/ui-features"/);
   assert.match(uiFeatures, /api\('admin\/ui-features'\)/);
