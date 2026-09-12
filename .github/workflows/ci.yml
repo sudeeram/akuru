@@ -8,6 +8,13 @@ permissions:
   contents: read
 
 jobs:
+  deployment-playbook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Ubuntu playbook shell syntax
+        run: bash -n deploy/ubuntu/install-prerequisites.sh deploy/ubuntu/verify-prerequisites.sh
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

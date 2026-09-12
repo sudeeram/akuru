@@ -165,6 +165,8 @@ Review generated migrations before committing them. Back up production PostgreSQ
 
 The recommended first deployment is an Ubuntu LTS Oracle Cloud instance with PostgreSQL kept on a private interface, Nginx or another reverse proxy terminating HTTPS, and the application running as an unprivileged service account. Oracle Linux is also viable, but the package names and service commands will differ.
 
+For Ubuntu, use the repository's [installation playbook](deploy/ubuntu/README.md). It provides a repeatable prerequisite installer and verification script for Ubuntu 24.04 LTS, including PostgreSQL, Redis, Node.js, Python, Nginx, TLS tooling, Poppler and Tesseract.
+
 ### 1. Prepare the server
 
 Install these through the operating system's package management and your approved Node.js source:
@@ -172,8 +174,9 @@ Install these through the operating system's package management and your approve
 - Git
 - Python 3.12+, `venv`, and build support
 - Node.js 22.13+ and npm
-- PostgreSQL client tools
-- Nginx
+- PostgreSQL and Redis
+- Nginx and TLS tooling
+- Poppler and Tesseract for the document-extraction pipeline
 
 Create an unprivileged `akuru` service account and deploy the repository under a path such as `/opt/akuru`. Do not run the application as `root`.
 
@@ -275,6 +278,7 @@ Review [backend security details](source-code/backend/README.md#authentication-s
 - [Overall architecture](source-code/docs/architecture.md)
 - [Frontend architecture](source-code/frontend/docs/architecture.md)
 - [Backend architecture and security](source-code/backend/docs/architecture.md)
+- [Ubuntu installation playbook](deploy/ubuntu/README.md)
 - [Admin guide](user-docs/ADMIN-GUIDE.txt)
 - [Parent guide](user-docs/PARENT-GUIDE.txt)
 - [Student guide](user-docs/STUDENT-GUIDE.txt)
