@@ -18,6 +18,8 @@ const commands = {
   test: ["-m", "pytest", "-q"],
   backup: ["-m", "app.database_maintenance", "backup", ...process.argv.slice(3)],
   "restore-drill": ["-m", "app.database_maintenance", "restore-drill", ...process.argv.slice(3)],
+  "contract:generate": ["-m", "app.generate_api_contract"],
+  "contract:check": ["-m", "app.generate_api_contract", "--check"],
 };
 const action = process.argv[2];
 if (!commands[action]) {

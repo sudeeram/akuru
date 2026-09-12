@@ -1,29 +1,45 @@
 # AKURU FastAPI backend architecture
 
-Status: initial implementation. This folder now contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Step 1 module boundaries implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
-## Intended modules
+## Implemented boundaries
 
 ```text
 backend/
   app/
-    main.py                       FastAPI application and middleware
-    api/                          Versioned routers and request/response schemas
-    identity/                     Accounts, password hashing, sessions and roles
-    families/                     Parent-child ownership and enrolment periods
-    curriculum/                   Courses, subjects, units, term coverage and eligibility
-    documents/                    Upload authorization, versions, provenance and review
-    questions/                    Question/subpart versions and unit mapping
-    assessments/                  Paper assembly, exam snapshots, answers and reviews
-    tutoring/                     Restricted retrieval and tutor/planner orchestration
-    storage/                      PostgreSQL repositories and private object storage
-    workers/                      OCR, extraction, embeddings and media jobs
+    main.py                       FastAPI application, middleware and system endpoints
+    api/v1/                       Thin, versioned HTTP routers grouped by domain
+    schemas/                      Pydantic transport contracts grouped by domain
+    services/                     Transactions, validation and application rules
+    repositories/                 SQLAlchemy reads and writes without authorization policy
+    permissions.py                Role and mutation authorization dependencies
+    security.py                   Session, CSRF, password and principal primitives
+    errors.py                     Stable error envelope and exception handlers
+    generate_api_contract.py      Reproducible OpenAPI and TypeScript generation
   migrations/                     Versioned database migrations
   tests/                          Unit, API, database and end-to-end contract tests
   docs/architecture.md
 ```
 
-These module paths are planned, not generated placeholders. Start with identity, family ownership and curriculum eligibility before adding AI calls.
+The documents, questions, assessments, tutoring and mastery routers and schemas establish ownership for upcoming roadmap work. Endpoints are added only when their service and permission rules exist. Routers translate HTTP input and output; they do not query SQLAlchemy directly. Services own transactions and domain validation. Repositories contain database access and never decide whether a caller may access a resource.
+
+## API contract and errors
+
+Run `npm run contract:generate` from `source-code/` whenever an endpoint or Pydantic schema changes. This updates `backend/docs/openapi.json` and `frontend/lib/generated/api-contract.ts`. `npm run contract:check` and CI fail if either generated artifact is stale.
+
+API failures use one envelope:
+
+```json
+{
+  "error": {
+    "code": "invalid_subjects",
+    "message": "Choose valid iGCSE subjects.",
+    "details": []
+  }
+}
+```
+
+`code` is stable for client decisions, `message` is safe to display, and validation `details` identify fields without returning secrets or internal exceptions.
 
 ## Infrastructure
 

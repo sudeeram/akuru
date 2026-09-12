@@ -84,7 +84,9 @@ def test_rejects_untrusted_origins(auth_client) -> None:
         headers={"Origin": "https://attacker.example"},
     )
     assert response.status_code == 403
-    assert response.json() == {"detail": "Origin not allowed."}
+    assert response.json() == {
+        "error": {"code": "origin_not_allowed", "message": "Origin not allowed.", "details": []}
+    }
 
 
 @pytest.mark.integration
@@ -99,8 +101,8 @@ def test_admin_creates_parent_and_student_with_scoped_state(auth_client) -> None
     })
     assert invalid_parent.status_code == 422
     assert any(
-        issue["loc"][-1] == "password" and "at least 12 characters" in issue["msg"]
-        for issue in invalid_parent.json()["detail"]
+        issue["location"][-1] == "password" and "at least 12 characters" in issue["message"]
+        for issue in invalid_parent.json()["error"]["details"]
     )
 
     parent_username = f"parent-{uuid.uuid4().hex[:12]}"
@@ -179,7 +181,11 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
         "newPassword": initial_password,
     })
     assert reused.status_code == 400
-    assert reused.json()["detail"] == "The new password cannot be same as the existing password."
+    assert reused.json()["error"] == {
+        "code": "password_reused",
+        "message": "The new password cannot be same as the existing password.",
+        "details": [],
+    }
     response = client.post("/api/v1/auth/change-password", headers={"X-CSRF-Token": user_login["csrfToken"]}, json={
         "newPassword": "a completely new secure password",
     })

@@ -67,5 +67,6 @@ jobs:
       - run: .venv/bin/pip install -r requirements-dev.txt
       - run: .venv/bin/alembic upgrade head
       - run: .venv/bin/alembic check
+      - run: .venv/bin/python -m app.generate_api_contract --check
       - run: .venv/bin/python -m pytest -q
       - run: .venv/bin/python -m app.database_maintenance restore-drill

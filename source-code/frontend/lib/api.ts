@@ -1,3 +1,9 @@
+export type {
+  ApiOperation,
+  ApiOperations,
+  Schemas as BackendSchemas,
+} from './generated/api-contract';
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -23,6 +29,32 @@ const fieldLabels: Record<string, string> = {
 function apiErrorMessage(data: unknown) {
   if (!data || typeof data !== 'object')
     return 'The server could not process the request.';
+  if ('error' in data && typeof data.error === 'object' && data.error) {
+    const error = data.error as {
+      message?: unknown;
+      details?: unknown;
+    };
+    if (Array.isArray(error.details) && error.details.length) {
+      const messages = error.details
+        .map((item) => {
+          if (!item || typeof item !== 'object') return '';
+          const location =
+            'location' in item && Array.isArray(item.location)
+              ? item.location
+              : [];
+          const key = String(location.at(-1) ?? 'request');
+          const label = fieldLabels[key] ?? key;
+          const message =
+            'message' in item && typeof item.message === 'string'
+              ? item.message.replace(/^Value error,\s*/i, '')
+              : 'is invalid';
+          return `${label}: ${message}`;
+        })
+        .filter(Boolean);
+      if (messages.length) return messages.join(' ');
+    }
+    if (typeof error.message === 'string') return error.message;
+  }
   if ('error' in data && typeof data.error === 'string') return data.error;
   if ('detail' in data && typeof data.detail === 'string') return data.detail;
   if ('detail' in data && Array.isArray(data.detail)) {

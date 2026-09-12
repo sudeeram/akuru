@@ -78,26 +78,6 @@ def require_csrf(
     return principal
 
 
-def require_roles(*roles: str):
-    def check(principal: Annotated[Principal, Depends(get_principal)]) -> Principal:
-        if principal.user.must_change_password:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Change the temporary password before continuing.")
-        if principal.user.role not in roles:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permission.")
-        return principal
-    return check
-
-
-def require_csrf_roles(*roles: str):
-    def check(principal: Annotated[Principal, Depends(require_csrf)]) -> Principal:
-        if principal.user.must_change_password:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Change the temporary password before continuing.")
-        if principal.user.role not in roles:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permission.")
-        return principal
-    return check
-
-
 def session_expiry() -> datetime:
     return utcnow() + timedelta(hours=get_settings().session_hours)
 

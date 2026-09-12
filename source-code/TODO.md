@@ -22,11 +22,11 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Separate the new domains before the initial portal module grows further.
 
-- [ ] Add versioned routers and schemas for documents, curriculum, questions, assessments, tutoring and mastery.
-- [ ] Add service and repository boundaries for database access.
-- [ ] Centralize Admin-only content and student-owned submission permissions.
-- [ ] Maintain a typed frontend contract from FastAPI OpenAPI.
-- [ ] Standardize validation, permission and processing error responses.
+- [x] Add versioned routers and schemas for documents, curriculum, questions, assessments, tutoring and mastery.
+- [x] Add service and repository boundaries for database access.
+- [x] Centralize Admin-only content and student-owned submission permissions.
+- [x] Maintain a typed frontend contract from FastAPI OpenAPI.
+- [x] Standardize validation, permission and processing error responses.
 
 **Done when:** HTTP concerns live in routers, rules live in services, and every endpoint derives role and scope from the authenticated principal.
 

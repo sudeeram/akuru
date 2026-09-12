@@ -3,11 +3,19 @@
 ## Step 0 foundation baseline
 
 - Frontend contract tests: 6 passed.
-- Backend unit and PostgreSQL integration tests: 9 passed with 2 upstream deprecation warnings.
+- Backend unit and PostgreSQL integration tests: 10 passed with 2 upstream deprecation warnings.
 - Alembic migration and schema-drift check: passed at revision `1077b2ef7586`; no new upgrade operations detected.
 - Frontend TypeScript check, Oxlint and production build: passed.
 - PostgreSQL backup/restore drill: passed. The restored copy contained the expected Alembic revision and 15 public tables, then the isolated drill database was removed.
 - GitHub Actions now repeats frontend checks and backend checks against an isolated PostgreSQL service on every push and pull request.
+
+## Step 1 backend-boundary verification
+
+- Existing authentication, CSRF, first-login password changes, Admin account management, family isolation and cumulative progression requests pass through the new versioned routers.
+- HTTP routers contain transport concerns, services contain validation and transactions, and repositories contain SQLAlchemy access.
+- Admin role gates and student submission ownership live in the central permission module.
+- Validation, domain, permission and unexpected processing failures use the documented structured error envelope.
+- `npm run contract:check` confirms that the committed OpenAPI document and TypeScript contract match FastAPI.
 
 Run the local quality gate from `source-code/` with `npm run verify`. Run `npm run database:restore-drill` separately when validating backup recoverability.
 

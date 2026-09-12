@@ -4,14 +4,13 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from sqlalchemy import select, text
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
-from app.models import Course, Subject
-from app.auth import router as auth_router
-from app.portal import router as portal_router
+from app.api.v1.router import api_router
+from app.errors import ErrorResponse, error_content, install_error_handlers
 from app.security import Principal, get_principal
 
 settings = get_settings()
@@ -21,6 +20,11 @@ app = FastAPI(
     docs_url="/docs" if settings.environment == "development" else None,
     redoc_url=None,
     openapi_url="/openapi.json" if settings.environment == "development" else None,
+    responses={
+        401: {"model": ErrorResponse, "description": "Authentication required"},
+        403: {"model": ErrorResponse, "description": "Permission denied"},
+        422: {"model": ErrorResponse, "description": "Validation failed"},
+    },
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 app.add_middleware(
@@ -30,8 +34,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(auth_router)
-app.include_router(portal_router)
+install_error_handlers(app)
+app.include_router(api_router)
 
 
 @app.middleware("http")
@@ -39,10 +43,16 @@ async def request_security(request: Request, call_next):
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         if origin and origin not in settings.cors_origins:
-            return JSONResponse(status_code=403, content={"detail": "Origin not allowed."})
+            return JSONResponse(
+                status_code=403,
+                content=error_content("origin_not_allowed", "Origin not allowed."),
+            )
         content_length = request.headers.get("content-length")
         if content_length and content_length.isdigit() and int(content_length) > 1_000_000:
-            return JSONResponse(status_code=413, content={"detail": "Request body too large."})
+            return JSONResponse(
+                status_code=413,
+                content=error_content("request_too_large", "Request body too large."),
+            )
     response = await call_next(request)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
@@ -63,16 +73,3 @@ def ready(
 ) -> dict[str, str]:
     db.execute(text("SELECT 1"))
     return {"status": "ready", "database": "connected"}
-
-
-@app.get("/api/v1/catalog", tags=["curriculum"])
-def catalog(
-    _principal: Annotated[Principal, Depends(get_principal)],
-    db: Session = Depends(get_db),
-) -> dict[str, list[dict[str, object]]]:
-    courses = db.execute(select(Course).order_by(Course.name)).scalars()
-    subjects = db.execute(select(Subject).order_by(Subject.name)).scalars()
-    return {
-        "courses": [{"id": row.id, "name": row.name, "phase1Active": row.phase1_active} for row in courses],
-        "subjects": [{"id": row.id, "name": row.name} for row in subjects],
-    }

@@ -14,6 +14,8 @@ FastAPI validation responses may contain multiple structured field errors. `lib/
 
 `GET /api/v1/state` returns the authenticated user, role-scoped accounts and children, the Phase 1 catalog, and feature collections. Admin can create Parent and Student accounts with `POST /api/v1/admin/accounts` and update Student family/enrolment details with `POST /api/v1/admin/students`.
 
+The backend OpenAPI schema generates `lib/generated/api-contract.ts`. Do not edit that file directly. After changing a FastAPI route or schema, run `npm run contract:generate` from `source-code/`; CI uses `npm run contract:check` to detect drift. The API wrapper translates the backend's structured error envelope into field-specific messages for the portal.
+
 The document, textbook-unit, coverage, question, practice, exam, review, assignment, and plan screens remain in the interface, but their PostgreSQL-backed endpoints are the next implementation phases. Empty collections keep the screens safe while those services are built.
 
 ## Authorization boundary
