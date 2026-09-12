@@ -6,6 +6,7 @@ const api = readFileSync(new URL('../lib/api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(new URL('../features/admin.tsx', import.meta.url), 'utf8');
 const vite = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
+const uiFeatures = readFileSync(new URL('../app/ui-features/page.tsx', import.meta.url), 'utf8');
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -24,4 +25,11 @@ test('frontend contains no bundled mock credentials', () => {
   assert.doesNotMatch(page, /Local demo accounts/);
   assert.doesNotMatch(page, /demo-accounts/);
   assert.doesNotMatch(vite, /local-server/);
+});
+
+test('admin UI reference is routed and API-authorized', () => {
+  assert.match(page, /href="\/ui-features"/);
+  assert.match(uiFeatures, /api\('admin\/ui-features'\)/);
+  assert.match(uiFeatures, /Admin access required/);
+  assert.match(uiFeatures, /AKURU-owned components/);
 });

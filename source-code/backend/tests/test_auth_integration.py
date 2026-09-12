@@ -60,6 +60,10 @@ def test_login_protected_routes_and_logout(auth_client) -> None:
     assert "SameSite=strict" in login.headers["set-cookie"]
 
     assert client.get("/api/v1/auth/me").status_code == 200
+    ui_features = client.get("/api/v1/admin/ui-features")
+    assert ui_features.status_code == 200
+    assert ui_features.json()["allowed"] is True
+    assert ui_features.json()["user"]["role"] == "admin"
     assert client.get("/ready").json() == {"status": "ready", "database": "connected"}
     catalog = client.get("/api/v1/catalog")
     assert catalog.status_code == 200
@@ -142,6 +146,7 @@ def test_admin_creates_parent_and_student_with_scoped_state(auth_client) -> None
     parent_state = client.get("/api/v1/state").json()
     assert parent_state["accounts"] == []
     assert parent_state["students"] == []
+    assert client.get("/api/v1/admin/ui-features").status_code == 403
     parent_headers = {"X-CSRF-Token": parent_login["csrfToken"]}
     blocked_until_changed = client.post("/api/v1/admin/accounts", headers=parent_headers, json={
         "username": "forbidden-user", "name": "Forbidden", "password": "a secure temporary password", "role": "parent",

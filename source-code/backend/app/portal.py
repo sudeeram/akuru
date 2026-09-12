@@ -13,7 +13,7 @@ from app.models import (
     AuditEvent, Course, StudentProfile, StudentProgression, StudentSubject,
     Subject, User,
 )
-from app.security import Principal, get_principal, hash_password, require_csrf_roles
+from app.security import Principal, get_principal, hash_password, require_csrf_roles, require_roles
 
 router = APIRouter(prefix="/api/v1", tags=["portal"])
 GRADES = ("Grade 10", "Grade 11")
@@ -30,6 +30,20 @@ SUBJECT_PRESENTATION = {
     "french": ("Fr", "#db2777", "French language"),
     "human-biology": ("♡", "#dc2626", "Human systems"),
 }
+
+
+@router.get("/admin/ui-features")
+def ui_features_access(
+    principal: Annotated[Principal, Depends(require_roles("admin"))],
+) -> dict:
+    """Authorize the admin-only frontend component reference route."""
+    return {
+        "allowed": True,
+        "user": {
+            "name": principal.user.display_name,
+            "role": principal.user.role,
+        },
+    }
 
 
 class CreateAccountRequest(BaseModel):

@@ -2,6 +2,7 @@
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   BookOpen,
@@ -17,6 +18,7 @@ import {
   Users,
   Sparkles,
   ShieldCheck,
+  Palette,
 } from 'lucide-react';
 import {
   SidebarProvider,
@@ -301,6 +303,13 @@ export default function Portal() {
               data.attempts.filter((a) => a.status === 'needs-review').length
             }
           />
+          {admin && (
+            <Link className="admin-feature-link" href="/ui-features">
+              <Palette size={18} />
+              UI features
+              <ChevronRight size={15} />
+            </Link>
+          )}
           <div className="sidebar-note">
             <Sparkles size={20} />
             <strong>
@@ -433,7 +442,13 @@ export default function Portal() {
   );
 }
 
-function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise<void> }) {
+function PasswordChange({
+  data,
+  refresh,
+}: {
+  data: State;
+  refresh: () => Promise<void>;
+}) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -441,29 +456,83 @@ function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise
   return (
     <div className="login-page">
       <div className="login-story">
-        <div className="brand"><span className="brand-mark">A</span>AKURU<span className="brand-dot">●</span></div>
-        <div><div className="akuru-bot-scene"><div className="bot-sticker bot-checklist" /></div><h1>Protect your<br /><em>learning space.</em></h1></div>
+        <div className="brand">
+          <span className="brand-mark">A</span>AKURU
+          <span className="brand-dot">●</span>
+        </div>
+        <div>
+          <div className="akuru-bot-scene">
+            <div className="bot-sticker bot-checklist" />
+          </div>
+          <h1>
+            Protect your
+            <br />
+            <em>learning space.</em>
+          </h1>
+        </div>
       </div>
       <div className="login-form-wrap">
-        <form className="login-form" onSubmit={async (event) => {
-          event.preventDefault();
-          if (newPassword !== confirmPassword) return setError('The new passwords do not match.');
-          setBusy(true); setError('');
-          try {
-            await api('auth/change-password', { newPassword });
-            await refresh();
-          } catch (caught) { setError(errorMessage(caught)); }
-          finally { setBusy(false); }
-        }}>
-          <span className="pill"><ShieldCheck size={14} /> FIRST SIGN-IN</span>
+        <form
+          className="login-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (newPassword !== confirmPassword)
+              return setError('The new passwords do not match.');
+            setBusy(true);
+            setError('');
+            try {
+              await api('auth/change-password', { newPassword });
+              await refresh();
+            } catch (caught) {
+              setError(errorMessage(caught));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <span className="pill">
+            <ShieldCheck size={14} /> FIRST SIGN-IN
+          </span>
           <h2>Choose your own password.</h2>
-          <p>Welcome, {data.user.name}. Replace the temporary password before continuing.</p>
-          <label htmlFor="new-password">New password · at least 12 characters</label>
-          <Input id="new-password" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          <p>
+            Welcome, {data.user.name}. Replace the temporary password before
+            continuing.
+          </p>
+          <label htmlFor="new-password">
+            New password · at least 12 characters
+          </label>
+          <Input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+          />
           <label htmlFor="confirm-password">Confirm new password</label>
-          <Input id="confirm-password" type="password" autoComplete="new-password" minLength={12} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-          {error && <div className="error" role="alert">{error}</div>}
-          <Button type="submit" className="primary login-submit" disabled={busy}>{busy ? 'Saving…' : 'Save password'}<ArrowRight size={18} /></Button>
+          <Input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            minLength={12}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+          {error && (
+            <div className="error" role="alert">
+              {error}
+            </div>
+          )}
+          <Button
+            type="submit"
+            className="primary login-submit"
+            disabled={busy}
+          >
+            {busy ? 'Saving…' : 'Save password'}
+            <ArrowRight size={18} />
+          </Button>
         </form>
       </div>
     </div>

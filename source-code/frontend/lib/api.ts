@@ -21,19 +21,22 @@ const fieldLabels: Record<string, string> = {
   newPassword: 'New password',
 };
 function apiErrorMessage(data: unknown) {
-  if (!data || typeof data !== 'object') return 'The server could not process the request.';
+  if (!data || typeof data !== 'object')
+    return 'The server could not process the request.';
   if ('error' in data && typeof data.error === 'string') return data.error;
   if ('detail' in data && typeof data.detail === 'string') return data.detail;
   if ('detail' in data && Array.isArray(data.detail)) {
     return data.detail
       .map((item) => {
         if (!item || typeof item !== 'object') return '';
-        const location = 'loc' in item && Array.isArray(item.loc) ? item.loc : [];
+        const location =
+          'loc' in item && Array.isArray(item.loc) ? item.loc : [];
         const key = String(location.at(-1) ?? 'request');
         const label = fieldLabels[key] ?? key;
-        const message = 'msg' in item && typeof item.msg === 'string'
-          ? item.msg.replace(/^Value error,\s*/i, '')
-          : 'is invalid';
+        const message =
+          'msg' in item && typeof item.msg === 'string'
+            ? item.msg.replace(/^Value error,\s*/i, '')
+            : 'is invalid';
         return `${label}: ${message}`;
       })
       .filter(Boolean)
@@ -43,19 +46,25 @@ function apiErrorMessage(data: unknown) {
 }
 export type Lesson = { explanation: string; points: string[]; hints: string[] };
 export type FileRef = { id: string; name: string };
+export type UiFeaturesAccess = {
+  allowed: true;
+  user: { name: string; role: 'admin' };
+};
 type ApiResult<P extends string> = P extends 'state'
   ? State
-  : P extends `lesson${string}`
-    ? Lesson
-    : P extends 'hint'
-      ? { hint: string; total: number }
-      : P extends 'attempt'
-        ? Attempt
-        : P extends 'upload'
-          ? FileRef
-          : P extends `exams/${string}`
-            ? Exam
-            : unknown;
+  : P extends 'admin/ui-features'
+    ? UiFeaturesAccess
+    : P extends `lesson${string}`
+      ? Lesson
+      : P extends 'hint'
+        ? { hint: string; total: number }
+        : P extends 'attempt'
+          ? Attempt
+          : P extends 'upload'
+            ? FileRef
+            : P extends `exams/${string}`
+              ? Exam
+              : unknown;
 export async function api<P extends string>(
   path: P,
   body?: unknown,

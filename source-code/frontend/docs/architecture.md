@@ -20,6 +20,12 @@ The document, textbook-unit, coverage, question, practice, exam, review, assignm
 
 The UI hides actions according to role for usability. FastAPI remains authoritative. A client-provided role, parent ID, student ID, subject, or progression never grants access. Parent and Student state is filtered by authenticated database identity.
 
+`/ui-features` is the Admin component reference. The Admin portal links to it, and the route must successfully call `GET /api/v1/admin/ui-features` before rendering its catalog. FastAPI applies the Admin role dependency to that endpoint, so Parent and Student sessions are rejected with HTTP 403. The catalog demonstrates AKURU-owned components and synthetic example data; external design references are not copied into the codebase.
+
+## Visual system
+
+AKURU uses a pale blue-grey application canvas, white content cards, blue primary actions, and restrained green and amber status accents. The layout favors persistent navigation, concise dashboard cards, visible field labels, readable status text, and responsive grids. The `/ui-features` route is the review point for the current palette, typography, buttons, badges, alerts, form controls, progress indicators, tables, tabs, and AKURU BOT usage.
+
 ## Local commands
 
 From `source-code`:
