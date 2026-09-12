@@ -42,12 +42,13 @@ export async function api<P extends string>(
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (body !== undefined && csrfToken) headers['X-CSRF-Token'] = csrfToken;
-  const response = await fetch('/api/' + path, {
+  const response = await fetch('/api/v1/' + path, {
     method: body === undefined ? 'GET' : 'POST',
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data: unknown = await response.json();
+  const data: unknown =
+    response.status === 204 ? {} : await response.json();
   if (!response.ok) {
     const message =
       data &&
@@ -182,7 +183,13 @@ export type State = {
   coverage: Coverage[];
   questionBank: BankQuestion[];
   drafts: Record<string, string>;
-  user: { id: string; name: string; role: string };
+  user: {
+    id: string;
+    username: string;
+    name: string;
+    role: string;
+    mustChangePassword: boolean;
+  };
   subjects: Subject[];
   questions: Question[];
   students: Student[];

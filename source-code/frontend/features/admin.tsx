@@ -341,7 +341,7 @@ export function AdminWorkspace(p: Props) {
                     onChange={setUsername}
                   />
                   <Field
-                    label="Initial password (at least 8 characters)"
+                    label="Temporary password (at least 12 characters)"
                     type="password"
                     value={password}
                     onChange={setPassword}

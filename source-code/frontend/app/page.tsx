@@ -82,10 +82,10 @@ export default function Portal() {
     [view, setView] = useState('today'),
     [error, setError] = useState(''),
     [notice, setNotice] = useState('');
-  const [username, setUsername] = useState('alex'),
+  const [username, setUsername] = useState(''),
     [password, setPassword] = useState(''),
     [busy, setBusy] = useState(false),
-    [selected, setSelected] = useState('alex'),
+    [selected, setSelected] = useState(''),
     [subject, setSubject] = useState('maths');
   usePortalTools(data?.user.id);
   async function refresh() {
@@ -139,7 +139,7 @@ export default function Portal() {
     setBusy(true);
     setError('');
     try {
-      await api('login', { username, password });
+      await api('auth/login', { username, password });
       await refresh();
       setView('today');
       location.hash = 'today';
@@ -199,7 +199,7 @@ export default function Portal() {
         <div className="login-form-wrap">
           <form className="login-form" onSubmit={login}>
             <span className="pill">
-              <ShieldCheck size={14} /> LOCAL FAMILY PORTAL
+              <ShieldCheck size={14} /> SECURE FAMILY PORTAL
             </span>
             <h2>Welcome back.</h2>
             <p>Sign in to your own learning space.</p>
@@ -233,40 +233,16 @@ export default function Portal() {
               {busy ? 'Signing in…' : 'Sign in'}
               <ArrowRight size={18} />
             </Button>
-            <div className="demo-accounts">
-              <strong>Local demo accounts</strong>
-              <p>Use an account below to explore the portal.</p>
-              {[
-                ['alex', 'alex123', 'Student'],
-                ['jamie', 'jamie123', 'Student'],
-                ['sam', 'sam123', 'Student'],
-                ['parent', 'parent123', 'Parent'],
-                ['admin', 'admin123', 'Admin'],
-              ].map(([id, p, grade]) => (
-                <button
-                  type="button"
-                  key={id}
-                  onClick={() => {
-                    setUsername(id);
-                    setPassword(p);
-                  }}
-                >
-                  <span>
-                    {id} <small>{grade}</small>
-                  </span>
-                  <code>{p}</code>
-                  <ChevronRight size={14} />
-                </button>
-              ))}
-            </div>
             <p className="fineprint">
-              Sample content and local accounts for testing. No external AI
-              services are connected.
+              Accounts are created by an AKURU administrator. No external AI
+              services are connected yet.
             </p>
           </form>
         </div>
       </div>
     );
+  if (data.user.mustChangePassword)
+    return <PasswordChange data={data} refresh={refresh} />;
   const parent = data.user.role === 'parent';
   const admin = data.user.role === 'admin';
   const child = data.students.find((s) => s.id === selected) ||
@@ -359,7 +335,7 @@ export default function Portal() {
               variant="ghost"
               aria-label="Sign out"
               onClick={async () => {
-                await api('logout', {});
+                await api('auth/logout', {});
                 setData(null);
                 setView('today');
               }}
@@ -387,7 +363,7 @@ export default function Portal() {
           </div>
           <div className="topbar-right">
             <span className="local-dot" />
-            Local preview
+            AKURU portal
             <span className="top-avatar">
               {admin ? 'A' : parent ? 'P' : child.name[0]}
             </span>
@@ -449,10 +425,50 @@ export default function Portal() {
         </div>
         <footer className="app-footer">
           <span>AKURU · A little progress, every day.</span>
-          <span>iGCSE · Admin-reviewed learning material · Local preview</span>
+          <span>iGCSE · Admin-reviewed learning material</span>
         </footer>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise<void> }) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="login-page">
+      <div className="login-story">
+        <div className="brand"><span className="brand-mark">A</span>AKURU<span className="brand-dot">●</span></div>
+        <div><div className="akuru-bot-scene"><div className="bot-sticker bot-checklist" /></div><h1>Protect your<br /><em>learning space.</em></h1></div>
+      </div>
+      <div className="login-form-wrap">
+        <form className="login-form" onSubmit={async (event) => {
+          event.preventDefault();
+          if (newPassword !== confirmPassword) return setError('The new passwords do not match.');
+          setBusy(true); setError('');
+          try {
+            await api('auth/change-password', { currentPassword, newPassword });
+            await refresh();
+          } catch (caught) { setError(errorMessage(caught)); }
+          finally { setBusy(false); }
+        }}>
+          <span className="pill"><ShieldCheck size={14} /> FIRST SIGN-IN</span>
+          <h2>Choose your own password.</h2>
+          <p>Welcome, {data.user.name}. Replace the temporary password before continuing.</p>
+          <label htmlFor="current-password">Temporary password</label>
+          <Input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+          <label htmlFor="new-password">New password · at least 12 characters</label>
+          <Input id="new-password" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+          <label htmlFor="confirm-password">Confirm new password</label>
+          <Input id="confirm-password" type="password" autoComplete="new-password" minLength={12} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+          {error && <div className="error" role="alert">{error}</div>}
+          <Button type="submit" className="primary login-submit" disabled={busy}>{busy ? 'Saving…' : 'Save password'}<ArrowRight size={18} /></Button>
+        </form>
+      </div>
+    </div>
   );
 }
 function StudentHome({

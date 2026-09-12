@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
@@ -33,6 +33,7 @@ class UserResponse(BaseModel):
     username: str
     name: str
     role: Literal["admin", "parent", "student"]
+    mustChangePassword: bool
 
 
 class LoginResponse(BaseModel):
@@ -41,7 +42,21 @@ class LoginResponse(BaseModel):
 
 
 def public_user(user: User) -> UserResponse:
-    return UserResponse(id=str(user.id), username=user.username, name=user.display_name, role=user.role)
+    return UserResponse(
+        id=str(user.id), username=user.username, name=user.display_name,
+        role=user.role, mustChangePassword=user.must_change_password,
+    )
+
+
+class ChangePasswordRequest(BaseModel):
+    currentPassword: str = Field(min_length=1, max_length=200)
+    newPassword: str = Field(min_length=12, max_length=200)
+
+    @model_validator(mode="after")
+    def passwords_must_differ(self):
+        if self.currentPassword == self.newPassword:
+            raise ValueError("The new password must be different.")
+        return self
 
 
 def throttle_key(request: Request, username: str) -> str:
@@ -112,3 +127,24 @@ def logout(response: Response, db: Annotated[Session, Depends(get_db)], principa
     db.commit()
     response.delete_cookie(SESSION_COOKIE, httponly=True, secure=settings.cookie_secure, samesite="strict", path="/")
     response.delete_cookie(CSRF_COOKIE, httponly=False, secure=settings.cookie_secure, samesite="strict", path="/")
+
+
+@router.post("/change-password", status_code=204)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Annotated[Session, Depends(get_db)],
+    principal: Annotated[Principal, Depends(require_csrf)],
+) -> None:
+    if not verify_password(payload.currentPassword, principal.user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The current password is incorrect.")
+    from app.security import hash_password
+
+    principal.user.password_hash = hash_password(payload.newPassword)
+    principal.user.must_change_password = False
+    db.execute(
+        delete(AuthSession).where(
+            (AuthSession.user_id == principal.user.id)
+            & (AuthSession.id != principal.session.id)
+        )
+    )
+    db.commit()

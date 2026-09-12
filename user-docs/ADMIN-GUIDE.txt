@@ -1,7 +1,8 @@
 AKURU ADMIN GUIDE
 ======================
 
-Local demo sign-in: admin / admin123. This is for local testing only.
+Sign in with the Admin account created through the secure backend bootstrap
+command. AKURU contains no default Admin password.
 
 1. ACCOUNTS AND ENROLMENTS
 

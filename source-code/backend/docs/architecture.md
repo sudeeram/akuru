@@ -117,7 +117,7 @@ Study plans aggregate each student's assessed history and covered units. Do not 
 
 ## API and migration strategy
 
-Use typed FastAPI request models, explicit response models and generated OpenAPI types. The existing frontend API wrapper is the integration seam. Replace the mock through a same-origin proxy/configuration; do not run both as authoritative stores.
+Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.
 
 Before migration, freeze and back up local JSON and file bytes, map legacy identity/curriculum data explicitly, import with stable provenance and compare per-family counts. Preserve original backups. Unmapped legacy Science questions cannot be automatically assigned to Biology, Chemistry or Physics without review. Do not silently assign existing children to Grade 10/11 based on old school-year labels.
 

@@ -950,40 +950,6 @@ small {
   width: 100%;
   justify-content: space-between;
 }
-.demo-accounts {
-  border-top: 1px solid var(--border);
-  margin-top: 28px;
-  padding-top: 21px;
-  font-size: 13px;
-}
-.demo-accounts > p {
-  font-size: 12px;
-  margin: 5px 0 14px;
-}
-.demo-accounts button {
-  width: 100%;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  text-align: left;
-  border: 0;
-  border-bottom: 1px solid #f0f3f8;
-  background: none;
-  padding: 10px 0;
-  font-size: 13px;
-}
-.demo-accounts button > span {
-  flex: 1;
-}
-.demo-accounts small {
-  font-size: 11px;
-  color: #8a97aa;
-  margin-left: 8px;
-}
-.demo-accounts code {
-  font-size: 11px;
-  color: #708199;
-}
 .login-form .fineprint {
   font-size: 11px;
   line-height: 1.7;

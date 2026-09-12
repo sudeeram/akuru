@@ -6,14 +6,13 @@ only linked children; students see their own work. Learning resources are
 shared by subject after Admin approval. Student answer attachments remain private
 to the child, their linked parent and Admin.
 
-The local portal stores records, account password hashes and uploads on the
-server computer in source-code/frontend/.local-data/. Stop the server before
-backing up that directory. Protect backups because they contain children's work.
-Do not delete old state or migration backups simply to clear a setup warning.
+The backend stores accounts and enrolments in PostgreSQL. Protect database
+backups because they contain family and student records. Uploaded learning and
+answer files will use private object storage when that service is implemented.
 
-Demo credentials (including admin/admin123) are public test credentials. Newly
-created account passwords are stored as salted hashes, but this remains local
-test software with temporary session handling. Sign out on shared devices.
+Passwords are stored only as Argon2 hashes. Newly created Parent and Student
+accounts must replace their temporary password on first sign-in. AKURU contains
+no demo credentials. Sign out on shared devices.
 
 No uploaded file goes to an external AI service. Automatic PDF extraction,
 equation/diagram ingestion, AI tutoring and generated images/videos are not

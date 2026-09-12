@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer,
-    String, Text, UniqueConstraint, func, text,
+    JSON, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -47,6 +47,7 @@ class User(TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(16))
     password_hash: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     __table_args__ = (CheckConstraint("role IN ('admin','parent','student')", name="ck_users_role"),)
 
 
@@ -70,6 +71,17 @@ class LoginThrottle(Base):
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (CheckConstraint("failure_count >= 0", name="ck_login_failure_count"),)
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    action: Mapped[str] = mapped_column(String(80), index=True)
+    target_type: Mapped[str] = mapped_column(String(40))
+    target_id: Mapped[str] = mapped_column(String(80), index=True)
+    event_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class StudentProfile(TimestampMixin, Base):

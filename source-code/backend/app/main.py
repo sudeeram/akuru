@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import Course, Subject
 from app.auth import router as auth_router
+from app.portal import router as portal_router
 from app.security import Principal, get_principal
 
 settings = get_settings()
@@ -30,6 +31,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router)
+app.include_router(portal_router)
 
 
 @app.middleware("http")

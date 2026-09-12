@@ -1,6 +1,6 @@
 # AKURU backend
 
-This folder contains the first real backend skeleton. FastAPI exposes health, readiness, and curriculum catalog endpoints; SQLAlchemy models and Alembic migrations own the initial PostgreSQL schema. The frontend mock remains in `../frontend/local-server` until feature endpoints are migrated.
+This folder contains the real backend foundation. FastAPI provides authentication, role-scoped portal state, Admin account/enrolment management, health, readiness and curriculum endpoints. SQLAlchemy models and Alembic migrations own the PostgreSQL schema. The frontend calls these routes through `/api/v1`.
 
 ## One-time local setup
 

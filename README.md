@@ -18,15 +18,15 @@ Phase 1 focuses on iGCSE students in Grades 10 and 11. The supported subjects ar
 | Area | Status |
 | --- | --- |
 | React portal and role-specific screens | Working locally |
-| Temporary Node/JSON mock API | Working locally |
 | FastAPI application and PostgreSQL schema | Implemented |
 | Argon2 authentication, revocable sessions, CSRF, and login throttling | Implemented |
-| Frontend-to-FastAPI feature integration | In progress |
+| Frontend authentication and account administration through FastAPI | Implemented |
+| Remaining frontend-to-FastAPI feature integration | In progress |
 | Automated PDF/OCR/equation/diagram ingestion | Planned |
 | RAG tutor, AI assessment, and generated media | Planned |
 | Public production release | Blocked on frontend/FastAPI integration and production hardening |
 
-The frontend currently uses `source-code/frontend/local-server`. It must not be treated as the authoritative production backend or exposed as the public AKURU service.
+The frontend no longer contains mock users or an active mock API. Document, coverage, question, practice, assessment, and review endpoints are still being moved to FastAPI.
 
 ## Architecture
 
@@ -51,7 +51,7 @@ The detailed domain rules are in [the overall architecture](source-code/docs/arc
 ```text
 .
 ├── source-code/
-│   ├── frontend/              React, TypeScript, Vite/Vinext and temporary mock API
+│   ├── frontend/              React, TypeScript and Vite/Vinext portal
 │   ├── backend/               FastAPI, SQLAlchemy, Alembic and PostgreSQL tests
 │   ├── docs/                  Shared architecture and verification notes
 │   ├── scripts/               Local frontend/backend launchers
@@ -107,7 +107,7 @@ Create the first Admin interactively. The password is read without echoing and i
 
 Open separate terminals in `source-code`.
 
-Frontend with the temporary mock API:
+Frontend, with `/api/v1` proxied to FastAPI:
 
 ```bash
 npm run dev
@@ -249,7 +249,7 @@ Keep Uvicorn bound to loopback. Configure Nginx to proxy HTTPS API requests to `
 
 Before exposing the web portal publicly:
 
-1. Replace all mock routes with the corresponding FastAPI endpoints.
+1. Implement the remaining feature routes in FastAPI.
 2. Remove the temporary local server from the production start path.
 3. Verify Admin, Parent, and Student authorization against PostgreSQL.
 4. Run browser-level tests through the HTTPS reverse proxy.

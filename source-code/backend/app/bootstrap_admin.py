@@ -21,7 +21,13 @@ def main() -> None:
     with SessionLocal.begin() as db:
         if db.execute(select(User).where(User.username == username)).scalar_one_or_none():
             raise SystemExit("That username already exists.")
-        db.add(User(username=username, display_name=args.name.strip(), role="admin", password_hash=hash_password(password)))
+        db.add(User(
+            username=username,
+            display_name=args.name.strip(),
+            role="admin",
+            password_hash=hash_password(password),
+            must_change_password=False,
+        ))
     print(f"Created administrator: {username}")
 
 

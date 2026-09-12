@@ -1,6 +1,6 @@
 # AKURU overall architecture
 
-Status: authoritative Phase 1 domain specification, with an implemented local frontend/mock API and an initial FastAPI/PostgreSQL authentication foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
+Status: authoritative Phase 1 domain specification, with the frontend connected to a FastAPI/PostgreSQL identity, account and enrolment foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
 
 ## Repository boundaries
 
@@ -13,17 +13,15 @@ source-code/
     app/                        Portal shell and role navigation
     features/                   Admin, Parent and Student screens
     lib/api.ts                  Frontend API boundary
-    local-server/               Temporary Node mock backend
-    tests/                      Mock API integration tests
-    docs/architecture.md        Frontend implementation and mock contract
-    .local-data/                Ignored local records, hashes and files
+    tests/                      Frontend boundary tests
+    docs/architecture.md        Frontend implementation and API contract
   backend/
     docs/architecture.md        FastAPI design and implementation requirements
     README.md                   Backend setup, authentication and deployment notes
   scripts/run-web.mjs           Existing local frontend launcher
 ```
 
-The local Node API remains inside `frontend`. It is a development adapter, not the real backend. The future Python/FastAPI application will live entirely in `backend`. The frontend must never hold provider API keys or implement authoritative permissions.
+The browser uses same-origin `/api/v1/*` routes. Vite proxies that prefix to FastAPI during development; the production reverse proxy owns the same route. The frontend must never hold provider API keys or implement authoritative permissions.
 
 ## System layout
 
@@ -33,8 +31,6 @@ flowchart TD
     P[Parent portal] --> F
     S[Student portal] --> F
     F --> API[FastAPI: identity, permissions and domain services]
-    F -. current local mode .-> MOCK[frontend/local-server]
-    MOCK --> JSON[Private local JSON and files]
     API --> DB[(PostgreSQL + pgvector)]
     API --> OBJ[Private object storage]
     API --> JOB[Document and media job queue]
@@ -45,7 +41,7 @@ flowchart TD
     ELIG --> TUTOR[Tutor, assessment and study planning]
 ```
 
-FastAPI authentication and the initial PostgreSQL schema are implemented. Feature API migration, object storage, workers and AI services remain planned. The mock currently implements the complete domain workflow with manual document/question entry.
+FastAPI authentication, account administration, family-scoped state and the initial PostgreSQL schema are implemented. Remaining feature APIs, object storage, workers and AI services remain planned.
 
 ## Roles and family ownership
 
@@ -80,7 +76,7 @@ Biology, Chemistry, Physics and Human Biology are separate subjects. There is no
 
 A student has one active course, one current grade, one current term and one or more enrolled subjects. The student also has an ordered progression list of Grade + Term combinations already reached. For example, Grade 10 Term2 stores both Grade 10 Term1 and Grade 10 Term2. The phase-one course applies to every selected subject. The old feature allowing arbitrary qualifications per subject is superseded. Keep syllabus/specification and textbook edition identities in the production curriculum model so two specifications or editions are not accidentally mixed.
 
-Production stores enrolment periods by academic year and retains the progression history. The mock stores current enrolment plus the progression list and an original legacy profile, and captures the full accumulated scope in each new mock exam. Advancement is an Admin action; no automatic promotion is assumed.
+PostgreSQL stores the current enrolment and progression history. A future assessment snapshot will capture the full accumulated scope in each new mock exam. Advancement is an Admin action; no automatic promotion is assumed.
 
 ## Textbooks, units and coverage
 
@@ -90,7 +86,7 @@ Admin defines the complete covered-unit set for `(course, subject, grade, term)`
 
 Coverage is defined per Grade + Term, and student eligibility is cumulative across the student's saved progression list. For example, Grade 10 Term2 includes the union of Grade 10 Term1 and Grade 10 Term2 coverage. Grade 11 does not automatically inherit Grade 10 units; the Admin must add Grade 11 progression combinations and coverage explicitly. An empty union means no eligible questions. There is no fallback to the entire syllabus.
 
-The mock associates each past paper with one approved textbook that provides its mapping vocabulary. Each question may map to multiple units within that textbook. Production may support curated equivalences across editions later, but must never equate units solely by number or title.
+Each past paper must associate with one approved textbook that provides its mapping vocabulary. Each question may map to multiple units within that textbook. Future versions may support curated equivalences across editions, but must never equate units solely by number or title.
 
 ## Document ingestion and publishing
 
@@ -106,7 +102,7 @@ Required workflow:
 6. Every question or independently usable subpart is entered/extracted with question number, marks, prompt, equations, diagrams and source page references. A subpart requiring a common stem or shared diagram must retain that dependency.
 7. Every question is linked to one or more units of the selected textbook, all in the same course and subject. An empty, missing, foreign-subject or foreign-textbook mapping is invalid.
 8. Admin checks the question, mapping, worked explanation and marking points. Pending questions cannot be used for study or mocks.
-9. Admin confirms that the entire paper has been captured and reviewed before approving the paper. The mock requires a completeness attestation plus at least one reviewed question; it cannot independently count questions in a PDF. The real extraction pipeline must reconcile the source question inventory and subparts before publication.
+9. Admin confirms that the entire paper has been captured and reviewed before approving the paper. Until extraction is implemented, the manual workflow requires a completeness attestation plus at least one reviewed question; it cannot independently count questions in a PDF. The extraction pipeline must reconcile the source question inventory and subparts before publication.
 
 Paper questions are tagged by unit, not by an artificial term assigned to the original full-syllabus paper. Marking schemes and examiner reports stay linked to their source paper and, where possible, to individual questions/subparts. A source paper may cover the whole syllabus; a student's generated term mock must still pass the covered-unit filter.
 
@@ -160,11 +156,11 @@ PostgreSQL foreign keys, unique/check constraints and transactional domain valid
 
 ## Current implementation and future work
 
-Implemented locally: three roles, Admin account creation, hashed storage for new accounts, parent-child isolation, active iGCSE catalog, Admin enrolments, textbook/unit workflow, coverage sets, manual question mappings, paper sign-off, term-filtered mocks/practice, parent reviews, private answer attachments, and architecture documentation.
+Implemented with FastAPI/PostgreSQL: three roles, Argon2 authentication, forced first-login password replacement, Admin account creation, audit events, parent-child isolation, active iGCSE catalog, progression and subject enrolments, and role-scoped portal state. The frontend screens for later workflows remain while their APIs are implemented.
 
 Still planned: remaining FastAPI feature APIs, full account lifecycle, OCR and mathematical extraction, page crops and equation rendering for newly ingested questions, automatic question inventory, source-aligned mark-scheme extraction, RAG, AI assessment/tutoring, generated media, full question versioning and deployment to OCI.
 
-The old local records are moved with the frontend. On first use of the revised API, a pre-migration state backup is saved. Existing learners require Admin confirmation rather than an invented grade/term migration. Original Science/demo material and completed work remain historical; unreviewed old questions are excluded from the active bank. Previously active legacy exams are archived with their saved answers rather than resumed as compliant term mocks.
+Legacy mock records are not imported automatically. Any future import must preserve provenance and require Admin confirmation rather than inventing grade, term, subject, or unit mappings.
 
 ## Acceptance criteria for future generated code
 
