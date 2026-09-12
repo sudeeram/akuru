@@ -16,23 +16,9 @@ import {
   LogOut,
   TrendingUp,
   Users,
-  Sparkles,
   ShieldCheck,
   Palette,
 } from 'lucide-react';
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  SidebarInset,
-  SidebarTrigger,
-  useSidebar,
-} from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -276,89 +262,14 @@ export default function Portal() {
     setSelected,
   };
   return (
-    <SidebarProvider
-      style={{ '--sidebar-width': '244px' } as React.CSSProperties}
-    >
-      <Sidebar className="app-sidebar">
-        <SidebarHeader>
+    <div className="portal-shell">
+      <header className="topbar">
+        <div className="topbar-identity">
           <div className="brand">
             <span className="brand-mark">A</span>AKURU
             <span className="brand-dot">●</span>
           </div>
-          <div className="portal-label">
-            {admin
-              ? 'ADMIN SPACE'
-              : parent
-                ? 'PARENT SPACE'
-                : 'MY LEARNING SPACE'}
-          </div>
-        </SidebarHeader>
-        <SidebarContent>
-          <PortalNavigation
-            parent={parent}
-            admin={admin}
-            view={view}
-            go={go}
-            pending={
-              data.attempts.filter((a) => a.status === 'needs-review').length
-            }
-          />
-          {admin && (
-            <Link className="admin-feature-link" href="/ui-features">
-              <Palette size={18} />
-              UI features
-              <ChevronRight size={15} />
-            </Link>
-          )}
-          <div className="sidebar-note">
-            <Sparkles size={20} />
-            <strong>
-              {parent
-                ? 'Small steps. Lasting growth.'
-                : 'Curiosity looks good on you.'}
-            </strong>
-            <p>
-              {parent
-                ? 'Every child learns at their own pace. Make room for theirs.'
-                : 'A question is always a good place to start.'}
-            </p>
-          </div>
-        </SidebarContent>
-        <SidebarFooter>
-          <div className="account">
-            <span className="avatar">
-              {admin ? 'A' : parent ? 'P' : child.name[0]}
-            </span>
-            <div>
-              <strong>
-                {admin ? data.user.name : parent ? data.user.name : child.name}
-              </strong>
-              <small>
-                {admin
-                  ? 'Curriculum administrator'
-                  : parent
-                    ? 'Parent'
-                    : `${child.grade} · ${child.term}`}
-              </small>
-            </div>
-            <Button
-              variant="ghost"
-              aria-label="Sign out"
-              onClick={async () => {
-                await api('auth/logout', {});
-                setData(null);
-                setView('today');
-              }}
-            >
-              <LogOut size={18} />
-            </Button>
-          </div>
-        </SidebarFooter>
-      </Sidebar>
-      <SidebarInset className="app-inset">
-        <header className="topbar">
           <div className="breadcrumb">
-            <SidebarTrigger />
             <span>
               {admin
                 ? 'Admin portal'
@@ -371,108 +282,128 @@ export default function Portal() {
               {nav.find((n) => n[0] === view)?.[1] || 'Learning workspace'}
             </strong>
           </div>
-          <div className="topbar-right">
-            <span className="local-dot" />
-            AKURU portal
-            <span className="top-avatar">
-              {admin ? 'A' : parent ? 'P' : child.name[0]}
-            </span>
-          </div>
-        </header>
-        <nav
-          className="portal-horizontal-nav"
-          aria-label={`${admin ? 'Admin' : parent ? 'Parent' : 'Student'} portal sections`}
-        >
-          <div className="portal-horizontal-nav-track">
-            {nav.map(([id, label, Icon]) => (
-              <button
-                key={id}
-                type="button"
-                data-active={view === id}
-                aria-current={view === id ? 'page' : undefined}
-                onClick={() => go(id)}
-              >
-                <Icon size={17} />
-                <span>{label}</span>
-                {id === 'reviews' &&
-                  data.attempts.some((a) => a.status === 'needs-review') && (
-                    <small>
-                      {
-                        data.attempts.filter((a) => a.status === 'needs-review')
-                          .length
-                      }
-                    </small>
-                  )}
-              </button>
-            ))}
-            {admin && (
-              <Link href="/ui-features">
-                <Palette size={17} />
-                <span>UI features</span>
-              </Link>
-            )}
-          </div>
-        </nav>
-        <div id="main-content" className="main-content">
-          {error && (
-            <div className="error" role="alert">
-              {error}
-            </div>
-          )}
-          {notice && (
-            <output className="toast">
-              <Check size={18} />
-              {notice}
-            </output>
-          )}
-          {admin ? (
-            <AdminWorkspace
-              key={view}
-              data={data}
-              view={view}
-              refresh={refresh}
-              notify={notify}
-            />
-          ) : !child.id ? (
-            <section className="panel">
-              <h2>No children linked yet</h2>
-              <p>
-                Ask an Admin to create a child account linked to your parent
-                account.
-              </p>
-            </section>
-          ) : view === 'today' ? (
-            parent ? (
-              <ParentHome data={data} go={go} choose={setSelected} />
-            ) : (
-              <StudentHome data={data} child={child} go={go} />
-            )
-          ) : view === 'subjects' && !parent ? (
-            <Subjects {...props} />
-          ) : view === 'practice' && !parent ? (
-            <Practice {...props} />
-          ) : view === 'exams' && !parent ? (
-            <Exams {...props} />
-          ) : view === 'plan' && !parent ? (
-            <Plan {...props} />
-          ) : view === 'progress' ? (
-            <ProgressView {...props} />
-          ) : view === 'students' && parent ? (
-            <FamilyCourses data={data} />
-          ) : view === 'library' && parent ? (
-            <FamilyLibrary data={data} />
-          ) : view === 'reviews' && parent ? (
-            <Reviews {...props} />
-          ) : view === 'assignments' && parent ? (
-            <Assignments {...props} />
-          ) : null}
         </div>
-        <footer className="app-footer">
-          <span>AKURU · A little progress, every day.</span>
-          <span>iGCSE · Admin-reviewed learning material</span>
-        </footer>
-      </SidebarInset>
-    </SidebarProvider>
+        <div className="topbar-right">
+          <div className="topbar-account-copy">
+            <strong>{data.user.name}</strong>
+            <small>
+              {admin
+                ? 'Administrator'
+                : parent
+                  ? 'Parent'
+                  : `${child.grade} · ${child.term}`}
+            </small>
+          </div>
+          <span className="top-avatar">
+            {admin ? 'A' : parent ? 'P' : child.name[0]}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Sign out"
+            onClick={async () => {
+              await api('auth/logout', {});
+              setData(null);
+              setView('today');
+            }}
+          >
+            <LogOut size={18} />
+          </Button>
+        </div>
+      </header>
+      <nav
+        className="portal-horizontal-nav"
+        aria-label={`${admin ? 'Admin' : parent ? 'Parent' : 'Student'} portal sections`}
+      >
+        <div className="portal-horizontal-nav-track">
+          {nav.map(([id, label, Icon]) => (
+            <button
+              key={id}
+              type="button"
+              data-active={view === id}
+              aria-current={view === id ? 'page' : undefined}
+              onClick={() => go(id)}
+            >
+              <Icon size={17} />
+              <span>{label}</span>
+              {id === 'reviews' &&
+                data.attempts.some((a) => a.status === 'needs-review') && (
+                  <small>
+                    {
+                      data.attempts.filter((a) => a.status === 'needs-review')
+                        .length
+                    }
+                  </small>
+                )}
+            </button>
+          ))}
+          {admin && (
+            <Link href="/ui-features">
+              <Palette size={17} />
+              <span>UI features</span>
+            </Link>
+          )}
+        </div>
+      </nav>
+      <div id="main-content" className="main-content">
+        {error && (
+          <div className="error" role="alert">
+            {error}
+          </div>
+        )}
+        {notice && (
+          <output className="toast">
+            <Check size={18} />
+            {notice}
+          </output>
+        )}
+        {admin ? (
+          <AdminWorkspace
+            key={view}
+            data={data}
+            view={view}
+            refresh={refresh}
+            notify={notify}
+          />
+        ) : !child.id ? (
+          <section className="panel">
+            <h2>No children linked yet</h2>
+            <p>
+              Ask an Admin to create a child account linked to your parent
+              account.
+            </p>
+          </section>
+        ) : view === 'today' ? (
+          parent ? (
+            <ParentHome data={data} go={go} choose={setSelected} />
+          ) : (
+            <StudentHome data={data} child={child} go={go} />
+          )
+        ) : view === 'subjects' && !parent ? (
+          <Subjects {...props} />
+        ) : view === 'practice' && !parent ? (
+          <Practice {...props} />
+        ) : view === 'exams' && !parent ? (
+          <Exams {...props} />
+        ) : view === 'plan' && !parent ? (
+          <Plan {...props} />
+        ) : view === 'progress' ? (
+          <ProgressView {...props} />
+        ) : view === 'students' && parent ? (
+          <FamilyCourses data={data} />
+        ) : view === 'library' && parent ? (
+          <FamilyLibrary data={data} />
+        ) : view === 'reviews' && parent ? (
+          <Reviews {...props} />
+        ) : view === 'assignments' && parent ? (
+          <Assignments {...props} />
+        ) : null}
+      </div>
+      <footer className="app-footer">
+        <span>AKURU · A little progress, every day.</span>
+        <span>iGCSE · Admin-reviewed learning material</span>
+      </footer>
+    </div>
   );
 }
 
@@ -860,44 +791,5 @@ function ParentHome({
         </button>
       </div>
     </>
-  );
-}
-
-function PortalNavigation({
-  parent,
-  admin,
-  view,
-  go,
-  pending,
-}: {
-  parent: boolean;
-  admin: boolean;
-  view: string;
-  go: (view: string) => void;
-  pending: number;
-}) {
-  const { setOpenMobile } = useSidebar();
-  const nav = admin ? adminNav : parent ? parentNav : studentNav;
-  return (
-    <SidebarMenu>
-      {nav.map(([id, label, Icon]) => (
-        <SidebarMenuItem key={id}>
-          <SidebarMenuButton
-            onClick={() => {
-              go(id);
-              setOpenMobile(false);
-            }}
-            isActive={view === id}
-            className="nav-item"
-          >
-            <Icon size={19} />
-            <span>{label}</span>
-            {id === 'reviews' && pending > 0 && (
-              <b className="nav-count">{pending}</b>
-            )}
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
   );
 }

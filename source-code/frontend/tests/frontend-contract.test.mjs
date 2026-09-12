@@ -76,4 +76,5 @@ test('all portal roles receive horizontally scrollable navigation', () => {
   assert.match(page, /nav\.map\(\(\[id, label, Icon\]\)/);
   assert.match(styles, /overflow-x: auto/);
   assert.match(styles, /-webkit-overflow-scrolling: touch/);
+  assert.doesNotMatch(page, /SidebarProvider|PortalNavigation|app-sidebar/);
 });

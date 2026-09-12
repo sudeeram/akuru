@@ -45,25 +45,6 @@
   --sidebar-accent-foreground: #285fd1;
   --sidebar-border: #e4e9f2;
 }
-.admin-feature-link {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  min-height: 48px;
-  margin: 4px 0;
-  padding: 0 15px;
-  border-radius: 9px;
-  color: #65718a;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 160ms ease, color 160ms ease;
-}
-.admin-feature-link:hover {
-  background: #edf3ff;
-  color: #2f62c9;
-}
-.admin-feature-link svg:last-child { margin-left: auto; }
-
 .ui-reference-page {
   min-height: 100vh;
   background: #f1f4fb;
@@ -418,85 +399,6 @@ small {
   align-self: flex-end;
   margin: 0 0 7px -5px;
 }
-.app-sidebar [data-slot='sidebar-inner'] {
-  background: #fff;
-}
-.app-sidebar [data-slot='sidebar-header'] {
-  padding: 33px 25px 20px;
-}
-.portal-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1.7px;
-  color: #8a96a8;
-  margin-top: 36px;
-}
-.app-sidebar [data-slot='sidebar-content'] {
-  padding: 0 17px;
-}
-.nav-item {
-  height: 48px !important;
-  padding: 0 15px !important;
-  border-radius: 9px !important;
-  gap: 13px !important;
-  font-size: 14px !important;
-  margin-bottom: 5px;
-  color: #65718a;
-}
-.nav-item[data-active='true'] {
-  color: #2f62c9 !important;
-  background: #edf3ff !important;
-  font-weight: 600;
-}
-.nav-count {
-  margin-left: auto;
-  background: #2e65d5;
-  border-radius: 20px;
-  padding: 1px 6px;
-  font-size: 11px;
-  color: white;
-}
-.sidebar-note {
-  margin: 50px 9px 20px;
-  border-top: 1px solid var(--border);
-  padding-top: 24px;
-}
-.sidebar-note svg {
-  color: #ba8938;
-  margin-bottom: 12px;
-}
-.sidebar-note strong {
-  display: block;
-  font-size: 13px;
-  color: #465673;
-}
-.sidebar-note p {
-  font-size: 12px;
-  line-height: 1.8;
-  margin-top: 8px;
-}
-.app-sidebar [data-slot='sidebar-footer'] {
-  padding: 18px 20px;
-  border-top: 1px solid var(--border);
-}
-.account {
-  display: flex;
-  gap: 11px;
-  align-items: center;
-}
-.account strong {
-  font-size: 14px;
-  display: block;
-}
-.account small {
-  font-size: 12px;
-  color: #7d899a;
-  display: block;
-}
-.account button {
-  margin-left: auto;
-  padding: 0 4px;
-}
 .avatar,
 .top-avatar {
   width: 37px;
@@ -509,8 +411,11 @@ small {
   font-size: 14px;
   font-weight: 700;
 }
-.app-inset {
-  background: var(--background) !important;
+.portal-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  background: var(--background);
   min-width: 0;
 }
 .topbar {
@@ -522,6 +427,24 @@ small {
   padding: 0 39px;
   background: #fff;
   gap: 16px;
+}
+.topbar-identity {
+  display: flex;
+  align-items: center;
+  gap: clamp(20px, 4vw, 52px);
+  min-width: 0;
+}
+.topbar-account-copy {
+  display: grid;
+  text-align: right;
+}
+.topbar-account-copy strong {
+  color: #34445f;
+  font-size: 13px;
+}
+.topbar-account-copy small {
+  color: #8390a3;
+  font-size: 11px;
 }
 .portal-horizontal-nav {
   position: relative;
@@ -1250,6 +1173,18 @@ small {
   .topbar {
     padding: 0 16px;
     height: 65px;
+  }
+  .topbar .brand {
+    font-size: 19px;
+  }
+  .topbar .brand-mark {
+    width: 34px;
+    height: 35px;
+    font-size: 23px;
+  }
+  .topbar .breadcrumb,
+  .topbar-account-copy {
+    display: none;
   }
   .topbar-right {
     font-size: 0;
@@ -2085,7 +2020,6 @@ small {
       white 29px
     );
   }
-  .app-sidebar,
   .topbar,
   .app-footer {
     display: none !important;
