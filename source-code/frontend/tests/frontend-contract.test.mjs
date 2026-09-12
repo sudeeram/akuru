@@ -32,4 +32,8 @@ test('admin UI reference is routed and API-authorized', () => {
   assert.match(uiFeatures, /api\('admin\/ui-features'\)/);
   assert.match(uiFeatures, /Admin access required/);
   assert.match(uiFeatures, /AKURU-owned components/);
+  assert.match(uiFeatures, /UI feature categories/);
+  assert.match(uiFeatures, /Workflow board/);
+  assert.match(uiFeatures, /Charts and trends/);
+  assert.match(uiFeatures, /Access and communication/);
 });

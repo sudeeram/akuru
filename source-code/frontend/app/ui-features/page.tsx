@@ -3,18 +3,25 @@
 import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
+  ArrowRight,
   Bell,
   BookOpen,
   CheckCircle2,
   Clock3,
   FileText,
+  FolderKanban,
   GraduationCap,
   Info,
+  LayoutDashboard,
+  LockKeyhole,
+  Mail,
+  MoreHorizontal,
   Palette,
   Search,
   ShieldCheck,
   Sparkles,
   TriangleAlert,
+  UserRound,
   Users,
 } from 'lucide-react';
 import { api, ApiError, type UiFeaturesAccess } from '@/lib/api';
@@ -62,6 +69,39 @@ const palette = [
   ['Success', '#22A77A'],
   ['Highlight', '#F2AE49'],
 ];
+
+const featureNavigation = [
+  ['ui-overview', 'Overview', LayoutDashboard],
+  ['ui-apps', 'Apps', FolderKanban],
+  ['ui-widgets', 'Widgets', Sparkles],
+  ['ui-components', 'UI', Palette],
+  ['ui-forms', 'Forms & tables', FileText],
+  ['ui-charts', 'Charts', TrendingUpIcon],
+  ['ui-pages', 'Pages', BookOpen],
+  ['ui-access', 'Access', LockKeyhole],
+] as const;
+
+function TrendingUpIcon({ size = 17 }: { size?: number }) {
+  return <span style={{ fontSize: size, lineHeight: 1 }}>↗</span>;
+}
+
+const taskColumns = [
+  {
+    title: 'Upcoming',
+    tone: 'info',
+    tasks: ['Review Chemistry textbook units', 'Map Physics paper questions'],
+  },
+  {
+    title: 'In progress',
+    tone: 'warning',
+    tasks: ['Configure Grade 10 Term 2 coverage', 'Prepare Maths mock paper'],
+  },
+  {
+    title: 'Completed',
+    tone: 'success',
+    tasks: ['Create parent accounts', 'Upload Biology textbook'],
+  },
+] as const;
 
 export default function UiFeaturesPage() {
   const [access, setAccess] = useState<UiFeaturesAccess | null>(null);
@@ -129,8 +169,18 @@ export default function UiFeaturesPage() {
           </Button>
         </div>
       </header>
+      <nav className="ui-top-navigation" aria-label="UI feature categories">
+        <div className="ui-top-navigation-inner">
+          {featureNavigation.map(([id, label, Icon]) => (
+            <a href={`#${id}`} key={id}>
+              <Icon size={17} />
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
       <main className="ui-reference-main">
-        <section className="ui-reference-hero">
+        <section className="ui-reference-hero" id="ui-overview">
           <div className="ui-reference-hero-copy">
             <span className="ui-kicker">AKURU DESIGN SYSTEM · PHASE 1</span>
             <h1>One consistent language for every learning journey.</h1>
@@ -145,7 +195,7 @@ export default function UiFeaturesPage() {
           />
         </section>
 
-        <section className="ui-section">
+        <section className="ui-section" id="ui-components">
           <div className="ui-section-heading">
             <div>
               <h2>Foundation</h2>
@@ -300,7 +350,67 @@ export default function UiFeaturesPage() {
           </div>
         </section>
 
-        <section className="ui-section">
+        <section className="ui-section" id="ui-apps">
+          <div className="ui-section-heading">
+            <div>
+              <h2>Workflow board</h2>
+              <p>
+                A task board pattern for document ingestion, curriculum setup
+                and content review.
+              </p>
+            </div>
+            <Button variant="outline">
+              <FolderKanban /> Add task
+            </Button>
+          </div>
+          <div className="ui-task-board">
+            {taskColumns.map((column) => (
+              <div className="ui-task-column" key={column.title}>
+                <div className="ui-task-column-heading">
+                  <Badge className={`ui-status-${column.tone}`}>
+                    {column.title}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`${column.title} actions`}
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </div>
+                {column.tasks.map((task, index) => (
+                  <article className="ui-task-card" key={task}>
+                    <div className="ui-demo-row">
+                      <Checkbox
+                        id={`${column.tone}-${index}`}
+                        defaultChecked={column.tone === 'success'}
+                      />
+                      <label htmlFor={`${column.tone}-${index}`}>{task}</label>
+                    </div>
+                    <div className="ui-task-meta">
+                      <span>
+                        <Clock3 size={14} /> {index ? 'Friday' : 'Today'}
+                      </span>
+                      <AvatarGroup>
+                        <Avatar size="sm">
+                          <AvatarFallback>AD</AvatarFallback>
+                        </Avatar>
+                        <Avatar size="sm">
+                          <AvatarFallback>RV</AvatarFallback>
+                        </Avatar>
+                      </AvatarGroup>
+                    </div>
+                  </article>
+                ))}
+                <Button variant="ghost" className="ui-task-add">
+                  + Add another task
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="ui-section" id="ui-forms">
           <div className="ui-section-heading">
             <div>
               <h2>Forms and progress</h2>
@@ -369,7 +479,7 @@ export default function UiFeaturesPage() {
           </div>
         </section>
 
-        <section className="ui-section">
+        <section className="ui-section" id="ui-widgets">
           <div className="ui-section-heading">
             <div>
               <h2>Dashboard and data</h2>
@@ -461,6 +571,294 @@ export default function UiFeaturesPage() {
                     </div>
                   </TabsContent>
                 </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="ui-section" id="ui-charts">
+          <div className="ui-section-heading">
+            <div>
+              <h2>Charts and trends</h2>
+              <p>
+                Accessible summaries pair every visual with a title, value and
+                readable data labels.
+              </p>
+            </div>
+            <Badge className="ui-status-info">Last 6 weeks</Badge>
+          </div>
+          <div className="ui-feature-grid">
+            <Card className="ui-feature-card wide">
+              <CardHeader>
+                <CardTitle>Practice completion</CardTitle>
+                <CardDescription>
+                  Completed questions by subject
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <div
+                    className="ui-bar-chart"
+                  aria-label="Maths 82 percent, Physics 64 percent, English 91 percent, ICT 73 percent"
+                >
+                  <div>
+                    <span>Maths</span>
+                    <i style={{ '--bar': '82%' } as React.CSSProperties} />
+                    <strong>82%</strong>
+                  </div>
+                  <div>
+                    <span>Physics</span>
+                    <i style={{ '--bar': '64%' } as React.CSSProperties} />
+                    <strong>64%</strong>
+                  </div>
+                  <div>
+                    <span>English</span>
+                    <i style={{ '--bar': '91%' } as React.CSSProperties} />
+                    <strong>91%</strong>
+                  </div>
+                  <div>
+                    <span>ICT</span>
+                    <i style={{ '--bar': '73%' } as React.CSSProperties} />
+                    <strong>73%</strong>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="ui-feature-card">
+              <CardHeader>
+                <CardTitle>Weekly activity</CardTitle>
+                <CardDescription>Questions attempted</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className="ui-mini-chart"
+                  aria-label="Weekly activity rose from 8 to 21 questions"
+                >
+                  <span style={{ height: '34%' }} />
+                  <span style={{ height: '48%' }} />
+                  <span style={{ height: '42%' }} />
+                  <span style={{ height: '70%' }} />
+                  <span style={{ height: '62%' }} />
+                  <span style={{ height: '88%' }} />
+                </div>
+                <div className="ui-chart-axis">
+                  <span>W1</span>
+                  <span>W2</span>
+                  <span>W3</span>
+                  <span>W4</span>
+                  <span>W5</span>
+                  <span>W6</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="ui-section" id="ui-pages">
+          <div className="ui-section-heading">
+            <div>
+              <h2>Page patterns</h2>
+              <p>Composed views for common AKURU administration tasks.</p>
+            </div>
+          </div>
+          <div className="ui-feature-grid">
+            <Card className="ui-feature-card">
+              <CardHeader>
+                <CardTitle>Multi-step setup</CardTitle>
+                <CardDescription>
+                  Keep long setup flows clear and resumable.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ol className="ui-stepper">
+                  <li className="complete">
+                    <span>1</span>
+                    <div>
+                      <strong>Textbook</strong>
+                      <small>Uploaded</small>
+                    </div>
+                  </li>
+                  <li className="active">
+                    <span>2</span>
+                    <div>
+                      <strong>Units</strong>
+                      <small>In progress</small>
+                    </div>
+                  </li>
+                  <li>
+                    <span>3</span>
+                    <div>
+                      <strong>Term coverage</strong>
+                      <small>Next</small>
+                    </div>
+                  </li>
+                  <li>
+                    <span>4</span>
+                    <div>
+                      <strong>Question mapping</strong>
+                      <small>Pending</small>
+                    </div>
+                  </li>
+                </ol>
+              </CardContent>
+              <CardFooter>
+                <Button>
+                  Continue setup <ArrowRight />
+                </Button>
+              </CardFooter>
+            </Card>
+            <Card className="ui-feature-card wide">
+              <CardHeader>
+                <CardTitle>User directory</CardTitle>
+                <CardDescription>
+                  Human-readable account records; internal UUIDs remain hidden.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Scope</TableHead>
+                      <TableHead>Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>
+                        <div className="ui-person">
+                          <Avatar>
+                            <AvatarFallback>NS</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <strong>Nimal Silva</strong>
+                            <small>@nimal.silva</small>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">Parent</Badge>
+                      </TableCell>
+                      <TableCell>2 children</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <div className="ui-person">
+                          <Avatar>
+                            <AvatarFallback>AS</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <strong>Alex Silva</strong>
+                            <small>@alex.silva</small>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className="ui-status-info">Student</Badge>
+                      </TableCell>
+                      <TableCell>Grade 10 · Term 2</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          View
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
+        <section className="ui-section" id="ui-access">
+          <div className="ui-section-heading">
+            <div>
+              <h2>Access and communication</h2>
+              <p>
+                Authentication, permission and notification patterns aligned
+                with AKURU security.
+              </p>
+            </div>
+          </div>
+          <div className="ui-feature-grid">
+            <Card className="ui-feature-card">
+              <CardHeader>
+                <CardTitle>Secure sign-in</CardTitle>
+                <CardDescription>
+                  Use visible labels, clear requirements and specific errors.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="ui-demo-stack">
+                <div className="ui-demo-field">
+                  <label htmlFor="reference-username">Username</label>
+                  <Input id="reference-username" placeholder="your.username" />
+                </div>
+                <div className="ui-demo-field">
+                  <label htmlFor="reference-password">Password</label>
+                  <Input
+                    id="reference-password"
+                    type="password"
+                    value="example-password"
+                    readOnly
+                  />
+                </div>
+                <Button>
+                  <LockKeyhole /> Sign in securely
+                </Button>
+              </CardContent>
+            </Card>
+            <Card className="ui-feature-card">
+              <CardHeader>
+                <CardTitle>Permission states</CardTitle>
+              </CardHeader>
+              <CardContent className="ui-demo-stack">
+                <Alert>
+                  <ShieldCheck />
+                  <AlertTitle>Admin access</AlertTitle>
+                  <AlertDescription>
+                    You may manage accounts and curriculum content.
+                  </AlertDescription>
+                </Alert>
+                <Alert variant="destructive">
+                  <LockKeyhole />
+                  <AlertTitle>Access restricted</AlertTitle>
+                  <AlertDescription>
+                    This area is available only to AKURU administrators.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+            <Card className="ui-feature-card">
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+              </CardHeader>
+              <CardContent className="ui-notification-list">
+                <div>
+                  <Bell />
+                  <span>
+                    <strong>Question mapping ready</strong>
+                    <small>Physics · moments and forces</small>
+                  </span>
+                </div>
+                <div>
+                  <Mail />
+                  <span>
+                    <strong>Parent review due</strong>
+                    <small>Two assessments need feedback</small>
+                  </span>
+                </div>
+                <div>
+                  <UserRound />
+                  <span>
+                    <strong>New learner configured</strong>
+                    <small>Grade 10 · Term 1</small>
+                  </span>
+                </div>
               </CardContent>
             </Card>
           </div>
