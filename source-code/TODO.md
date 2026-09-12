@@ -34,13 +34,13 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Preserve original documents and derived assets with complete provenance.
 
-- [ ] Build a storage interface with local-filesystem and OCI Object Storage implementations.
-- [ ] Add `documents`, `document_versions`, `document_assets` and `document_events` tables.
-- [ ] Store type, course, subject, edition, year, session, component, variant and source metadata.
-- [ ] Calculate SHA-256 checksums and detect duplicates.
-- [ ] Validate file signature, content type, extension and size.
-- [ ] Add Admin-only upload, status, retry and removal APIs.
-- [ ] Serve private files only through authorized endpoints.
+- [x] Build a storage interface with local-filesystem and OCI Object Storage implementations.
+- [x] Add `documents`, `document_versions`, `document_assets` and `document_events` tables.
+- [x] Store type, course, subject, edition, year, session, component, variant and source metadata.
+- [x] Calculate SHA-256 checksums and detect duplicates.
+- [x] Validate file signature, content type, extension and size.
+- [x] Add Admin-only upload, status, retry and removal APIs.
+- [x] Serve private files only through authorized endpoints.
 
 **Done when:** Only Admin can upload learning documents; original bytes are recoverable unchanged; invalid and duplicate files produce specific errors.
 

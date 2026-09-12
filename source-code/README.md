@@ -13,6 +13,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Backend architecture](backend/docs/architecture.md)
 - [Environment variables](docs/environment.md)
 - [Database backup and restore](docs/database-backup.md)
+- [Private document storage](backend/docs/document-storage.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

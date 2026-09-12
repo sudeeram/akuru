@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.repositories.catalog import CatalogRepository
+from app.repositories.documents import DocumentRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
@@ -60,6 +61,28 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             {"id": str(user.id), "username": user.username, "name": user.display_name, "role": user.role}
             for user in UserRepository(db).portal_accounts()
         ]
+    document_kind_labels = {
+        "textbook": "Textbook",
+        "reference": "Reference material",
+        "past_paper": "Past paper",
+        "mark_scheme": "Marking scheme",
+        "examiner_report": "Examiner report",
+    }
+    portal_documents = []
+    if principal.user.role == "admin" and not principal.user.must_change_password:
+        portal_documents = [
+            {
+                "id": str(document.id),
+                "name": document.title,
+                "subject": document.subject_id,
+                "course": "iGCSE",
+                "kind": document_kind_labels[document.kind],
+                "status": document.review_state,
+                "notes": "",
+                "paperId": str(document.source_document_id) if document.source_document_id else None,
+            }
+            for document, _version in DocumentRepository(db).active_documents()
+        ]
     return {
         "user": {
             "id": str(principal.user.id),
@@ -97,7 +120,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "questions": [],
         "attempts": [],
         "assignments": [],
-        "documents": [],
+        "documents": portal_documents,
         "exams": [],
         "reviews": [],
         "plans": {},

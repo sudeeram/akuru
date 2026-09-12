@@ -6,12 +6,17 @@ from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
 from app.main import app
-from app.models import AuditEvent, StudentProfile, StudentProgression, StudentSubject, User
+from app.models import (
+    AuditEvent, Document, DocumentEvent, DocumentVersion, StudentProfile,
+    StudentProgression, StudentSubject, User,
+)
 from app.security import hash_password
+from app.storage.factory import get_storage
+from app.storage.local import LocalObjectStorage
 
 
 @pytest.fixture
-def auth_client():
+def auth_client(tmp_path):
     connection = engine.connect()
     transaction = connection.begin()
     session = Session(bind=connection, join_transaction_mode="create_savepoint")
@@ -29,7 +34,13 @@ def auth_client():
     def override_db():
         yield session
 
+    storage = LocalObjectStorage(tmp_path / "private-documents")
+
+    def override_storage():
+        return storage
+
     app.dependency_overrides[get_db] = override_db
+    app.dependency_overrides[get_storage] = override_storage
     client = TestClient(app, base_url="http://localhost")
     try:
         yield client, username, password
@@ -191,3 +202,130 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
     })
     assert response.status_code == 204
     assert client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
+
+
+@pytest.mark.integration
+def test_admin_document_upload_validation_private_download_and_removal(auth_client) -> None:
+    client, username, password = auth_client
+    assert client.get("/api/v1/documents").status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {
+        "X-CSRF-Token": login["csrfToken"],
+        "X-Filename": "biology-textbook.pdf",
+        "Content-Type": "application/pdf",
+    }
+    params = {
+        "kind": "textbook",
+        "courseId": "igcse",
+        "subjectId": "biology",
+        "title": "Biology Student Book",
+        "edition": "Second edition",
+        "year": 2025,
+        "publisher": "Test Publisher",
+    }
+    content = b"%PDF-1.7\nsynthetic integration fixture\n%%EOF"
+    uploaded = client.post("/api/v1/documents", params=params, headers=headers, content=content)
+    assert uploaded.status_code == 201, uploaded.text
+    document = uploaded.json()
+    assert document["kind"] == "textbook"
+    assert document["subjectId"] == "biology"
+    assert document["sourceMetadata"] == {"publisher": "Test Publisher"}
+    assert document["sizeBytes"] == len(content)
+    assert document["status"] == "uploaded"
+
+    listed = client.get("/api/v1/documents").json()["documents"]
+    assert [row["id"] for row in listed] == [document["id"]]
+    downloaded = client.get(f"/api/v1/documents/{document['id']}/content")
+    assert downloaded.status_code == 200
+    assert downloaded.content == content
+    assert "biology-textbook.pdf" in downloaded.headers["content-disposition"]
+    assert downloaded.headers["cache-control"] == "private, no-store"
+
+    duplicate = client.post("/api/v1/documents", params=params, headers=headers, content=content)
+    assert duplicate.status_code == 409
+    assert duplicate.json()["error"]["code"] == "duplicate_document"
+
+    wrong_signature = client.post(
+        "/api/v1/documents",
+        params={**params, "title": "Not really a PDF"},
+        headers={**headers, "X-Filename": "not-a-pdf.pdf"},
+        content=b"this is not a PDF",
+    )
+    assert wrong_signature.status_code == 422
+    assert wrong_signature.json()["error"]["code"] == "file_signature_mismatch"
+
+    parent_username = f"document-parent-{uuid.uuid4().hex[:10]}"
+    temporary_password = "temporary document parent password"
+    parent = client.post("/api/v1/admin/accounts", headers={"X-CSRF-Token": login["csrfToken"]}, json={
+        "username": parent_username,
+        "name": "Document Test Parent",
+        "password": temporary_password,
+        "role": "parent",
+    })
+    assert parent.status_code == 201
+    with TestClient(app, base_url="http://localhost") as parent_client:
+        parent_login = parent_client.post("/api/v1/auth/login", json={
+            "username": parent_username, "password": temporary_password,
+        }).json()
+        changed = parent_client.post(
+            "/api/v1/auth/change-password",
+            headers={"X-CSRF-Token": parent_login["csrfToken"]},
+            json={"newPassword": "parent private document password"},
+        )
+        assert changed.status_code == 204
+        assert parent_client.get(f"/api/v1/documents/{document['id']}/content").status_code == 403
+
+    session: Session = next(app.dependency_overrides[get_db]())
+    stored_document = session.get(Document, uuid.UUID(document["id"]))
+    stored_version = session.get(DocumentVersion, uuid.UUID(document["versionId"]))
+    assert stored_document.sha256 == document["checksum"]
+    assert stored_version.object_key == stored_document.object_key
+    assert session.query(DocumentEvent).filter_by(document_id=stored_document.id, event_type="uploaded").count() == 1
+
+    retry_not_failed = client.post(
+        f"/api/v1/documents/{document['id']}/retry",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+    )
+    assert retry_not_failed.status_code == 409
+    stored_version.status = "failed"
+    session.commit()
+    retried = client.post(
+        f"/api/v1/documents/{document['id']}/retry",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+    )
+    assert retried.status_code == 200
+    assert retried.json()["status"] == "uploaded"
+    assert session.query(DocumentEvent).filter_by(
+        document_id=stored_document.id, event_type="retry_requested"
+    ).count() == 1
+
+    removed = client.delete(
+        f"/api/v1/documents/{document['id']}",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+    )
+    assert removed.status_code == 204
+    assert client.get(f"/api/v1/documents/{document['id']}/content").status_code == 404
+    assert session.query(DocumentEvent).filter_by(document_id=stored_document.id, event_type="removed").count() == 1
+
+
+@pytest.mark.integration
+def test_past_paper_requires_same_subject_textbook(auth_client) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    response = client.post(
+        "/api/v1/documents",
+        params={
+            "kind": "past_paper",
+            "courseId": "igcse",
+            "subjectId": "physics",
+            "title": "Physics Paper 1",
+        },
+        headers={
+            "X-CSRF-Token": login["csrfToken"],
+            "X-Filename": "physics-paper.pdf",
+            "Content-Type": "application/pdf",
+        },
+        content=b"%PDF-1.7\nfixture\n%%EOF",
+    )
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "textbook_required"

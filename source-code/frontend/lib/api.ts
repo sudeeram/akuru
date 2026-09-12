@@ -76,6 +76,16 @@ function apiErrorMessage(data: unknown) {
   }
   return 'The server could not process the request.';
 }
+function csrfToken() {
+  return typeof document === 'undefined'
+    ? ''
+    : decodeURIComponent(
+        document.cookie
+          .split('; ')
+          .find((value) => value.startsWith('akuru_csrf='))
+          ?.slice('akuru_csrf='.length) ?? '',
+      );
+}
 export type Lesson = { explanation: string; points: string[]; hints: string[] };
 export type FileRef = { id: string; name: string };
 export type UiFeaturesAccess = {
@@ -101,18 +111,10 @@ export async function api<P extends string>(
   path: P,
   body?: unknown,
 ): Promise<ApiResult<P>> {
-  const csrfToken =
-    typeof document === 'undefined'
-      ? ''
-      : decodeURIComponent(
-          document.cookie
-            .split('; ')
-            .find((value) => value.startsWith('akuru_csrf='))
-            ?.slice('akuru_csrf='.length) ?? '',
-        );
+  const csrf = csrfToken();
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (body !== undefined && csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  if (body !== undefined && csrf) headers['X-CSRF-Token'] = csrf;
   const response = await fetch('/api/v1/' + path, {
     method: body === undefined ? 'GET' : 'POST',
     headers,
@@ -131,6 +133,41 @@ export async function api<P extends string>(
     throw new ApiError(apiErrorMessage(data), response.status);
   }
   return data as ApiResult<P>;
+}
+export async function uploadLearningDocument(
+  file: File,
+  metadata: {
+    kind:
+      | 'textbook'
+      | 'reference'
+      | 'past_paper'
+      | 'mark_scheme'
+      | 'examiner_report';
+    courseId: string;
+    subjectId: string;
+    title: string;
+    sourceDocumentId?: string;
+  },
+) {
+  if (file.size > 50 * 1024 * 1024)
+    throw new Error('Choose a file no larger than 50 MB.');
+  const query = new URLSearchParams(
+    Object.entries(metadata).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  );
+  const response = await fetch(`/api/v1/documents?${query}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': file.type || 'application/octet-stream',
+      'X-Filename': file.name,
+      'X-CSRF-Token': csrfToken(),
+    },
+    body: file,
+  });
+  const data: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(apiErrorMessage(data), response.status);
+  return data;
 }
 export async function upload(
   file: File,

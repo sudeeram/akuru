@@ -1,0 +1,87 @@
+import uuid
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.models import Course, Document, DocumentEvent, DocumentVersion, Subject
+
+
+class DocumentRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def document(self, document_id: uuid.UUID) -> Document | None:
+        return self.db.get(Document, document_id)
+
+    def version(self, version_id: uuid.UUID) -> DocumentVersion | None:
+        return self.db.get(DocumentVersion, version_id)
+
+    def latest_version(self, document_id: uuid.UUID) -> DocumentVersion | None:
+        return self.db.execute(select(DocumentVersion).where(
+            DocumentVersion.document_id == document_id
+        ).order_by(DocumentVersion.version_number.desc())).scalars().first()
+
+    def checksum_exists(self, checksum: str) -> bool:
+        return self.db.execute(select(DocumentVersion.id).where(
+            DocumentVersion.sha256 == checksum
+        )).scalar_one_or_none() is not None
+
+    def active_documents(self) -> list[tuple[Document, DocumentVersion]]:
+        # Every Step 2 document has one version. The version-number join keeps this
+        # correct when immutable replacement versions are added later.
+        latest = (
+            select(
+                DocumentVersion.document_id,
+                func.max(DocumentVersion.version_number).label("version_number"),
+            )
+            .group_by(DocumentVersion.document_id)
+            .subquery()
+        )
+        query = (
+            select(Document, DocumentVersion)
+            .join(latest, latest.c.document_id == Document.id)
+            .join(
+                DocumentVersion,
+                (DocumentVersion.document_id == latest.c.document_id)
+                & (DocumentVersion.version_number == latest.c.version_number),
+            )
+            .where(Document.removed_at.is_(None))
+            .order_by(Document.created_at.desc())
+        )
+        return list(self.db.execute(query).all())
+
+    def course_and_subject_exist(self, course_id: str, subject_id: str) -> bool:
+        course = self.db.get(Course, course_id)
+        subject = self.db.get(Subject, subject_id)
+        return bool(course and course.phase1_active and subject)
+
+    def has_textbook(self, course_id: str, subject_id: str) -> bool:
+        return self.db.execute(select(Document.id).where(
+            Document.course_id == course_id,
+            Document.subject_id == subject_id,
+            Document.kind == "textbook",
+            Document.removed_at.is_(None),
+        )).scalars().first() is not None
+
+    def source_paper(self, source_id: uuid.UUID) -> Document | None:
+        return self.db.execute(select(Document).where(
+            Document.id == source_id,
+            Document.kind == "past_paper",
+            Document.removed_at.is_(None),
+        )).scalar_one_or_none()
+
+    def add_event(
+        self,
+        document: Document,
+        version: DocumentVersion | None,
+        actor_id: uuid.UUID,
+        event_type: str,
+        event_data: dict | None = None,
+    ) -> None:
+        self.db.add(DocumentEvent(
+            document_id=document.id,
+            document_version_id=version.id if version else None,
+            actor_id=actor_id,
+            event_type=event_type,
+            event_data=event_data or {},
+        ))

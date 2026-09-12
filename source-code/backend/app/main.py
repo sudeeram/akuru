@@ -48,7 +48,8 @@ async def request_security(request: Request, call_next):
                 content=error_content("origin_not_allowed", "Origin not allowed."),
             )
         content_length = request.headers.get("content-length")
-        if content_length and content_length.isdigit() and int(content_length) > 1_000_000:
+        body_limit = settings.max_document_bytes if request.url.path == "/api/v1/documents" else 1_000_000
+        if content_length and content_length.isdigit() and int(content_length) > body_limit:
             return JSONResponse(
                 status_code=413,
                 content=error_content("request_too_large", "Request body too large."),

@@ -139,10 +139,78 @@ class Document(TimestampMixin, Base):
     review_state: Mapped[str] = mapped_column(String(16), default="pending", server_default="pending")
     uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     source_document_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
+    edition: Mapped[str | None] = mapped_column(String(80))
+    publication_year: Mapped[int | None] = mapped_column(Integer)
+    exam_session: Mapped[str | None] = mapped_column(String(80))
+    component: Mapped[str | None] = mapped_column(String(80))
+    variant: Mapped[str | None] = mapped_column(String(80))
+    source_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("kind IN ('textbook','reference','past_paper','mark_scheme','examiner_report')", name="ck_documents_kind"),
         CheckConstraint("review_state IN ('pending','reviewed','published','rejected')", name="ck_documents_review_state"),
+        CheckConstraint("size_bytes >= 0", name="ck_documents_size_bytes"),
+        CheckConstraint(
+            "publication_year IS NULL OR publication_year BETWEEN 1900 AND 2100",
+            name="ck_documents_publication_year",
+        ),
     )
+
+
+class DocumentVersion(Base):
+    __tablename__ = "document_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    original_filename: Mapped[str] = mapped_column(String(255))
+    object_key: Mapped[str] = mapped_column(String(500), unique=True)
+    mime_type: Mapped[str] = mapped_column(String(100))
+    sha256: Mapped[str] = mapped_column(String(64), unique=True)
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(24), default="uploaded", server_default="uploaded")
+    uploaded_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_document_versions_number"),
+        CheckConstraint("size_bytes > 0", name="ck_document_versions_size"),
+        CheckConstraint("status IN ('uploaded','failed','removed')", name="ck_document_versions_status"),
+        UniqueConstraint("document_id", "version_number", name="uq_document_version_number"),
+    )
+
+
+class DocumentAsset(Base):
+    __tablename__ = "document_assets"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    asset_kind: Mapped[str] = mapped_column(String(40))
+    object_key: Mapped[str] = mapped_column(String(500), unique=True)
+    mime_type: Mapped[str] = mapped_column(String(100))
+    sha256: Mapped[str] = mapped_column(String(64))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    page_number: Mapped[int | None] = mapped_column(Integer)
+    bounding_box: Mapped[dict | None] = mapped_column(JSON)
+    asset_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("size_bytes > 0", name="ck_document_assets_size"),
+        CheckConstraint("page_number IS NULL OR page_number > 0", name="ck_document_assets_page"),
+    )
+
+
+class DocumentEvent(Base):
+    __tablename__ = "document_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    document_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    event_type: Mapped[str] = mapped_column(String(40), index=True)
+    event_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class TextbookUnit(TimestampMixin, Base):

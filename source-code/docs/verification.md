@@ -3,8 +3,8 @@
 ## Step 0 foundation baseline
 
 - Frontend contract tests: 6 passed.
-- Backend unit and PostgreSQL integration tests: 10 passed with 2 upstream deprecation warnings.
-- Alembic migration and schema-drift check: passed at revision `1077b2ef7586`; no new upgrade operations detected.
+- Backend unit and PostgreSQL integration tests: 14 passed with 2 upstream deprecation warnings.
+- Alembic migration and schema-drift check: passed at revision `521493ec5f1f`; no new upgrade operations detected.
 - Frontend TypeScript check, Oxlint and production build: passed.
 - PostgreSQL backup/restore drill: passed. The restored copy contained the expected Alembic revision and 15 public tables, then the isolated drill database was removed.
 - GitHub Actions now repeats frontend checks and backend checks against an isolated PostgreSQL service on every push and pull request.
@@ -16,6 +16,16 @@
 - Admin role gates and student submission ownership live in the central permission module.
 - Validation, domain, permission and unexpected processing failures use the documented structured error envelope.
 - `npm run contract:check` confirms that the committed OpenAPI document and TypeScript contract match FastAPI.
+
+## Step 2 private-document verification
+
+- Local object storage round-trips exact bytes and rejects keys that escape its configured private root.
+- The dependency-free OCI adapter contract is tested with an injected OCI-compatible client; the separately declared OCI SDK is needed only when deploying that adapter.
+- PostgreSQL contains logical document, immutable version, derived asset and append-only event tables at Alembic revision `521493ec5f1f`.
+- Admin upload validates PDF/image extension, media type, binary signature and size, records SHA-256 provenance, and rejects exact duplicates with a specific error.
+- Past-paper ingestion fails closed until a same-course, same-subject textbook exists. Marking schemes and examiner reports require a related same-scope paper.
+- Original downloads are byte-for-byte identical, use private no-store responses and reject Parent access. Retry and soft-removal actions create document events.
+- A post-migration backup restored successfully at revision `521493ec5f1f` with 18 public tables; the isolated restore database was removed.
 
 Run the local quality gate from `source-code/` with `npm run verify`. Run `npm run database:restore-drill` separately when validating backup recoverability.
 

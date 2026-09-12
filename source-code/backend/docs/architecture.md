@@ -47,6 +47,8 @@ FastAPI serves JSON endpoints; PostgreSQL stores authoritative relational state.
 
 For OCI or home deployment, use an HTTPS reverse proxy, private database/object access, explicit secret configuration and backups. Providers and secrets remain backend-only. Hosting manifests, dependency versions and external provider choices are future implementation decisions, not requirements silently installed on the user's computer.
 
+The implemented storage interface has local-filesystem and OCI adapters. PostgreSQL stores logical documents, immutable versions, derived-asset provenance and append-only events. Original bytes use server-generated private keys and are returned only by an authorized API. See [document storage](document-storage.md) for the endpoint and deployment contract.
+
 ## Identity and permissions
 
 Create Admin through an explicit bootstrap procedure outside ordinary account creation. Admin creates Parent and Student accounts. Each Student has exactly one Parent in Phase 1. Persist only strong salted password hashes or external identity IDs. Add first-login password change, reset/disable flows, session revocation and rate limits before public use.

@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     login_attempt_limit: int = Field(default=8, ge=3, le=50)
     login_window_minutes: int = Field(default=15, ge=1, le=60)
     login_lock_minutes: int = Field(default=15, ge=1, le=1440)
+    storage_backend: str = "local"
+    local_storage_path: str = ".local-data/documents"
+    max_document_bytes: int = Field(default=50 * 1024 * 1024, ge=1024, le=250 * 1024 * 1024)
+    oci_object_namespace: str | None = None
+    oci_object_bucket: str | None = None
 
     @property
     def database_url(self) -> URL:

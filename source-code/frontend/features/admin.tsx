@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { api, errorMessage, upload, type State, type Student } from '@/lib/api';
+import {
+  api,
+  errorMessage,
+  uploadLearningDocument,
+  type State,
+  type Student,
+} from '@/lib/api';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -140,6 +146,13 @@ export function AdminWorkspace(p: Props) {
       u.subject === subject &&
       (p.view === 'questions' ? u.textbookId === paper?.textbookId : true),
   );
+  const documentKinds = {
+    Textbook: 'textbook',
+    'Reference material': 'reference',
+    'Past paper': 'past_paper',
+    'Marking scheme': 'mark_scheme',
+    'Examiner report': 'examiner_report',
+  } as const;
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError('');
@@ -477,24 +490,28 @@ export function AdminWorkspace(p: Props) {
                 />
               )}
               <label htmlFor="admin-document-file">
-                Document file · PDF or image, up to 5 MB
+                Document file · PDF, PNG or JPEG, up to 50 MB
                 <Input
                   id="admin-document-file"
                   type="file"
                   aria-label="Document file"
-                  accept="application/pdf,image/png,image/jpeg,image/webp"
+                  accept="application/pdf,image/png,image/jpeg"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
                     if (f)
                       void run(
                         () =>
-                          upload(f, {
-                            purpose: 'document',
-                            course: 'iGCSE',
-                            subject,
-                            kind,
-                            textbookId,
-                            paperId,
+                          uploadLearningDocument(f, {
+                            courseId: 'igcse',
+                            subjectId: subject,
+                            kind:
+                              documentKinds[
+                                kind as keyof typeof documentKinds
+                              ],
+                            title: f.name.replace(/\.[^.]+$/, ''),
+                            sourceDocumentId: ['Marking scheme', 'Examiner report'].includes(kind)
+                              ? paperId
+                              : undefined,
                           }),
                         'Uploaded for admin review.',
                       );
@@ -523,7 +540,7 @@ export function AdminWorkspace(p: Props) {
               {doc && (
                 <>
                   <a
-                    href={`/api/files/${doc.id}`}
+                    href={`/api/v1/documents/${doc.id}/content`}
                     target="_blank"
                     rel="noreferrer"
                   >
