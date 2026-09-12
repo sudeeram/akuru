@@ -379,6 +379,40 @@ export default function Portal() {
             </span>
           </div>
         </header>
+        <nav
+          className="portal-horizontal-nav"
+          aria-label={`${admin ? 'Admin' : parent ? 'Parent' : 'Student'} portal sections`}
+        >
+          <div className="portal-horizontal-nav-track">
+            {nav.map(([id, label, Icon]) => (
+              <button
+                key={id}
+                type="button"
+                data-active={view === id}
+                aria-current={view === id ? 'page' : undefined}
+                onClick={() => go(id)}
+              >
+                <Icon size={17} />
+                <span>{label}</span>
+                {id === 'reviews' &&
+                  data.attempts.some((a) => a.status === 'needs-review') && (
+                    <small>
+                      {
+                        data.attempts.filter((a) => a.status === 'needs-review')
+                          .length
+                      }
+                    </small>
+                  )}
+              </button>
+            ))}
+            {admin && (
+              <Link href="/ui-features">
+                <Palette size={17} />
+                <span>UI features</span>
+              </Link>
+            )}
+          </div>
+        </nav>
         <div id="main-content" className="main-content">
           {error && (
             <div className="error" role="alert">

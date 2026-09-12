@@ -523,6 +523,61 @@ small {
   background: #fff;
   gap: 16px;
 }
+.portal-horizontal-nav {
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-bottom: 1px solid var(--border);
+  background: #fff;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd7ea transparent;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.portal-horizontal-nav-track {
+  display: flex;
+  width: max-content;
+  min-width: 100%;
+  padding: 0 26px;
+}
+.portal-horizontal-nav button,
+.portal-horizontal-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 17px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #68778e;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.portal-horizontal-nav button:hover,
+.portal-horizontal-nav a:hover {
+  border-bottom-color: #a9c1ef;
+  background: #f6f8fd;
+  color: #285fc8;
+}
+.portal-horizontal-nav button[data-active='true'] {
+  border-bottom-color: var(--primary);
+  background: #f2f6ff;
+  color: #285fc8;
+}
+.portal-horizontal-nav small {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e85866;
+  color: #fff;
+  font-size: 10px;
+}
 .breadcrumb,
 .topbar-right {
   display: flex;
@@ -1202,6 +1257,14 @@ small {
   }
   .topbar-right .local-dot {
     display: none;
+  }
+  .portal-horizontal-nav-track {
+    padding: 0 8px;
+  }
+  .portal-horizontal-nav button,
+  .portal-horizontal-nav a {
+    min-height: 50px;
+    padding: 0 13px;
   }
   .page-heading {
     align-items: flex-start;

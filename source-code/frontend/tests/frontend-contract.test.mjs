@@ -69,3 +69,11 @@ test('page transitions rotate through AKURU BOT loading scenes', () => {
   assert.match(routeLoader, /hashchange/);
   assert.match(styles, /prefers-reduced-motion/);
 });
+
+test('all portal roles receive horizontally scrollable navigation', () => {
+  assert.match(page, /portal-horizontal-nav/);
+  assert.match(page, /aria-current=\{view === id \? 'page'/);
+  assert.match(page, /nav\.map\(\(\[id, label, Icon\]\)/);
+  assert.match(styles, /overflow-x: auto/);
+  assert.match(styles, /-webkit-overflow-scrolling: touch/);
+});
