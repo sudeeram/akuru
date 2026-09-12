@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
@@ -33,7 +34,7 @@ import {
   AvatarGroup,
 } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardAction,
@@ -61,6 +62,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
 
 const palette = [
   ['Primary', '#2E65D5'],
@@ -137,13 +139,9 @@ export default function UiFeaturesPage() {
           <p>
             Sign in with an AKURU Admin account to view the component reference.
           </p>
-          <Button
-            onClick={() => {
-              window.location.href = '/';
-            }}
-          >
+          <Link className={buttonVariants()} href="/">
             <ArrowLeft /> Return to sign in
-          </Button>
+          </Link>
         </div>
       </div>
     );
@@ -159,14 +157,12 @@ export default function UiFeaturesPage() {
         </div>
         <div className="ui-reference-actions">
           <span className="muted">Signed in as {access?.user.name}</span>
-          <Button
-            variant="outline"
-            onClick={() => {
-              window.location.href = '/#today';
-            }}
+          <Link
+            className={cn(buttonVariants({ variant: 'outline' }))}
+            href="/#today"
           >
             <ArrowLeft /> Admin portal
-          </Button>
+          </Link>
         </div>
       </header>
       <nav className="ui-top-navigation" aria-label="UI feature categories">
@@ -596,8 +592,8 @@ export default function UiFeaturesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                  <div
-                    className="ui-bar-chart"
+                <div
+                  className="ui-bar-chart"
                   aria-label="Maths 82 percent, Physics 64 percent, English 91 percent, ICT 73 percent"
                 >
                   <div>

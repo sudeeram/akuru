@@ -4,9 +4,30 @@ import test from 'node:test';
 
 const api = readFileSync(new URL('../lib/api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
-const admin = readFileSync(new URL('../features/admin.tsx', import.meta.url), 'utf8');
-const vite = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
-const uiFeatures = readFileSync(new URL('../app/ui-features/page.tsx', import.meta.url), 'utf8');
+const admin = readFileSync(
+  new URL('../features/admin.tsx', import.meta.url),
+  'utf8',
+);
+const vite = readFileSync(
+  new URL('../vite.config.ts', import.meta.url),
+  'utf8',
+);
+const uiFeatures = readFileSync(
+  new URL('../app/ui-features/page.tsx', import.meta.url),
+  'utf8',
+);
+const layout = readFileSync(
+  new URL('../app/layout.tsx', import.meta.url),
+  'utf8',
+);
+const routeLoader = readFileSync(
+  new URL('../components/route-loading-overlay.tsx', import.meta.url),
+  'utf8',
+);
+const styles = readFileSync(
+  new URL('../app/globals.css', import.meta.url),
+  'utf8',
+);
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -36,4 +57,15 @@ test('admin UI reference is routed and API-authorized', () => {
   assert.match(uiFeatures, /Workflow board/);
   assert.match(uiFeatures, /Charts and trends/);
   assert.match(uiFeatures, /Access and communication/);
+});
+
+test('page transitions rotate through AKURU BOT loading scenes', () => {
+  assert.match(layout, /RouteLoadingOverlay/);
+  assert.equal(
+    (routeLoader.match(/\/akuru-loading\/akuru-loading-/g) ?? []).length,
+    5,
+  );
+  assert.match(routeLoader, /route-loader/);
+  assert.match(routeLoader, /hashchange/);
+  assert.match(styles, /prefers-reduced-motion/);
 });

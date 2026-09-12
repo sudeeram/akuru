@@ -26,6 +26,8 @@ The UI hides actions according to role for usability. FastAPI remains authoritat
 
 AKURU uses a pale blue-grey application canvas, white content cards, blue primary actions, and restrained green and amber status accents. The layout favors persistent navigation, concise dashboard cards, visible field labels, readable status text, and responsive grids. The `/ui-features` route is the review point for the current palette, typography, buttons, badges, alerts, form controls, progress indicators, tables, tabs, and AKURU BOT usage.
 
+`components/route-loading-overlay.tsx` provides shared page-transition feedback. It preloads and rotates five transparent AKURU BOT scenes stored in `public/akuru-loading`, handles full internal route changes and the portal's hash-based workspace navigation, and disables motion when the browser requests reduced motion. File downloads, external links, modified clicks, and same-page documentation anchors do not trigger the overlay.
+
 ## Local commands
 
 From `source-code`:
