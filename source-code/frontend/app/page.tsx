@@ -433,7 +433,6 @@ export default function Portal() {
 }
 
 function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise<void> }) {
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -450,7 +449,7 @@ function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise
           if (newPassword !== confirmPassword) return setError('The new passwords do not match.');
           setBusy(true); setError('');
           try {
-            await api('auth/change-password', { currentPassword, newPassword });
+            await api('auth/change-password', { newPassword });
             await refresh();
           } catch (caught) { setError(errorMessage(caught)); }
           finally { setBusy(false); }
@@ -458,8 +457,6 @@ function PasswordChange({ data, refresh }: { data: State; refresh: () => Promise
           <span className="pill"><ShieldCheck size={14} /> FIRST SIGN-IN</span>
           <h2>Choose your own password.</h2>
           <p>Welcome, {data.user.name}. Replace the temporary password before continuing.</p>
-          <label htmlFor="current-password">Temporary password</label>
-          <Input id="current-password" type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
           <label htmlFor="new-password">New password · at least 12 characters</label>
           <Input id="new-password" type="password" autoComplete="new-password" minLength={12} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
           <label htmlFor="confirm-password">Confirm new password</label>

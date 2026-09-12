@@ -6,7 +6,9 @@ The frontend is a React 19 and TypeScript portal built with Vite/Vinext. `app/pa
 
 The browser uses same-origin `/api/v1/*` URLs. Vite proxies this prefix to `http://127.0.0.1:8000` during local development. Production must route the same prefix to FastAPI at the reverse proxy. There are no bundled mock users, demo login buttons, or active Node mock API handlers.
 
-FastAPI sets an HttpOnly session cookie and a readable same-site CSRF cookie. `lib/api.ts` copies the CSRF value into `X-CSRF-Token` on mutations. A 401 clears the displayed portal state and returns the user to sign-in. Users created by Admin receive a temporary password and must replace it before portal navigation becomes available.
+FastAPI sets an HttpOnly session cookie and a readable same-site CSRF cookie. `lib/api.ts` copies the CSRF value into `X-CSRF-Token` on mutations. A 401 clears the displayed portal state and returns the user to sign-in. Users created by Admin receive a temporary password and must replace it before portal navigation becomes available. Because that user has just authenticated, the forced setup form asks only for the new password and confirmation; the backend rejects reuse of the existing password.
+
+FastAPI validation responses may contain multiple structured field errors. `lib/api.ts` converts them into readable field-specific messages so forms explain requirements such as username format, password length, Parent selection, progression order, and subject selection.
 
 ## Current data contract
 

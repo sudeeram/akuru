@@ -21,12 +21,16 @@ function Field({
   onChange,
   type = 'text',
   multiline = false,
+  minLength,
+  maxLength,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   type?: string;
   multiline?: boolean;
+  minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="stack">
@@ -36,6 +40,8 @@ function Field({
           aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          minLength={minLength}
+          maxLength={maxLength}
           required
         />
       ) : (
@@ -304,19 +310,24 @@ export function AdminWorkspace(p: Props) {
                 e.preventDefault();
                 void run(
                   async () => {
-                    await api(editId ? 'admin/students' : 'admin/accounts', {
-                      id: editId,
-                      username,
-                      name,
-                      password,
-                      role,
-                      parentId,
-                      level: 'iGCSE',
-                      grade,
-                      term,
-                      progression,
-                      subjects: enrolled,
-                    });
+                    await api(
+                      editId ? 'admin/students' : 'admin/accounts',
+                      editId || role === 'student'
+                        ? {
+                            id: editId,
+                            username,
+                            name,
+                            password,
+                            role,
+                            parentId,
+                            level: 'iGCSE',
+                            grade,
+                            term,
+                            progression,
+                            subjects: enrolled,
+                          }
+                        : { username, name, password, role },
+                    );
                     setPassword('');
                     setEditId('');
                     setUsername('');
@@ -339,12 +350,16 @@ export function AdminWorkspace(p: Props) {
                     label="Username"
                     value={username}
                     onChange={setUsername}
+                    minLength={3}
+                    maxLength={40}
                   />
                   <Field
                     label="Temporary password (at least 12 characters)"
                     type="password"
                     value={password}
                     onChange={setPassword}
+                    minLength={12}
+                    maxLength={200}
                   />
                 </>
               )}

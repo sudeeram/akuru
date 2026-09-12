@@ -11,6 +11,36 @@ export function errorMessage(error: unknown) {
     ? error.message
     : 'Something went wrong. Please try again.';
 }
+const fieldLabels: Record<string, string> = {
+  username: 'Username',
+  name: 'Full name',
+  password: 'Password',
+  parentId: 'Parent account',
+  progression: 'Grade and Term progression',
+  subjects: 'Subjects',
+  newPassword: 'New password',
+};
+function apiErrorMessage(data: unknown) {
+  if (!data || typeof data !== 'object') return 'The server could not process the request.';
+  if ('error' in data && typeof data.error === 'string') return data.error;
+  if ('detail' in data && typeof data.detail === 'string') return data.detail;
+  if ('detail' in data && Array.isArray(data.detail)) {
+    return data.detail
+      .map((item) => {
+        if (!item || typeof item !== 'object') return '';
+        const location = 'loc' in item && Array.isArray(item.loc) ? item.loc : [];
+        const key = String(location.at(-1) ?? 'request');
+        const label = fieldLabels[key] ?? key;
+        const message = 'msg' in item && typeof item.msg === 'string'
+          ? item.msg.replace(/^Value error,\s*/i, '')
+          : 'is invalid';
+        return `${label}: ${message}`;
+      })
+      .filter(Boolean)
+      .join(' ');
+  }
+  return 'The server could not process the request.';
+}
 export type Lesson = { explanation: string; points: string[]; hints: string[] };
 export type FileRef = { id: string; name: string };
 type ApiResult<P extends string> = P extends 'state'
@@ -47,22 +77,17 @@ export async function api<P extends string>(
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data: unknown =
-    response.status === 204 ? {} : await response.json();
+  const raw = response.status === 204 ? '' : await response.text();
+  let data: unknown = {};
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = { detail: 'The server returned an unreadable response.' };
+    }
+  }
   if (!response.ok) {
-    const message =
-      data &&
-      typeof data === 'object' &&
-      'error' in data &&
-      typeof data.error === 'string'
-        ? data.error
-        : data &&
-            typeof data === 'object' &&
-            'detail' in data &&
-            typeof data.detail === 'string'
-          ? data.detail
-        : 'Request failed.';
-    throw new ApiError(message, response.status);
+    throw new ApiError(apiErrorMessage(data), response.status);
   }
   return data as ApiResult<P>;
 }

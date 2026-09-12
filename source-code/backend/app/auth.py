@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
@@ -49,14 +49,7 @@ def public_user(user: User) -> UserResponse:
 
 
 class ChangePasswordRequest(BaseModel):
-    currentPassword: str = Field(min_length=1, max_length=200)
     newPassword: str = Field(min_length=12, max_length=200)
-
-    @model_validator(mode="after")
-    def passwords_must_differ(self):
-        if self.currentPassword == self.newPassword:
-            raise ValueError("The new password must be different.")
-        return self
 
 
 def throttle_key(request: Request, username: str) -> str:
@@ -135,8 +128,13 @@ def change_password(
     db: Annotated[Session, Depends(get_db)],
     principal: Annotated[Principal, Depends(require_csrf)],
 ) -> None:
-    if not verify_password(payload.currentPassword, principal.user.password_hash):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The current password is incorrect.")
+    if not principal.user.must_change_password:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="The temporary password has already been replaced.")
+    if verify_password(payload.newPassword, principal.user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The new password cannot be same as the existing password.",
+        )
     from app.security import hash_password
 
     principal.user.password_hash = hash_password(payload.newPassword)

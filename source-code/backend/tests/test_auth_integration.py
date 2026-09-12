@@ -89,6 +89,16 @@ def test_admin_creates_parent_and_student_with_scoped_state(auth_client) -> None
     login = client.post("/api/v1/auth/login", json={"username": admin_username, "password": admin_password}).json()
     headers = {"X-CSRF-Token": login["csrfToken"]}
 
+    invalid_parent = client.post("/api/v1/admin/accounts", headers=headers, json={
+        "username": "short-password-parent", "name": "Test Parent",
+        "password": "too-short", "role": "parent",
+    })
+    assert invalid_parent.status_code == 422
+    assert any(
+        issue["loc"][-1] == "password" and "at least 12 characters" in issue["msg"]
+        for issue in invalid_parent.json()["detail"]
+    )
+
     parent_username = f"parent-{uuid.uuid4().hex[:12]}"
     parent_password = "temporary parent password"
     parent_response = client.post("/api/v1/admin/accounts", headers=headers, json={
@@ -139,7 +149,7 @@ def test_admin_creates_parent_and_student_with_scoped_state(auth_client) -> None
     assert blocked_until_changed.status_code == 403
 
     changed = client.post("/api/v1/auth/change-password", headers=parent_headers, json={
-        "currentPassword": parent_password, "newPassword": "parent chose a new secure password",
+        "newPassword": "parent chose a new secure password",
     })
     assert changed.status_code == 204
     parent_state = client.get("/api/v1/state").json()
@@ -160,8 +170,13 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
         "username": username, "name": "Password Parent", "password": initial_password, "role": "parent",
     })
     user_login = client.post("/api/v1/auth/login", json={"username": username, "password": initial_password}).json()
+    reused = client.post("/api/v1/auth/change-password", headers={"X-CSRF-Token": user_login["csrfToken"]}, json={
+        "newPassword": initial_password,
+    })
+    assert reused.status_code == 400
+    assert reused.json()["detail"] == "The new password cannot be same as the existing password."
     response = client.post("/api/v1/auth/change-password", headers={"X-CSRF-Token": user_login["csrfToken"]}, json={
-        "currentPassword": initial_password, "newPassword": "a completely new secure password",
+        "newPassword": "a completely new secure password",
     })
     assert response.status_code == 204
     assert client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
