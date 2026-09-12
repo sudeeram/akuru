@@ -3,7 +3,9 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Course, Document, DocumentEvent, DocumentVersion, Subject
+from app.models import (
+    Course, Document, DocumentEvent, DocumentJob, DocumentStageRun, DocumentVersion, Subject,
+)
 
 
 class DocumentRepository:
@@ -20,6 +22,31 @@ class DocumentRepository:
         return self.db.execute(select(DocumentVersion).where(
             DocumentVersion.document_id == document_id
         ).order_by(DocumentVersion.version_number.desc())).scalars().first()
+
+    def job(self, job_id: uuid.UUID, *, lock: bool = False) -> DocumentJob | None:
+        query = select(DocumentJob).where(DocumentJob.id == job_id)
+        if lock:
+            query = query.with_for_update(skip_locked=True)
+        return self.db.execute(query).scalar_one_or_none()
+
+    def latest_job(self, document_id: uuid.UUID) -> DocumentJob | None:
+        return self.db.execute(select(DocumentJob).where(
+            DocumentJob.document_id == document_id
+        ).order_by(DocumentJob.queued_at.desc())).scalars().first()
+
+    def queued_job_ids(self) -> list[uuid.UUID]:
+        return list(self.db.execute(select(DocumentJob.id).where(
+            DocumentJob.status == "queued"
+        ).order_by(DocumentJob.queued_at)).scalars())
+
+    def stage_run(
+        self, version_id: uuid.UUID, stage: str, extraction_version: str
+    ) -> DocumentStageRun | None:
+        return self.db.execute(select(DocumentStageRun).where(
+            DocumentStageRun.document_version_id == version_id,
+            DocumentStageRun.stage == stage,
+            DocumentStageRun.extraction_version == extraction_version,
+        )).scalar_one_or_none()
 
     def checksum_exists(self, checksum: str) -> bool:
         return self.db.execute(select(DocumentVersion.id).where(

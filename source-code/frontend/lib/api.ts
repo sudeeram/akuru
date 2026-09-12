@@ -261,6 +261,8 @@ export type Doc = {
   kind: string;
   status: string;
   notes: string;
+  processingProgress?: number;
+  processingError?: string | null;
 };
 export type Exam = {
   id: string;

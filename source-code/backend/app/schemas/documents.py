@@ -43,3 +43,25 @@ class DocumentListResponse(BaseModel):
 class DocumentActionResponse(BaseModel):
     id: str
     status: str
+
+
+class DocumentJobResponse(BaseModel):
+    id: str
+    documentId: str
+    documentVersionId: str
+    stage: str
+    status: str
+    progress: int
+    attemptCount: int
+    extractionVersion: str
+    errorCode: str | None = None
+    errorMessage: str | None = None
+    result: dict = Field(default_factory=dict)
+    queuedAt: datetime
+    startedAt: datetime | None = None
+    completedAt: datetime | None = None
+
+
+class DocumentUploadResponse(BaseModel):
+    document: DocumentResponse
+    job: DocumentJobResponse

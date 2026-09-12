@@ -20,7 +20,13 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_STORAGE_BACKEND` | Yes | `local` for development or `oci` for private OCI Object Storage. |
 | `AKURU_LOCAL_STORAGE_PATH` | Local | Absolute private filesystem root; default `/data/akuru/documents`. |
 | `AKURU_MAX_DOCUMENT_BYTES` | No | Maximum original document size; default 52,428,800 bytes (50 MB). |
+| `AKURU_REDIS_URL` | Yes | Private Redis connection used to transport document job IDs. |
+| `AKURU_DOCUMENT_QUEUE_NAME` | No | Redis list name for document jobs; default `akuru:documents`. |
+| `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` | No | Maximum processing time per isolated stage; default `120`. |
+| `AKURU_DOCUMENT_JOB_MEMORY_MB` | No | Linux worker address-space limit per isolated stage; default `512`. |
+| `AKURU_DOCUMENT_MAX_PAGES` | No | Maximum pages accepted by document preflight; default `500`. |
+| `AKURU_EXTRACTION_VERSION` | No | Version key used for idempotent stage results; default `preflight-v1`. |
 | `AKURU_OCI_OBJECT_NAMESPACE` | OCI | OCI Object Storage namespace. |
 | `AKURU_OCI_OBJECT_BUCKET` | OCI | Private bucket dedicated to AKURU documents. |
 
-Production credentials belong in OCI Vault and should be injected into the backend process at deployment time. Use separate database users and secrets for development, CI and production. OpenAI and object-storage settings will be added when their roadmap steps are implemented.
+Production credentials belong in OCI Vault and should be injected into the backend and worker processes at deployment time. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production. OpenAI settings will be added when that roadmap step is implemented.

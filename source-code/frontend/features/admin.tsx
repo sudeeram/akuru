@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -153,6 +153,16 @@ export function AdminWorkspace(p: Props) {
     'Marking scheme': 'mark_scheme',
     'Examiner report': 'examiner_report',
   } as const;
+  const processingDocuments = p.data.documents.some((document) =>
+    ['queued', 'processing'].includes(document.status),
+  );
+  const currentView = p.view;
+  const refreshPortal = p.refresh;
+  useEffect(() => {
+    if (currentView !== 'library' || !processingDocuments) return;
+    const timer = window.setInterval(() => void refreshPortal(), 2000);
+    return () => window.clearInterval(timer);
+  }, [currentView, refreshPortal, processingDocuments]);
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError('');
@@ -522,6 +532,21 @@ export function AdminWorkspace(p: Props) {
             </section>
             <section className="panel spaced stack">
               <h2>Review documents</h2>
+              {p.data.documents.map((document) => (
+                <div className="stack" key={`processing-${document.id}`}>
+                  <div className="spread small">
+                    <span>{document.name}</span>
+                    <span>
+                      {document.status} · {document.processingProgress ?? 0}%
+                    </span>
+                  </div>
+                  {document.processingError && (
+                    <p className="error" role="alert">
+                      {document.processingError}
+                    </p>
+                  )}
+                </div>
+              ))}
               <Picker
                 label="Document to review"
                 value={docId}

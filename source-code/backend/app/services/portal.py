@@ -70,19 +70,22 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
     }
     portal_documents = []
     if principal.user.role == "admin" and not principal.user.must_change_password:
-        portal_documents = [
-            {
+        portal_documents = []
+        document_repository = DocumentRepository(db)
+        for document, _version in document_repository.active_documents():
+            job = document_repository.latest_job(document.id)
+            portal_documents.append({
                 "id": str(document.id),
                 "name": document.title,
                 "subject": document.subject_id,
                 "course": "iGCSE",
                 "kind": document_kind_labels[document.kind],
-                "status": document.review_state,
+                "status": job.status if job else document.review_state,
                 "notes": "",
                 "paperId": str(document.source_document_id) if document.source_document_id else None,
-            }
-            for document, _version in DocumentRepository(db).active_documents()
-        ]
+                "processingProgress": job.progress if job else 0,
+                "processingError": job.error_message if job else None,
+            })
     return {
         "user": {
             "id": str(principal.user.id),

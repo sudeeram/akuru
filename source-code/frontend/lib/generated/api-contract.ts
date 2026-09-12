@@ -7,9 +7,11 @@ export interface Schemas {
   "ChangePasswordRequest": { "newPassword": string; };
   "CourseResponse": { "id": string; "name": string; "phase1Active": boolean; };
   "CreateAccountRequest": { "username": string; "name": string; "password": string; "role": "parent" | "student"; "parentId"?: string | null; "level"?: "iGCSE" | null; "grade"?: "Grade 10" | "Grade 11" | null; "term"?: "Term1" | "Term2" | "Term3" | null; "progression"?: Array<string>; "subjects"?: Array<string>; };
+  "DocumentJobResponse": { "id": string; "documentId": string; "documentVersionId": string; "stage": string; "status": string; "progress": number; "attemptCount": number; "extractionVersion": string; "errorCode"?: string | null; "errorMessage"?: string | null; "result"?: { [key: string]: unknown; }; "queuedAt": string; "startedAt"?: string | null; "completedAt"?: string | null; };
   "DocumentListResponse": { "documents": Array<Schemas["DocumentResponse"]>; };
   "DocumentResponse": { "id": string; "kind": Schemas["DocumentType"]; "courseId": string; "subjectId": string; "title": string; "originalFilename": string; "contentType": string; "sizeBytes": number; "checksum": string; "status": string; "edition"?: string | null; "year"?: number | null; "session"?: string | null; "component"?: string | null; "variant"?: string | null; "sourceDocumentId"?: string | null; "sourceMetadata"?: { [key: string]: unknown; }; "versionId": string; "versionNumber": number; "createdAt": string; "removedAt"?: string | null; };
   "DocumentType": "textbook" | "reference" | "past_paper" | "mark_scheme" | "examiner_report";
+  "DocumentUploadResponse": { "document": Schemas["DocumentResponse"]; "job": Schemas["DocumentJobResponse"]; };
   "ErrorItem": { "code": string; "message": string; "details"?: Array<{ [key: string]: unknown; }>; };
   "ErrorResponse": { "error": Schemas["ErrorItem"]; };
   "LoginRequest": { "username": string; "password": string; };
@@ -38,11 +40,13 @@ export interface ApiOperations {
   "GET /api/v1/auth/me": { request: unknown; response: Schemas["UserResponse"] };
   "GET /api/v1/catalog": { request: unknown; response: Schemas["CatalogResponse"] };
   "GET /api/v1/documents": { request: unknown; response: Schemas["DocumentListResponse"] };
-  "POST /api/v1/documents": { request: unknown; response: Schemas["DocumentResponse"] };
+  "POST /api/v1/documents": { request: unknown; response: Schemas["DocumentUploadResponse"] };
   "GET /api/v1/documents/{document_id}": { request: unknown; response: Schemas["DocumentResponse"] };
   "DELETE /api/v1/documents/{document_id}": { request: unknown; response: unknown };
   "GET /api/v1/documents/{document_id}/content": { request: unknown; response: unknown };
-  "POST /api/v1/documents/{document_id}/retry": { request: unknown; response: Schemas["DocumentResponse"] };
+  "GET /api/v1/documents/{document_id}/jobs/latest": { request: unknown; response: Schemas["DocumentJobResponse"] };
+  "GET /api/v1/documents/{document_id}/jobs/{job_id}": { request: unknown; response: Schemas["DocumentJobResponse"] };
+  "POST /api/v1/documents/{document_id}/retry": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
   "GET /health": { request: unknown; response: { [key: string]: string; } };
   "GET /ready": { request: unknown; response: { [key: string]: string; } };

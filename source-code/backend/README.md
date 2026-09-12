@@ -1,6 +1,6 @@
 # AKURU backend
 
-This folder contains the real backend foundation. FastAPI provides authentication, role-scoped portal state, Admin account/enrolment management, health, readiness and curriculum endpoints. SQLAlchemy models and Alembic migrations own the PostgreSQL schema. The frontend calls these routes through `/api/v1`.
+This folder contains the real backend foundation. FastAPI provides authentication, role-scoped portal state, Admin account/enrolment management, private document ingestion, health, readiness and curriculum endpoints. SQLAlchemy models and Alembic migrations own the PostgreSQL schema. Redis transports document job identifiers to a separate worker; PostgreSQL remains authoritative. The frontend calls the API through `/api/v1`.
 
 ## One-time local setup
 
@@ -21,11 +21,15 @@ From `source-code`:
 
 ```bash
 npm run backend:dev
+npm run backend:worker
+npm run dev
 npm run test:backend
 npm test
 ```
 
-The API runs at `http://127.0.0.1:8000`; interactive OpenAPI documentation is at `/docs`. `npm test` runs the frontend suite and then the backend suite. Authentication integration tests use PostgreSQL transactions that are rolled back, so test users and sessions are not retained.
+Run the API, worker and frontend in separate terminals. Redis must be available at the configured URL before starting the worker. The API runs at `http://127.0.0.1:8000`; interactive OpenAPI documentation is at `/docs`. `npm test` runs the frontend suite and then the backend suite. Authentication integration tests use PostgreSQL transactions that are rolled back, so test users and sessions are not retained.
+
+Uploads return after the original bytes and an authoritative queued job are stored. The worker performs bounded preflight processing and updates progress for the Admin UI. See [document processing](docs/document-processing.md) for states, retries and recovery.
 
 ## Create the first administrator
 

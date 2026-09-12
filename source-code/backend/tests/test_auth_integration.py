@@ -1,4 +1,5 @@
 import uuid
+from contextlib import contextmanager
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,12 +8,25 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AuditEvent, Document, DocumentEvent, DocumentVersion, StudentProfile,
+    AuditEvent, Document, DocumentEvent, DocumentJob, DocumentVersion, StudentProfile,
     StudentProgression, StudentSubject, User,
 )
 from app.security import hash_password
+from app.queue.factory import get_document_queue
+from app.services import document_processing
 from app.storage.factory import get_storage
 from app.storage.local import LocalObjectStorage
+
+
+class FakeDocumentQueue:
+    def __init__(self):
+        self.job_ids: list[uuid.UUID] = []
+
+    def enqueue(self, job_id: uuid.UUID) -> None:
+        self.job_ids.append(job_id)
+
+    def dequeue(self, timeout_seconds: int = 5) -> uuid.UUID | None:
+        return self.job_ids.pop(0) if self.job_ids else None
 
 
 @pytest.fixture
@@ -35,12 +49,17 @@ def auth_client(tmp_path):
         yield session
 
     storage = LocalObjectStorage(tmp_path / "private-documents")
+    queue = FakeDocumentQueue()
 
     def override_storage():
         return storage
 
+    def override_queue():
+        return queue
+
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_storage] = override_storage
+    app.dependency_overrides[get_document_queue] = override_queue
     client = TestClient(app, base_url="http://localhost")
     try:
         yield client, username, password
@@ -205,7 +224,7 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
 
 
 @pytest.mark.integration
-def test_admin_document_upload_validation_private_download_and_removal(auth_client) -> None:
+def test_admin_document_upload_validation_private_download_and_removal(auth_client, monkeypatch) -> None:
     client, username, password = auth_client
     assert client.get("/api/v1/documents").status_code == 401
     login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
@@ -223,15 +242,20 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
         "year": 2025,
         "publisher": "Test Publisher",
     }
-    content = b"%PDF-1.7\nsynthetic integration fixture\n%%EOF"
+    content = b"%PDF-1.7\n/Type /Page\nsynthetic integration fixture\n%%EOF"
     uploaded = client.post("/api/v1/documents", params=params, headers=headers, content=content)
     assert uploaded.status_code == 201, uploaded.text
-    document = uploaded.json()
+    upload_payload = uploaded.json()
+    document = upload_payload["document"]
+    job_payload = upload_payload["job"]
     assert document["kind"] == "textbook"
     assert document["subjectId"] == "biology"
     assert document["sourceMetadata"] == {"publisher": "Test Publisher"}
     assert document["sizeBytes"] == len(content)
-    assert document["status"] == "uploaded"
+    assert document["status"] == "queued"
+    assert job_payload["status"] == "queued"
+    queue = app.dependency_overrides[get_document_queue]()
+    assert queue.job_ids == [uuid.UUID(job_payload["id"])]
 
     listed = client.get("/api/v1/documents").json()["documents"]
     assert [row["id"] for row in listed] == [document["id"]]
@@ -278,9 +302,10 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     session: Session = next(app.dependency_overrides[get_db]())
     stored_document = session.get(Document, uuid.UUID(document["id"]))
     stored_version = session.get(DocumentVersion, uuid.UUID(document["versionId"]))
+    stored_job = session.get(DocumentJob, uuid.UUID(job_payload["id"]))
     assert stored_document.sha256 == document["checksum"]
     assert stored_version.object_key == stored_document.object_key
-    assert session.query(DocumentEvent).filter_by(document_id=stored_document.id, event_type="uploaded").count() == 1
+    assert session.query(DocumentEvent).filter_by(document_id=stored_document.id, event_type="queued").count() == 1
 
     retry_not_failed = client.post(
         f"/api/v1/documents/{document['id']}/retry",
@@ -288,16 +313,43 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     )
     assert retry_not_failed.status_code == 409
     stored_version.status = "failed"
+    stored_job.status = "failed"
+    stored_job.error_code = "test_failure"
+    stored_job.error_message = "Synthetic retry test."
     session.commit()
     retried = client.post(
         f"/api/v1/documents/{document['id']}/retry",
         headers={"X-CSRF-Token": login["csrfToken"]},
     )
     assert retried.status_code == 200
-    assert retried.json()["status"] == "uploaded"
+    assert retried.json()["status"] == "queued"
     assert session.query(DocumentEvent).filter_by(
-        document_id=stored_document.id, event_type="retry_requested"
+        document_id=stored_document.id, event_type="retry_queued"
     ).count() == 1
+
+    @contextmanager
+    def worker_session():
+        yield session
+
+    monkeypatch.setattr(document_processing, "SessionLocal", worker_session)
+    storage = app.dependency_overrides[get_storage]()
+    outcome = document_processing.process_job(stored_job.id, storage)
+    assert outcome == "needs_review", (
+        stored_job.error_code,
+        stored_job.error_message,
+    )
+    status_response = client.get(f"/api/v1/documents/{document['id']}/jobs/latest")
+    assert status_response.status_code == 200
+    assert status_response.json()["status"] == "needs_review"
+    assert status_response.json()["progress"] == 100
+    assert status_response.json()["result"]["pageCount"] == 1
+
+    attempts = stored_job.attempt_count
+    stored_job.status = "queued"
+    stored_version.status = "queued"
+    session.commit()
+    assert document_processing.process_job(stored_job.id, storage) == "idempotent"
+    assert stored_job.attempt_count == attempts
 
     removed = client.delete(
         f"/api/v1/documents/{document['id']}",

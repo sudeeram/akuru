@@ -14,6 +14,7 @@ if (!existsSync(python)) {
 
 const commands = {
   dev: ["-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
+  worker: ["-m", "app.workers.document_worker"],
   migrate: ["-m", "alembic", "upgrade", "head"],
   test: ["-m", "pytest", "-q"],
   backup: ["-m", "app.database_maintenance", "backup", ...process.argv.slice(3)],

@@ -48,12 +48,12 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Keep large PDF and image work outside ordinary FastAPI requests.
 
-- [ ] Add a Redis-backed queue and document worker.
-- [ ] Track queued, processing, needs-review, failed and completed states.
-- [ ] Make every processing stage idempotent and safely retryable.
-- [ ] Record progress, timestamps, extraction version and useful failures.
-- [ ] Add job-status APIs and frontend progress reporting.
-- [ ] Enforce time, memory and page-count limits.
+- [x] Add a Redis-backed queue and document worker.
+- [x] Track queued, processing, needs-review, failed and completed states.
+- [x] Make every processing stage idempotent and safely retryable.
+- [x] Record progress, timestamps, extraction version and useful failures.
+- [x] Add job-status APIs and frontend progress reporting.
+- [x] Enforce time, memory and page-count limits.
 
 **Done when:** Upload returns promptly, worker restarts do not duplicate data, and Admin can inspect and retry a failed stage.
 

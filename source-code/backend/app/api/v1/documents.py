@@ -7,9 +7,13 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
-from app.schemas.documents import DocumentListResponse, DocumentResponse, DocumentType
+from app.queue import DocumentQueue, get_document_queue
+from app.schemas.documents import (
+    DocumentJobResponse, DocumentListResponse, DocumentResponse, DocumentType, DocumentUploadResponse,
+)
 from app.security import Principal
 from app.services import documents
+from app.services.document_processing import get_job, job_response, retry_job
 from app.storage import ObjectStorage, get_storage
 
 
@@ -24,12 +28,13 @@ def list_documents(
     return DocumentListResponse(documents=documents.list_documents(db))
 
 
-@router.post("", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 def upload_document(
     content: Annotated[bytes, Body(media_type="application/octet-stream")],
     principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
     db: Annotated[Session, Depends(get_db)],
     storage: Annotated[ObjectStorage, Depends(get_storage)],
+    queue: Annotated[DocumentQueue, Depends(get_document_queue)],
     filename: Annotated[str, Header(alias="X-Filename", min_length=1, max_length=255)],
     content_type: Annotated[str, Header(alias="Content-Type")],
     kind: Annotated[DocumentType, Query()],
@@ -45,10 +50,11 @@ def upload_document(
     publisher: Annotated[str | None, Query(max_length=160)] = None,
     isbn: Annotated[str | None, Query(max_length=40)] = None,
     source_url: Annotated[str | None, Query(alias="sourceUrl", max_length=500)] = None,
-) -> DocumentResponse:
+) -> DocumentUploadResponse:
     return documents.upload_document(
         db,
         storage,
+        queue,
         principal,
         content=content,
         filename=filename,
@@ -100,13 +106,33 @@ def download_document(
     )
 
 
-@router.post("/{document_id}/retry", response_model=DocumentResponse)
+@router.post("/{document_id}/retry", response_model=DocumentJobResponse)
 def retry_document(
     document_id: uuid.UUID,
     principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
     db: Annotated[Session, Depends(get_db)],
-) -> DocumentResponse:
-    return documents.retry_document(db, principal, document_id)
+    queue: Annotated[DocumentQueue, Depends(get_document_queue)],
+) -> DocumentJobResponse:
+    return job_response(retry_job(db, queue, document_id, principal.user.id))
+
+
+@router.get("/{document_id}/jobs/latest", response_model=DocumentJobResponse)
+def latest_document_job(
+    document_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> DocumentJobResponse:
+    return job_response(get_job(db, document_id))
+
+
+@router.get("/{document_id}/jobs/{job_id}", response_model=DocumentJobResponse)
+def document_job(
+    document_id: uuid.UUID,
+    job_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> DocumentJobResponse:
+    return job_response(get_job(db, document_id, job_id))
 
 
 @router.delete("/{document_id}", status_code=204)

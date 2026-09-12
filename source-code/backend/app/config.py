@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     max_document_bytes: int = Field(default=50 * 1024 * 1024, ge=1024, le=250 * 1024 * 1024)
     oci_object_namespace: str | None = None
     oci_object_bucket: str | None = None
+    redis_url: str = Field(default="redis://127.0.0.1:6379/0", repr=False)
+    document_queue_name: str = "akuru:documents"
+    document_job_timeout_seconds: int = Field(default=120, ge=5, le=3600)
+    document_job_memory_mb: int = Field(default=512, ge=128, le=4096)
+    document_max_pages: int = Field(default=500, ge=1, le=2000)
+    extraction_version: str = "preflight-v1"
 
     @property
     def database_url(self) -> URL:

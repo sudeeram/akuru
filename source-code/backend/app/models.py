@@ -174,7 +174,10 @@ class DocumentVersion(Base):
     __table_args__ = (
         CheckConstraint("version_number > 0", name="ck_document_versions_number"),
         CheckConstraint("size_bytes > 0", name="ck_document_versions_size"),
-        CheckConstraint("status IN ('uploaded','failed','removed')", name="ck_document_versions_status"),
+        CheckConstraint(
+            "status IN ('uploaded','queued','processing','needs_review','failed','completed','removed')",
+            name="ck_document_versions_status",
+        ),
         UniqueConstraint("document_id", "version_number", name="uq_document_version_number"),
     )
 
@@ -211,6 +214,70 @@ class DocumentEvent(Base):
     event_type: Mapped[str] = mapped_column(String(40), index=True)
     event_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class DocumentJob(Base):
+    __tablename__ = "document_jobs"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    stage: Mapped[str] = mapped_column(String(40), default="preflight", server_default="preflight")
+    status: Mapped[str] = mapped_column(String(24), default="queued", server_default="queued", index=True)
+    progress: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    extraction_version: Mapped[str] = mapped_column(String(80))
+    error_code: Mapped[str | None] = mapped_column(String(80))
+    error_message: Mapped[str | None] = mapped_column(String(500))
+    result_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    max_seconds: Mapped[int] = mapped_column(Integer)
+    max_memory_mb: Mapped[int] = mapped_column(Integer)
+    max_pages: Mapped[int] = mapped_column(Integer)
+    queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('queued','processing','needs_review','failed','completed')",
+            name="ck_document_jobs_status",
+        ),
+        CheckConstraint("progress BETWEEN 0 AND 100", name="ck_document_jobs_progress"),
+        CheckConstraint("attempt_count >= 0", name="ck_document_jobs_attempt_count"),
+        CheckConstraint("max_seconds > 0", name="ck_document_jobs_max_seconds"),
+        CheckConstraint("max_memory_mb > 0", name="ck_document_jobs_max_memory"),
+        CheckConstraint("max_pages > 0", name="ck_document_jobs_max_pages"),
+        UniqueConstraint(
+            "document_version_id", "stage", "extraction_version",
+            name="uq_document_job_stage_version",
+        ),
+    )
+
+
+class DocumentStageRun(Base):
+    __tablename__ = "document_stage_runs"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    stage: Mapped[str] = mapped_column(String(40))
+    extraction_version: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(24))
+    input_checksum: Mapped[str] = mapped_column(String(64))
+    output_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('processing','failed','completed')", name="ck_document_stage_runs_status"),
+        UniqueConstraint(
+            "document_version_id", "stage", "extraction_version",
+            name="uq_document_stage_run_version",
+        ),
+    )
 
 
 class TextbookUnit(TimestampMixin, Base):

@@ -9,10 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.errors import DomainError
-from app.models import Document, DocumentVersion
+from app.models import Document, DocumentJob, DocumentVersion
+from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
-from app.schemas.documents import DocumentResponse, DocumentType
+from app.schemas.documents import DocumentResponse, DocumentType, DocumentUploadResponse
 from app.security import Principal, utcnow
+from app.services.document_processing import enqueue_safely, job_response
 from app.storage.base import ObjectStorage, StoredObject
 
 
@@ -89,6 +91,7 @@ def _validate_relationships(
 def upload_document(
     db: Session,
     storage: ObjectStorage,
+    queue: DocumentQueue,
     principal: Principal,
     *,
     content: bytes,
@@ -107,7 +110,7 @@ def upload_document(
     publisher: str | None,
     isbn: str | None,
     source_url: str | None,
-) -> DocumentResponse:
+) -> DocumentUploadResponse:
     normalized_mime = validate_file(filename, content_type, content)
     title = title.strip()
     if not title:
@@ -160,13 +163,29 @@ def upload_document(
         mime_type=normalized_mime,
         sha256=checksum,
         size_bytes=len(content),
-        status="uploaded",
+        status="queued",
         uploaded_by=principal.user.id,
+    )
+    job = DocumentJob(
+        document_id=document_id,
+        document_version_id=version_id,
+        stage="preflight",
+        status="queued",
+        progress=0,
+        extraction_version=settings.extraction_version,
+        max_seconds=settings.document_job_timeout_seconds,
+        max_memory_mb=settings.document_job_memory_mb,
+        max_pages=settings.document_max_pages,
     )
     db.add_all((document, version))
     try:
         db.flush()
-        repository.add_event(document, version, principal.user.id, "uploaded", {"sha256": checksum})
+        db.add(job)
+        db.flush()
+        repository.add_event(
+            document, version, principal.user.id, "queued",
+            {"sha256": checksum, "jobId": str(job.id)},
+        )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -181,7 +200,9 @@ def upload_document(
         ) from exc
     db.refresh(document)
     db.refresh(version)
-    return document_response(document, version)
+    db.refresh(job)
+    enqueue_safely(db, queue, job, repository, principal.user.id)
+    return DocumentUploadResponse(document=document_response(document, version), job=job_response(job))
 
 
 def document_response(document: Document, version: DocumentVersion) -> DocumentResponse:
@@ -233,19 +254,17 @@ def download_document(db: Session, storage: ObjectStorage, document_id: uuid.UUI
         raise DomainError("document_bytes_missing", "The stored document could not be found.", 500) from exc
 
 
-def retry_document(db: Session, principal: Principal, document_id: uuid.UUID) -> DocumentResponse:
-    document, version = get_document(db, document_id)
-    if version.status != "failed":
-        raise DomainError("document_not_failed", "Only a failed document can be retried.", 409)
-    version.status = "uploaded"
-    DocumentRepository(db).add_event(document, version, principal.user.id, "retry_requested")
-    db.commit()
-    return document_response(document, version)
-
-
 def remove_document(db: Session, principal: Principal, document_id: uuid.UUID) -> None:
     document, version = get_document(db, document_id)
     document.removed_at = utcnow()
     version.status = "removed"
-    DocumentRepository(db).add_event(document, version, principal.user.id, "removed")
+    repository = DocumentRepository(db)
+    job = repository.latest_job(document_id)
+    if job and job.status in {"queued", "processing"}:
+        job.status = "failed"
+        job.progress = 100
+        job.error_code = "document_removed"
+        job.error_message = "The document was removed before processing completed."
+        job.completed_at = utcnow()
+    repository.add_event(document, version, principal.user.id, "removed")
     db.commit()

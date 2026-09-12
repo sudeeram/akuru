@@ -27,6 +27,16 @@
 - Original downloads are byte-for-byte identical, use private no-store responses and reject Parent access. Retry and soft-removal actions create document events.
 - A post-migration backup restored successfully at revision `521493ec5f1f` with 18 public tables; the isolated restore database was removed.
 
+## Step 3 asynchronous-processing verification
+
+- A real local Redis instance passed an isolated job-ID enqueue/dequeue round trip; the temporary test list was removed afterwards.
+- Upload integration verifies prompt queued responses, structured job status, failed-only retry, progress, useful error fields and Admin authorization.
+- Worker integration verifies PostgreSQL claiming, isolated preflight, page counting, transition to `needs_review`, and reuse of a completed stage without increasing the attempt count.
+- Queue unit tests cover unavailable/invalid messages, unknown PDF page counts and configured page-limit rejection.
+- `npm run verify` passed: 7 frontend tests, 19 backend tests, generated-contract check, TypeScript, Oxlint and the production frontend build. The backend suite retains 2 upstream Starlette/httpx deprecation warnings.
+- Alembic is at revision `73eec4d0d322`; the schema-drift check found no pending model changes.
+- A post-migration backup restored successfully at revision `73eec4d0d322` with 20 public tables; the isolated restore database was removed.
+
 Run the local quality gate from `source-code/` with `npm run verify`. Run `npm run database:restore-drill` separately when validating backup recoverability.
 
 ## Automated checks

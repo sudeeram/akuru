@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Step 1 module boundaries implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–3 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -12,6 +12,8 @@ backend/
     schemas/                      Pydantic transport contracts grouped by domain
     services/                     Transactions, validation and application rules
     repositories/                 SQLAlchemy reads and writes without authorization policy
+    queue/                        Redis-backed document-job transport
+    workers/                      Long-running document processing entry points
     permissions.py                Role and mutation authorization dependencies
     security.py                   Session, CSRF, password and principal primitives
     errors.py                     Stable error envelope and exception handlers
@@ -43,11 +45,13 @@ API failures use one envelope:
 
 ## Infrastructure
 
-FastAPI serves JSON endpoints; PostgreSQL stores authoritative relational state. pgvector indexes approved text/semantic representations alongside metadata. Private object storage holds original PDFs, page images, diagram crops, audio/video and answer attachments. A background job system processes long extraction/indexing tasks; Redis can supply the queue/session infrastructure if selected during implementation.
+FastAPI serves JSON endpoints; PostgreSQL stores authoritative relational state. pgvector will index approved text/semantic representations alongside metadata. Private object storage holds original PDFs, page images, diagram crops, audio/video and answer attachments. Redis carries document job IDs to a separate worker. Job state, attempts, progress, extraction versions, limits and results live in PostgreSQL so Redis loss cannot erase work.
 
 For OCI or home deployment, use an HTTPS reverse proxy, private database/object access, explicit secret configuration and backups. Providers and secrets remain backend-only. Hosting manifests, dependency versions and external provider choices are future implementation decisions, not requirements silently installed on the user's computer.
 
 The implemented storage interface has local-filesystem and OCI adapters. PostgreSQL stores logical documents, immutable versions, derived-asset provenance and append-only events. Original bytes use server-generated private keys and are returned only by an authorized API. See [document storage](document-storage.md) for the endpoint and deployment contract.
+
+The document worker claims queued rows transactionally, records a versioned stage run, and runs untrusted parsing in a spawned subprocess. It enforces a timeout and page limit everywhere, plus an address-space memory limit on the Linux production target. Startup recovery republishes PostgreSQL queued jobs and returns stale processing jobs to the queue. A completed stage with the same input checksum and extraction version is reused instead of duplicated. See [document processing](document-processing.md).
 
 ## Identity and permissions
 
