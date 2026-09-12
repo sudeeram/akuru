@@ -6,6 +6,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 
 ## Documentation
 
+- [Ordered implementation roadmap](TODO.md)
 - [Repository overview and setup](../README.md)
 - [Overall architecture](docs/architecture.md)
 - [Frontend architecture](frontend/docs/architecture.md)
