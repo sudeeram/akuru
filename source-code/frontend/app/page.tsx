@@ -248,6 +248,7 @@ export default function Portal() {
   const child = data.students.find((s) => s.id === selected) ||
     data.students[0] || {
       id: '',
+      username: '',
       name: 'No learners',
       initial: '',
       grade: '',

@@ -119,6 +119,7 @@ export type Subject = {
 };
 export type Student = {
   parentId: string;
+  username: string;
   term: string;
   progression: { grade: string; term: string }[];
   needsConfiguration?: boolean;
@@ -203,7 +204,7 @@ export type State = {
     kinds: string[];
     progressionPairs: { grade: string; term: string }[];
   };
-  accounts: { id: string; name: string; role: string }[];
+  accounts: { id: string; username: string; name: string; role: string }[];
   units: Unit[];
   coverage: Coverage[];
   questionBank: BankQuestion[];

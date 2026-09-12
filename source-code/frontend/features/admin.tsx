@@ -337,7 +337,7 @@ export function AdminWorkspace(p: Props) {
                 );
               }}
             >
-              <h2>{editId ? `Edit ${editId}` : 'Create an account'}</h2>
+              <h2>{editId ? `Edit ${name}` : 'Create an account'}</h2>
               {!editId && (
                 <>
                   <Picker
@@ -372,7 +372,7 @@ export function AdminWorkspace(p: Props) {
                     onChange={setParentId}
                     options={parents.map((a) => ({
                       value: a.id,
-                      label: `${a.name} (${a.id})`,
+                      label: `${a.name} (@${a.username})`,
                     }))}
                   />
                   <Picker
@@ -413,7 +413,9 @@ export function AdminWorkspace(p: Props) {
                 <section className="panel" key={s.id}>
                   <h3>{s.name}</h3>
                   <p>
-                    {s.id} · Parent: {s.parentId}
+                    @{s.username} · Parent:{' '}
+                    {parents.find((account) => account.id === s.parentId)
+                      ?.name || 'Not available'}
                   </p>
                   <p>
                     {s.grade} · {s.term || 'Term not configured'} ·{' '}
@@ -438,7 +440,7 @@ export function AdminWorkspace(p: Props) {
               <h2>Parent accounts</h2>
               {parents.map((a) => (
                 <p key={a.id}>
-                  {a.name} · {a.id}
+                  {a.name} · @{a.username}
                 </p>
               ))}
             </section>
