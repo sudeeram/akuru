@@ -4,7 +4,19 @@ AKURU stores document metadata and provenance in PostgreSQL and original bytes i
 
 ## Local development
 
-The default `.env.example` selects `AKURU_STORAGE_BACKEND=local` and writes beneath `backend/.local-data/documents`. The path is ignored by Git. Server-generated object keys and path-confinement checks prevent filenames from escaping this root.
+The default `.env.example` selects `AKURU_STORAGE_BACKEND=local` and uses `/data/akuru/documents`, outside the source checkout. Server-generated object keys and path-confinement checks prevent filenames from escaping this root.
+
+For macOS development, use a user-owned path such as `/Users/<your-user>/akuru-data/documents`, which is also outside the checkout and writable without elevated privileges. The current untracked `backend/.env` has been configured this way. Each installation can choose its own absolute path.
+
+On the OCI Ubuntu server, prepare the persistent directory for the account that runs FastAPI:
+
+```bash
+sudo mkdir -p /data/akuru/documents
+sudo chown -R akuru:akuru /data/akuru
+sudo chmod 750 /data/akuru /data/akuru/documents
+```
+
+Mount a persistent OCI block volume at `/data` when practical. Deployments can then replace the Git checkout or release directory without touching stored documents. Include `/data/akuru` in the encrypted backup plan.
 
 Admin upload accepts raw PDF, PNG or JPEG bytes at `POST /api/v1/documents`. Metadata is supplied as query fields and the original filename in `X-Filename`. FastAPI verifies authentication, CSRF, size, extension, declared content type and binary signature before storage. SHA-256 uniqueness rejects identical uploads.
 

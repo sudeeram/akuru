@@ -18,7 +18,7 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_LOGIN_WINDOW_MINUTES` | No | Login throttle window; default `15`. |
 | `AKURU_LOGIN_LOCK_MINUTES` | No | Lock duration after the limit is reached; default `15`. |
 | `AKURU_STORAGE_BACKEND` | Yes | `local` for development or `oci` for private OCI Object Storage. |
-| `AKURU_LOCAL_STORAGE_PATH` | Local | Private filesystem root; default `.local-data/documents`. |
+| `AKURU_LOCAL_STORAGE_PATH` | Local | Absolute private filesystem root; default `/data/akuru/documents`. |
 | `AKURU_MAX_DOCUMENT_BYTES` | No | Maximum original document size; default 52,428,800 bytes (50 MB). |
 | `AKURU_OCI_OBJECT_NAMESPACE` | OCI | OCI Object Storage namespace. |
 | `AKURU_OCI_OBJECT_BUCKET` | OCI | Private bucket dedicated to AKURU documents. |
