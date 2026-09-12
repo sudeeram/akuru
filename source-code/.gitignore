@@ -12,6 +12,8 @@ node_modules/
 .DS_Store
 *.log
 coverage/
+backups/
+*.dump
 .venv/
 **/.venv/
 __pycache__/

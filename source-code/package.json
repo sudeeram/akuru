@@ -10,8 +10,11 @@
     "lint": "node scripts/run-web.mjs lint",
     "backend:dev": "node scripts/run-backend.mjs dev",
     "backend:migrate": "node scripts/run-backend.mjs migrate",
+    "database:backup": "node scripts/run-backend.mjs backup",
+    "database:restore-drill": "node scripts/run-backend.mjs restore-drill",
     "test:frontend": "node --test frontend/tests/*.test.mjs",
     "test:backend": "node scripts/run-backend.mjs test",
-    "test": "npm run test:frontend && npm run test:backend"
+    "test": "npm run test:frontend && npm run test:backend",
+    "verify": "npm test && npm run typecheck && npm run lint && npm run build"
   }
 }

@@ -10,11 +10,11 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Preserve authentication, family isolation, iGCSE catalog and cumulative progression behavior.
 
-- [ ] Record a baseline run of frontend, backend and PostgreSQL integration tests.
-- [ ] Add CI for frontend tests, type checking, linting and production build.
-- [ ] Add backend CI with isolated PostgreSQL and Alembic migrations.
-- [ ] Document environment variables without committing secrets.
-- [ ] Document and test database backup and restore.
+- [x] Record a baseline run of frontend, backend and PostgreSQL integration tests.
+- [x] Add CI for frontend tests, type checking, linting and production build.
+- [x] Add backend CI with isolated PostgreSQL and Alembic migrations.
+- [x] Document environment variables without committing secrets.
+- [x] Document and test database backup and restore.
 
 **Done when:** A clean checkout can run all documented checks; existing role, family-scope and Grade + Term progression tests pass.
 

@@ -11,6 +11,8 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Overall architecture](docs/architecture.md)
 - [Frontend architecture](frontend/docs/architecture.md)
 - [Backend architecture](backend/docs/architecture.md)
+- [Environment variables](docs/environment.md)
+- [Database backup and restore](docs/database-backup.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally
@@ -35,5 +37,7 @@ npm run typecheck
 npm run lint
 npm run build
 ```
+
+Or run the complete local quality gate with `npm run verify`. PostgreSQL integration tests require the configured local database to be running and migrated.
 
 Private `.env` files, Python environments, dependencies, and local data are excluded from Git.

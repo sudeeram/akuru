@@ -16,6 +16,8 @@ const commands = {
   dev: ["-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
   migrate: ["-m", "alembic", "upgrade", "head"],
   test: ["-m", "pytest", "-q"],
+  backup: ["-m", "app.database_maintenance", "backup", ...process.argv.slice(3)],
+  "restore-drill": ["-m", "app.database_maintenance", "restore-drill", ...process.argv.slice(3)],
 };
 const action = process.argv[2];
 if (!commands[action]) {
