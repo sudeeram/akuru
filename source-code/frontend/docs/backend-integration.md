@@ -20,6 +20,7 @@ This inventory records which frontend workflows are backed by implemented FastAP
 | Reviewed textbook publication | Admin proposes, corrects, saves and publishes versioned textbook units. |
 | Curriculum coverage | Admin assigns approved units to six Grade/Term periods, previews cumulative coverage, saves a draft and publishes a version. |
 | Official assessment material | Admin proposes, corrects, reconciles and publishes versioned paper questions, marking points and examiner guidance beside source evidence. |
+| Question-to-unit mapping | Admin reviews metadata/OpenAI suggestions, assigns exact 100% weights and confirms immutable mappings against the paper's frozen textbook edition. |
 
 The portal state endpoint supplies the document list used by the Admin dashboard. The dedicated document-list/status and specific-job routes remain available for future focused screens; duplicating those requests is unnecessary in the current portal.
 
@@ -27,7 +28,6 @@ The portal state endpoint supplies the document list used by the Admin dashboard
 
 | Frontend area | Required backend step |
 | --- | --- |
-| Question-to-unit approval | Step 9 |
 | Student practice, official papers and mocks | Step 11 |
 | Marking and Parent review | Steps 12–13 |
 | Mastery, recommendations and study plans | Steps 14–16 |

@@ -136,3 +136,14 @@ test('admin reviews and publishes complete official assessment material', () => 
   assert.match(admin, /Common mistakes · one per line/);
   assert.match(admin, /Publish official material/);
 });
+
+test('admin confirms weighted question mappings from constrained suggestions', () => {
+  assert.match(api, /getPaperMappings/);
+  assert.match(api, /suggestQuestionMappings/);
+  assert.match(api, /saveQuestionMappings/);
+  assert.match(api, /publishQuestionMappings/);
+  assert.match(admin, /Total weight:/);
+  assert.match(admin, /Suggest mappings/);
+  assert.match(admin, /Confirm mapping/);
+  assert.doesNotMatch(admin, /api\('admin\/questions'/);
+});

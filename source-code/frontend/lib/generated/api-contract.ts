@@ -24,10 +24,12 @@ export interface Schemas {
   "ExtractionPageResponse": { "id": string; "pageNumber": number; "widthPoints": number; "heightPoints": number; "renderAssetId": string; "method": string; "confidence": number; "needsReview": boolean; "metadata"?: { [key: string]: unknown; }; "blocks"?: Array<Schemas["ExtractionBlockResponse"]>; };
   "LoginRequest": { "username": string; "password": string; };
   "LoginResponse": { "user": Schemas["UserResponse"]; "csrfToken": string; };
+  "MappingSuggestionResponse": { "questionId": string; "method": string; "suggestions": Array<Schemas["UnitMapping"]>; };
   "MarkSchemeEntryReview": { "questionNumber": string; "maxMarks": number; "markingPoints": Array<Schemas["MarkingPoint"]>; "alternatives"?: Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
   "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds": Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
+  "PaperMappingResponse": { "paperId": string; "paperTitle": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "units": Array<Schemas["UnitOption"]>; "questions": Array<Schemas["QuestionMappingResponse"]>; };
   "PlanPeriod": { "grade": number; "term": number; "unitIds"?: Array<string>; };
   "PlanUnitResponse": { "id": string; "code": string; "title": string; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
@@ -37,10 +39,12 @@ export interface Schemas {
   "PublishOfficialMaterialRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmSourcePaper"?: boolean; "confirmComplete": boolean; };
   "PublishPlanRequest": { "confirmSubject": boolean; "confirmTextbook": boolean; };
   "PublishTextbookRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmEdition": boolean; };
+  "QuestionMappingResponse": { "questionId": string; "number": string; "prompt": string; "marks": number; "status": string; "mappings": Array<Schemas["UnitMapping"]>; };
   "QuestionPoolDiagnosticResponse": { "status": string; "message": string; "planVersion"?: number | null; "eligibleQuestionCount"?: number; "eligibleMarks"?: number; "requestedQuestionCount"?: number; "requestedMarks"?: number; "shortageQuestionCount"?: number; "shortageMarks"?: number; };
   "SaveOfficialMaterialReview": { "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "SavePlanRequest": { "periods": Array<Schemas["PlanPeriod"]>; };
   "SaveTextbookReviewRequest": { "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
+  "SaveUnitMappingsRequest": { "mappings": Array<Schemas["UnitMapping"]>; };
   "SourceLocation": { "page": number; "blockId": string; "boundingBox"?: { [key: string]: unknown; }; };
   "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; };
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
@@ -50,6 +54,8 @@ export interface Schemas {
   "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
   "UiFeaturesResponse": { "allowed": true; "user": Schemas["UiFeaturesUserResponse"]; };
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
+  "UnitMapping": { "unitId": string; "weight": number; "rationale"?: string; "confidence"?: number | null; "method"?: string | null; };
+  "UnitOption": { "id": string; "code": string; "title": string; };
   "UpdateStudentRequest": { "id": string; "name": string; "parentId": string; "level": "iGCSE"; "grade": "Grade 10" | "Grade 11"; "term": "Term1" | "Term2" | "Term3"; "progression": Array<string>; "subjects": Array<string>; };
   "UserResponse": { "id": string; "username": string; "name": string; "role": "admin" | "parent" | "student"; "mustChangePassword": boolean; };
 }
@@ -89,6 +95,10 @@ export interface ApiOperations {
   "POST /api/v1/documents/{document_id}/textbook-review": { request: Schemas["SaveTextbookReviewRequest"]; response: Schemas["TextbookReviewResponse"] };
   "POST /api/v1/documents/{document_id}/textbook-review/propose": { request: unknown; response: Schemas["TextbookReviewResponse"] };
   "POST /api/v1/documents/{document_id}/textbook-review/publish": { request: Schemas["PublishTextbookRequest"]; response: Schemas["TextbookReviewResponse"] };
+  "GET /api/v1/questions/papers/{paper_id}/unit-mappings": { request: unknown; response: Schemas["PaperMappingResponse"] };
+  "POST /api/v1/questions/{question_id}/unit-mapping": { request: Schemas["SaveUnitMappingsRequest"]; response: Schemas["QuestionMappingResponse"] };
+  "POST /api/v1/questions/{question_id}/unit-mapping/publish": { request: unknown; response: Schemas["QuestionMappingResponse"] };
+  "POST /api/v1/questions/{question_id}/unit-mapping/suggest": { request: unknown; response: Schemas["MappingSuggestionResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
   "GET /health": { request: unknown; response: { [key: string]: string; } };
   "GET /ready": { request: unknown; response: { [key: string]: string; } };

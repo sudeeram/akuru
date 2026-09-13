@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (
     AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, CurriculumPlanUnit, Document,
-    Question, QuestionUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit,
+    OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
+    StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit,
 )
 from app.schemas.curriculum_plans import (
     CoverageDiagnosticResponse, CurriculumPlanResponse, PlanPeriod, PlanUnitResponse,
@@ -186,14 +187,20 @@ def question_pool_diagnostic(
             shortageQuestionCount=requested_question_count, shortageMarks=requested_marks,
         )
     covered = {uuid.UUID(unit.id) for unit in coverage.coveredUnits}
-    questions = db.scalars(select(Question).where(
-        Question.course_id == "igcse", Question.subject_id == subject_id,
-        Question.review_state == "published",
+    questions = db.scalars(select(OfficialQuestionVersion).join(
+        OfficialMaterialVersion, OfficialMaterialVersion.id == OfficialQuestionVersion.material_version_id
+    ).where(
+        OfficialMaterialVersion.course_id == "igcse",
+        OfficialMaterialVersion.subject_id == subject_id,
+        OfficialMaterialVersion.kind == "past_paper",
+        OfficialMaterialVersion.status == "published",
+        OfficialQuestionVersion.mapping_status == "confirmed",
     )).all()
     eligible = []
     for question in questions:
-        mappings = set(db.scalars(select(QuestionUnit.unit_id).where(
-            QuestionUnit.question_id == question.id
+        mappings = set(db.scalars(select(OfficialQuestionUnitMapping.unit_id).where(
+            OfficialQuestionUnitMapping.question_version_id == question.id,
+            OfficialQuestionUnitMapping.status == "confirmed",
         )).all())
         if mappings and mappings.issubset(covered):
             eligible.append(question)

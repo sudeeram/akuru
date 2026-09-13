@@ -564,6 +564,7 @@ class OfficialMaterialVersion(Base):
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"))
     source_paper_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
     source_paper_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="RESTRICT"))
+    textbook_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"))
     status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
     inventory_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     completeness_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
@@ -592,9 +593,29 @@ class OfficialQuestionVersion(Base):
     equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     asset_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    mapping_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
     __table_args__ = (
         CheckConstraint("marks > 0", name="ck_official_question_marks"),
+        CheckConstraint("mapping_status IN ('pending','draft','confirmed')", name="ck_official_question_mapping_status"),
         UniqueConstraint("material_version_id", "question_number", name="uq_official_question_number"),
+    )
+
+
+class OfficialQuestionUnitMapping(Base):
+    __tablename__ = "official_question_unit_mappings"
+    question_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_question_versions.id", ondelete="CASCADE"), primary_key=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), primary_key=True)
+    weight: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    suggestion_method: Mapped[str | None] = mapped_column(String(40))
+    confidence: Mapped[float | None] = mapped_column()
+    rationale: Mapped[str] = mapped_column(Text, default="", server_default="")
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("weight BETWEEN 1 AND 100", name="ck_official_question_unit_weight"),
+        CheckConstraint("status IN ('draft','confirmed')", name="ck_official_question_unit_status"),
+        CheckConstraint("confidence IS NULL OR confidence BETWEEN 0 AND 1", name="ck_official_question_unit_confidence"),
     )
 
 

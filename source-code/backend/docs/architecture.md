@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–8 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–9 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -61,6 +61,8 @@ Textbook review separates immutable source document versions from editable revie
 Curriculum plans assign each approved unit to its introduction Grade and Term. Published versions are immutable, cumulative coverage follows the student's ordered progression, and assessment snapshots preserve the selected version and unit set. Missing periods and insufficient eligible questions return explicit diagnostics. See [curriculum plans](curriculum-plans.md).
 
 Official-material review groups paper questions and subparts with equations, tables, diagrams, marks and source locations. Marking points and examiner guidance link to the exact published source-paper version. Complete inventory attestation and relational reconciliation are required before immutable publication. See [official-material review](official-material-review.md).
+
+Question mapping freezes the exact textbook content version on each published paper and exposes only its matching units. Metadata and structured OpenAI suggestions remain advisory; Admin-confirmed weights must total 100%, and foreign course, subject or edition units fail transactionally. See [question-to-unit mapping](question-unit-mapping.md).
 
 ## Identity and permissions
 

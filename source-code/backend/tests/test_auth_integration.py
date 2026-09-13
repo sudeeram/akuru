@@ -1,5 +1,6 @@
 import uuid
 from contextlib import contextmanager
+from types import SimpleNamespace
 
 import pymupdf as fitz
 import pytest
@@ -9,15 +10,18 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
+    AIProviderAccount, AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
-    ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionVersion,
+    ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
 from app.queue.factory import get_document_queue
 from app.services import document_processing
+from app.services import question_mappings
+from app.config import Settings
+from app.schemas.question_mappings import AIUnitSuggestionOutput
 from app.storage.factory import get_storage
 from app.storage.local import LocalObjectStorage
 
@@ -627,7 +631,14 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     session.add(textbook_file); session.flush()
     content = TextbookContentVersion(document_id=textbook.id, source_document_version_id=textbook_file.id, version_number=1, course_id="igcse", subject_id="biology", edition="2026", status="published", created_by=admin.id, published_by=admin.id)
     session.add(content); session.flush()
-    session.add(TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="biology", unit_code="B1", title="Cells", sequence=1, content_version_id=content.id))
+    biology_units = [
+        TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="biology", unit_code="B1", title="Cells", sequence=1, content_version_id=content.id),
+        TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="biology", unit_code="B2", title="Diffusion", sequence=2, content_version_id=content.id),
+    ]
+    foreign_unit = TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="chemistry", unit_code="C1", title="Particles", sequence=3, content_version_id=content.id)
+    foreign_edition_unit = TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="biology", unit_code="OLD-B1", title="Old cells", sequence=4, content_version_id=None)
+    foreign_course_unit = TextbookUnit(textbook_id=textbook.id, course_id="ilower-secondary", subject_id="biology", unit_code="LS-B1", title="Lower secondary cells", sequence=5, content_version_id=None)
+    session.add_all([*biology_units, foreign_unit, foreign_edition_unit, foreign_course_unit])
     session.commit()
 
     @contextmanager
@@ -664,6 +675,50 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert saved.status_code == 200, saved.text
     published = client.post(f"/api/v1/documents/{paper_id}/official-review/publish", headers=csrf, json={"confirmCourse": True, "confirmSubject": True, "confirmComplete": True, "confirmSourcePaper": False})
     assert published.status_code == 200, published.text
+    mapping_inventory = client.get(f"/api/v1/questions/papers/{paper_id}/unit-mappings")
+    assert mapping_inventory.status_code == 200
+    mapping_payload = mapping_inventory.json()
+    assert [unit["code"] for unit in mapping_payload["units"]] == ["B1", "B2"]
+    first_question = mapping_payload["questions"][0]
+    suggestion = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping/suggest", headers=csrf, json={})
+    assert suggestion.status_code == 200
+    assert suggestion.json()["method"] == "metadata"
+    session.add(AIProviderAccount(display_name="Mapping provider", credential_alias="MAPPING_TEST", priority=9, model="fake-mapping-model", enabled=True))
+    session.commit()
+    monkeypatch.setattr(Settings, "openai_account_key", lambda self, alias: "test-secret" if alias == "MAPPING_TEST" else None)
+    class FakeMappingRouter:
+        def __init__(self, db, settings): pass
+        def generate(self, request):
+            assert "Allowed approved units" in request.task
+            return SimpleNamespace(output=AIUnitSuggestionOutput.model_validate({"mappings": [
+                {"unitCode": "B2", "weight": 100, "confidence": 0.91, "rationale": "Diffusion is explicit."}
+            ]}))
+    monkeypatch.setattr(question_mappings, "AIAccountRouter", FakeMappingRouter)
+    second_question = mapping_payload["questions"][1]
+    ai_suggestion = client.post(f"/api/v1/questions/{second_question['questionId']}/unit-mapping/suggest", headers=csrf, json={})
+    assert ai_suggestion.status_code == 200
+    assert ai_suggestion.json()["method"] == "openai"
+    assert ai_suggestion.json()["suggestions"][0]["unitId"] == str(biology_units[1].id)
+    bad_total = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [{"unitId": str(biology_units[0].id), "weight": 90}]})
+    assert bad_total.status_code == 422
+    foreign = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [{"unitId": str(foreign_unit.id), "weight": 100}]})
+    assert foreign.status_code == 422
+    assert foreign.json()["error"]["code"] == "foreign_unit_mapping"
+    for invalid_unit in (foreign_edition_unit, foreign_course_unit):
+        rejected = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [{"unitId": str(invalid_unit.id), "weight": 100}]})
+        assert rejected.status_code == 422
+    saved_mapping = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [
+        {"unitId": str(biology_units[0].id), "weight": 60, "method": "admin", "rationale": "Cell structure"},
+        {"unitId": str(biology_units[1].id), "weight": 40, "method": "admin", "rationale": "Transport context"},
+    ]})
+    assert saved_mapping.status_code == 200, saved_mapping.text
+    confirmed_mapping = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping/publish", headers=csrf, json={})
+    assert confirmed_mapping.status_code == 200
+    assert confirmed_mapping.json()["status"] == "confirmed"
+    assert sum(row["weight"] for row in confirmed_mapping.json()["mappings"]) == 100
+    immutable = client.post(f"/api/v1/questions/{first_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [{"unitId": str(biology_units[0].id), "weight": 100}]})
+    assert immutable.status_code == 409
+    assert session.query(OfficialQuestionUnitMapping).filter_by(question_version_id=uuid.UUID(first_question["questionId"]), status="confirmed").count() == 2
 
     scheme_id = upload_and_process("mark_scheme", "Scheme 1", ["1. M1 Cell has a membrane. [2]", "2. A1 Particles move down a gradient. [3]"], paper_id)
     scheme = client.post(f"/api/v1/documents/{scheme_id}/official-review/propose", headers=csrf, json={}).json()

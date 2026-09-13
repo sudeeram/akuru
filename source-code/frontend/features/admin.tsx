@@ -13,14 +13,18 @@ import {
   getTextbookReview,
   getCurriculumPlan,
   getOfficialMaterialReview,
+  getPaperMappings,
   proposeTextbookReview,
   publishTextbookReview,
   publishCurriculumPlan,
   publishOfficialMaterialReview,
+  publishQuestionMappings,
   saveTextbookReview,
   saveCurriculumPlan,
   saveOfficialMaterialReview,
   proposeOfficialMaterialReview,
+  saveQuestionMappings,
+  suggestQuestionMappings,
   removeDocument,
   retryDocument,
   uploadLearningDocument,
@@ -31,6 +35,8 @@ import {
   type TextbookReview,
   type CurriculumPlan,
   type OfficialMaterialReview,
+  type PaperMappings,
+  type UnitMapping,
 } from '@/lib/api';
 import { Heading, Picker, Empty } from './shared';
 
@@ -159,24 +165,16 @@ export function AdminWorkspace(p: Props) {
     [sourceUrl, setSourceUrl] = useState('');
   const [code, setCode] = useState(''),
     [unitTitle, setUnitTitle] = useState(''),
-    [unitIds, setUnitIds] = useState<string[]>([]),
     [docId, setDocId] = useState('');
-  const [qid, setQid] = useState(''),
-    [number, setNumber] = useState(''),
-    [title, setTitle] = useState(''),
-    [prompt, setPrompt] = useState(''),
-    [marks, setMarks] = useState('1'),
-    [type, setType] = useState('written'),
-    [answer, setAnswer] = useState(''),
-    [explanation, setExplanation] = useState(''),
-    [points, setPoints] = useState(''),
-    [hints, setHints] = useState('');
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
   const [textbookReview, setTextbookReview] = useState<TextbookReview | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
   const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
   const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
+  const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
+  const [mappingQuestionId, setMappingQuestionId] = useState('');
+  const [mappingDraft, setMappingDraft] = useState<UnitMapping[]>([]);
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
@@ -184,12 +182,9 @@ export function AdminWorkspace(p: Props) {
   const papers = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
   );
-  const paper = papers.find((d) => d.id === paperId);
   const doc = p.data.documents.find((d) => d.id === docId);
   const units = p.data.units.filter(
-    (u) =>
-      u.subject === subject &&
-      (p.view === 'questions' ? u.textbookId === paper?.textbookId : true),
+    (u) => u.subject === subject,
   );
   const documentKinds = {
     Textbook: 'textbook',
@@ -254,6 +249,20 @@ export function AdminWorkspace(p: Props) {
       });
     return () => { active = false; };
   }, [currentView, subject]);
+  useEffect(() => {
+    if (currentView !== 'questions' || !paperId) return;
+    let active = true;
+    void getPaperMappings(paperId).then((response) => {
+      if (!active) return;
+      setPaperMappings(response);
+      const first = response.questions[0];
+      setMappingQuestionId(first?.questionId || '');
+      setMappingDraft(first?.mappings || []);
+    }).catch((cause) => {
+      if (active) { setPaperMappings(null); setError(errorMessage(cause)); }
+    });
+    return () => { active = false; };
+  }, [currentView, paperId]);
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError('');
@@ -281,19 +290,6 @@ export function AdminWorkspace(p: Props) {
     );
     setEnrolled(s.subjects);
   }
-  function clearQuestion() {
-    setQid('');
-    setNumber('');
-    setTitle('');
-    setPrompt('');
-    setMarks('1');
-    setType('written');
-    setAnswer('');
-    setExplanation('');
-    setPoints('');
-    setHints('');
-    setUnitIds([]);
-  }
   const subjectPicker = (
     <Picker
       label="Subject"
@@ -302,7 +298,9 @@ export function AdminWorkspace(p: Props) {
         setSubject(v);
         setTextbookId('');
         setPaperId('');
-        clearQuestion();
+        setPaperMappings(null);
+        setMappingQuestionId('');
+        setMappingDraft([]);
       }}
       options={p.data.subjects.map((s) => ({ value: s.id, label: s.name }))}
     />
@@ -364,13 +362,13 @@ export function AdminWorkspace(p: Props) {
           {error}
         </div>
       )}
-      {['units', 'questions'].includes(p.view) && (
+      {['units'].includes(p.view) && (
         <output className="panel spaced">
           This screen previews a later roadmap workflow. Its write API is not implemented yet, so editing is disabled.
         </output>
       )}
       <fieldset
-        disabled={busy || ['units', 'questions'].includes(p.view)}
+        disabled={busy || ['units'].includes(p.view)}
         style={{ border: 0, padding: 0, minWidth: 0 }}
       >
         {p.view === 'today' && (
@@ -957,145 +955,56 @@ export function AdminWorkspace(p: Props) {
           </section>
         )}
         {p.view === 'questions' && (
-          <>
-            <form
-              className="panel stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void run(async () => {
-                  await api('admin/questions', {
-                    id: qid || undefined,
-                    paperId,
-                    number,
-                    title,
-                    prompt,
-                    marks: Number(marks),
-                    type,
-                    answer,
-                    explanation,
-                    points,
-                    hints,
-                    unitIds,
-                    status: 'approved',
-                  });
-                  clearQuestion();
-                }, 'Question reviewed and mapped. Approve the complete paper in Documents & textbooks when all questions are entered.');
-              }}
-            >
-              {subjectPicker}
-              <Picker
-                label="Past paper"
-                value={paperId}
-                onChange={(v) => {
-                  setPaperId(v);
-                  clearQuestion();
-                }}
-                options={papers.map((b) => ({ value: b.id, label: b.name }))}
-              />
-              <p>
-                Use the source document and its marking scheme to enter each
-                question manually. Include all subparts as separate numbered
-                questions when they can be assessed independently.
-              </p>
-              <Field
-                label="Question number / subpart"
-                value={number}
-                onChange={setNumber}
-              />
-              <Field label="Question title" value={title} onChange={setTitle} />
-              <Field
-                label="Question text (include equations and describe any required diagram)"
-                value={prompt}
-                onChange={setPrompt}
-                multiline
-              />
-              <div className="two-cols">
-                <Field
-                  label="Available marks"
-                  value={marks}
-                  onChange={setMarks}
-                  type="number"
-                />
-                <Picker
-                  label="Answer type"
-                  value={type}
-                  onChange={setType}
-                  options={options(['written', 'numeric'])}
-                />
-              </div>
-              {type === 'numeric' && (
-                <Field
-                  label="Correct numeric answer"
-                  value={answer}
-                  onChange={setAnswer}
-                  type="number"
-                />
-              )}
-              <Field
-                label="Worked explanation"
-                value={explanation}
-                onChange={setExplanation}
-                multiline
-              />
-              <Field
-                label="Marking points (one per line)"
-                value={points}
-                onChange={setPoints}
-                multiline
-              />
-              <label htmlFor="question-hints">
-                Optional hints (one per line)
-                <Textarea
-                  id="question-hints"
-                  aria-label="Optional hints"
-                  value={hints}
-                  onChange={(e) => setHints(e.target.value)}
-                />
-              </label>
-              <Checks
-                label="Required units from this paper's textbook"
-                items={units.map((u) => ({
-                  id: u.id,
-                  name: `${u.code} · ${u.title}`,
-                }))}
-                selected={unitIds}
-                change={setUnitIds}
-              />
-              <Button type="submit" className="primary">
-                Save reviewed question
-              </Button>
-            </form>
-            <section className="panel spaced">
-              <h2>Questions in this paper</h2>
-              {p.data.questionBank
-                .filter((q) => q.paperId === paperId)
-                .map((q) => (
-                  <div className="spread spaced" key={q.id}>
-                    <span>
-                      {q.number} · {q.title} · {q.unitIds.length} unit(s)
-                    </span>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setQid(q.id);
-                        setNumber(q.number);
-                        setTitle(q.title);
-                        setPrompt(q.prompt);
-                        setMarks(String(q.marks));
-                        setType(q.type);
-                        setAnswer(q.answer === null ? '' : String(q.answer));
-                        setExplanation(q.explanation);
-                        setPoints(q.points.join('\n'));
-                        setHints(q.hints.join('\n'));
-                        setUnitIds(q.unitIds);
-                      }}
-                    >
-                      Edit question {q.number}
-                    </Button>
-                  </div>
+          <section className="panel stack">
+            {subjectPicker}
+            <Picker label="Published past paper" value={paperId} onChange={(value) => {
+              setPaperId(value); setPaperMappings(null); setMappingQuestionId(''); setMappingDraft([]);
+            }} options={papers.map((item) => ({ value: item.id, label: item.name }))} />
+            {paperMappings && (
+              <>
+                <p><strong>{paperMappings.paperTitle}</strong> · {paperMappings.textbookTitle}, {paperMappings.textbookEdition}</p>
+                <div className="button-row">
+                  {paperMappings.questions.map((question) => (
+                    <Button key={question.questionId} variant={mappingQuestionId === question.questionId ? 'default' : 'outline'} onClick={() => {
+                      setMappingQuestionId(question.questionId); setMappingDraft(question.mappings);
+                    }}>Q{question.number} · {question.status}</Button>
+                  ))}
+                </div>
+                {paperMappings.questions.filter((question) => question.questionId === mappingQuestionId).map((question) => (
+                  <article className="panel stack" key={question.questionId}>
+                    <h2>Question {question.number} · {question.marks} marks</h2>
+                    <p>{question.prompt}</p>
+                    <p>Choose every required unit and assign weights totaling exactly 100%.</p>
+                    {paperMappings.units.map((unit) => {
+                      const mapped = mappingDraft.find((row) => row.unitId === unit.id);
+                      return (
+                        <div className="spread" key={unit.id}>
+                          <div className="check-label"><Checkbox aria-label={`Map ${unit.code}`} disabled={question.status === 'confirmed'} checked={Boolean(mapped)} onCheckedChange={(yes) => setMappingDraft(yes ? [...mappingDraft, { unitId: unit.id, weight: 0, rationale: '', method: 'admin' }] : mappingDraft.filter((row) => row.unitId !== unit.id))} /><span>{unit.code} · {unit.title}</span></div>
+                          {mapped && <Input aria-label={`${unit.code} weight percentage`} disabled={question.status === 'confirmed'} type="number" min="1" max="100" value={mapped.weight} onChange={(event) => setMappingDraft(mappingDraft.map((row) => row.unitId === unit.id ? { ...row, weight: Number(event.target.value) } : row))} style={{ maxWidth: '7rem' }} />}
+                        </div>
+                      );
+                    })}
+                    <p className={mappingDraft.reduce((sum, row) => sum + row.weight, 0) === 100 ? 'small' : 'error'}>Total weight: {mappingDraft.reduce((sum, row) => sum + row.weight, 0)}%</p>
+                    <div className="button-row">
+                      <Button variant="outline" disabled={question.status === 'confirmed'} onClick={() => void run(async () => {
+                        const response = await suggestQuestionMappings(question.questionId); setMappingDraft(response.suggestions);
+                      }, 'Mapping suggestions prepared for Admin review.')}>Suggest mappings</Button>
+                      <Button variant="outline" disabled={question.status === 'confirmed' || mappingDraft.reduce((sum, row) => sum + row.weight, 0) !== 100} onClick={() => void run(async () => {
+                        const response = await saveQuestionMappings(question.questionId, mappingDraft);
+                        setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) });
+                      }, 'Mapping draft saved.')}>Save mapping</Button>
+                      <Button className="primary" disabled={question.status !== 'draft'} onClick={() => {
+                        if (window.confirm(`Confirm the unit mapping for question ${question.number}? It becomes immutable.`)) void run(async () => {
+                          const response = await publishQuestionMappings(question.questionId);
+                          setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) }); setMappingDraft(response.mappings);
+                        }, 'Question mapping confirmed.');
+                      }}>Confirm mapping</Button>
+                    </div>
+                  </article>
                 ))}
-            </section>
-          </>
+              </>
+            )}
+          </section>
         )}
       </fieldset>
     </>

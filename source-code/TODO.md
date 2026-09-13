@@ -155,12 +155,12 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Make every assessed question traceable to one or more curriculum units.
 
-- [ ] Add weighted question-to-unit mappings.
-- [ ] Suggest mappings with metadata-filtered retrieval and OpenAI.
-- [ ] Restrict suggestions to the selected same-course, same-subject textbook.
-- [ ] Require Admin confirmation.
-- [ ] Reject empty, cross-subject, cross-course and foreign-edition mappings transactionally.
-- [ ] Require multi-unit weights to total 100%.
+- [x] Add weighted question-to-unit mappings.
+- [x] Suggest mappings with metadata-filtered retrieval and OpenAI.
+- [x] Restrict suggestions to the selected same-course, same-subject textbook.
+- [x] Require Admin confirmation.
+- [x] Reject empty, cross-subject, cross-course and foreign-edition mappings transactionally.
+- [x] Require multi-unit weights to total 100%.
 
 **Done when:** Similarity never overrides relational validation, and a multi-unit question is eligible only when every required unit is covered.
 

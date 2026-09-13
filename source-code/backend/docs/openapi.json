@@ -1063,6 +1063,32 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "MappingSuggestionResponse": {
+        "properties": {
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/UnitMapping"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questionId",
+          "method",
+          "suggestions"
+        ],
+        "title": "MappingSuggestionResponse",
+        "type": "object"
+      },
       "MarkSchemeEntryReview": {
         "properties": {
           "alternatives": {
@@ -1305,6 +1331,55 @@
           "sourceLocations"
         ],
         "title": "OfficialQuestionReview",
+        "type": "object"
+      },
+      "PaperMappingResponse": {
+        "properties": {
+          "paperId": {
+            "title": "Paperid",
+            "type": "string"
+          },
+          "paperTitle": {
+            "title": "Papertitle",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionMappingResponse"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookEdition": {
+            "title": "Textbookedition",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitOption"
+            },
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paperId",
+          "paperTitle",
+          "subjectId",
+          "textbookTitle",
+          "textbookEdition",
+          "units",
+          "questions"
+        ],
+        "title": "PaperMappingResponse",
         "type": "object"
       },
       "PlanPeriod": {
@@ -1643,6 +1718,47 @@
         "title": "PublishTextbookRequest",
         "type": "object"
       },
+      "QuestionMappingResponse": {
+        "properties": {
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/UnitMapping"
+            },
+            "title": "Mappings",
+            "type": "array"
+          },
+          "marks": {
+            "title": "Marks",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "number",
+          "prompt",
+          "marks",
+          "status",
+          "mappings"
+        ],
+        "title": "QuestionMappingResponse",
+        "type": "object"
+      },
       "QuestionPoolDiagnosticResponse": {
         "properties": {
           "eligibleMarks": {
@@ -1797,6 +1913,24 @@
           "units"
         ],
         "title": "SaveTextbookReviewRequest",
+        "type": "object"
+      },
+      "SaveUnitMappingsRequest": {
+        "properties": {
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/UnitMapping"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Mappings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "title": "SaveUnitMappingsRequest",
         "type": "object"
       },
       "SourceLocation": {
@@ -2153,6 +2287,81 @@
           "role"
         ],
         "title": "UiFeaturesUserResponse",
+        "type": "object"
+      },
+      "UnitMapping": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "rationale": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "title": "Unitid",
+            "type": "string"
+          },
+          "weight": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unitId",
+          "weight"
+        ],
+        "title": "UnitMapping",
+        "type": "object"
+      },
+      "UnitOption": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "title"
+        ],
+        "title": "UnitOption",
         "type": "object"
       },
       "UpdateStudentRequest": {
@@ -5462,6 +5671,380 @@
         "summary": "Publish Textbook Review",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/v1/questions/papers/{paper_id}/unit-mappings": {
+      "get": {
+        "operationId": "paper_unit_mappings_api_v1_questions_papers__paper_id__unit_mappings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Paper Unit Mappings",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/unit-mapping": {
+      "post": {
+        "operationId": "save_unit_mapping_api_v1_questions__question_id__unit_mapping_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveUnitMappingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Save Unit Mapping",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/unit-mapping/publish": {
+      "post": {
+        "operationId": "publish_unit_mapping_api_v1_questions__question_id__unit_mapping_publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Publish Unit Mapping",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/unit-mapping/suggest": {
+      "post": {
+        "operationId": "suggest_unit_mapping_api_v1_questions__question_id__unit_mapping_suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MappingSuggestionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Suggest Unit Mapping",
+        "tags": [
+          "questions"
         ]
       }
     },

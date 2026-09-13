@@ -112,6 +112,12 @@ export type OfficialMaterialReview = {
   markSchemeEntries: { questionNumber: string; maxMarks: number; markingPoints: { code: string; text: string; kind: 'method' | 'accuracy' | 'independent' | 'communication' | 'other' }[]; alternatives: string[]; sourceLocations: SourceLocation[] }[];
   examinerComments: { questionNumber: string; commonMistakes: string[]; advice: string[]; sourceLocations: SourceLocation[] }[];
 };
+export type UnitMapping = { unitId: string; weight: number; rationale: string; confidence?: number | null; method?: string | null };
+export type PaperMappings = {
+  paperId: string; paperTitle: string; subjectId: string; textbookTitle: string; textbookEdition: string;
+  units: { id: string; code: string; title: string }[];
+  questions: { questionId: string; number: string; prompt: string; marks: number; status: string; mappings: UnitMapping[] }[];
+};
 export type UiFeaturesAccess = {
   allowed: true;
   user: { name: string; role: 'admin' };
@@ -243,6 +249,14 @@ export const publishOfficialMaterialReview = (id: string, linked: boolean) =>
   api(`documents/${id}/official-review/publish`, {
     confirmCourse: true, confirmSubject: true, confirmSourcePaper: linked, confirmComplete: true,
   }) as Promise<OfficialMaterialReview>;
+export const getPaperMappings = (paperId: string) =>
+  api(`questions/papers/${paperId}/unit-mappings`) as Promise<PaperMappings>;
+export const suggestQuestionMappings = (questionId: string) =>
+  api(`questions/${questionId}/unit-mapping/suggest`, {}) as Promise<{ questionId: string; method: string; suggestions: UnitMapping[] }>;
+export const saveQuestionMappings = (questionId: string, mappings: UnitMapping[]) =>
+  api(`questions/${questionId}/unit-mapping`, { mappings }) as Promise<PaperMappings['questions'][number]>;
+export const publishQuestionMappings = (questionId: string) =>
+  api(`questions/${questionId}/unit-mapping/publish`, {}) as Promise<PaperMappings['questions'][number]>;
 export async function upload(
   file: File,
   extra: Record<string, string> = {},
