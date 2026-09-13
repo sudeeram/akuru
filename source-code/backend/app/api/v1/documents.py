@@ -13,8 +13,9 @@ from app.schemas.documents import (
     DocumentType, DocumentUploadResponse,
 )
 from app.schemas.textbooks import PublishTextbookRequest, SaveTextbookReviewRequest, TextbookReviewResponse
+from app.schemas.official_materials import OfficialMaterialReview, PublishOfficialMaterialRequest, SaveOfficialMaterialReview
 from app.security import Principal
-from app.services import documents, textbooks
+from app.services import documents, official_materials, textbooks
 from app.services.document_processing import get_job, job_response, retry_job
 from app.storage import ObjectStorage, get_storage
 
@@ -151,6 +152,26 @@ def publish_textbook_review(
     db: Annotated[Session, Depends(get_db)],
 ) -> TextbookReviewResponse:
     return textbooks.publish(db, principal, document_id, payload)
+
+
+@router.get("/{document_id}/official-review", response_model=OfficialMaterialReview)
+def official_material_review(document_id: uuid.UUID, _principal: Annotated[Principal, Depends(require_roles("admin"))], db: Annotated[Session, Depends(get_db)]) -> OfficialMaterialReview:
+    return official_materials.get_review(db, document_id)
+
+
+@router.post("/{document_id}/official-review/propose", response_model=OfficialMaterialReview)
+def propose_official_material_review(document_id: uuid.UUID, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]) -> OfficialMaterialReview:
+    return official_materials.propose_review(db, principal, document_id)
+
+
+@router.post("/{document_id}/official-review", response_model=OfficialMaterialReview)
+def save_official_material_review(document_id: uuid.UUID, payload: SaveOfficialMaterialReview, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]) -> OfficialMaterialReview:
+    return official_materials.save_review(db, principal, document_id, payload)
+
+
+@router.post("/{document_id}/official-review/publish", response_model=OfficialMaterialReview)
+def publish_official_material_review(document_id: uuid.UUID, payload: PublishOfficialMaterialRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]) -> OfficialMaterialReview:
+    return official_materials.publish_review(db, principal, document_id, payload)
 
 
 @router.get("/{document_id}/assets/{asset_id}/content")

@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–7 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook publication workflow, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–8 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -59,6 +59,8 @@ The AI boundary uses the OpenAI Responses API only when explicitly enabled. Ever
 Textbook review separates immutable source document versions from editable review drafts and immutable published content versions. Each reviewed unit retains chapter, section, page range, definition, concept, equation, example and diagram data. Publication creates version-linked authoritative unit rows; corrections create a new version and supersede the earlier publication. Past-paper ingestion requires a published textbook in the same course and subject. See [textbook review](textbook-review.md).
 
 Curriculum plans assign each approved unit to its introduction Grade and Term. Published versions are immutable, cumulative coverage follows the student's ordered progression, and assessment snapshots preserve the selected version and unit set. Missing periods and insufficient eligible questions return explicit diagnostics. See [curriculum plans](curriculum-plans.md).
+
+Official-material review groups paper questions and subparts with equations, tables, diagrams, marks and source locations. Marking points and examiner guidance link to the exact published source-paper version. Complete inventory attestation and relational reconciliation are required before immutable publication. See [official-material review](official-material-review.md).
 
 ## Identity and permissions
 

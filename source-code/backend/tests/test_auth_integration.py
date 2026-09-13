@@ -11,6 +11,7 @@ from app.main import app
 from app.models import (
     AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
+    ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionVersion,
     StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
 )
 from app.security import hash_password
@@ -611,3 +612,80 @@ def test_versioned_curriculum_plan_cumulative_coverage_and_snapshot(auth_client)
     assert shortage["shortageQuestionCount"] == 5
     assert session.query(CurriculumPlan).filter_by(subject_id="biology", status="published").count() == 1
     assert session.query(CurriculumPlan).filter_by(subject_id="biology", status="superseded").count() == 2
+
+
+@pytest.mark.integration
+def test_official_paper_scheme_and_examiner_review_publication(auth_client, monkeypatch) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    csrf = {"X-CSRF-Token": login["csrfToken"]}
+    session: Session = next(app.dependency_overrides[get_db]())
+    admin = session.query(User).filter_by(username=username).one()
+    textbook = Document(kind="textbook", course_id="igcse", subject_id="biology", title="Biology source", original_filename="book.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf", sha256=uuid.uuid4().hex * 2, review_state="published", uploaded_by=admin.id, edition="2026", size_bytes=1)
+    session.add(textbook); session.flush()
+    textbook_file = DocumentVersion(document_id=textbook.id, version_number=1, original_filename="book.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf", sha256=uuid.uuid4().hex * 2, size_bytes=1, status="completed", uploaded_by=admin.id)
+    session.add(textbook_file); session.flush()
+    content = TextbookContentVersion(document_id=textbook.id, source_document_version_id=textbook_file.id, version_number=1, course_id="igcse", subject_id="biology", edition="2026", status="published", created_by=admin.id, published_by=admin.id)
+    session.add(content); session.flush()
+    session.add(TextbookUnit(textbook_id=textbook.id, course_id="igcse", subject_id="biology", unit_code="B1", title="Cells", sequence=1, content_version_id=content.id))
+    session.commit()
+
+    @contextmanager
+    def worker_session():
+        yield session
+    monkeypatch.setattr(document_processing, "SessionLocal", worker_session)
+
+    def pdf_bytes(lines: list[str]) -> bytes:
+        pdf = fitz.open(); page = pdf.new_page()
+        for index, line in enumerate(lines): page.insert_text((72, 72 + index * 28), line, fontsize=12)
+        value = pdf.tobytes(); pdf.close(); return value
+
+    def upload_and_process(kind: str, title: str, lines: list[str], source_id: str | None = None):
+        params = {"kind": kind, "courseId": "igcse", "subjectId": "biology", "title": title}
+        if source_id: params["sourceDocumentId"] = source_id
+        response = client.post("/api/v1/documents", params=params, headers={**csrf, "X-Filename": f"{title}.pdf", "Content-Type": "application/pdf"}, content=pdf_bytes(lines))
+        assert response.status_code == 201, response.text
+        document_id = response.json()["document"]["id"]
+        job_id = uuid.UUID(response.json()["job"]["id"])
+        assert document_processing.process_job(job_id, app.dependency_overrides[get_storage]()) == "needs_review"
+        return document_id
+
+    paper_id = upload_and_process("past_paper", "Paper 1", ["1. Describe a cell. [2]", "2. Explain diffusion. [3]"])
+    proposal = client.post(f"/api/v1/documents/{paper_id}/official-review/propose", headers=csrf, json={})
+    assert proposal.status_code == 200, proposal.text
+    review = proposal.json()
+    assert len(review["questions"]) == 2
+    assert review["questions"][0]["sourceLocations"][0]["page"] == 1
+    incomplete = client.post(f"/api/v1/documents/{paper_id}/official-review/publish", headers=csrf, json={"confirmCourse": True, "confirmSubject": True, "confirmComplete": True, "confirmSourcePaper": False})
+    assert incomplete.status_code == 409
+    assert incomplete.json()["error"]["code"] == "official_material_incomplete"
+    review["expectedItemCount"] = 2; review["completenessConfirmed"] = True
+    saved = client.post(f"/api/v1/documents/{paper_id}/official-review", headers=csrf, json={key: review[key] for key in ("expectedItemCount", "completenessConfirmed", "questions", "markSchemeEntries", "examinerComments")})
+    assert saved.status_code == 200, saved.text
+    published = client.post(f"/api/v1/documents/{paper_id}/official-review/publish", headers=csrf, json={"confirmCourse": True, "confirmSubject": True, "confirmComplete": True, "confirmSourcePaper": False})
+    assert published.status_code == 200, published.text
+
+    scheme_id = upload_and_process("mark_scheme", "Scheme 1", ["1. M1 Cell has a membrane. [2]", "2. A1 Particles move down a gradient. [3]"], paper_id)
+    scheme = client.post(f"/api/v1/documents/{scheme_id}/official-review/propose", headers=csrf, json={}).json()
+    assert [entry["markingPoints"][0]["kind"] for entry in scheme["markSchemeEntries"]] == ["method", "accuracy"]
+    scheme["expectedItemCount"] = 2; scheme["completenessConfirmed"] = True
+    assert client.post(f"/api/v1/documents/{scheme_id}/official-review", headers=csrf, json={key: scheme[key] for key in ("expectedItemCount", "completenessConfirmed", "questions", "markSchemeEntries", "examinerComments")}).status_code == 200
+    scheme_publication = client.post(f"/api/v1/documents/{scheme_id}/official-review/publish", headers=csrf, json={"confirmCourse": True, "confirmSubject": True, "confirmComplete": True, "confirmSourcePaper": True})
+    assert scheme_publication.status_code == 200
+    paper_version = session.query(OfficialMaterialVersion).filter_by(document_id=uuid.UUID(paper_id), status="published").one()
+    assert scheme_publication.json()["sourcePaperVersionId"] == str(paper_version.id)
+
+    report_id = upload_and_process("examiner_report", "Report 1", ["1. Candidates omitted the membrane.", "2. Candidates should state the gradient direction."], paper_id)
+    report = client.post(f"/api/v1/documents/{report_id}/official-review/propose", headers=csrf, json={}).json()
+    assert report["examinerComments"][0]["commonMistakes"]
+    assert report["examinerComments"][1]["advice"]
+    report["expectedItemCount"] = 2; report["completenessConfirmed"] = True
+    report["examinerComments"][0]["advice"] = ["Name the cell membrane."]
+    assert client.post(f"/api/v1/documents/{report_id}/official-review", headers=csrf, json={key: report[key] for key in ("expectedItemCount", "completenessConfirmed", "questions", "markSchemeEntries", "examinerComments")}).status_code == 200
+    report_publication = client.post(f"/api/v1/documents/{report_id}/official-review/publish", headers=csrf, json={"confirmCourse": True, "confirmSubject": True, "confirmComplete": True, "confirmSourcePaper": True})
+    assert report_publication.status_code == 200
+    assert report_publication.json()["sourcePaperVersionId"] == str(paper_version.id)
+    assert session.query(OfficialMaterialVersion).filter_by(status="published").count() == 3
+    assert session.query(OfficialQuestionVersion).count() == 2
+    assert session.query(MarkSchemeEntryVersion).count() == 2
+    assert session.query(ExaminerCommentVersion).count() == 2

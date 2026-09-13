@@ -103,6 +103,15 @@ export type CurriculumPlan = {
   versionNumber: number; status: string; subjectId: string; textbookTitle: string;
   textbookEdition: string; availableUnits: CurriculumPlanUnit[]; periods: CurriculumPlanPeriod[];
 };
+export type SourceLocation = { page: number; blockId: string; boundingBox: Record<string, unknown> };
+export type OfficialMaterialReview = {
+  versionNumber: number; status: string; kind: 'past_paper' | 'mark_scheme' | 'examiner_report';
+  courseId: string; subjectId: string; sourcePaperId?: string | null; sourcePaperVersionId?: string | null;
+  expectedItemCount: number; completenessConfirmed: boolean;
+  questions: { number: string; parentNumber?: string | null; prompt: string; sharedStem: string; marks: number; equations: string[]; assetIds: string[]; sourceLocations: SourceLocation[] }[];
+  markSchemeEntries: { questionNumber: string; maxMarks: number; markingPoints: { code: string; text: string; kind: 'method' | 'accuracy' | 'independent' | 'communication' | 'other' }[]; alternatives: string[]; sourceLocations: SourceLocation[] }[];
+  examinerComments: { questionNumber: string; commonMistakes: string[]; advice: string[]; sourceLocations: SourceLocation[] }[];
+};
 export type UiFeaturesAccess = {
   allowed: true;
   user: { name: string; role: 'admin' };
@@ -220,6 +229,20 @@ export const publishCurriculumPlan = (subjectId: string) =>
   api(`admin/curriculum-plans/${subjectId}/publish`, {
     confirmSubject: true, confirmTextbook: true,
   }) as Promise<CurriculumPlan>;
+export const getOfficialMaterialReview = (id: string) =>
+  api(`documents/${id}/official-review`) as Promise<OfficialMaterialReview>;
+export const proposeOfficialMaterialReview = (id: string) =>
+  api(`documents/${id}/official-review/propose`, {}) as Promise<OfficialMaterialReview>;
+export const saveOfficialMaterialReview = (id: string, review: OfficialMaterialReview) =>
+  api(`documents/${id}/official-review`, {
+    expectedItemCount: review.expectedItemCount, completenessConfirmed: review.completenessConfirmed,
+    questions: review.questions, markSchemeEntries: review.markSchemeEntries,
+    examinerComments: review.examinerComments,
+  }) as Promise<OfficialMaterialReview>;
+export const publishOfficialMaterialReview = (id: string, linked: boolean) =>
+  api(`documents/${id}/official-review/publish`, {
+    confirmCourse: true, confirmSubject: true, confirmSourcePaper: linked, confirmComplete: true,
+  }) as Promise<OfficialMaterialReview>;
 export async function upload(
   file: File,
   extra: Record<string, string> = {},

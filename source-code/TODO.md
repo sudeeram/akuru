@@ -140,14 +140,14 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Build complete, linked official assessment material.
 
-- [ ] Require an approved same-subject textbook before accepting a paper.
-- [ ] Extract questions, subparts, stems, marks, equations, tables and diagrams.
-- [ ] Reconcile the complete question inventory against the source paper.
-- [ ] Link marking-scheme entries to question/subpart and source location.
-- [ ] Extract alternatives, method marks, accuracy marks and required points.
-- [ ] Link examiner comments, common mistakes and advice.
-- [ ] Store immutable question and rubric versions.
-- [ ] Build Admin correction, completeness sign-off and publication screens.
+- [x] Require an approved same-subject textbook before accepting a paper.
+- [x] Extract questions, subparts, stems, marks, equations, tables and diagrams.
+- [x] Reconcile the complete question inventory against the source paper.
+- [x] Link marking-scheme entries to question/subpart and source location.
+- [x] Extract alternatives, method marks, accuracy marks and required points.
+- [x] Link examiner comments, common mistakes and advice.
+- [x] Store immutable question and rubric versions.
+- [x] Build Admin correction, completeness sign-off and publication screens.
 
 **Done when:** No question publishes without prompt, marks, assets and provenance; shared stems remain attached; incomplete papers cannot publish.
 

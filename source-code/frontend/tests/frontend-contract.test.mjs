@@ -125,3 +125,14 @@ test('admin edits and publishes cumulative curriculum coverage', () => {
   assert.match(admin, /Cumulative coverage/);
   assert.match(admin, /Grade 10 Term1 and Term2/);
 });
+
+test('admin reviews and publishes complete official assessment material', () => {
+  assert.match(api, /proposeOfficialMaterialReview/);
+  assert.match(api, /saveOfficialMaterialReview/);
+  assert.match(api, /publishOfficialMaterialReview/);
+  assert.match(admin, /Official material review/);
+  assert.match(admin, /Expected complete item count/);
+  assert.match(admin, /Marking points · one per line/);
+  assert.match(admin, /Common mistakes · one per line/);
+  assert.match(admin, /Publish official material/);
+});

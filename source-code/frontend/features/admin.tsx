@@ -12,11 +12,15 @@ import {
   getLatestDocumentJob,
   getTextbookReview,
   getCurriculumPlan,
+  getOfficialMaterialReview,
   proposeTextbookReview,
   publishTextbookReview,
   publishCurriculumPlan,
+  publishOfficialMaterialReview,
   saveTextbookReview,
   saveCurriculumPlan,
+  saveOfficialMaterialReview,
+  proposeOfficialMaterialReview,
   removeDocument,
   retryDocument,
   uploadLearningDocument,
@@ -26,6 +30,7 @@ import {
   type Student,
   type TextbookReview,
   type CurriculumPlan,
+  type OfficialMaterialReview,
 } from '@/lib/api';
 import { Heading, Picker, Empty } from './shared';
 
@@ -171,6 +176,7 @@ export function AdminWorkspace(p: Props) {
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
   const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
+  const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
@@ -217,7 +223,13 @@ export function AdminWorkspace(p: Props) {
           setExtraction(extracted);
           if (selected.kind === 'Textbook') {
             void getTextbookReview(docId).then(setTextbookReview).catch(() => setTextbookReview(null));
-          } else setTextbookReview(null);
+            setOfficialReview(null);
+          } else {
+            setTextbookReview(null);
+            if (['Past paper', 'Marking scheme', 'Examiner report'].includes(selected.kind))
+              void getOfficialMaterialReview(docId).then(setOfficialReview).catch(() => setOfficialReview(null));
+            else setOfficialReview(null);
+          }
         }
       })
       .catch((cause) => {
@@ -744,6 +756,64 @@ export function AdminWorkspace(p: Props) {
                             if (window.confirm(`Publish ${textbookReview.units.length} reviewed units for ${doc.name}?`)) void run(async () => { setTextbookReview(await publishTextbookReview(doc.id)); }, 'Textbook units published.');
                           }}>Publish reviewed units</Button>
                         </div>
+                      )}
+                    </section>
+                  )}
+                  {['Past paper', 'Marking scheme', 'Examiner report'].includes(doc.kind) && ['needs_review', 'completed'].includes(doc.status) && (
+                    <section className="panel stack">
+                      <div className="spread">
+                        <div>
+                          <strong>Official material review</strong>
+                          <p>Reconcile every question or linked entry against the rendered source before publication.</p>
+                        </div>
+                        <Button variant="outline" onClick={() => void run(async () => {
+                          setOfficialReview(await proposeOfficialMaterialReview(doc.id));
+                        }, 'Official material proposal created from extracted evidence.')}>Propose inventory</Button>
+                      </div>
+                      {officialReview && (
+                        <>
+                          <div className="two-cols">
+                            <Field label="Expected complete item count" type="number" value={String(officialReview.expectedItemCount)} onChange={(value) => setOfficialReview({ ...officialReview, expectedItemCount: Number(value) })} />
+                            <div className="check-label spaced"><Checkbox aria-label="Confirm the complete source inventory" checked={officialReview.completenessConfirmed} onCheckedChange={(yes) => setOfficialReview({ ...officialReview, completenessConfirmed: Boolean(yes) })} /><span>I checked the entire source and this inventory is complete</span></div>
+                          </div>
+                          {officialReview.questions.map((question, index) => (
+                            <article className="panel stack" key={`${question.number}-${index}`}>
+                              <div className="two-cols">
+                                <Field label="Question / subpart number" value={question.number} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, number: value } : row) })} />
+                                <Field label="Marks" type="number" value={String(question.marks)} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, marks: Number(value) } : row) })} />
+                              </div>
+                              <Field label="Shared stem" multiline value={question.sharedStem} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, sharedStem: value } : row) })} />
+                              <Field label="Complete question prompt" multiline value={question.prompt} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, prompt: value } : row) })} />
+                              <Field label="Equations · one per line" multiline value={question.equations.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, equations: value.split('\n').filter(Boolean) } : row) })} />
+                              <p className="small">Source: {question.sourceLocations.map((source) => `page ${source.page}`).join(', ')} · {question.assetIds.length} retained asset(s)</p>
+                            </article>
+                          ))}
+                          {officialReview.markSchemeEntries.map((entry, index) => (
+                            <article className="panel stack" key={`${entry.questionNumber}-${index}`}>
+                              <div className="two-cols">
+                                <Field label="Question / subpart number" value={entry.questionNumber} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, questionNumber: value } : row) })} />
+                                <Field label="Maximum marks" type="number" value={String(entry.maxMarks)} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, maxMarks: Number(value) } : row) })} />
+                              </div>
+                              <Field label="Marking points · one per line" multiline value={entry.markingPoints.map((point) => `${point.code}|${point.kind}|${point.text}`).join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, markingPoints: value.split('\n').filter(Boolean).map((line, pointIndex) => { const [codeValue, kindValue, ...textValue] = line.split('|'); return { code: codeValue || `P${pointIndex + 1}`, kind: ['method', 'accuracy', 'independent', 'communication'].includes(kindValue) ? kindValue as 'method' | 'accuracy' | 'independent' | 'communication' : 'other', text: textValue.join('|') || kindValue || line }; }) } : row) })} />
+                              <Field label="Accepted alternatives · one per line" multiline value={entry.alternatives.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, alternatives: value.split('\n').filter(Boolean) } : row) })} />
+                              <p className="small">Source: {entry.sourceLocations.map((source) => `page ${source.page}`).join(', ')}</p>
+                            </article>
+                          ))}
+                          {officialReview.examinerComments.map((comment, index) => (
+                            <article className="panel stack" key={`${comment.questionNumber}-${index}`}>
+                              <Field label="Question / subpart number" value={comment.questionNumber} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, questionNumber: value } : row) })} />
+                              <Field label="Common mistakes · one per line" multiline value={comment.commonMistakes.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, commonMistakes: value.split('\n').filter(Boolean) } : row) })} />
+                              <Field label="Examiner advice · one per line" multiline value={comment.advice.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, advice: value.split('\n').filter(Boolean) } : row) })} />
+                              <p className="small">Source: {comment.sourceLocations.map((source) => `page ${source.page}`).join(', ')}</p>
+                            </article>
+                          ))}
+                          <div className="button-row">
+                            <Button variant="outline" onClick={() => void run(async () => { setOfficialReview(await saveOfficialMaterialReview(doc.id, officialReview)); }, 'Official material review saved.')}>Save review</Button>
+                            <Button className="primary" disabled={officialReview.status === 'published' || !officialReview.completenessConfirmed} onClick={() => {
+                              if (window.confirm(`Publish the attested ${officialReview.expectedItemCount}-item inventory for ${doc.name}?`)) void run(async () => { setOfficialReview(await publishOfficialMaterialReview(doc.id, officialReview.kind !== 'past_paper')); }, 'Official material published.');
+                            }}>Publish official material</Button>
+                          </div>
+                        </>
                       )}
                     </section>
                   )}

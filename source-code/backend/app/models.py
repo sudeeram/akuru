@@ -553,6 +553,77 @@ class AssessmentCurriculumSnapshot(Base):
     )
 
 
+class OfficialMaterialVersion(Base):
+    __tablename__ = "official_material_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    source_document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    version_number: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(24))
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"))
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"))
+    source_paper_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
+    source_paper_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="RESTRICT"))
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    inventory_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    completeness_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("kind IN ('past_paper','mark_scheme','examiner_report')", name="ck_official_material_kind"),
+        CheckConstraint("status IN ('draft','published','superseded')", name="ck_official_material_status"),
+        CheckConstraint("version_number > 0 AND inventory_count >= 0", name="ck_official_material_counts"),
+        UniqueConstraint("document_id", "version_number", name="uq_official_material_version"),
+    )
+
+
+class OfficialQuestionVersion(Base):
+    __tablename__ = "official_question_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    material_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_material_versions.id", ondelete="CASCADE"), index=True)
+    question_number: Mapped[str] = mapped_column(String(40))
+    parent_number: Mapped[str | None] = mapped_column(String(40))
+    prompt: Mapped[str] = mapped_column(Text)
+    shared_stem: Mapped[str] = mapped_column(Text, default="", server_default="")
+    marks: Mapped[int] = mapped_column(Integer)
+    equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    asset_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    __table_args__ = (
+        CheckConstraint("marks > 0", name="ck_official_question_marks"),
+        UniqueConstraint("material_version_id", "question_number", name="uq_official_question_number"),
+    )
+
+
+class MarkSchemeEntryVersion(Base):
+    __tablename__ = "mark_scheme_entry_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    material_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_material_versions.id", ondelete="CASCADE"), index=True)
+    question_number: Mapped[str] = mapped_column(String(40))
+    max_marks: Mapped[int] = mapped_column(Integer)
+    marking_points: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    alternatives: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    __table_args__ = (
+        CheckConstraint("max_marks > 0", name="ck_mark_scheme_entry_marks"),
+        UniqueConstraint("material_version_id", "question_number", name="uq_mark_scheme_entry_number"),
+    )
+
+
+class ExaminerCommentVersion(Base):
+    __tablename__ = "examiner_comment_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    material_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_material_versions.id", ondelete="CASCADE"), index=True)
+    question_number: Mapped[str] = mapped_column(String(40))
+    common_mistakes: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    advice: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    __table_args__ = (UniqueConstraint("material_version_id", "question_number", name="uq_examiner_comment_number"),)
+
+
 class TermCoverage(TimestampMixin, Base):
     __tablename__ = "term_coverage"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
