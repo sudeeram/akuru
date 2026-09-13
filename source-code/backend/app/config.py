@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -40,6 +40,26 @@ class Settings(BaseSettings):
     document_render_dpi: int = Field(default=180, ge=96, le=300)
     document_ocr_min_characters: int = Field(default=40, ge=0, le=1000)
     tesseract_command: str = "tesseract"
+    ai_provider: str = "disabled"
+    openai_api_key: SecretStr | None = Field(default=None, repr=False)
+    openai_model: str | None = None
+    ai_timeout_seconds: float = Field(default=45, ge=5, le=180)
+    ai_max_retries: int = Field(default=2, ge=0, le=3)
+    ai_max_concurrency: int = Field(default=2, ge=1, le=16)
+    ai_max_pages_per_request: int = Field(default=8, ge=1, le=30)
+    ai_max_input_characters: int = Field(default=80_000, ge=1_000, le=500_000)
+    ai_max_image_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
+    ai_max_output_tokens: int = Field(default=4_000, ge=100, le=32_000)
+
+    @model_validator(mode="after")
+    def validate_ai_provider(self) -> "Settings":
+        if self.ai_provider not in {"disabled", "fake", "openai"}:
+            raise ValueError("AKURU_AI_PROVIDER must be disabled, fake, or openai")
+        if self.ai_provider == "openai" and (not self.openai_api_key or not self.openai_model):
+            raise ValueError(
+                "AKURU_OPENAI_API_KEY and AKURU_OPENAI_MODEL are required when AKURU_AI_PROVIDER=openai"
+            )
+        return self
 
     @property
     def database_url(self) -> URL:

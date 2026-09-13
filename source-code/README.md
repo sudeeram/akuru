@@ -17,6 +17,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Private document storage](backend/docs/document-storage.md)
 - [Asynchronous document processing](backend/docs/document-processing.md)
 - [Deterministic PDF/image extraction](backend/docs/document-extraction.md)
+- [OpenAI provider and secret configuration](backend/docs/ai-provider.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

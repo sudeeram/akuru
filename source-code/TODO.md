@@ -76,15 +76,15 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Use the OpenAI Platform for structured multimodal understanding without making it authoritative for permissions or curriculum rules.
 
-- [ ] Define an `AIProvider` interface and OpenAI Responses API implementation.
-- [ ] Keep API keys in backend secrets and OCI Vault in production.
-- [ ] Version prompts separately for textbook extraction, paper extraction, mapping, assessment and tutoring.
-- [ ] Require Structured Outputs/JSON schemas and validate every result.
-- [ ] Send only pages and context required for the operation.
-- [ ] Record provider, model, prompt version, purpose, latency, usage and response ID.
-- [ ] Add timeouts, bounded retries, concurrency and cost limits.
-- [ ] Treat uploaded content as untrusted reference data, never as system instructions.
-- [ ] Add a fake provider so tests never require paid API calls.
+- [x] Define an `AIProvider` interface and OpenAI Responses API implementation.
+- [x] Keep API keys in backend secrets and OCI Vault in production.
+- [x] Version prompts separately for textbook extraction, paper extraction, mapping, assessment and tutoring.
+- [x] Require Structured Outputs/JSON schemas and validate every result.
+- [x] Send only pages and context required for the operation.
+- [x] Record provider, model, prompt version, purpose, latency, usage and response ID.
+- [x] Add timeouts, bounded retries, concurrency and cost limits.
+- [x] Treat uploaded content as untrusted reference data, never as system instructions.
+- [x] Add a fake provider so tests never require paid API calls.
 
 **Architecture decision:** The AKURU runtime uses the OpenAI Responses API. Codex supports development, review, migrations, testing and deployment; it is not the student-facing tutor. PostgreSQL and AKURU services remain authoritative.
 

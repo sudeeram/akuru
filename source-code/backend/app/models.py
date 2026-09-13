@@ -353,6 +353,52 @@ class DocumentStageRun(Base):
     )
 
 
+class AIInvocation(Base):
+    __tablename__ = "ai_invocations"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), index=True
+    )
+    document_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="SET NULL"), index=True
+    )
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    purpose: Mapped[str] = mapped_column(String(40), index=True)
+    prompt_name: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    schema_name: Mapped[str] = mapped_column(String(120))
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    response_id: Mapped[str | None] = mapped_column(String(120), index=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    input_tokens: Mapped[int | None] = mapped_column(Integer)
+    output_tokens: Mapped[int | None] = mapped_column(Integer)
+    total_tokens: Mapped[int | None] = mapped_column(Integer)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    request_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    error_code: Mapped[str | None] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint(
+            "purpose IN ('textbook_extraction','paper_extraction','unit_mapping','assessment','tutoring')",
+            name="ck_ai_invocations_purpose",
+        ),
+        CheckConstraint("status IN ('processing','completed','failed')", name="ck_ai_invocations_status"),
+        CheckConstraint("attempt_count >= 0", name="ck_ai_invocations_attempt_count"),
+        CheckConstraint("latency_ms IS NULL OR latency_ms >= 0", name="ck_ai_invocations_latency"),
+        CheckConstraint(
+            "input_tokens IS NULL OR input_tokens >= 0", name="ck_ai_invocations_input_tokens"
+        ),
+        CheckConstraint(
+            "output_tokens IS NULL OR output_tokens >= 0", name="ck_ai_invocations_output_tokens"
+        ),
+        CheckConstraint(
+            "total_tokens IS NULL OR total_tokens >= 0", name="ck_ai_invocations_total_tokens"
+        ),
+    )
+
+
 class TextbookUnit(TimestampMixin, Base):
     __tablename__ = "textbook_units"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

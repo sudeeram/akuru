@@ -23,7 +23,8 @@ Phase 1 focuses on iGCSE students in Grades 10 and 11. The supported subjects ar
 | Frontend authentication and account administration through FastAPI | Implemented |
 | Remaining frontend-to-FastAPI feature integration | In progress |
 | Deterministic PDF/OCR/equation/diagram extraction | Implemented; Admin review required |
-| RAG tutor, AI assessment, and generated media | Planned |
+| Structured OpenAI provider, prompts, limits, and invocation audit | Implemented; disabled by default |
+| RAG tutor, AI assessment, and generated media workflows | Planned |
 | Public production release | Blocked on frontend/FastAPI integration and production hardening |
 
 The frontend no longer contains mock users or an active mock API. Document, coverage, question, practice, assessment, and review endpoints are still being moved to FastAPI.
@@ -37,9 +38,11 @@ flowchart LR
     API --> DB[(PostgreSQL)]
     API --> OBJ[Private object storage]
     API --> JOBS[Document processing workers]
+    API --> AI[Structured OpenAI provider]
     JOBS --> OCR[Text, equation and diagram extraction]
     OCR --> REVIEW[Admin review workflow]
     REVIEW --> DB
+    AI --> DB
     API --> ELIG[Curriculum eligibility service]
     ELIG --> TUTOR[Tutor, mocks and study plans]
 ```
@@ -94,6 +97,8 @@ python3 -m venv .venv
 .venv/bin/python -m app.bootstrap_database
 .venv/bin/python -m alembic upgrade head
 ```
+
+AI is disabled by default, so local setup and tests do not require an OpenAI key or make paid calls. Follow the [AI provider guide](source-code/backend/docs/ai-provider.md) when you are ready to configure a backend-only key and model.
 
 Create the first Admin interactively. The password is read without echoing and is stored only as an Argon2 hash:
 

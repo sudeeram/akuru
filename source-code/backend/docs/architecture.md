@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–4 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–5 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, a structured AI provider boundary, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -13,6 +13,7 @@ backend/
     services/                     Transactions, validation and application rules
     repositories/                 SQLAlchemy reads and writes without authorization policy
     queue/                        Redis-backed document-job transport
+    ai/                           Provider interface, OpenAI adapter, fake provider and prompts
     workers/                      Long-running document processing entry points
     permissions.py                Role and mutation authorization dependencies
     security.py                   Session, CSRF, password and principal primitives
@@ -52,6 +53,8 @@ For OCI or home deployment, use an HTTPS reverse proxy, private database/object 
 The implemented storage interface has local-filesystem and OCI adapters. PostgreSQL stores logical documents, immutable versions, derived-asset provenance and append-only events. Original bytes use server-generated private keys and are returned only by an authorized API. See [document storage](document-storage.md) for the endpoint and deployment contract.
 
 The document worker claims queued rows transactionally, records a versioned stage run, and runs untrusted parsing in a spawned subprocess. It enforces a timeout and page limit everywhere, plus an address-space memory limit on the Linux production target. Startup recovery republishes PostgreSQL queued jobs and returns stale processing jobs to the queue. A completed stage with the same input checksum and extraction version is reused instead of duplicated. See [document processing](document-processing.md) and [deterministic extraction](document-extraction.md).
+
+The AI boundary uses the OpenAI Responses API only when explicitly enabled. Every operation supplies a strict schema and a separately versioned prompt. Uploaded page content stays in untrusted user input, and server-side services select the permitted pages before a request is made. The `ai_invocations` table records operational provenance and usage without source content, model output or secrets. The provider enforces bounded timeouts, retries, concurrency, context size, image bytes and output tokens. Tests use a fake provider and cannot make paid calls. See [AI provider layer](ai-provider.md).
 
 ## Identity and permissions
 
