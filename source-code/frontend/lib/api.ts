@@ -88,6 +88,15 @@ function csrfToken() {
 }
 export type Lesson = { explanation: string; points: string[]; hints: string[] };
 export type FileRef = { id: string; name: string };
+export type TextbookReviewUnit = {
+  code: string; chapter: string; title: string; summary: string; startPage: number; endPage: number;
+  sections: string[]; definitions: string[]; concepts: string[]; equations: string[];
+  examples: string[]; diagrams: string[];
+};
+export type TextbookReview = {
+  versionNumber: number; status: string; courseId: string; subjectId: string;
+  edition: string; units: TextbookReviewUnit[];
+};
 export type UiFeaturesAccess = {
   allowed: true;
   user: { name: string; role: 'admin' };
@@ -184,6 +193,19 @@ export async function uploadLearningDocument(
   if (!response.ok) throw new ApiError(apiErrorMessage(data), response.status);
   return data;
 }
+export const getTextbookReview = (id: string) =>
+  api(`documents/${id}/textbook-review`) as Promise<TextbookReview>;
+export const proposeTextbookReview = (id: string) =>
+  api(`documents/${id}/textbook-review/propose`, {}) as Promise<TextbookReview>;
+export const saveTextbookReview = (id: string, review: TextbookReview) =>
+  api(`documents/${id}/textbook-review`, {
+    courseId: review.courseId, subjectId: review.subjectId,
+    edition: review.edition, units: review.units,
+  }) as Promise<TextbookReview>;
+export const publishTextbookReview = (id: string) =>
+  api(`documents/${id}/textbook-review/publish`, {
+    confirmCourse: true, confirmSubject: true, confirmEdition: true,
+  }) as Promise<TextbookReview>;
 export async function upload(
   file: File,
   extra: Record<string, string> = {},
@@ -278,6 +300,7 @@ export type Doc = {
   notes: string;
   processingProgress?: number;
   processingError?: string | null;
+  edition?: string | null;
 };
 export type ExtractionBlock = {
   sequenceNumber: number;

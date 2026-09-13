@@ -85,6 +85,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "paperId": str(document.source_document_id) if document.source_document_id else None,
                 "processingProgress": job.progress if job else 0,
                 "processingError": job.error_message if job else None,
+                "edition": document.edition,
             })
     return {
         "user": {

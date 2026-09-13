@@ -11,7 +11,7 @@ from app.main import app
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
-    StudentProgression, StudentSubject, User,
+    StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
 )
 from app.security import hash_password
 from app.queue.factory import get_document_queue
@@ -407,6 +407,67 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     assert session.query(DocumentAsset).filter_by(
         document_version_id=stored_version.id, asset_kind="page_render"
     ).count() == 1
+
+    proposed = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review/propose",
+        headers={"X-CSRF-Token": login["csrfToken"]}, json={},
+    )
+    assert proposed.status_code == 200, proposed.text
+    review = proposed.json()
+    assert review["status"] == "draft"
+    assert review["courseId"] == "igcse"
+    assert review["subjectId"] == "biology"
+    assert review["edition"] == "Second edition"
+    assert review["units"][0]["startPage"] == 1
+    review["units"][0]["concepts"] = ["Cells exchange materials across membranes."]
+    review["units"][0]["definitions"] = ["A cell is the basic structural unit of life."]
+    saved = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+        json={key: review[key] for key in ("courseId", "subjectId", "edition", "units")},
+    )
+    assert saved.status_code == 200
+    unconfirmed = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review/publish",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+        json={"confirmCourse": True, "confirmSubject": True, "confirmEdition": False},
+    )
+    assert unconfirmed.status_code == 422
+    published = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review/publish",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+        json={"confirmCourse": True, "confirmSubject": True, "confirmEdition": True},
+    )
+    assert published.status_code == 200
+    assert published.json()["status"] == "published"
+    assert session.query(TextbookContentVersion).filter_by(document_id=stored_document.id, status="published").count() == 1
+    content_version = session.query(TextbookContentVersion).filter_by(document_id=stored_document.id).one()
+    assert session.query(TextbookUnitVersion).filter_by(content_version_id=content_version.id).count() >= 1
+    assert session.query(TextbookUnit).filter_by(content_version_id=content_version.id).count() >= 1
+    assert session.query(DocumentEvent).filter_by(
+        document_id=stored_document.id, event_type="textbook_published"
+    ).count() == 1
+
+    revised = published.json()
+    revised["units"][0]["summary"] = "Corrected immutable second version."
+    second_draft = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+        json={key: revised[key] for key in ("courseId", "subjectId", "edition", "units")},
+    )
+    assert second_draft.status_code == 200
+    assert second_draft.json()["versionNumber"] == 2
+    assert second_draft.json()["status"] == "draft"
+    second_publish = client.post(
+        f"/api/v1/documents/{document['id']}/textbook-review/publish",
+        headers={"X-CSRF-Token": login["csrfToken"]},
+        json={"confirmCourse": True, "confirmSubject": True, "confirmEdition": True},
+    )
+    assert second_publish.status_code == 200, second_publish.text
+    statuses = session.query(TextbookContentVersion.status).filter_by(
+        document_id=stored_document.id
+    ).order_by(TextbookContentVersion.version_number).all()
+    assert statuses == [("superseded",), ("published",)]
 
     attempts = stored_job.attempt_count
     extraction_counts = (

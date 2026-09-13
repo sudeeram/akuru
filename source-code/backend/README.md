@@ -33,6 +33,8 @@ Uploads return after the original bytes and an authoritative queued job are stor
 
 AI is disabled by default and tests use a fake provider. See the [AI provider guide](docs/ai-provider.md) before configuring a backend-only OpenAI key and model.
 
+After deterministic extraction, Admins review and publish versioned textbook units before past papers can be accepted. See [textbook review](docs/textbook-review.md).
+
 ## Create the first administrator
 
 There is no default production password. Create the first administrator interactively so its password never appears in shell history or source control:

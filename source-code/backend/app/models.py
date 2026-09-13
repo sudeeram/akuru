@@ -438,6 +438,52 @@ class AIProviderAttempt(Base):
     )
 
 
+class TextbookContentVersion(Base):
+    __tablename__ = "textbook_content_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    source_document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    version_number: Mapped[int] = mapped_column(Integer)
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"))
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"))
+    edition: Mapped[str] = mapped_column(String(80))
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_textbook_content_version_number"),
+        CheckConstraint("status IN ('draft','published','superseded')", name="ck_textbook_content_version_status"),
+        UniqueConstraint("document_id", "version_number", name="uq_textbook_content_version"),
+    )
+
+
+class TextbookUnitVersion(Base):
+    __tablename__ = "textbook_unit_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="CASCADE"), index=True)
+    unit_code: Mapped[str] = mapped_column(String(80))
+    chapter: Mapped[str] = mapped_column(String(240), default="", server_default="")
+    title: Mapped[str] = mapped_column(String(240))
+    summary: Mapped[str] = mapped_column(Text, default="", server_default="")
+    sequence: Mapped[int] = mapped_column(Integer)
+    start_page: Mapped[int] = mapped_column(Integer)
+    end_page: Mapped[int] = mapped_column(Integer)
+    sections: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    definitions: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    concepts: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    examples: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    diagrams: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    __table_args__ = (
+        CheckConstraint("sequence > 0", name="ck_textbook_unit_version_sequence"),
+        CheckConstraint("start_page > 0 AND end_page >= start_page", name="ck_textbook_unit_version_pages"),
+        UniqueConstraint("content_version_id", "unit_code", name="uq_textbook_unit_version_code"),
+    )
+
+
 class TextbookUnit(TimestampMixin, Base):
     __tablename__ = "textbook_units"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -447,8 +493,11 @@ class TextbookUnit(TimestampMixin, Base):
     unit_code: Mapped[str] = mapped_column(String(80))
     title: Mapped[str] = mapped_column(String(240))
     sequence: Mapped[int] = mapped_column(Integer)
+    content_version_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"), index=True
+    )
     __table_args__ = (
-        UniqueConstraint("textbook_id", "unit_code", name="uq_textbook_unit_code"),
+        UniqueConstraint("textbook_id", "content_version_id", "unit_code", name="uq_textbook_unit_code"),
         UniqueConstraint("id", "course_id", "subject_id", name="uq_unit_scope"),
     )
 

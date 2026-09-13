@@ -118,6 +118,8 @@ def upload_document(
     title = title.strip()
     if not title:
         raise DomainError("title_required", "Document title is required.", 422)
+    if kind == DocumentType.TEXTBOOK and not (edition and edition.strip()):
+        raise DomainError("textbook_edition_required", "Enter the textbook edition before uploading.", 422)
     repository = DocumentRepository(db)
     _validate_relationships(repository, kind, course_id, subject_id, source_document_id)
     checksum = hashlib.sha256(content).hexdigest()

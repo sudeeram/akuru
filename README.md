@@ -23,6 +23,7 @@ Phase 1 focuses on iGCSE students in Grades 10 and 11. The supported subjects ar
 | Frontend authentication and account administration through FastAPI | Implemented |
 | Remaining frontend-to-FastAPI feature integration | In progress |
 | Deterministic PDF/OCR/equation/diagram extraction | Implemented; Admin review required |
+| Versioned textbook-unit review and publication | Implemented |
 | Structured OpenAI provider, prompts, limits, and invocation audit | Implemented; disabled by default |
 | RAG tutor, AI assessment, and generated media workflows | Planned |
 | Public production release | Blocked on frontend/FastAPI integration and production hardening |

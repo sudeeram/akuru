@@ -25,10 +25,14 @@ export interface Schemas {
   "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; };
   "ProgressionPairResponse": { "grade": string; "term": string; };
   "ProgressionResponse": { "grade": string; "term": string; };
+  "PublishTextbookRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmEdition": boolean; };
+  "SaveTextbookReviewRequest": { "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
   "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; };
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
   "SubjectPresentationResponse": { "id": string; "name": string; "symbol": string; "color": string; "topic": string; "topics": Array<string>; "course": string; };
   "SubjectResponse": { "id": string; "name": string; };
+  "TextbookReviewResponse": { "versionNumber": number; "status": string; "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
+  "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
   "UiFeaturesResponse": { "allowed": true; "user": Schemas["UiFeaturesUserResponse"]; };
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
   "UpdateStudentRequest": { "id": string; "name": string; "parentId": string; "level": "iGCSE"; "grade": "Grade 10" | "Grade 11"; "term": "Term1" | "Term2" | "Term3"; "progression": Array<string>; "subjects": Array<string>; };
@@ -57,6 +61,10 @@ export interface ApiOperations {
   "GET /api/v1/documents/{document_id}/jobs/latest": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/{job_id}": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "POST /api/v1/documents/{document_id}/retry": { request: unknown; response: Schemas["DocumentJobResponse"] };
+  "GET /api/v1/documents/{document_id}/textbook-review": { request: unknown; response: Schemas["TextbookReviewResponse"] };
+  "POST /api/v1/documents/{document_id}/textbook-review": { request: Schemas["SaveTextbookReviewRequest"]; response: Schemas["TextbookReviewResponse"] };
+  "POST /api/v1/documents/{document_id}/textbook-review/propose": { request: unknown; response: Schemas["TextbookReviewResponse"] };
+  "POST /api/v1/documents/{document_id}/textbook-review/publish": { request: Schemas["PublishTextbookRequest"]; response: Schemas["TextbookReviewResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
   "GET /health": { request: unknown; response: { [key: string]: string; } };
   "GET /ready": { request: unknown; response: { [key: string]: string; } };

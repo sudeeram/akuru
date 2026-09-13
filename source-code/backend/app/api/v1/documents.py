@@ -12,8 +12,9 @@ from app.schemas.documents import (
     DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
     DocumentType, DocumentUploadResponse,
 )
+from app.schemas.textbooks import PublishTextbookRequest, SaveTextbookReviewRequest, TextbookReviewResponse
 from app.security import Principal
-from app.services import documents
+from app.services import documents, textbooks
 from app.services.document_processing import get_job, job_response, retry_job
 from app.storage import ObjectStorage, get_storage
 
@@ -114,6 +115,42 @@ def document_extraction(
     db: Annotated[Session, Depends(get_db)],
 ) -> DocumentExtractionResponse:
     return documents.extraction_response(db, document_id)
+
+
+@router.get("/{document_id}/textbook-review", response_model=TextbookReviewResponse)
+def textbook_review(
+    document_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> TextbookReviewResponse:
+    return textbooks.get_review(db, document_id)
+
+
+@router.post("/{document_id}/textbook-review", response_model=TextbookReviewResponse)
+def save_textbook_review(
+    document_id: uuid.UUID, payload: SaveTextbookReviewRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> TextbookReviewResponse:
+    return textbooks.save_review(db, principal, document_id, payload)
+
+
+@router.post("/{document_id}/textbook-review/propose", response_model=TextbookReviewResponse)
+def propose_textbook_review(
+    document_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> TextbookReviewResponse:
+    return textbooks.propose_review(db, principal, document_id)
+
+
+@router.post("/{document_id}/textbook-review/publish", response_model=TextbookReviewResponse)
+def publish_textbook_review(
+    document_id: uuid.UUID, payload: PublishTextbookRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> TextbookReviewResponse:
+    return textbooks.publish(db, principal, document_id, payload)
 
 
 @router.get("/{document_id}/assets/{asset_id}/content")

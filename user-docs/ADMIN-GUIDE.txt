@@ -59,9 +59,8 @@ when all its units belong to the selected textbook and subject. Mathematics
 questions cannot use Chemistry units. Biology, Chemistry, Physics and Human
 Biology are separate subjects.
 
-The local editor does not extract PDF questions or diagrams. Include necessary
-equations in the text; diagram crops and rich extraction remain future work.
-Do not publish a question whose essential diagram/context is missing.
+The document worker extracts page text, equations and diagram evidence for Admin
+review. Do not publish a question whose essential diagram or context is missing.
 
 6. APPROVE THE COMPLETE PAPER
 

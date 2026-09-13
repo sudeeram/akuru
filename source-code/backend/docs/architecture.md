@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–5 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, a structured AI provider boundary, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–6 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook publication workflow, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -55,6 +55,8 @@ The implemented storage interface has local-filesystem and OCI adapters. Postgre
 The document worker claims queued rows transactionally, records a versioned stage run, and runs untrusted parsing in a spawned subprocess. It enforces a timeout and page limit everywhere, plus an address-space memory limit on the Linux production target. Startup recovery republishes PostgreSQL queued jobs and returns stale processing jobs to the queue. A completed stage with the same input checksum and extraction version is reused instead of duplicated. See [document processing](document-processing.md) and [deterministic extraction](document-extraction.md).
 
 The AI boundary uses the OpenAI Responses API only when explicitly enabled. Every operation supplies a strict schema and a separately versioned prompt. Uploaded page content stays in untrusted user input, and server-side services select the permitted pages before a request is made. The `ai_invocations` table records operational provenance and usage without source content, model output or secrets. Admin-managed `ai_provider_accounts` rows reference dotenv credential aliases and use unique priorities from 0–100; `ai_provider_attempts` records ordered failover under one operation ID. A backup is eligible only when it uses the same model as the preferred account. The provider enforces bounded timeouts, retries, concurrency, context size, image bytes and output tokens. Tests use fake providers and cannot make paid calls. See [AI provider layer](ai-provider.md).
+
+Textbook review separates immutable source document versions from editable review drafts and immutable published content versions. Each reviewed unit retains chapter, section, page range, definition, concept, equation, example and diagram data. Publication creates version-linked authoritative unit rows; corrections create a new version and supersede the earlier publication. Past-paper ingestion requires a published textbook in the same course and subject. See [textbook review](textbook-review.md).
 
 ## Identity and permissions
 

@@ -107,3 +107,13 @@ test('admin manages OpenAI aliases and priorities without receiving keys', () =>
   assert.match(admin, /Credential configured/);
   assert.doesNotMatch(admin, /openai_account_keys|API_KEY|sk-/);
 });
+
+test('admin reviews and publishes versioned textbook units from source evidence', () => {
+  assert.match(api, /getTextbookReview/);
+  assert.match(api, /proposeTextbookReview/);
+  assert.match(api, /publishTextbookReview/);
+  assert.match(admin, /Reviewed textbook units/);
+  assert.match(admin, /Propose units/);
+  assert.match(admin, /'sections', 'definitions', 'concepts', 'equations', 'examples', 'diagrams'/);
+  assert.match(admin, /Publish reviewed units/);
+});

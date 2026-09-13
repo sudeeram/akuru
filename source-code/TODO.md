@@ -114,13 +114,13 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Turn each textbook into the reviewed unit vocabulary for its subject.
 
-- [ ] Propose chapters, units, sections, definitions, concepts, equations, examples and diagrams.
-- [ ] Add immutable textbook and unit versions.
-- [ ] Build side-by-side Admin review of source page and extraction.
-- [ ] Let Admin correct hierarchy, page ranges, text and equations.
-- [ ] Require course, subject and edition confirmation.
-- [ ] Add publication and superseding workflows with audit history.
-- [ ] Block downstream paper ingestion until units are approved.
+- [x] Propose chapters, units, sections, definitions, concepts, equations, examples and diagrams.
+- [x] Add immutable textbook and unit versions.
+- [x] Build side-by-side Admin review of source page and extraction.
+- [x] Let Admin correct hierarchy, page ranges, text and equations.
+- [x] Require course, subject and edition confirmation.
+- [x] Add publication and superseding workflows with audit history.
+- [x] Block downstream paper ingestion until units are approved.
 
 **Done when:** Every unit belongs to one approved textbook version and unreviewed content cannot enter coverage, retrieval or assessment.
 
