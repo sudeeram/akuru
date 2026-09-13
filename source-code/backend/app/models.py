@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
-    Boolean, CheckConstraint, DateTime, ForeignKey, ForeignKeyConstraint, Index, Integer,
+    Boolean, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer,
     JSON, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
@@ -832,4 +832,46 @@ class AssessmentAnswer(Base):
     __table_args__ = (
         CheckConstraint("save_revision > 0", name="ck_assessment_answer_revision"),
         UniqueConstraint("assessment_id", "idempotency_key", name="uq_assessment_answer_idempotency"),
+    )
+
+
+class AssessmentResult(Base):
+    __tablename__ = "assessment_results"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="CASCADE"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    schema_version: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    answer_revision: Mapped[int] = mapped_column(Integer)
+    input_hash: Mapped[str] = mapped_column(String(64), index=True)
+    request_key: Mapped[str] = mapped_column(String(100))
+    awarded_marks: Mapped[int] = mapped_column(Integer)
+    max_marks: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column(Float)
+    marking_decisions: Mapped[list] = mapped_column(JSON)
+    strengths: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    small_mistakes: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    conceptual_mistakes: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    improved_answer: Mapped[str] = mapped_column(Text)
+    teaching_explanation: Mapped[str] = mapped_column(Text)
+    unit_evidence: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    recommendations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    review_reasons: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    prompt_name: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    rubric_snapshot: Mapped[dict] = mapped_column(JSON)
+    source_manifest: Mapped[list] = mapped_column(JSON)
+    pass_one_output: Mapped[dict] = mapped_column(JSON)
+    pass_two_output: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("version_number > 0 AND answer_revision >= 0", name="ck_assessment_result_versions"),
+        CheckConstraint("status IN ('published','needs_review')", name="ck_assessment_result_status"),
+        CheckConstraint("awarded_marks BETWEEN 0 AND max_marks AND max_marks > 0", name="ck_assessment_result_marks"),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_assessment_result_confidence"),
+        UniqueConstraint("question_id", "version_number", name="uq_assessment_result_question_version"),
+        UniqueConstraint("assessment_id", "question_id", "request_key", name="uq_assessment_result_request"),
     )

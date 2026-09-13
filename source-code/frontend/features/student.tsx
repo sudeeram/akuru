@@ -262,12 +262,18 @@ export function Practice(p: FeatureProps) {
         idempotencyKey: crypto.randomUUID(),
       });
       const completed = await api(`assessments/${practice.id}/submit`, { idempotencyKey: crypto.randomUUID() }) as AssessmentApiResponse;
-      const frozen = completed.questions[0];
+      const assessed = await api(`assessments/${practice.id}/evaluate`, { idempotencyKey: crypto.randomUUID() }) as AssessmentApiResponse;
+      const frozen = assessed.questions[0];
+      const feedback = frozen.result;
       setResult({ id: completed.id, studentId: p.child.id, subject: completed.subjectId,
         questionId: q.id, title: q.title, answer, fileId: file?.id || '', hints: hints.length,
-        mark: null, maxMarks: q.marks, status: completed.status, feedback: 'Practice submitted.',
-        explanation: 'AKURU assessment feedback is added in Step 12.',
-        points: (frozen.rubric?.markingPoints || []).map((point: { text?: string }) => point.text || 'Marking point'),
+        mark: feedback?.status === 'published' ? feedback.awardedMarks : null, maxMarks: q.marks,
+        status: feedback?.status === 'needs_review' ? 'needs-review' : 'assessed',
+        feedback: [...(feedback?.strengths || []), ...(feedback?.smallMistakes || []), ...(feedback?.conceptualMistakes || [])].join(' ') || 'AKURU completed the assessment.',
+        explanation: feedback?.teachingExplanation || '',
+        points: feedback?.markingDecisions.map((point) => `${point.awarded ? 'Awarded' : 'Missed'}: ${point.rationale} Evidence: ${point.studentEvidence}`) || [],
+        improvedAnswer: feedback?.improvedAnswer,
+        recommendations: feedback?.recommendations,
         createdAt: completed.submittedAt || new Date().toISOString() });
       await p.refresh();
     } catch (e: unknown) {
@@ -465,6 +471,7 @@ export function Practice(p: FeatureProps) {
                   )}
                   <h3 className="spaced">Worked explanation</h3>
                   <p className="spaced">{result.explanation}</p>
+                  {result.improvedAnswer && <><h3 className="spaced">An exam-ready answer</h3><p className="preserve">{result.improvedAnswer}</p></>}
                   <ol className="steps">
                     {result.points.map((x, i) => (
                       <li key={x}>
@@ -620,12 +627,13 @@ export function Exams(p: FeatureProps) {
       const idempotencyKey = sessionStorage.getItem(storageKey) || crypto.randomUUID();
       sessionStorage.setItem(storageKey, idempotencyKey);
       await api(`assessments/${exam.id}/submit`, { idempotencyKey });
+      await api(`assessments/${exam.id}/evaluate`, { idempotencyKey: crypto.randomUUID() });
       sessionStorage.removeItem(storageKey);
       setConfirm(false);
       setIndex(0);
       setDirty(false);
       await p.refresh();
-      p.notify('Exam submitted. Your feedback is in My progress.');
+      p.notify('Exam submitted and assessed. Your feedback is in My progress.');
     } catch (e: unknown) {
       setError(errorMessage(e));
     } finally {
@@ -1029,6 +1037,7 @@ export function ProgressView(p: FeatureProps) {
               <p>{chosen.feedback}</p>
               <h3>Worked explanation</h3>
               <p>{chosen.explanation}</p>
+              {chosen.improvedAnswer && <><h3>An exam-ready answer</h3><p className="preserve">{chosen.improvedAnswer}</p></>}
               <ol className="steps">
                 {chosen.points.map((x, i) => (
                   <li key={x}>
@@ -1037,6 +1046,7 @@ export function ProgressView(p: FeatureProps) {
                   </li>
                 ))}
               </ol>
+              {!!chosen.recommendations?.length && <><h3>What to do next</h3><ul>{chosen.recommendations.map((item) => <li key={item}>{item}</li>)}</ul></>}
             </>
           )}
         </DialogContent>

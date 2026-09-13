@@ -11,6 +11,7 @@ from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, Asses
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
 from app.security import Principal
 from app.services.curriculum_plans import snapshot, student_coverage
+from app.services import assessment_marking
 
 def _now(): return datetime.now(timezone.utc)
 
@@ -89,7 +90,9 @@ def _rubric(db, paper_version_id, number):
         MarkSchemeEntryVersion.question_number == number)) if scheme else None
     comment = db.scalar(select(ExaminerCommentVersion).where(ExaminerCommentVersion.material_version_id == report.id,
         ExaminerCommentVersion.question_number == number)) if report else None
-    return {"markingPoints": entry.marking_points if entry else [], "alternatives": entry.alternatives if entry else [],
+    return {"rubricVersion": str(entry.material_version_id) if entry else None,
+        "examinerReportVersion": str(comment.material_version_id) if comment else None,
+        "markingPoints": entry.marking_points if entry else [], "alternatives": entry.alternatives if entry else [],
         "commonMistakes": comment.common_mistakes if comment else [], "examinerAdvice": comment.advice if comment else []}
 
 def start(db, principal, payload):
@@ -151,6 +154,7 @@ def response(db, row):
     visible = row.status in {"submitted", "expired"}
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == row.id).order_by(AssessmentQuestion.sequence)).all()
     answers = {answer.question_id: answer for answer in db.scalars(select(AssessmentAnswer).where(AssessmentAnswer.assessment_id == row.id)).all()}
+    results = assessment_marking.latest_results(db, row.id) if visible else {}
     return AssessmentResponse(id=row.id, studentId=row.student_id, subjectId=row.subject_id, mode=row.mode, status=row.status,
         title=row.title, targetMarks=row.target_marks, durationMinutes=row.duration_minutes, startedAt=row.started_at,
         endsAt=row.ends_at, submittedAt=row.submitted_at, skills=row.skills, difficultyProfile=row.difficulty_profile,
@@ -158,7 +162,8 @@ def response(db, row):
             sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, sourceLocations=q.source_locations,
             unitIds=q.unit_ids, skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",
             fileId=answers[q.id].file_id if q.id in answers else None, saveRevision=answers[q.id].save_revision if q.id in answers else 0,
-            rubric=q.rubric if visible else None) for q in questions])
+            rubric=q.rubric if visible else None,
+            result=assessment_marking.result_response(results[q.id]) if q.id in results else None) for q in questions])
 
 def list_assessments(db, principal):
     rows = db.scalars(select(Assessment).where(Assessment.student_id == principal.user.id).order_by(Assessment.started_at.desc())).all()

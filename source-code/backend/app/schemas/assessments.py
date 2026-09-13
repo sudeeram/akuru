@@ -49,6 +49,60 @@ class AnswerSave(BaseModel):
 class SubmissionRequest(BaseModel):
     idempotencyKey: str = Field(min_length=8, max_length=100)
 
+class AssessmentEvaluateRequest(BaseModel):
+    idempotencyKey: str = Field(min_length=8, max_length=100)
+
+class MarkingDecision(BaseModel):
+    pointId: str = Field(min_length=1, max_length=80)
+    criterion: str = Field(min_length=1, max_length=2000)
+    awarded: bool
+    marksAwarded: int = Field(ge=0, le=100)
+    maxMarks: int = Field(gt=0, le=100)
+    studentEvidence: str = Field(min_length=1, max_length=2000)
+    rationale: str = Field(min_length=1, max_length=2000)
+    confidence: float = Field(ge=0, le=1)
+
+    @model_validator(mode="after")
+    def valid_marks(self):
+        if self.marksAwarded > self.maxMarks or (not self.awarded and self.marksAwarded):
+            raise ValueError("A marking point cannot award more than its maximum.")
+        return self
+
+class AssessmentPassOne(BaseModel):
+    decisions: list[MarkingDecision]
+    overallConfidence: float = Field(ge=0, le=1)
+    reviewReasons: list[str] = Field(default_factory=list, max_length=20)
+
+class AssessmentPassTwo(BaseModel):
+    decisions: list[MarkingDecision]
+    strengths: list[str] = Field(default_factory=list, max_length=30)
+    smallMistakes: list[str] = Field(default_factory=list, max_length=30)
+    conceptualMistakes: list[str] = Field(default_factory=list, max_length=30)
+    improvedAnswer: str = Field(min_length=1, max_length=20_000)
+    teachingExplanation: str = Field(min_length=1, max_length=30_000)
+    unitEvidence: list[dict] = Field(default_factory=list, max_length=30)
+    recommendations: list[str] = Field(default_factory=list, max_length=30)
+    confidence: float = Field(ge=0, le=1)
+    reviewReasons: list[str] = Field(default_factory=list, max_length=20)
+
+class AssessmentResultResponse(BaseModel):
+    id: uuid.UUID
+    version: int
+    status: str
+    awardedMarks: int
+    maxMarks: int
+    confidence: float
+    markingDecisions: list[MarkingDecision]
+    strengths: list[str]
+    smallMistakes: list[str]
+    conceptualMistakes: list[str]
+    improvedAnswer: str
+    teachingExplanation: str
+    unitEvidence: list[dict]
+    recommendations: list[str]
+    reviewReasons: list[str]
+    createdAt: datetime
+
 class AssessmentQuestionResponse(BaseModel):
     id: uuid.UUID
     number: str
@@ -65,6 +119,7 @@ class AssessmentQuestionResponse(BaseModel):
     fileId: str | None = None
     saveRevision: int = 0
     rubric: dict | None = None
+    result: AssessmentResultResponse | None = None
 
 class AssessmentResponse(BaseModel):
     id: uuid.UUID

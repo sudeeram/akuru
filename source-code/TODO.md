@@ -195,15 +195,15 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Mark answers from official evidence and show exactly how to improve.
 
-- [ ] Define a versioned schema for marks, marking-point decisions, strengths, small mistakes, conceptual mistakes, improved answer, teaching explanation, unit evidence, recommendations and confidence.
-- [ ] Retrieve the exact question, rubric, marking scheme, examiner advice and mapped textbook context.
-- [ ] Compare meaning and method rather than wording alone.
-- [ ] Produce both an exam-ready answer and a teaching explanation.
-- [ ] Scale responses to the command word and available marks.
-- [ ] Cite student evidence for every awarded or missed point.
-- [ ] Prevent awarded marks exceeding the maximum.
-- [ ] Route uncertain or subjective results to review.
-- [ ] Preserve model, prompt, sources and rubric version for every assessment.
+- [x] Define a versioned schema for marks, marking-point decisions, strengths, small mistakes, conceptual mistakes, improved answer, teaching explanation, unit evidence, recommendations and confidence.
+- [x] Retrieve the exact question, rubric, marking scheme, examiner advice and mapped textbook context.
+- [x] Compare meaning and method rather than wording alone.
+- [x] Produce both an exam-ready answer and a teaching explanation.
+- [x] Scale responses to the command word and available marks.
+- [x] Cite student evidence for every awarded or missed point.
+- [x] Prevent awarded marks exceeding the maximum.
+- [x] Route uncertain or subjective results to review.
+- [x] Preserve model, prompt, sources and rubric version for every assessment.
 
 **Done when:** Every mark is traceable to rubric and student evidence, feedback is specific, official points are never invented, and reassessment creates history.
 

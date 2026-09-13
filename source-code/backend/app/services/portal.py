@@ -90,6 +90,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             })
     assessment_rows = assessments.list_assessments(db, principal).assessments if principal.user.role == "student" and not principal.user.must_change_password else []
     assessment_questions = []
+    assessment_attempts = []
     seen_questions = set()
     exams = []
     for item in assessment_rows:
@@ -104,6 +105,18 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
                     "unitIds": question.unitIds, "rubric": question.rubric, "assetIds": question.assetIds,
                     "assessmentId": str(item.id)})
+            if question.result:
+                result = question.result
+                assessment_attempts.append({"id": str(result.id), "studentId": str(item.studentId),
+                    "subject": item.subjectId, "questionId": qid, "title": f"Question {question.number}",
+                    "answer": question.answer, "fileId": str(question.fileId or ""), "hints": 0,
+                    "mark": None if result.status == "needs_review" else result.awardedMarks, "maxMarks": result.maxMarks,
+                    "status": "needs-review" if result.status == "needs_review" else "assessed",
+                    "feedback": " ".join(result.strengths + result.smallMistakes + result.conceptualMistakes),
+                    "explanation": result.teachingExplanation,
+                    "points": [decision.rationale for decision in result.markingDecisions],
+                    "createdAt": result.createdAt.isoformat(), "examId": str(item.id) if item.mode != "practice" else None,
+                    "improvedAnswer": result.improvedAnswer, "recommendations": result.recommendations})
         exams.append({"id": str(item.id), "studentId": str(item.studentId), "subject": item.subjectId,
             "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
             "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,
@@ -143,7 +156,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "questionBank": [],
         "drafts": {},
         "questions": assessment_questions,
-        "attempts": [],
+        "attempts": assessment_attempts,
         "assignments": [],
         "documents": portal_documents,
         "exams": exams,

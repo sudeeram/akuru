@@ -4,11 +4,13 @@ from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.config import Settings, get_settings
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.assessments import (AnswerSave, AssessmentListResponse, AssessmentResponse, AssessmentStart,
-    BlueprintCreate, BlueprintResponse, SubmissionRequest)
+    AssessmentEvaluateRequest, BlueprintCreate, BlueprintResponse, SubmissionRequest)
 from app.security import Principal
 from app.services import assessments
+from app.services import assessment_marking
 from app.services import documents
 from app.storage import ObjectStorage, get_storage
 
@@ -37,6 +39,15 @@ def save(assessment_id: uuid.UUID, payload: AnswerSave, principal: Annotated[Pri
 @router.post("/{assessment_id}/submit", response_model=AssessmentResponse)
 def submit(assessment_id: uuid.UUID, payload: SubmissionRequest, principal: Annotated[Principal, Depends(require_csrf_roles("student"))], db: Annotated[Session, Depends(get_db)]):
     return assessments.submit(db, principal, assessment_id, payload.idempotencyKey)
+
+@router.post("/{assessment_id}/evaluate", response_model=AssessmentResponse)
+def evaluate(assessment_id: uuid.UUID, payload: AssessmentEvaluateRequest,
+             principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+             db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)]):
+    row = assessments._owned(db, principal, assessment_id, True)
+    assessment_marking.evaluate(db, settings, row, payload.idempotencyKey)
+    db.refresh(row)
+    return assessments.response(db, row)
 
 @router.get("/{assessment_id}/assets/{asset_id}")
 def asset(assessment_id: uuid.UUID, asset_id: uuid.UUID,

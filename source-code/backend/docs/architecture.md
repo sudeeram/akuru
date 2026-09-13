@@ -146,6 +146,8 @@ Start an exam in a transaction: freeze enrolled grade/term, curriculum plan and 
 
 Numeric validation should distinguish final-answer checks from method marking. Handwriting/OCR and rubric-based AI assessment remain provisional when uncertain. Parent review stays scoped to their own children, retains revisions and explains score changes. Scores on practice attempts are not predicted qualification grades.
 
+The Step 12 assessment service uses two structured AI passes after submission. The first decides every frozen official marking point from the student's meaning and method and cites the relevant student evidence. The second reconciles those decisions and creates an exam-ready answer plus a teaching explanation. Server validation requires the exact official point set, preserves the frozen rubric and source bundle, caps marks at the question maximum, and creates an immutable result version for each reassessment. Low-confidence, subjective English and attached-working results enter `needs_review` and are excluded from published progress scores.
+
 Study plans aggregate each student's assessed history and covered units. Do not mix siblings' reviews or infer mastery from another child's data. AI tutor and media services can explain material only after eligibility/source authorization; they cannot change enrolments, publish documents or expand coverage.
 
 ## API and migration strategy

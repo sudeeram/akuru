@@ -158,3 +158,13 @@ test('student assessment UI uses immutable FastAPI assessment sessions', () => {
   assert.match(page, /Mock blueprints/);
   assert.doesNotMatch(student, /api\('exams\/start'/);
 });
+
+test('student submissions request traceable AKURU assessment feedback', () => {
+  assert.match(student, /assessments\/\$\{practice\.id\}\/evaluate/);
+  assert.match(student, /assessments\/\$\{exam\.id\}\/evaluate/);
+  assert.match(student, /feedback\?\.markingDecisions/);
+  assert.match(student, /feedback\?\.teachingExplanation/);
+  assert.match(student, /feedback\?\.status === 'published'/);
+  assert.match(api, /type AssessmentResult/);
+  assert.match(api, /studentEvidence: string/);
+});

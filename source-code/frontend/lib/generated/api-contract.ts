@@ -6,10 +6,12 @@ export interface Schemas {
   "AccountResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
   "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
   "AnswerSave": { "questionId": string; "answer"?: string; "fileId"?: string | null; "idempotencyKey": string; };
+  "AssessmentEvaluateRequest": { "idempotencyKey": string; };
   "AssessmentListResponse": { "assessments": Array<Schemas["AssessmentResponse"]>; };
   "AssessmentMode": "practice" | "official_paper" | "mock";
-  "AssessmentQuestionResponse": { "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "sourceLocations": Array<unknown>; "unitIds": Array<unknown>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; };
+  "AssessmentQuestionResponse": { "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "sourceLocations": Array<unknown>; "unitIds": Array<unknown>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; "result"?: Schemas["AssessmentResultResponse"] | null; };
   "AssessmentResponse": { "id": string; "studentId": string; "subjectId": string; "mode": string; "status": string; "title": string; "targetMarks": number; "durationMinutes": number; "startedAt": string; "endsAt": string; "submittedAt": string | null; "skills": Array<unknown>; "difficultyProfile": { [key: string]: unknown; }; "feedbackVisible": boolean; "questions": Array<Schemas["AssessmentQuestionResponse"]>; };
+  "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "unitEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "createdAt": string; };
   "AssessmentStart": { "mode": Schemas["AssessmentMode"]; "subjectId": string; "blueprintId"?: string | null; "paperId"?: string | null; };
   "BlueprintCreate": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; };
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
@@ -35,6 +37,7 @@ export interface Schemas {
   "LoginResponse": { "user": Schemas["UserResponse"]; "csrfToken": string; };
   "MappingSuggestionResponse": { "questionId": string; "method": string; "suggestions": Array<Schemas["UnitMapping"]>; };
   "MarkSchemeEntryReview": { "questionNumber": string; "maxMarks": number; "markingPoints": Array<Schemas["MarkingPoint"]>; "alternatives"?: Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
+  "MarkingDecision": { "pointId": string; "criterion": string; "awarded": boolean; "marksAwarded": number; "maxMarks": number; "studentEvidence": string; "rationale": string; "confidence": number; };
   "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds": Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
@@ -92,6 +95,7 @@ export interface ApiOperations {
   "POST /api/v1/assessments/start": { request: Schemas["AssessmentStart"]; response: Schemas["AssessmentResponse"] };
   "POST /api/v1/assessments/{assessment_id}/answers": { request: Schemas["AnswerSave"]; response: Schemas["AssessmentResponse"] };
   "GET /api/v1/assessments/{assessment_id}/assets/{asset_id}": { request: unknown; response: unknown };
+  "POST /api/v1/assessments/{assessment_id}/evaluate": { request: Schemas["AssessmentEvaluateRequest"]; response: Schemas["AssessmentResponse"] };
   "POST /api/v1/assessments/{assessment_id}/submit": { request: Schemas["SubmissionRequest"]; response: Schemas["AssessmentResponse"] };
   "POST /api/v1/auth/change-password": { request: Schemas["ChangePasswordRequest"]; response: unknown };
   "POST /api/v1/auth/login": { request: Schemas["LoginRequest"]; response: Schemas["LoginResponse"] };

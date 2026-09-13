@@ -1,3 +1,4 @@
+import json
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AIProviderAccount, Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentCurriculumSnapshot, AssessmentQuestion, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
+    AIProviderAccount, Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentCurriculumSnapshot, AssessmentQuestion, AssessmentResult, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
@@ -22,8 +23,10 @@ from app.services.curriculum_plans import snapshot
 from app.queue.factory import get_document_queue
 from app.services import document_processing
 from app.services import question_mappings
+from app.services import assessment_marking
 from app.config import Settings
 from app.schemas.question_mappings import AIUnitSuggestionOutput
+from app.ai.base import AIResult, AIUsage
 from app.storage.factory import get_storage
 from app.storage.local import LocalObjectStorage
 from app.services.embeddings import embed_texts
@@ -917,6 +920,40 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
         json={"idempotencyKey": "submit-exam-0001"})
     assert submitted.status_code == repeated.status_code == 200
     assert submitted.json()["feedbackVisible"] is True and submitted.json()["questions"][0]["rubric"] is not None
+
+    marking_calls = []
+    def fake_marking(db, settings, request):
+        payload = json.loads(request.task); marking_calls.append(request)
+        decisions = [{"pointId": point["pointId"], "criterion": point["criterion"], "awarded": True,
+            "marksAwarded": point["maxMarks"], "maxMarks": point["maxMarks"],
+            "studentEvidence": "Cell membrane", "rationale": "The answer states the required structure.", "confidence": 0.94}
+            for point in payload["officialMarkingPoints"]]
+        output = ({"decisions": decisions, "overallConfidence": 0.94, "reviewReasons": []}
+            if request.output_type.__name__ == "AssessmentPassOne" else
+            {"decisions": decisions, "strengths": ["Correctly named the membrane."], "smallMistakes": [],
+             "conceptualMistakes": [], "improvedAnswer": "A cell has a cell membrane.",
+             "teachingExplanation": "The membrane controls movement into and out of the cell.",
+             "unitEvidence": [{"unitId": frozen["unitIds"][0], "evidence": "The response identifies a cell structure."}],
+             "recommendations": ["Revise the functions of cell structures."], "confidence": 0.94, "reviewReasons": []})
+        return AIResult(output=request.output_type.model_validate(output), provider="fake", model="fake-assessor-v1",
+            response_id=f"response-{len(marking_calls)}", usage=AIUsage(), latency_ms=1, attempt_count=1)
+    monkeypatch.setattr(assessment_marking, "_generate", fake_marking)
+    assessed = client.post(f"/api/v1/assessments/{exam['id']}/evaluate", headers=student_csrf,
+        json={"idempotencyKey": "evaluate-exam-0001"})
+    assert assessed.status_code == 200, assessed.text
+    result = assessed.json()["questions"][0]["result"]
+    assert result["awardedMarks"] <= result["maxMarks"] and result["status"] == "published"
+    assert result["markingDecisions"][0]["studentEvidence"] == "Cell membrane"
+    first_row = session.query(AssessmentResult).filter_by(assessment_id=uuid.UUID(exam["id"])).one()
+    assert first_row.rubric_snapshot and first_row.prompt_version == "2.0.0"
+    assert {source["type"] for source in first_row.source_manifest} >= {"frozen_question", "frozen_rubric"}
+    assert client.post(f"/api/v1/assessments/{exam['id']}/evaluate", headers=student_csrf,
+        json={"idempotencyKey": "evaluate-exam-0001"}).status_code == 200
+    assert session.query(AssessmentResult).filter_by(assessment_id=uuid.UUID(exam["id"])).count() == 1
+    assert client.post(f"/api/v1/assessments/{exam['id']}/evaluate", headers=student_csrf,
+        json={"idempotencyKey": "evaluate-exam-0002"}).status_code == 200
+    assert [row.version_number for row in session.query(AssessmentResult).filter_by(
+        assessment_id=uuid.UUID(exam["id"])).order_by(AssessmentResult.version_number)] == [1, 2]
 
     official = client.post("/api/v1/assessments/start", headers=student_csrf, json={
         "mode": "official_paper", "subjectId": "biology", "paperId": paper_id,

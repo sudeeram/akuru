@@ -232,6 +232,21 @@
         "title": "AnswerSave",
         "type": "object"
       },
+      "AssessmentEvaluateRequest": {
+        "properties": {
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Idempotencykey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "title": "AssessmentEvaluateRequest",
+        "type": "object"
+      },
       "AssessmentListResponse": {
         "properties": {
           "assessments": {
@@ -305,6 +320,16 @@
           "prompt": {
             "title": "Prompt",
             "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssessmentResultResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "rubric": {
             "anyOf": [
@@ -457,6 +482,118 @@
           "questions"
         ],
         "title": "AssessmentResponse",
+        "type": "object"
+      },
+      "AssessmentResultResponse": {
+        "properties": {
+          "awardedMarks": {
+            "title": "Awardedmarks",
+            "type": "integer"
+          },
+          "conceptualMistakes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conceptualmistakes",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "improvedAnswer": {
+            "title": "Improvedanswer",
+            "type": "string"
+          },
+          "markingDecisions": {
+            "items": {
+              "$ref": "#/components/schemas/MarkingDecision"
+            },
+            "title": "Markingdecisions",
+            "type": "array"
+          },
+          "maxMarks": {
+            "title": "Maxmarks",
+            "type": "integer"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "reviewReasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reviewreasons",
+            "type": "array"
+          },
+          "smallMistakes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Smallmistakes",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Strengths",
+            "type": "array"
+          },
+          "teachingExplanation": {
+            "title": "Teachingexplanation",
+            "type": "string"
+          },
+          "unitEvidence": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Unitevidence",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "awardedMarks",
+          "maxMarks",
+          "confidence",
+          "markingDecisions",
+          "strengths",
+          "smallMistakes",
+          "conceptualMistakes",
+          "improvedAnswer",
+          "teachingExplanation",
+          "unitEvidence",
+          "recommendations",
+          "reviewReasons",
+          "createdAt"
+        ],
+        "title": "AssessmentResultResponse",
         "type": "object"
       },
       "AssessmentStart": {
@@ -1705,6 +1842,68 @@
           "sourceLocations"
         ],
         "title": "MarkSchemeEntryReview",
+        "type": "object"
+      },
+      "MarkingDecision": {
+        "properties": {
+          "awarded": {
+            "title": "Awarded",
+            "type": "boolean"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "criterion": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Criterion",
+            "type": "string"
+          },
+          "marksAwarded": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Marksawarded",
+            "type": "integer"
+          },
+          "maxMarks": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Maxmarks",
+            "type": "integer"
+          },
+          "pointId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Pointid",
+            "type": "string"
+          },
+          "rationale": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "studentEvidence": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Studentevidence",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointId",
+          "criterion",
+          "awarded",
+          "marksAwarded",
+          "maxMarks",
+          "studentEvidence",
+          "rationale",
+          "confidence"
+        ],
+        "title": "MarkingDecision",
         "type": "object"
       },
       "MarkingPoint": {
@@ -4718,6 +4917,111 @@
           }
         },
         "summary": "Asset",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/evaluate": {
+      "post": {
+        "operationId": "evaluate_api_v1_assessments__assessment_id__evaluate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentEvaluateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Evaluate",
         "tags": [
           "assessments"
         ]

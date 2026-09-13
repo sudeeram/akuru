@@ -328,6 +328,8 @@ export type Attempt = {
   feedback: string;
   explanation: string;
   points: string[];
+  improvedAnswer?: string;
+  recommendations?: string[];
   createdAt: string;
   examId?: string;
 };
@@ -423,7 +425,13 @@ export type Exam = {
 export type AssessmentApiResponse = {
   id: string; studentId: string; subjectId: string; status: string;
   submittedAt?: string | null;
-  questions: { id: string; rubric?: { markingPoints?: { text?: string }[] } | null }[];
+  questions: { id: string; rubric?: { markingPoints?: { text?: string }[] } | null; result?: AssessmentResult | null }[];
+};
+export type AssessmentResult = {
+  id: string; version: number; status: 'published' | 'needs_review'; awardedMarks: number; maxMarks: number;
+  confidence: number; strengths: string[]; smallMistakes: string[]; conceptualMistakes: string[];
+  improvedAnswer: string; teachingExplanation: string; recommendations: string[]; reviewReasons: string[];
+  markingDecisions: { pointId: string; criterion: string; awarded: boolean; marksAwarded: number; maxMarks: number; studentEvidence: string; rationale: string; confidence: number }[];
 };
 export type State = {
   catalog: {
