@@ -117,3 +117,11 @@ test('admin reviews and publishes versioned textbook units from source evidence'
   assert.match(admin, /'sections', 'definitions', 'concepts', 'equations', 'examples', 'diagrams'/);
   assert.match(admin, /Publish reviewed units/);
 });
+
+test('admin edits and publishes cumulative curriculum coverage', () => {
+  assert.match(api, /getCurriculumPlan/);
+  assert.match(api, /saveCurriculumPlan/);
+  assert.match(api, /publishCurriculumPlan/);
+  assert.match(admin, /Cumulative coverage/);
+  assert.match(admin, /Grade 10 Term1 and Term2/);
+});

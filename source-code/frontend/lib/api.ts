@@ -97,6 +97,12 @@ export type TextbookReview = {
   versionNumber: number; status: string; courseId: string; subjectId: string;
   edition: string; units: TextbookReviewUnit[];
 };
+export type CurriculumPlanUnit = { id: string; code: string; title: string };
+export type CurriculumPlanPeriod = { grade: number; term: number; unitIds: string[] };
+export type CurriculumPlan = {
+  versionNumber: number; status: string; subjectId: string; textbookTitle: string;
+  textbookEdition: string; availableUnits: CurriculumPlanUnit[]; periods: CurriculumPlanPeriod[];
+};
 export type UiFeaturesAccess = {
   allowed: true;
   user: { name: string; role: 'admin' };
@@ -206,6 +212,14 @@ export const publishTextbookReview = (id: string) =>
   api(`documents/${id}/textbook-review/publish`, {
     confirmCourse: true, confirmSubject: true, confirmEdition: true,
   }) as Promise<TextbookReview>;
+export const getCurriculumPlan = (subjectId: string) =>
+  api(`admin/curriculum-plans/${subjectId}`) as Promise<CurriculumPlan>;
+export const saveCurriculumPlan = (subjectId: string, periods: CurriculumPlanPeriod[]) =>
+  api(`admin/curriculum-plans/${subjectId}`, { periods }) as Promise<CurriculumPlan>;
+export const publishCurriculumPlan = (subjectId: string) =>
+  api(`admin/curriculum-plans/${subjectId}/publish`, {
+    confirmSubject: true, confirmTextbook: true,
+  }) as Promise<CurriculumPlan>;
 export async function upload(
   file: File,
   extra: Record<string, string> = {},

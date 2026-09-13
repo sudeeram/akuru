@@ -255,6 +255,71 @@
         "title": "CourseResponse",
         "type": "object"
       },
+      "CoverageDiagnosticResponse": {
+        "properties": {
+          "coveredUnits": {
+            "items": {
+              "$ref": "#/components/schemas/PlanUnitResponse"
+            },
+            "title": "Coveredunits",
+            "type": "array"
+          },
+          "currentGrade": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentgrade"
+          },
+          "currentTerm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currentterm"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "missingPeriods": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missingperiods",
+            "type": "array"
+          },
+          "planVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planversion"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "CoverageDiagnosticResponse",
+        "type": "object"
+      },
       "CreateAccountRequest": {
         "properties": {
           "grade": {
@@ -362,6 +427,55 @@
           "role"
         ],
         "title": "CreateAccountRequest",
+        "type": "object"
+      },
+      "CurriculumPlanResponse": {
+        "properties": {
+          "availableUnits": {
+            "items": {
+              "$ref": "#/components/schemas/PlanUnitResponse"
+            },
+            "title": "Availableunits",
+            "type": "array"
+          },
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/PlanPeriod"
+            },
+            "title": "Periods",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookEdition": {
+            "title": "Textbookedition",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "versionNumber": {
+            "title": "Versionnumber",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "versionNumber",
+          "status",
+          "subjectId",
+          "textbookTitle",
+          "textbookEdition",
+          "availableUnits",
+          "periods"
+        ],
+        "title": "CurriculumPlanResponse",
         "type": "object"
       },
       "DocumentExtractionResponse": {
@@ -911,6 +1025,59 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "PlanPeriod": {
+        "properties": {
+          "grade": {
+            "maximum": 11.0,
+            "minimum": 10.0,
+            "title": "Grade",
+            "type": "integer"
+          },
+          "term": {
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Term",
+            "type": "integer"
+          },
+          "unitIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 300,
+            "title": "Unitids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "grade",
+          "term"
+        ],
+        "title": "PlanPeriod",
+        "type": "object"
+      },
+      "PlanUnitResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "code",
+          "title"
+        ],
+        "title": "PlanUnitResponse",
+        "type": "object"
+      },
       "PortalCatalogResponse": {
         "properties": {
           "activeCourses": {
@@ -1125,6 +1292,24 @@
         "title": "ProgressionResponse",
         "type": "object"
       },
+      "PublishPlanRequest": {
+        "properties": {
+          "confirmSubject": {
+            "title": "Confirmsubject",
+            "type": "boolean"
+          },
+          "confirmTextbook": {
+            "title": "Confirmtextbook",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmSubject",
+          "confirmTextbook"
+        ],
+        "title": "PublishPlanRequest",
+        "type": "object"
+      },
       "PublishTextbookRequest": {
         "properties": {
           "confirmCourse": {
@@ -1146,6 +1331,83 @@
           "confirmEdition"
         ],
         "title": "PublishTextbookRequest",
+        "type": "object"
+      },
+      "QuestionPoolDiagnosticResponse": {
+        "properties": {
+          "eligibleMarks": {
+            "default": 0,
+            "title": "Eligiblemarks",
+            "type": "integer"
+          },
+          "eligibleQuestionCount": {
+            "default": 0,
+            "title": "Eligiblequestioncount",
+            "type": "integer"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "planVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Planversion"
+          },
+          "requestedMarks": {
+            "default": 0,
+            "title": "Requestedmarks",
+            "type": "integer"
+          },
+          "requestedQuestionCount": {
+            "default": 0,
+            "title": "Requestedquestioncount",
+            "type": "integer"
+          },
+          "shortageMarks": {
+            "default": 0,
+            "title": "Shortagemarks",
+            "type": "integer"
+          },
+          "shortageQuestionCount": {
+            "default": 0,
+            "title": "Shortagequestioncount",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "QuestionPoolDiagnosticResponse",
+        "type": "object"
+      },
+      "SavePlanRequest": {
+        "properties": {
+          "periods": {
+            "items": {
+              "$ref": "#/components/schemas/PlanPeriod"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Periods",
+            "type": "array"
+          }
+        },
+        "required": [
+          "periods"
+        ],
+        "title": "SavePlanRequest",
         "type": "object"
       },
       "SaveTextbookReviewRequest": {
@@ -1997,6 +2259,290 @@
         ]
       }
     },
+    "/api/v1/admin/curriculum-plans/{subject_id}": {
+      "get": {
+        "operationId": "read_curriculum_plan_api_v1_admin_curriculum_plans__subject_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Curriculum Plan",
+        "tags": [
+          "curriculum"
+        ]
+      },
+      "post": {
+        "operationId": "write_curriculum_plan_api_v1_admin_curriculum_plans__subject_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavePlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Write Curriculum Plan",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/admin/curriculum-plans/{subject_id}/publish": {
+      "post": {
+        "operationId": "publish_curriculum_plan_api_v1_admin_curriculum_plans__subject_id__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Publish Curriculum Plan",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
     "/api/v1/admin/students": {
       "post": {
         "operationId": "update_student_api_v1_admin_students_post",
@@ -2089,6 +2635,206 @@
         "summary": "Update Student",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/admin/students/{student_id}/coverage": {
+      "get": {
+        "operationId": "read_student_coverage_api_v1_admin_students__student_id__coverage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "required": true,
+            "schema": {
+              "title": "Subjectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageDiagnosticResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Student Coverage",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
+    "/api/v1/admin/students/{student_id}/question-pool": {
+      "get": {
+        "operationId": "read_question_pool_api_v1_admin_students__student_id__question_pool_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "required": true,
+            "schema": {
+              "title": "Subjectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "questionCount",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 500,
+              "minimum": 0,
+              "title": "Questioncount",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "marks",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Marks",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionPoolDiagnosticResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Question Pool",
+        "tags": [
+          "curriculum"
         ]
       }
     },

@@ -502,6 +502,57 @@ class TextbookUnit(TimestampMixin, Base):
     )
 
 
+class CurriculumPlan(Base):
+    __tablename__ = "curriculum_plans"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"))
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    textbook_content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"))
+    version_number: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_curriculum_plan_version"),
+        CheckConstraint("status IN ('draft','published','superseded')", name="ck_curriculum_plan_status"),
+        UniqueConstraint("course_id", "subject_id", "version_number", name="uq_curriculum_plan_version"),
+    )
+
+
+class CurriculumPlanUnit(Base):
+    __tablename__ = "curriculum_plan_units"
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("curriculum_plans.id", ondelete="CASCADE"), primary_key=True)
+    grade: Mapped[int] = mapped_column(Integer, primary_key=True)
+    term: Mapped[int] = mapped_column(Integer, primary_key=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), primary_key=True)
+    __table_args__ = (
+        CheckConstraint("grade IN (10, 11)", name="ck_curriculum_plan_unit_grade"),
+        CheckConstraint("term IN (1, 2, 3)", name="ck_curriculum_plan_unit_term"),
+    )
+
+
+class AssessmentCurriculumSnapshot(Base):
+    __tablename__ = "assessment_curriculum_snapshots"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assessment_ref: Mapped[str] = mapped_column(String(120), unique=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="RESTRICT"), index=True)
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("curriculum_plans.id", ondelete="RESTRICT"))
+    course_id: Mapped[str] = mapped_column(String(32))
+    subject_id: Mapped[str] = mapped_column(String(32))
+    grade: Mapped[int] = mapped_column(Integer)
+    term: Mapped[int] = mapped_column(Integer)
+    covered_unit_ids: Mapped[list] = mapped_column(JSON)
+    progression_periods: Mapped[list] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("grade IN (10, 11)", name="ck_assessment_snapshot_grade"),
+        CheckConstraint("term IN (1, 2, 3)", name="ck_assessment_snapshot_term"),
+    )
+
+
 class TermCoverage(TimestampMixin, Base):
     __tablename__ = "term_coverage"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

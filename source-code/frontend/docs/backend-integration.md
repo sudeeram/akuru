@@ -17,6 +17,8 @@ This inventory records which frontend workflows are backed by implemented FastAP
 | Document removal | Library uses the authenticated soft-delete endpoint after confirmation. |
 | Original file access | Admin opens the authenticated private original-file endpoint. |
 | Extraction review | Admin sees job stage/version/attempt, rendered pages, blocks, confidence, methods, review flags, LaTeX and private equation/diagram crops. |
+| Reviewed textbook publication | Admin proposes, corrects, saves and publishes versioned textbook units. |
+| Curriculum coverage | Admin assigns approved units to six Grade/Term periods, previews cumulative coverage, saves a draft and publishes a version. |
 
 The portal state endpoint supplies the document list used by the Admin dashboard. The dedicated document-list/status and specific-job routes remain available for future focused screens; duplicating those requests is unnecessary in the current portal.
 
@@ -24,12 +26,10 @@ The portal state endpoint supplies the document list used by the Admin dashboard
 
 | Frontend area | Required backend step |
 | --- | --- |
-| Textbook unit correction and publication | Step 6 |
-| Grade/term curriculum coverage editing | Step 7 |
 | Paper question inventory and marking-source links | Step 8 |
 | Question-to-unit approval | Step 9 |
 | Student practice, official papers and mocks | Step 11 |
 | Marking and Parent review | Steps 12–13 |
 | Mastery, recommendations and study plans | Steps 14–16 |
 
-Admin unit, coverage and question forms are disabled and labeled as previews until their write APIs exist. Extraction review currently presents source evidence; editing blocks, review notes and publication remain explicitly assigned to Step 6. Student and Parent data collections remain empty until their later APIs are implemented.
+The standalone legacy unit-entry and question forms remain disabled previews. Textbook units are created through the reviewed textbook workflow, and curriculum coverage now uses the Step 7 versioned FastAPI endpoints. Student and Parent assessment collections remain empty until their later APIs are implemented.

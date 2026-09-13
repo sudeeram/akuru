@@ -9,11 +9,12 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
+    AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
     StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
 )
 from app.security import hash_password
+from app.services.curriculum_plans import snapshot
 from app.queue.factory import get_document_queue
 from app.services import document_processing
 from app.storage.factory import get_storage
@@ -516,3 +517,97 @@ def test_past_paper_requires_same_subject_textbook(auth_client) -> None:
     )
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "textbook_required"
+
+
+@pytest.mark.integration
+def test_versioned_curriculum_plan_cumulative_coverage_and_snapshot(auth_client) -> None:
+    client, username, password = auth_client
+    assert client.get("/api/v1/admin/curriculum-plans/biology").status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    session: Session = next(app.dependency_overrides[get_db]())
+    admin = session.query(User).filter_by(username=username).one()
+
+    parent = client.post("/api/v1/admin/accounts", headers=headers, json={
+        "username": f"plan-parent-{uuid.uuid4().hex[:10]}", "name": "Plan Parent",
+        "password": "temporary plan parent password", "role": "parent",
+    }).json()
+    student = client.post("/api/v1/admin/accounts", headers=headers, json={
+        "username": f"plan-student-{uuid.uuid4().hex[:10]}", "name": "Plan Student",
+        "password": "temporary plan student password", "role": "student", "parentId": parent["id"],
+        "level": "iGCSE", "grade": "Grade 10", "term": "Term2",
+        "progression": ["Grade 10|Term1", "Grade 10|Term2"], "subjects": ["biology"],
+    }).json()
+
+    document = Document(
+        kind="textbook", course_id="igcse", subject_id="biology", title="Approved Biology",
+        original_filename="approved.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex * 2, review_state="published", uploaded_by=admin.id,
+        edition="2026", size_bytes=1,
+    )
+    session.add(document); session.flush()
+    version = DocumentVersion(
+        document_id=document.id, version_number=1, original_filename="approved.pdf",
+        object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf", sha256=uuid.uuid4().hex * 2,
+        size_bytes=1, status="completed", uploaded_by=admin.id,
+    )
+    session.add(version); session.flush()
+    content = TextbookContentVersion(
+        document_id=document.id, source_document_version_id=version.id, version_number=1,
+        course_id="igcse", subject_id="biology", edition="2026", status="published",
+        created_by=admin.id, published_by=admin.id,
+    )
+    session.add(content); session.flush()
+    units = [
+        TextbookUnit(textbook_id=document.id, course_id="igcse", subject_id="biology", unit_code="B1", title="Cells", sequence=1, content_version_id=content.id),
+        TextbookUnit(textbook_id=document.id, course_id="igcse", subject_id="biology", unit_code="B2", title="Transport", sequence=2, content_version_id=content.id),
+    ]
+    session.add_all(units); session.commit()
+
+    initial = client.get("/api/v1/admin/curriculum-plans/biology")
+    assert initial.status_code == 200
+    assert initial.json()["status"] == "not_started"
+    assert [unit["code"] for unit in initial.json()["availableUnits"]] == ["B1", "B2"]
+    periods = [
+        {"grade": grade, "term": term, "unitIds": []}
+        for grade in (10, 11) for term in (1, 2, 3)
+    ]
+    periods[0]["unitIds"] = [str(units[0].id)]
+    draft = client.post("/api/v1/admin/curriculum-plans/biology", headers=headers, json={"periods": periods})
+    assert draft.status_code == 200
+    assert client.post("/api/v1/admin/curriculum-plans/biology/publish", headers=headers, json={
+        "confirmSubject": True, "confirmTextbook": True,
+    }).status_code == 200
+    missing = client.get(f"/api/v1/admin/students/{student['id']}/coverage", params={"subjectId": "biology"}).json()
+    assert missing["status"] == "missing_coverage"
+    assert missing["missingPeriods"] == ["Grade 10 Term 2"]
+
+    periods[1]["unitIds"] = [str(units[1].id)]
+    revised = client.post("/api/v1/admin/curriculum-plans/biology", headers=headers, json={"periods": periods})
+    assert revised.status_code == 200
+    assert revised.json()["versionNumber"] == 2
+    client.post("/api/v1/admin/curriculum-plans/biology/publish", headers=headers, json={
+        "confirmSubject": True, "confirmTextbook": True,
+    })
+    covered = client.get(f"/api/v1/admin/students/{student['id']}/coverage", params={"subjectId": "biology"}).json()
+    assert covered["status"] == "ready"
+    assert [unit["code"] for unit in covered["coveredUnits"]] == ["B1", "B2"]
+
+    frozen = snapshot(session, "mock-001", uuid.UUID(student["id"]), "biology")
+    assert frozen.covered_unit_ids == [str(units[0].id), str(units[1].id)]
+    original_plan_id = frozen.plan_id
+    third_draft = client.post("/api/v1/admin/curriculum-plans/biology", headers=headers, json={"periods": periods})
+    assert third_draft.json()["versionNumber"] == 3
+    assert client.post("/api/v1/admin/curriculum-plans/biology/publish", headers=headers, json={
+        "confirmSubject": True, "confirmTextbook": True,
+    }).status_code == 200
+    assert snapshot(session, "mock-001", uuid.UUID(student["id"]), "biology").plan_id == original_plan_id
+    assert session.query(AssessmentCurriculumSnapshot).filter_by(assessment_ref="mock-001").count() == 1
+    shortage = client.get(
+        f"/api/v1/admin/students/{student['id']}/question-pool",
+        params={"subjectId": "biology", "questionCount": 5, "marks": 20},
+    ).json()
+    assert shortage["status"] == "question_pool_shortage"
+    assert shortage["shortageQuestionCount"] == 5
+    assert session.query(CurriculumPlan).filter_by(subject_id="biology", status="published").count() == 1
+    assert session.query(CurriculumPlan).filter_by(subject_id="biology", status="superseded").count() == 2

@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–6 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook publication workflow, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–7 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook publication workflow, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -57,6 +57,8 @@ The document worker claims queued rows transactionally, records a versioned stag
 The AI boundary uses the OpenAI Responses API only when explicitly enabled. Every operation supplies a strict schema and a separately versioned prompt. Uploaded page content stays in untrusted user input, and server-side services select the permitted pages before a request is made. The `ai_invocations` table records operational provenance and usage without source content, model output or secrets. Admin-managed `ai_provider_accounts` rows reference dotenv credential aliases and use unique priorities from 0–100; `ai_provider_attempts` records ordered failover under one operation ID. A backup is eligible only when it uses the same model as the preferred account. The provider enforces bounded timeouts, retries, concurrency, context size, image bytes and output tokens. Tests use fake providers and cannot make paid calls. See [AI provider layer](ai-provider.md).
 
 Textbook review separates immutable source document versions from editable review drafts and immutable published content versions. Each reviewed unit retains chapter, section, page range, definition, concept, equation, example and diagram data. Publication creates version-linked authoritative unit rows; corrections create a new version and supersede the earlier publication. Past-paper ingestion requires a published textbook in the same course and subject. See [textbook review](textbook-review.md).
+
+Curriculum plans assign each approved unit to its introduction Grade and Term. Published versions are immutable, cumulative coverage follows the student's ordered progression, and assessment snapshots preserve the selected version and unit set. Missing periods and insufficient eligible questions return explicit diagnostics. See [curriculum plans](curriculum-plans.md).
 
 ## Identity and permissions
 

@@ -128,11 +128,11 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Define exactly which approved units each Grade + Term covers.
 
-- [ ] Add versioned curriculum-plan and term-coverage tables.
-- [ ] Build Admin coverage editing and publication APIs.
-- [ ] Union coverage across the student's ordered progression entries.
-- [ ] Snapshot the curriculum-plan version at assessment start.
-- [ ] Add missing-coverage and question-pool shortage diagnostics.
+- [x] Add versioned curriculum-plan and term-coverage tables.
+- [x] Build Admin coverage editing and publication APIs.
+- [x] Union coverage across the student's ordered progression entries.
+- [x] Snapshot the curriculum-plan version at assessment start.
+- [x] Add missing-coverage and question-pool shortage diagnostics.
 
 **Done when:** Grade 10 Term 2 includes configured Terms 1 and 2; missing coverage fails closed; existing assessments keep their original snapshot.
 

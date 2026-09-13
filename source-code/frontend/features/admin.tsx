@@ -11,9 +11,12 @@ import {
   getDocumentExtraction,
   getLatestDocumentJob,
   getTextbookReview,
+  getCurriculumPlan,
   proposeTextbookReview,
   publishTextbookReview,
+  publishCurriculumPlan,
   saveTextbookReview,
+  saveCurriculumPlan,
   removeDocument,
   retryDocument,
   uploadLearningDocument,
@@ -22,6 +25,7 @@ import {
   type State,
   type Student,
   type TextbookReview,
+  type CurriculumPlan,
 } from '@/lib/api';
 import { Heading, Picker, Empty } from './shared';
 
@@ -166,6 +170,7 @@ export function AdminWorkspace(p: Props) {
   const [textbookReview, setTextbookReview] = useState<TextbookReview | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
+  const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
@@ -222,6 +227,21 @@ export function AdminWorkspace(p: Props) {
       active = false;
     };
   }, [currentView, docId, p.data.documents]);
+  useEffect(() => {
+    if (currentView !== 'coverage') return;
+    let active = true;
+    void getCurriculumPlan(subject)
+      .then((plan) => {
+        if (active) setCurriculumPlan(plan);
+      })
+      .catch((cause) => {
+        if (active) {
+          setCurriculumPlan(null);
+          setError(errorMessage(cause));
+        }
+      });
+    return () => { active = false; };
+  }, [currentView, subject]);
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError('');
@@ -332,13 +352,13 @@ export function AdminWorkspace(p: Props) {
           {error}
         </div>
       )}
-      {['units', 'coverage', 'questions'].includes(p.view) && (
+      {['units', 'questions'].includes(p.view) && (
         <output className="panel spaced">
           This screen previews a later roadmap workflow. Its write API is not implemented yet, so editing is disabled.
         </output>
       )}
       <fieldset
-        disabled={busy || ['units', 'coverage', 'questions'].includes(p.view)}
+        disabled={busy || ['units', 'questions'].includes(p.view)}
         style={{ border: 0, padding: 0, minWidth: 0 }}
       >
         {p.view === 'today' && (
@@ -824,64 +844,46 @@ export function AdminWorkspace(p: Props) {
         {p.view === 'coverage' && (
           <section className="panel stack">
             {subjectPicker}
-            {gradeTerm}
-            <p>
-              Choose the complete set covered for this term exam. Earlier terms
-              are included only when you explicitly select their units here.
-            </p>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setUnitIds(
-                  p.data.coverage.find(
-                    (c) =>
-                      c.subject === subject &&
-                      c.grade === grade &&
-                      c.term === term,
-                  )?.unitIds || [],
-                )
-              }
-            >
-              Load saved coverage
-            </Button>
-            <Checks
-              label="Covered units"
-              items={units.map((u) => ({
-                id: u.id,
-                name: `${u.code} · ${u.title}`,
-              }))}
-              selected={unitIds}
-              change={setUnitIds}
-            />
-            <Button
-              className="primary"
-              onClick={() =>
-                void run(
-                  () =>
-                    api('admin/coverage', {
-                      course: 'iGCSE',
-                      subject,
-                      grade,
-                      term,
-                      unitIds,
-                    }),
-                  'Term coverage saved.',
-                )
-              }
-            >
-              Save term coverage
-            </Button>
-            <h3>Saved coverage</h3>
-            {p.data.coverage
-              .filter((c) => c.subject === subject)
-              .map((c) => (
-                <p key={c.grade + c.term}>
-                  {c.grade} · {c.term}:{' '}
-                  {c.unitIds
-                    .map((id) => p.data.units.find((u) => u.id === id)?.title)
-                    .join(', ') || 'No units'}
-                </p>
-              ))}
+            {curriculumPlan ? (
+              <>
+                <div className="spread">
+                  <div>
+                    <h2>{curriculumPlan.textbookTitle}</h2>
+                    <p>Edition {curriculumPlan.textbookEdition} · Plan {curriculumPlan.versionNumber || 'not saved'} · {curriculumPlan.status.replaceAll('_', ' ')}</p>
+                  </div>
+                </div>
+                <p>Assign each unit to the Grade and Term where it is first taught. A student in Grade 10 Term2 receives the union of Grade 10 Term1 and Term2.</p>
+                {curriculumPlan.periods.map((period, index) => {
+                  const cumulativeIds = curriculumPlan.periods
+                    .filter((row) => (row.grade < period.grade) || (row.grade === period.grade && row.term <= period.term))
+                    .flatMap((row) => row.unitIds);
+                  return (
+                    <section className="panel stack" key={`${period.grade}-${period.term}`}>
+                      <h3>Grade {period.grade} · Term{period.term}</h3>
+                      <Checks
+                        label="Units introduced in this term"
+                        items={curriculumPlan.availableUnits.map((unit) => ({ id: unit.id, name: `${unit.code} · ${unit.title}` }))}
+                        selected={period.unitIds}
+                        change={(ids) => setCurriculumPlan({
+                          ...curriculumPlan,
+                          periods: curriculumPlan.periods.map((row, i) => i === index ? { ...row, unitIds: ids } : { ...row, unitIds: row.unitIds.filter((id) => !ids.includes(id)) }),
+                        })}
+                      />
+                      <p className="small"><strong>Cumulative coverage:</strong>{' '}{curriculumPlan.availableUnits.filter((unit) => cumulativeIds.includes(unit.id)).map((unit) => unit.code).join(', ') || 'No units configured'}</p>
+                    </section>
+                  );
+                })}
+                <div className="button-row">
+                  <Button variant="outline" onClick={() => void run(async () => {
+                    setCurriculumPlan(await saveCurriculumPlan(subject, curriculumPlan.periods));
+                  }, 'Curriculum plan draft saved.')}>Save draft</Button>
+                  <Button className="primary" disabled={curriculumPlan.status !== 'draft'} onClick={() => {
+                    if (window.confirm(`Publish curriculum plan ${curriculumPlan.versionNumber} for ${curriculumPlan.textbookTitle}? Existing assessments keep their current snapshot.`))
+                      void run(async () => { setCurriculumPlan(await publishCurriculumPlan(subject)); }, 'Curriculum plan published.');
+                  }}>Publish plan</Button>
+                </div>
+              </>
+            ) : <p>Loading the published textbook and curriculum plan…</p>}
           </section>
         )}
         {p.view === 'questions' && (

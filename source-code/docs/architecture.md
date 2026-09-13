@@ -82,9 +82,9 @@ PostgreSQL stores the current enrolment and progression history. A future assess
 
 A textbook belongs to one course and one subject, with an edition/version identity in the production schema. A unit belongs to exactly one textbook. Its subject and course are inherited from that textbook. Unit codes are unique within a textbook, not globally.
 
-Admin defines the complete covered-unit set for `(course, subject, grade, term)`. This is shared curriculum coverage for students with that enrolment in Phase 1. If different schools or academic years need different coverage, add a versioned curriculum plan and assign each student explicitly before supporting that case.
+Admin assigns every approved unit to the Grade + Term where it is first taught inside a versioned curriculum plan. A draft may be edited; publication makes the version immutable and supersedes the prior publication for that subject. Phase 1 uses the current published iGCSE plan shared by enrolled students. A future school-specific plan can add explicit student plan assignment without changing historical assessment snapshots.
 
-Coverage is defined per Grade + Term, and student eligibility is cumulative across the student's saved progression list. For example, Grade 10 Term2 includes the union of Grade 10 Term1 and Grade 10 Term2 coverage. Grade 11 does not automatically inherit Grade 10 units; the Admin must add Grade 11 progression combinations and coverage explicitly. An empty union means no eligible questions. There is no fallback to the entire syllabus.
+Coverage is defined per Grade + Term, and student eligibility is cumulative across the student's saved progression list. For example, Grade 10 Term2 includes the union of Grade 10 Term1 and Grade 10 Term2 coverage. Grade 11 includes Grade 10 only when those Grade 10 periods exist in that student's progression. Every reached period requires an explicit assignment and missing coverage fails closed. An empty union means no eligible questions. There is no fallback to the entire syllabus.
 
 Each past paper must associate with one approved textbook that provides its mapping vocabulary. Each question may map to multiple units within that textbook. Future versions may support curated equivalences across editions, but must never equate units solely by number or title.
 
