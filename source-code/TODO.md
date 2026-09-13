@@ -168,12 +168,12 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Provide precise source context without leaking unrelated or unapproved material.
 
-- [ ] Enable `pgvector` and versioned embeddings.
-- [ ] Chunk approved textbook sections, marking points and examiner guidance with provenance.
-- [ ] Filter by course, subject, textbook, unit, publication and student eligibility before vector ranking.
-- [ ] Return evidence with document, page and bounding box.
-- [ ] Re-index only affected content after approved corrections.
-- [ ] Add retrieval-quality tests for every subject.
+- [x] Enable `pgvector` and versioned embeddings.
+- [x] Chunk approved textbook sections, marking points and examiner guidance with provenance.
+- [x] Filter by course, subject, textbook, unit, publication and student eligibility before vector ranking.
+- [x] Return evidence with document, page and bounding box.
+- [x] Re-index only affected content after approved corrections.
+- [x] Add retrieval-quality tests for every subject.
 
 **Done when:** Retrieval excludes foreign-family, foreign-subject, pending and superseded content, and every result opens at its authorized source location.
 

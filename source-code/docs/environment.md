@@ -22,6 +22,9 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_MAX_DOCUMENT_BYTES` | No | Maximum original document size; default 52,428,800 bytes (50 MB). |
 | `AKURU_REDIS_URL` | Yes | Private Redis connection used to transport document job IDs. |
 | `AKURU_DOCUMENT_QUEUE_NAME` | No | Redis list name for document jobs; default `akuru:documents`. |
+| `AKURU_EMBEDDING_PROVIDER` | No | `local` for deterministic development retrieval or `openai` for production semantic retrieval. |
+| `AKURU_EMBEDDING_MODEL` | No | Embedding model/version recorded with every immutable retrieval chunk. |
+| `AKURU_EMBEDDING_DIMENSIONS` | No | Must be `256` for the current pgvector schema. |
 | `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` | No | Maximum processing time per isolated stage; default `120`. |
 | `AKURU_DOCUMENT_JOB_MEMORY_MB` | No | Linux worker address-space limit per isolated stage; default `512`. |
 | `AKURU_DOCUMENT_MAX_PAGES` | No | Maximum pages accepted by document preflight; default `500`. |

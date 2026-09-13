@@ -39,6 +39,7 @@ apt-get install -y --no-install-recommends \
   libpq-dev \
   postgresql \
   postgresql-contrib \
+  postgresql-16-pgvector \
   redis-server \
   nginx \
   certbot \

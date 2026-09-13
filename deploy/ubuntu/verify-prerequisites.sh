@@ -47,6 +47,13 @@ check_service postgresql
 check_service redis-server
 check_service nginx
 
+if sudo -u postgres psql -Atqc "SELECT 1 FROM pg_available_extensions WHERE name='vector'" | grep -qx 1; then
+  echo "PASS  pgvector extension       available"
+else
+  echo "FAIL  pgvector extension       unavailable" >&2
+  failed=1
+fi
+
 if ! redis-cli -h 127.0.0.1 ping 2>/dev/null | grep -qx PONG; then
   echo "FAIL  Redis loopback           no PONG response" >&2
   failed=1

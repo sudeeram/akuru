@@ -7,6 +7,7 @@ from sqlalchemy import (
     JSON, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
+from pgvector.sqlalchemy import VECTOR
 
 from app.database import Base
 
@@ -643,6 +644,40 @@ class ExaminerCommentVersion(Base):
     advice: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     __table_args__ = (UniqueConstraint("material_version_id", "question_number", name="uq_examiner_comment_number"),)
+
+
+class RetrievalChunk(Base):
+    __tablename__ = "retrieval_chunks"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="CASCADE"), index=True)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="CASCADE"), index=True)
+    textbook_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="CASCADE"), index=True)
+    official_material_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="CASCADE"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="CASCADE"), index=True)
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    source_type: Mapped[str] = mapped_column(String(32), index=True)
+    source_item_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    source_ordinal: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    content: Mapped[str] = mapped_column(Text)
+    page_number: Mapped[int] = mapped_column(Integer)
+    bounding_box: Mapped[dict] = mapped_column(JSON)
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("document_assets.id", ondelete="SET NULL"))
+    content_hash: Mapped[str] = mapped_column(String(64))
+    embedding_model: Mapped[str] = mapped_column(String(120))
+    embedding_version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    embedding: Mapped[list] = mapped_column(VECTOR(256))
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("source_type IN ('textbook_section','marking_point','examiner_guidance')", name="ck_retrieval_chunk_source_type"),
+        CheckConstraint("status IN ('active','superseded')", name="ck_retrieval_chunk_status"),
+        CheckConstraint("page_number > 0 AND embedding_version > 0", name="ck_retrieval_chunk_values"),
+        UniqueConstraint("source_type", "source_item_id", "source_ordinal", "embedding_version", name="uq_retrieval_chunk_source_version"),
+        Index("ix_retrieval_chunks_embedding_hnsw", "embedding", postgresql_using="hnsw",
+              postgresql_ops={"embedding": "vector_cosine_ops"}),
+    )
 
 
 class TermCoverage(TimestampMixin, Base):

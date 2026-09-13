@@ -1,10 +1,12 @@
 import uuid
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from types import SimpleNamespace
 
 import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import engine, get_db
@@ -13,7 +15,7 @@ from app.models import (
     AIProviderAccount, AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
-    StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
+    RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -24,6 +26,7 @@ from app.config import Settings
 from app.schemas.question_mappings import AIUnitSuggestionOutput
 from app.storage.factory import get_storage
 from app.storage.local import LocalObjectStorage
+from app.services.embeddings import embed_texts
 
 
 class FakeDocumentQueue:
@@ -263,6 +266,107 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
     })
     assert response.status_code == 204
     assert client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
+
+
+@pytest.mark.integration
+def test_retrieval_filters_family_subject_publication_and_superseded_content(auth_client) -> None:
+    client, admin_username, admin_password = auth_client
+    session: Session = next(app.dependency_overrides[get_db]())
+    admin = session.scalar(select(User).where(User.username == admin_username))
+    parent = User(username=f"rag-parent-{uuid.uuid4().hex}", display_name="RAG Parent", role="parent",
+                  password_hash=hash_password("retrieval parent password"), must_change_password=False)
+    other_parent = User(username=f"rag-other-{uuid.uuid4().hex}", display_name="Other Parent", role="parent",
+                        password_hash=hash_password("other retrieval password"), must_change_password=False)
+    student = User(username=f"rag-student-{uuid.uuid4().hex}", display_name="RAG Student", role="student",
+                   password_hash=hash_password("retrieval student password"), must_change_password=False)
+    other_student = User(username=f"rag-other-student-{uuid.uuid4().hex}", display_name="Other Student", role="student",
+                         password_hash=hash_password("other student password"), must_change_password=False)
+    session.add_all([parent, other_parent, student, other_student]); session.flush()
+    session.add_all([StudentProfile(student_id=student.id, parent_id=parent.id),
+                     StudentProfile(student_id=other_student.id, parent_id=other_parent.id),
+                     StudentProgression(student_id=student.id, course_id="igcse", grade=10, term=1, is_current=True),
+                     StudentProgression(student_id=other_student.id, course_id="igcse", grade=10, term=1, is_current=True),
+                     StudentSubject(student_id=student.id, subject_id="maths"),
+                     StudentSubject(student_id=other_student.id, subject_id="maths")])
+    published = Document(kind="textbook", course_id="igcse", subject_id="maths", title="Approved algebra",
+        original_filename="algebra.pdf", object_key=f"rag/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex + uuid.uuid4().hex, review_state="published", uploaded_by=admin.id, size_bytes=100)
+    pending = Document(kind="textbook", course_id="igcse", subject_id="maths", title="Pending algebra",
+        original_filename="pending.pdf", object_key=f"rag/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex + uuid.uuid4().hex, review_state="pending", uploaded_by=admin.id, size_bytes=100)
+    session.add_all([published, pending]); session.flush()
+    versions = []
+    for document in (published, pending):
+        version = DocumentVersion(document_id=document.id, version_number=1, original_filename=document.original_filename,
+            object_key=f"rag/version/{uuid.uuid4()}", mime_type="application/pdf",
+            sha256=uuid.uuid4().hex + uuid.uuid4().hex, size_bytes=100, status="completed", uploaded_by=admin.id)
+        session.add(version); versions.append(version)
+    session.flush()
+    current_content = TextbookContentVersion(document_id=published.id, source_document_version_id=versions[0].id,
+        version_number=1, course_id="igcse", subject_id="maths", edition="1", status="published",
+        created_by=admin.id, published_by=admin.id, published_at=datetime.now(timezone.utc))
+    old_content = TextbookContentVersion(document_id=published.id, source_document_version_id=versions[0].id,
+        version_number=2, course_id="igcse", subject_id="maths", edition="old", status="superseded",
+        created_by=admin.id, superseded_at=datetime.now(timezone.utc))
+    pending_content = TextbookContentVersion(document_id=pending.id, source_document_version_id=versions[1].id,
+        version_number=1, course_id="igcse", subject_id="maths", edition="draft", status="published",
+        created_by=admin.id, published_by=admin.id, published_at=datetime.now(timezone.utc))
+    session.add_all([current_content, old_content, pending_content]); session.flush()
+    unit = TextbookUnit(textbook_id=published.id, course_id="igcse", subject_id="maths", unit_code="ALG",
+        title="Algebra", sequence=1, content_version_id=current_content.id)
+    session.add(unit); session.flush()
+    plan = CurriculumPlan(course_id="igcse", subject_id="maths", textbook_content_version_id=current_content.id,
+        version_number=1, status="published", created_by=admin.id, published_by=admin.id,
+        published_at=datetime.now(timezone.utc))
+    session.add(plan); session.flush()
+    session.add(CurriculumPlanUnit(plan_id=plan.id, grade=10, term=1, unit_id=unit.id))
+    settings = Settings(database_password="test", embedding_provider="local", embedding_model="akuru-local-v1")
+    contents = ["quadratic equation factorisation algebra", "unapproved algebra answer",
+                "obsolete algebra guidance", "biology cell mitosis"]
+    vectors = embed_texts(settings, contents)
+    session.add_all([
+        RetrievalChunk(document_id=published.id, document_version_id=versions[0].id,
+            textbook_content_version_id=current_content.id, unit_id=unit.id, course_id="igcse", subject_id="maths",
+            source_type="textbook_section", source_item_id=uuid.uuid4(), source_ordinal=0, content=contents[0],
+            page_number=4, bounding_box={"x0": 1, "y0": 2, "x1": 3, "y1": 4}, content_hash="a" * 64,
+            embedding_model="akuru-local-v1", embedding=vectors[0]),
+        RetrievalChunk(document_id=pending.id, document_version_id=versions[1].id,
+            textbook_content_version_id=pending_content.id, unit_id=unit.id, course_id="igcse", subject_id="maths",
+            source_type="textbook_section", source_item_id=uuid.uuid4(), source_ordinal=0, content=contents[1],
+            page_number=5, bounding_box={}, content_hash="b" * 64, embedding_model="akuru-local-v1", embedding=vectors[1]),
+        RetrievalChunk(document_id=published.id, document_version_id=versions[0].id,
+            textbook_content_version_id=old_content.id, unit_id=unit.id, course_id="igcse", subject_id="maths",
+            source_type="textbook_section", source_item_id=uuid.uuid4(), source_ordinal=0, content=contents[2],
+            page_number=6, bounding_box={}, content_hash="c" * 64, embedding_model="akuru-local-v1", embedding=vectors[2]),
+        RetrievalChunk(document_id=published.id, document_version_id=versions[0].id,
+            textbook_content_version_id=current_content.id, unit_id=unit.id, course_id="igcse", subject_id="biology",
+            source_type="textbook_section", source_item_id=uuid.uuid4(), source_ordinal=0, content=contents[3],
+            page_number=7, bounding_box={}, content_hash="d" * 64, embedding_model="akuru-local-v1", embedding=vectors[3]),
+    ])
+    session.commit()
+
+    login = client.post("/api/v1/auth/login", json={"username": parent.username, "password": "retrieval parent password"}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    result = client.post("/api/v1/retrieval/search", headers=headers, json={
+        "studentId": str(student.id), "subjectId": "maths", "query": "quadratic factorisation", "limit": 10,
+    })
+    assert result.status_code == 200
+    assert [row["content"] for row in result.json()["evidence"]] == [contents[0]]
+    evidence = result.json()["evidence"][0]
+    assert evidence["page"] == 4 and evidence["boundingBox"] == {"x0": 1, "y0": 2, "x1": 3, "y1": 4}
+    opened = client.get(evidence["sourceUrl"])
+    assert opened.status_code == 200 and opened.json()["chunkId"] == evidence["chunkId"]
+    denied = client.post("/api/v1/retrieval/search", headers=headers, json={
+        "studentId": str(other_student.id), "subjectId": "maths", "query": "algebra",
+    })
+    assert denied.status_code == 403
+
+    admin_login = client.post("/api/v1/auth/login", json={"username": admin_username, "password": admin_password}).json()
+    reindexed = client.post("/api/v1/retrieval/admin/reindex",
+        headers={"X-CSRF-Token": admin_login["csrfToken"]}, json={"documentId": str(published.id)})
+    assert reindexed.status_code == 200
+    assert reindexed.json()["supersededChunks"] == 3
+    assert session.query(RetrievalChunk).filter_by(document_id=pending.id, status="active").count() == 1
 
 
 @pytest.mark.integration

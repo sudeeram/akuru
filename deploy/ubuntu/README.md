@@ -40,7 +40,7 @@ Installed components:
 | --- | --- |
 | Node.js 22 and npm | Build and run the React/Vite frontend |
 | Python 3, venv and build tools | Run FastAPI and document workers |
-| PostgreSQL | Authoritative users, curriculum, jobs and learning data |
+| PostgreSQL and pgvector | Authoritative data and approved semantic retrieval |
 | Redis | Private job transport between FastAPI and the document worker |
 | Nginx and Certbot | HTTPS entry point and reverse proxy |
 | Poppler | PDF inspection and page rendering |
@@ -106,6 +106,9 @@ AKURU_COOKIE_SECURE=true
 AKURU_STORAGE_BACKEND=local
 AKURU_LOCAL_STORAGE_PATH=/data/akuru/documents
 AKURU_REDIS_URL=redis://127.0.0.1:6379/0
+AKURU_EMBEDDING_PROVIDER=openai
+AKURU_EMBEDDING_MODEL=text-embedding-3-small
+AKURU_EMBEDDING_DIMENSIONS=256
 ```
 
 Apply the schema and create the first administrator interactively:

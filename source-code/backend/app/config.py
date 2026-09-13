@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     ai_max_input_characters: int = Field(default=80_000, ge=1_000, le=500_000)
     ai_max_image_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     ai_max_output_tokens: int = Field(default=4_000, ge=100, le=32_000)
+    embedding_provider: str = "local"
+    embedding_model: str = "akuru-local-v1"
+    embedding_dimensions: int = Field(default=256, ge=64, le=3072)
 
     @model_validator(mode="after")
     def validate_ai_provider(self) -> "Settings":
@@ -60,6 +63,12 @@ class Settings(BaseSettings):
             raise ValueError(
                 "AKURU_OPENAI_API_KEY and AKURU_OPENAI_MODEL are required when AKURU_AI_PROVIDER=openai"
             )
+        if self.embedding_provider not in {"local", "openai"}:
+            raise ValueError("AKURU_EMBEDDING_PROVIDER must be local or openai")
+        if self.embedding_dimensions != 256:
+            raise ValueError("AKURU_EMBEDDING_DIMENSIONS must remain 256 for the current database schema")
+        if self.embedding_provider == "openai" and not self.openai_api_key:
+            raise ValueError("AKURU_OPENAI_API_KEY is required when AKURU_EMBEDDING_PROVIDER=openai")
         return self
 
     def openai_account_key(self, alias: str) -> str | None:
