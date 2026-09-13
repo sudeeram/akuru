@@ -10,6 +10,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Repository overview and setup](../README.md)
 - [Overall architecture](docs/architecture.md)
 - [Frontend architecture](frontend/docs/architecture.md)
+- [Frontend/backend integration status](frontend/docs/backend-integration.md)
 - [Backend architecture](backend/docs/architecture.md)
 - [Environment variables](docs/environment.md)
 - [Database backup and restore](docs/database-backup.md)

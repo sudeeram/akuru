@@ -9,8 +9,12 @@ import {
   api,
   errorMessage,
   getDocumentExtraction,
+  getLatestDocumentJob,
+  removeDocument,
+  retryDocument,
   uploadLearningDocument,
   type DocumentExtraction,
+  type DocumentJob,
   type State,
   type Student,
 } from '@/lib/api';
@@ -118,12 +122,18 @@ export function AdminWorkspace(p: Props) {
     [kind, setKind] = useState('Textbook'),
     [textbookId, setTextbookId] = useState(''),
     [paperId, setPaperId] = useState('');
+  const [edition, setEdition] = useState(''),
+    [publicationYear, setPublicationYear] = useState(''),
+    [examSession, setExamSession] = useState(''),
+    [component, setComponent] = useState(''),
+    [variant, setVariant] = useState(''),
+    [publisher, setPublisher] = useState(''),
+    [isbn, setIsbn] = useState(''),
+    [sourceUrl, setSourceUrl] = useState('');
   const [code, setCode] = useState(''),
     [unitTitle, setUnitTitle] = useState(''),
     [unitIds, setUnitIds] = useState<string[]>([]),
-    [docId, setDocId] = useState(''),
-    [notes, setNotes] = useState(''),
-    [complete, setComplete] = useState(false);
+    [docId, setDocId] = useState('');
   const [qid, setQid] = useState(''),
     [number, setNumber] = useState(''),
     [title, setTitle] = useState(''),
@@ -135,11 +145,11 @@ export function AdminWorkspace(p: Props) {
     [points, setPoints] = useState(''),
     [hints, setHints] = useState('');
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
+  const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
-    (d) =>
-      d.subject === subject && d.kind === 'Textbook' && d.status === 'approved',
+    (d) => d.subject === subject && d.kind === 'Textbook',
   );
   const papers = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
@@ -171,11 +181,17 @@ export function AdminWorkspace(p: Props) {
   useEffect(() => {
     if (currentView !== 'library' || !docId) return;
     const selected = p.data.documents.find((document) => document.id === docId);
-    if (!selected || !['needs_review', 'completed'].includes(selected.status)) return;
+    if (!selected) return;
     let active = true;
-    void getDocumentExtraction(docId)
-      .then((value) => {
-        if (active) setExtraction(value);
+    const extractionRequest = ['needs_review', 'completed'].includes(selected.status)
+      ? getDocumentExtraction(docId)
+      : Promise.resolve(null);
+    void Promise.all([getLatestDocumentJob(docId), extractionRequest])
+      .then(([job, extracted]) => {
+        if (active) {
+          setDocumentJob(job);
+          setExtraction(extracted);
+        }
       })
       .catch((cause) => {
         if (active) setExtractionError(errorMessage(cause));
@@ -293,7 +309,15 @@ export function AdminWorkspace(p: Props) {
           {error}
         </div>
       )}
-      <fieldset disabled={busy} style={{ border: 0, padding: 0, minWidth: 0 }}>
+      {['units', 'coverage', 'questions'].includes(p.view) && (
+        <output className="panel spaced">
+          This screen previews a later roadmap workflow. Its write API is not implemented yet, so editing is disabled.
+        </output>
+      )}
+      <fieldset
+        disabled={busy || ['units', 'coverage', 'questions'].includes(p.view)}
+        style={{ border: 0, padding: 0, minWidth: 0 }}
+      >
         {p.view === 'today' && (
           <>
             <div className="metric-grid">
@@ -320,11 +344,11 @@ export function AdminWorkspace(p: Props) {
                   current term.
                 </li>
                 <li>
-                  Upload and approve a subject textbook. Register its units.
+                  Upload a subject textbook and review its deterministic extraction.
                 </li>
                 <li>Choose the units covered in each grade and term.</li>
                 <li>
-                  Upload a past paper linked to that subject textbook, then its
+                  Upload a past paper after that subject textbook, then its
                   marking scheme and examiner report.
                 </li>
                 <li>
@@ -333,9 +357,9 @@ export function AdminWorkspace(p: Props) {
                 </li>
               </ol>
               <p className="spaced">
-                Term mocks include a question only when all its units are
-                covered. PDF extraction is not connected: enter question text
-                and mappings manually.
+                PDF and image extraction is connected and requires Admin review.
+                Unit editing, curriculum coverage, question mapping and publication
+                are implemented in later roadmap steps before term mocks are enabled.
               </p>
             </section>
             {p.data.students.some((s) => s.needsConfiguration) && (
@@ -504,14 +528,22 @@ export function AdminWorkspace(p: Props) {
               {kind === 'Past paper' && (
                 <>
                   <Picker
-                    label="Approved subject textbook"
+                    label="Existing subject textbook"
                     value={textbookId}
                     onChange={setTextbookId}
                     options={books.map((b) => ({ value: b.id, label: b.name }))}
                   />
-                  <p>Register textbook units before uploading a past paper.</p>
+                  <p>A same-subject textbook must exist before a past paper can be uploaded. Unit approval is added in Step 6.</p>
                 </>
               )}
+              <Field label="Edition" value={edition} onChange={setEdition} />
+              <Field label="Publication year" value={publicationYear} onChange={setPublicationYear} type="number" />
+              <Field label="Exam session" value={examSession} onChange={setExamSession} />
+              <Field label="Component" value={component} onChange={setComponent} />
+              <Field label="Variant" value={variant} onChange={setVariant} />
+              <Field label="Publisher" value={publisher} onChange={setPublisher} />
+              <Field label="ISBN" value={isbn} onChange={setIsbn} />
+              <Field label="Source URL" value={sourceUrl} onChange={setSourceUrl} type="url" />
               {['Marking scheme', 'Examiner report'].includes(kind) && (
                 <Picker
                   label="Related past paper"
@@ -540,6 +572,14 @@ export function AdminWorkspace(p: Props) {
                                 kind as keyof typeof documentKinds
                               ],
                             title: f.name.replace(/\.[^.]+$/, ''),
+                            edition: edition || undefined,
+                            year: publicationYear || undefined,
+                            session: examSession || undefined,
+                            component: component || undefined,
+                            variant: variant || undefined,
+                            publisher: publisher || undefined,
+                            isbn: isbn || undefined,
+                            sourceUrl: sourceUrl || undefined,
                             sourceDocumentId: ['Marking scheme', 'Examiner report'].includes(kind)
                               ? paperId
                               : undefined,
@@ -566,6 +606,25 @@ export function AdminWorkspace(p: Props) {
                       {document.processingError}
                     </p>
                   )}
+                  <div className="button-row">
+                    {document.status === 'failed' && (
+                      <Button
+                        variant="outline"
+                        onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}
+                      >
+                        Retry processing
+                      </Button>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (window.confirm(`Remove ${document.name} from AKURU?`))
+                          void run(() => removeDocument(document.id), 'Document removed.');
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               ))}
               <Picker
@@ -574,11 +633,8 @@ export function AdminWorkspace(p: Props) {
                 onChange={(v) => {
                   setDocId(v);
                   setExtraction(null);
+                  setDocumentJob(null);
                   setExtractionError('');
-                  setNotes(
-                    p.data.documents.find((d) => d.id === v)?.notes || '',
-                  );
-                  setComplete(false);
                 }}
                 options={p.data.documents.map((d) => ({
                   value: d.id,
@@ -594,6 +650,16 @@ export function AdminWorkspace(p: Props) {
                   >
                     Open original document
                   </a>
+                  {documentJob && (
+                    <div className="small panel">
+                      <strong>Processing details</strong>
+                      <p>
+                        {documentJob.stage.replaceAll('_', ' ')} · {documentJob.status.replaceAll('_', ' ')} ·{' '}
+                        {documentJob.progress}% · attempt {documentJob.attemptCount}
+                      </p>
+                      <p>Extractor: {documentJob.extractionVersion}</p>
+                    </div>
+                  )}
                   {extractionError && <p className="error" role="alert">{extractionError}</p>}
                   {extraction?.pages.map((page) => (
                     <article className="panel stack" key={`page-${page.pageNumber}`}>
@@ -620,65 +686,24 @@ export function AdminWorkspace(p: Props) {
                           {block.needsReview ? ' · review required' : ''}
                           {block.text && <p>{block.text}</p>}
                           {block.latex && <code>{block.latex}</code>}
+                          {block.sourceAssetId && (
+                            <Image
+                              src={`/api/v1/documents/${doc.id}/assets/${block.sourceAssetId}/content`}
+                              alt={`Source crop for ${block.kind} on page ${page.pageNumber}`}
+                              width={320}
+                              height={180}
+                              unoptimized
+                              loading="lazy"
+                              style={{ maxWidth: '20rem', height: 'auto', objectFit: 'contain' }}
+                            />
+                          )}
                         </div>
                       ))}
                     </article>
                   ))}
-                  <label htmlFor="admin-review-notes">
-                    Review notes
-                    <Textarea
-                      id="admin-review-notes"
-                      aria-label="Review notes"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                    />
-                  </label>
-                  {doc.kind === 'Past paper' && (
-                    <label className="check-label" htmlFor="paper-completeness">
-                      <Checkbox
-                        id="paper-completeness"
-                        checked={complete}
-                        onCheckedChange={(v) => setComplete(!!v)}
-                      />
-                      I have entered every question, checked its unit mappings
-                      and approved each question.
-                    </label>
-                  )}
-                  <div className="button-row">
-                    <Button
-                      variant="outline"
-                      onClick={() =>
-                        void run(
-                          () =>
-                            api('documents/review', {
-                              id: doc.id,
-                              status: 'pending',
-                              notes,
-                            }),
-                          'Document held for review.',
-                        )
-                      }
-                    >
-                      Keep in review
-                    </Button>
-                    <Button
-                      className="primary"
-                      onClick={() =>
-                        void run(
-                          () =>
-                            api('documents/review', {
-                              id: doc.id,
-                              status: 'approved',
-                              notes,
-                              mappingComplete: complete,
-                            }),
-                          'Document approved.',
-                        )
-                      }
-                    >
-                      Approve document
-                    </Button>
-                  </div>
+                  <p className="small">
+                    Editing extracted blocks, saving review notes, and publishing documents are part of the Step 6 Admin approval workflow.
+                  </p>
                 </>
               )}
             </section>

@@ -93,4 +93,9 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /review required/);
   assert.match(admin, /renderAssetId/);
   assert.match(admin, /block\.latex/);
+  assert.match(admin, /block\.sourceAssetId/);
+  assert.match(admin, /Retry processing/);
+  assert.match(admin, /removeDocument/);
+  assert.doesNotMatch(admin, /api\('documents\/review'/);
+  assert.match(admin, /Its write API is not implemented yet/);
 });

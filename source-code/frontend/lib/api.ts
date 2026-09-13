@@ -111,14 +111,21 @@ export async function api<P extends string>(
   path: P,
   body?: unknown,
 ): Promise<ApiResult<P>> {
+  return request(path, { method: body === undefined ? 'GET' : 'POST', body }) as Promise<ApiResult<P>>;
+}
+async function request(
+  path: string,
+  options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {},
+): Promise<unknown> {
   const csrf = csrfToken();
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
-  if (body !== undefined && csrf) headers['X-CSRF-Token'] = csrf;
+  const method = options.method ?? 'GET';
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  if (method !== 'GET' && csrf) headers['X-CSRF-Token'] = csrf;
   const response = await fetch('/api/v1/' + path, {
-    method: body === undefined ? 'GET' : 'POST',
+    method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
   const raw = response.status === 204 ? '' : await response.text();
   let data: unknown = {};
@@ -132,7 +139,7 @@ export async function api<P extends string>(
   if (!response.ok) {
     throw new ApiError(apiErrorMessage(data), response.status);
   }
-  return data as ApiResult<P>;
+  return data;
 }
 export async function uploadLearningDocument(
   file: File,
@@ -147,6 +154,14 @@ export async function uploadLearningDocument(
     subjectId: string;
     title: string;
     sourceDocumentId?: string;
+    edition?: string;
+    year?: string;
+    session?: string;
+    component?: string;
+    variant?: string;
+    publisher?: string;
+    isbn?: string;
+    sourceUrl?: string;
   },
 ) {
   if (file.size > 50 * 1024 * 1024)
@@ -292,7 +307,29 @@ export type DocumentExtraction = {
   pages: ExtractionPage[];
 };
 export async function getDocumentExtraction(id: string): Promise<DocumentExtraction> {
-  return api(`documents/${id}/extraction`) as Promise<DocumentExtraction>;
+  return request(`documents/${id}/extraction`) as Promise<DocumentExtraction>;
+}
+export type DocumentJob = {
+  stage: string;
+  status: string;
+  progress: number;
+  attemptCount: number;
+  extractionVersion: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  result: Record<string, unknown>;
+  queuedAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+};
+export async function getLatestDocumentJob(id: string): Promise<DocumentJob> {
+  return request(`documents/${id}/jobs/latest`) as Promise<DocumentJob>;
+}
+export async function retryDocument(id: string): Promise<DocumentJob> {
+  return request(`documents/${id}/retry`, { method: 'POST' }) as Promise<DocumentJob>;
+}
+export async function removeDocument(id: string): Promise<void> {
+  await request(`documents/${id}`, { method: 'DELETE' });
 }
 export type Exam = {
   id: string;
