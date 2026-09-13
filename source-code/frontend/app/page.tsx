@@ -64,6 +64,7 @@ const adminNav = [
   ['units', 'Textbook units', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
   ['questions', 'Question mapping', ClipboardCheck],
+  ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
 ] as const;
 export default function Portal() {

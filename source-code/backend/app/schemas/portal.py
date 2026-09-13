@@ -76,6 +76,8 @@ class PortalStateResponse(BaseModel):
     assignments: list[dict[str, Any]] = Field(default_factory=list)
     documents: list[dict[str, Any]] = Field(default_factory=list)
     exams: list[dict[str, Any]] = Field(default_factory=list)
+    assessmentBlueprints: list[dict[str, Any]] = Field(default_factory=list)
+    officialPapers: list[dict[str, Any]] = Field(default_factory=list)
     reviews: list[dict[str, Any]] = Field(default_factory=list)
     plans: dict[str, Any] = Field(default_factory=dict)
 

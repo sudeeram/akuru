@@ -310,6 +310,8 @@ export type Question = {
   unit?: string;
   diagram: string;
   source: string;
+  assetIds?: string[];
+  assessmentId?: string;
 };
 export type Attempt = {
   id: string;
@@ -415,6 +417,13 @@ export type Exam = {
   questionIds: string[];
   answers: Record<string, string>;
   files: Record<string, string>;
+  mode: 'practice' | 'official_paper' | 'mock';
+  feedbackVisible: boolean;
+};
+export type AssessmentApiResponse = {
+  id: string; studentId: string; subjectId: string; status: string;
+  submittedAt?: string | null;
+  questions: { id: string; rubric?: { markingPoints?: { text?: string }[] } | null }[];
 };
 export type State = {
   catalog: {
@@ -444,6 +453,8 @@ export type State = {
   assignments: Assignment[];
   documents: Doc[];
   exams: Exam[];
+  assessmentBlueprints: { id: string; name: string; subjectId: string; grade: number; term: number; targetMarks: number; durationMinutes: number; questionCount: number; skills: string[]; difficultyProfile: Record<string, number>; status: string }[];
+  officialPapers: { id: string; subjectId: string; title: string; questionCount: number; marks: number }[];
   reviews: {
     id: string;
     studentId: string;

@@ -175,6 +175,11 @@ export function AdminWorkspace(p: Props) {
   const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
   const [mappingQuestionId, setMappingQuestionId] = useState('');
   const [mappingDraft, setMappingDraft] = useState<UnitMapping[]>([]);
+  const [blueprintName, setBlueprintName] = useState('Term mock'),
+    [blueprintMarks, setBlueprintMarks] = useState('20'),
+    [blueprintMinutes, setBlueprintMinutes] = useState('30'),
+    [blueprintQuestions, setBlueprintQuestions] = useState('4'),
+    [blueprintSkills, setBlueprintSkills] = useState('knowledge, application');
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
@@ -351,6 +356,7 @@ export function AdminWorkspace(p: Props) {
             units: 'Textbook units',
             coverage: 'Grade & term coverage',
             questions: 'Question mapping',
+            blueprints: 'Mock paper blueprints',
             'ai-accounts': 'OpenAI account routing',
           }[p.view] || 'Administration'
         }
@@ -568,6 +574,41 @@ export function AdminWorkspace(p: Props) {
           </>
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
+        {p.view === 'blueprints' && (
+          <>
+            <form className="panel stack" onSubmit={(event) => {
+              event.preventDefault();
+              void run(() => api('assessments/admin/blueprints', {
+                name: blueprintName, subjectId: subject,
+                grade: Number(grade.replace('Grade ', '')), term: Number(term.replace('Term', '')),
+                mode: 'mock', targetMarks: Number(blueprintMarks), durationMinutes: Number(blueprintMinutes),
+                questionCount: Number(blueprintQuestions), skills: blueprintSkills.split(',').map((x) => x.trim()).filter(Boolean),
+                difficultyProfile: { mixed: Number(blueprintQuestions) },
+              }), 'Published mock blueprint created.');
+            }}>
+              {subjectPicker}
+              {gradeTerm}
+              <Field label="Blueprint name" value={blueprintName} onChange={setBlueprintName} />
+              <div className="three-cols">
+                <Field label="Target marks" type="number" value={blueprintMarks} onChange={setBlueprintMarks} />
+                <Field label="Duration in minutes" type="number" value={blueprintMinutes} onChange={setBlueprintMinutes} />
+                <Field label="Question count" type="number" value={blueprintQuestions} onChange={setBlueprintQuestions} />
+              </div>
+              <Field label="Skills, separated by commas" value={blueprintSkills} onChange={setBlueprintSkills} />
+              <p className="source-note">AKURU reports a shortage if approved eligible questions cannot meet the exact marks and question count.</p>
+              <Button className="primary" type="submit" disabled={busy}>Create and publish blueprint</Button>
+            </form>
+            <div className="learner-grid spaced">
+              {p.data.assessmentBlueprints.map((blueprint) => (
+                <section className="panel" key={blueprint.id}>
+                  <h3>{blueprint.name}</h3>
+                  <p>{p.data.subjects.find((item) => item.id === blueprint.subjectId)?.name} · Grade {blueprint.grade} · Term{blueprint.term}</p>
+                  <p>{blueprint.questionCount} questions · {blueprint.targetMarks} marks · {blueprint.durationMinutes} minutes</p>
+                </section>
+              ))}
+            </div>
+          </>
+        )}
         {p.view === 'library' && (
           <>
             <section className="panel stack">

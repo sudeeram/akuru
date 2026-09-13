@@ -181,13 +181,13 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Give each student only eligible, immutable assessment material.
 
-- [ ] Implement the deterministic all-units eligibility service.
-- [ ] Add blueprints for marks, time, skills and difficulty.
-- [ ] Support individual practice, uploaded official papers and term mocks.
-- [ ] Freeze question versions, assets, rubric, coverage and deadline at start.
-- [ ] Add autosave, idempotent submission and deadline enforcement.
-- [ ] Hide hints, answers and feedback during active exam mode.
-- [ ] Report shortages instead of broadening the syllabus.
+- [x] Implement the deterministic all-units eligibility service.
+- [x] Add blueprints for marks, time, skills and difficulty.
+- [x] Support individual practice, uploaded official papers and term mocks.
+- [x] Freeze question versions, assets, rubric, coverage and deadline at start.
+- [x] Add autosave, idempotent submission and deadline enforcement.
+- [x] Hide hints, answers and feedback during active exam mode.
+- [x] Report shortages instead of broadening the syllabus.
 
 **Done when:** Students cannot choose arbitrary questions, post-exam feedback stays hidden until submission/expiry, and later edits cannot change an active assessment.
 

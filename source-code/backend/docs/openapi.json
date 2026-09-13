@@ -193,6 +193,486 @@
         "title": "AccountSummaryResponse",
         "type": "object"
       },
+      "AnswerSave": {
+        "properties": {
+          "answer": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Answer",
+            "type": "string"
+          },
+          "fileId": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fileid"
+          },
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Idempotencykey",
+            "type": "string"
+          },
+          "questionId": {
+            "format": "uuid",
+            "title": "Questionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "idempotencyKey"
+        ],
+        "title": "AnswerSave",
+        "type": "object"
+      },
+      "AssessmentListResponse": {
+        "properties": {
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentResponse"
+            },
+            "title": "Assessments",
+            "type": "array"
+          }
+        },
+        "required": [
+          "assessments"
+        ],
+        "title": "AssessmentListResponse",
+        "type": "object"
+      },
+      "AssessmentMode": {
+        "enum": [
+          "practice",
+          "official_paper",
+          "mock"
+        ],
+        "title": "AssessmentMode",
+        "type": "string"
+      },
+      "AssessmentQuestionResponse": {
+        "properties": {
+          "answer": {
+            "default": "",
+            "title": "Answer",
+            "type": "string"
+          },
+          "assetIds": {
+            "items": {},
+            "title": "Assetids",
+            "type": "array"
+          },
+          "difficulty": {
+            "title": "Difficulty",
+            "type": "string"
+          },
+          "equations": {
+            "items": {},
+            "title": "Equations",
+            "type": "array"
+          },
+          "fileId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fileid"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "marks": {
+            "title": "Marks",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "rubric": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rubric"
+          },
+          "saveRevision": {
+            "default": 0,
+            "title": "Saverevision",
+            "type": "integer"
+          },
+          "sharedStem": {
+            "title": "Sharedstem",
+            "type": "string"
+          },
+          "skills": {
+            "items": {},
+            "title": "Skills",
+            "type": "array"
+          },
+          "sourceLocations": {
+            "items": {},
+            "title": "Sourcelocations",
+            "type": "array"
+          },
+          "unitIds": {
+            "items": {},
+            "title": "Unitids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "number",
+          "prompt",
+          "sharedStem",
+          "marks",
+          "equations",
+          "assetIds",
+          "sourceLocations",
+          "unitIds",
+          "skills",
+          "difficulty"
+        ],
+        "title": "AssessmentQuestionResponse",
+        "type": "object"
+      },
+      "AssessmentResponse": {
+        "properties": {
+          "difficultyProfile": {
+            "additionalProperties": true,
+            "title": "Difficultyprofile",
+            "type": "object"
+          },
+          "durationMinutes": {
+            "title": "Durationminutes",
+            "type": "integer"
+          },
+          "endsAt": {
+            "format": "date-time",
+            "title": "Endsat",
+            "type": "string"
+          },
+          "feedbackVisible": {
+            "title": "Feedbackvisible",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentQuestionResponse"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "skills": {
+            "items": {},
+            "title": "Skills",
+            "type": "array"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "title": "Startedat",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "studentId": {
+            "format": "uuid",
+            "title": "Studentid",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "submittedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submittedat"
+          },
+          "targetMarks": {
+            "title": "Targetmarks",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "studentId",
+          "subjectId",
+          "mode",
+          "status",
+          "title",
+          "targetMarks",
+          "durationMinutes",
+          "startedAt",
+          "endsAt",
+          "submittedAt",
+          "skills",
+          "difficultyProfile",
+          "feedbackVisible",
+          "questions"
+        ],
+        "title": "AssessmentResponse",
+        "type": "object"
+      },
+      "AssessmentStart": {
+        "properties": {
+          "blueprintId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blueprintid"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/AssessmentMode"
+          },
+          "paperId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paperid"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "subjectId"
+        ],
+        "title": "AssessmentStart",
+        "type": "object"
+      },
+      "BlueprintCreate": {
+        "properties": {
+          "difficultyProfile": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Difficultyprofile",
+            "type": "object"
+          },
+          "durationMinutes": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 300.0,
+            "title": "Durationminutes",
+            "type": "integer"
+          },
+          "grade": {
+            "enum": [
+              10,
+              11
+            ],
+            "title": "Grade",
+            "type": "integer"
+          },
+          "mode": {
+            "const": "mock",
+            "default": "mock",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "questionCount": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Questioncount",
+            "type": "integer"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Skills",
+            "type": "array"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "targetMarks": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 300.0,
+            "title": "Targetmarks",
+            "type": "integer"
+          },
+          "term": {
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Term",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "subjectId",
+          "grade",
+          "term",
+          "targetMarks",
+          "durationMinutes",
+          "questionCount"
+        ],
+        "title": "BlueprintCreate",
+        "type": "object"
+      },
+      "BlueprintResponse": {
+        "properties": {
+          "difficultyProfile": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Difficultyprofile",
+            "type": "object"
+          },
+          "durationMinutes": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 300.0,
+            "title": "Durationminutes",
+            "type": "integer"
+          },
+          "grade": {
+            "enum": [
+              10,
+              11
+            ],
+            "title": "Grade",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mode": {
+            "const": "mock",
+            "default": "mock",
+            "title": "Mode",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 160,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "questionCount": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100.0,
+            "title": "Questioncount",
+            "type": "integer"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Skills",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "targetMarks": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 300.0,
+            "title": "Targetmarks",
+            "type": "integer"
+          },
+          "term": {
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Term",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "subjectId",
+          "grade",
+          "term",
+          "targetMarks",
+          "durationMinutes",
+          "questionCount",
+          "id",
+          "status"
+        ],
+        "title": "BlueprintResponse",
+        "type": "object"
+      },
       "CatalogResponse": {
         "properties": {
           "courses": {
@@ -1591,6 +2071,14 @@
             "title": "Accounts",
             "type": "array"
           },
+          "assessmentBlueprints": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Assessmentblueprints",
+            "type": "array"
+          },
           "assignments": {
             "items": {
               "additionalProperties": true,
@@ -1637,6 +2125,14 @@
               "type": "object"
             },
             "title": "Exams",
+            "type": "array"
+          },
+          "officialPapers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Officialpapers",
             "type": "array"
           },
           "plans": {
@@ -2308,6 +2804,21 @@
           "name"
         ],
         "title": "SubjectResponse",
+        "type": "object"
+      },
+      "SubmissionRequest": {
+        "properties": {
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Idempotencykey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "title": "SubmissionRequest",
         "type": "object"
       },
       "TextbookReviewResponse": {
@@ -3685,6 +4196,635 @@
         "summary": "Ui Features Access",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/assessments": {
+      "get": {
+        "operationId": "list_rows_api_v1_assessments_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Rows",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/admin/blueprints": {
+      "post": {
+        "operationId": "create_blueprint_api_v1_assessments_admin_blueprints_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlueprintCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlueprintResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Blueprint",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/blueprints": {
+      "get": {
+        "operationId": "blueprints_api_v1_assessments_blueprints_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlueprintResponse"
+                  },
+                  "title": "Response Blueprints Api V1 Assessments Blueprints Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Blueprints",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/start": {
+      "post": {
+        "operationId": "start_api_v1_assessments_start_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessmentStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Start",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/answers": {
+      "post": {
+        "operationId": "save_api_v1_assessments__assessment_id__answers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerSave"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Save",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/assets/{asset_id}": {
+      "get": {
+        "operationId": "asset_api_v1_assessments__assessment_id__assets__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Asset",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/submit": {
+      "post": {
+        "operationId": "submit_api_v1_assessments__assessment_id__submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmissionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssessmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Submit",
+        "tags": [
+          "assessments"
         ]
       }
     },

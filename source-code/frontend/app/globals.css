@@ -1422,6 +1422,12 @@ small {
 .answer-panel {
   padding: 27px;
 }
+.assessment-asset {
+  max-width: 100%;
+  height: auto;
+  margin-top: 1rem;
+  border-radius: 0.75rem;
+}
 .question-text,
 .lesson-prompt {
   font-size: 18px;

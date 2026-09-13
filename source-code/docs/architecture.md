@@ -41,7 +41,7 @@ flowchart TD
     ELIG --> TUTOR[Tutor, assessment and study planning]
 ```
 
-FastAPI authentication, account administration, family-scoped state and the initial PostgreSQL schema are implemented. Remaining feature APIs, object storage, workers and AI services remain planned.
+FastAPI authentication, account administration, document processing, approved retrieval, deterministic eligibility and immutable assessment delivery are implemented. AI assessment, mastery and study-planning services continue in the later roadmap steps.
 
 ## Roles and family ownership
 
@@ -76,7 +76,7 @@ Biology, Chemistry, Physics and Human Biology are separate subjects. There is no
 
 A student has one active course, one current grade, one current term and one or more enrolled subjects. The student also has an ordered progression list of Grade + Term combinations already reached. For example, Grade 10 Term2 stores both Grade 10 Term1 and Grade 10 Term2. The phase-one course applies to every selected subject. The old feature allowing arbitrary qualifications per subject is superseded. Keep syllabus/specification and textbook edition identities in the production curriculum model so two specifications or editions are not accidentally mixed.
 
-PostgreSQL stores the current enrolment and progression history. A future assessment snapshot will capture the full accumulated scope in each new mock exam. Advancement is an Admin action; no automatic promotion is assumed.
+PostgreSQL stores the current enrolment and progression history. Each practice session, official paper and mock now captures the accumulated scope in an immutable assessment snapshot. Advancement is an Admin action; no automatic promotion is assumed.
 
 ## Textbooks, units and coverage
 

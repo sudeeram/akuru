@@ -5,6 +5,7 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
+from app.services import assessments
 
 
 GRADES = ("Grade 10", "Grade 11")
@@ -87,6 +88,26 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "processingError": job.error_message if job else None,
                 "edition": document.edition,
             })
+    assessment_rows = assessments.list_assessments(db, principal).assessments if principal.user.role == "student" and not principal.user.must_change_password else []
+    assessment_questions = []
+    seen_questions = set()
+    exams = []
+    for item in assessment_rows:
+        ids, answers, files = [], {}, {}
+        for question in item.questions:
+            qid = str(question.id); ids.append(qid); answers[qid] = question.answer
+            if question.fileId: files[qid] = question.fileId
+            if qid not in seen_questions:
+                seen_questions.add(qid)
+                assessment_questions.append({"id": qid, "subject": item.subjectId, "topic": item.title,
+                    "title": f"Question {question.number}", "prompt": question.prompt, "marks": question.marks,
+                    "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
+                    "unitIds": question.unitIds, "rubric": question.rubric, "assetIds": question.assetIds,
+                    "assessmentId": str(item.id)})
+        exams.append({"id": str(item.id), "studentId": str(item.studentId), "subject": item.subjectId,
+            "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
+            "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,
+            "feedbackVisible": item.feedbackVisible})
     return {
         "user": {
             "id": str(principal.user.id),
@@ -121,11 +142,13 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "coverage": [],
         "questionBank": [],
         "drafts": {},
-        "questions": [],
+        "questions": assessment_questions,
         "attempts": [],
         "assignments": [],
         "documents": portal_documents,
-        "exams": [],
+        "exams": exams,
+        "assessmentBlueprints": [row.model_dump(mode="json") for row in assessments.list_blueprints(db, principal)] if principal.user.role in {"admin", "student"} and not principal.user.must_change_password else [],
+        "officialPapers": assessments.official_papers(db, principal.user.id) if principal.user.role == "student" and not principal.user.must_change_password else [],
         "reviews": [],
         "plans": {},
     }

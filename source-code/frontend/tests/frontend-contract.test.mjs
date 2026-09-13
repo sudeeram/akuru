@@ -8,6 +8,7 @@ const admin = readFileSync(
   new URL('../features/admin.tsx', import.meta.url),
   'utf8',
 );
+const student = readFileSync(new URL('../features/student.tsx', import.meta.url), 'utf8');
 const vite = readFileSync(
   new URL('../vite.config.ts', import.meta.url),
   'utf8',
@@ -146,4 +147,14 @@ test('admin confirms weighted question mappings from constrained suggestions', (
   assert.match(admin, /Suggest mappings/);
   assert.match(admin, /Confirm mapping/);
   assert.doesNotMatch(admin, /api\('admin\/questions'/);
+});
+
+test('student assessment UI uses immutable FastAPI assessment sessions', () => {
+  assert.match(student, /assessments\/start/);
+  assert.match(student, /assessments\/\$\{exam\.id\}\/answers/);
+  assert.match(student, /assessments\/\$\{exam\.id\}\/submit/);
+  assert.match(student, /mode: 'official_paper'/);
+  assert.match(admin, /assessments\/admin\/blueprints/);
+  assert.match(page, /Mock blueprints/);
+  assert.doesNotMatch(student, /api\('exams\/start'/);
 });

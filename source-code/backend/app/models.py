@@ -739,3 +739,97 @@ class QuestionUnit(Base):
             name="fk_question_unit_unit_scope",
         ),
     )
+
+
+class AssessmentBlueprint(TimestampMixin, Base):
+    __tablename__ = "assessment_blueprints"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(160))
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    grade: Mapped[int] = mapped_column(Integer)
+    term: Mapped[int] = mapped_column(Integer)
+    mode: Mapped[str] = mapped_column(String(24))
+    target_marks: Mapped[int] = mapped_column(Integer)
+    duration_minutes: Mapped[int] = mapped_column(Integer)
+    question_count: Mapped[int] = mapped_column(Integer)
+    skills: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    difficulty_profile: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft", index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("grade IN (10, 11) AND term IN (1, 2, 3)", name="ck_assessment_blueprint_period"),
+        CheckConstraint("mode IN ('practice','official_paper','mock')", name="ck_assessment_blueprint_mode"),
+        CheckConstraint("target_marks > 0 AND duration_minutes > 0 AND question_count > 0", name="ck_assessment_blueprint_values"),
+        CheckConstraint("status IN ('draft','published','retired')", name="ck_assessment_blueprint_status"),
+    )
+
+
+class Assessment(Base):
+    __tablename__ = "assessments"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    mode: Mapped[str] = mapped_column(String(24))
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
+    blueprint_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assessment_blueprints.id", ondelete="RESTRICT"))
+    official_paper_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="RESTRICT"))
+    curriculum_snapshot_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_curriculum_snapshots.id", ondelete="RESTRICT"))
+    title: Mapped[str] = mapped_column(String(200))
+    target_marks: Mapped[int] = mapped_column(Integer)
+    duration_minutes: Mapped[int] = mapped_column(Integer)
+    skills: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    difficulty_profile: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    ends_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submission_key: Mapped[str | None] = mapped_column(String(100))
+    __table_args__ = (
+        CheckConstraint("mode IN ('practice','official_paper','mock')", name="ck_assessment_mode"),
+        CheckConstraint("status IN ('active','submitted','expired')", name="ck_assessment_status"),
+        CheckConstraint("target_marks > 0 AND duration_minutes > 0", name="ck_assessment_values"),
+        UniqueConstraint("student_id", "submission_key", name="uq_assessment_submission_key"),
+        Index("uq_active_assessment_per_student", "student_id", unique=True,
+              postgresql_where=text("status = 'active'")),
+    )
+
+
+class AssessmentQuestion(Base):
+    __tablename__ = "assessment_questions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), index=True)
+    sequence: Mapped[int] = mapped_column(Integer)
+    source_question_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_question_versions.id", ondelete="RESTRICT"))
+    source_document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    question_number: Mapped[str] = mapped_column(String(40))
+    prompt: Mapped[str] = mapped_column(Text)
+    shared_stem: Mapped[str] = mapped_column(Text, default="", server_default="")
+    marks: Mapped[int] = mapped_column(Integer)
+    equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    asset_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    rubric: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    unit_ids: Mapped[list] = mapped_column(JSON)
+    skills: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    difficulty: Mapped[str] = mapped_column(String(24), default="mixed", server_default="mixed")
+    __table_args__ = (
+        CheckConstraint("sequence > 0 AND marks > 0", name="ck_assessment_question_values"),
+        UniqueConstraint("assessment_id", "sequence", name="uq_assessment_question_sequence"),
+        UniqueConstraint("assessment_id", "source_question_version_id", name="uq_assessment_question_source"),
+    )
+
+
+class AssessmentAnswer(Base):
+    __tablename__ = "assessment_answers"
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), primary_key=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="CASCADE"), primary_key=True)
+    answer_text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    file_id: Mapped[str | None] = mapped_column(String(120))
+    save_revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    idempotency_key: Mapped[str] = mapped_column(String(100))
+    saved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("save_revision > 0", name="ck_assessment_answer_revision"),
+        UniqueConstraint("assessment_id", "idempotency_key", name="uq_assessment_answer_idempotency"),
+    )

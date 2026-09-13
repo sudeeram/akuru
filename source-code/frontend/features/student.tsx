@@ -2,6 +2,7 @@
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import {
   ArrowLeft,
   ArrowRight,
@@ -33,6 +34,7 @@ import {
   type Question,
   type Attempt,
   type Lesson,
+  type AssessmentApiResponse,
 } from '@/lib/api';
 import {
   Heading,
@@ -201,9 +203,8 @@ export function Subjects(p: FeatureProps) {
 }
 
 export function Practice(p: FeatureProps) {
-  const qs = p.data.questions.filter(
-    (q) => q.subject === p.subject && p.child.subjects.includes(q.subject),
-  );
+  const practice = p.data.exams.find((e) => e.status === 'active' && e.mode === 'practice');
+  const qs = practice ? practice.questionIds.map((id) => p.data.questions.find((q) => q.id === id)!).filter(Boolean) : [];
   const [qid, setQid] = useState(() => {
     const next =
       typeof window !== 'undefined'
@@ -253,13 +254,21 @@ export function Practice(p: FeatureProps) {
     setBusy(true);
     setError('');
     try {
-      const a = await api('attempt', {
+      if (!practice) return;
+      await api(`assessments/${practice.id}/answers`, {
         questionId: q.id,
         answer,
         fileId: file?.id,
-        hints: hints.length,
+        idempotencyKey: crypto.randomUUID(),
       });
-      setResult(a);
+      const completed = await api(`assessments/${practice.id}/submit`, { idempotencyKey: crypto.randomUUID() }) as AssessmentApiResponse;
+      const frozen = completed.questions[0];
+      setResult({ id: completed.id, studentId: p.child.id, subject: completed.subjectId,
+        questionId: q.id, title: q.title, answer, fileId: file?.id || '', hints: hints.length,
+        mark: null, maxMarks: q.marks, status: completed.status, feedback: 'Practice submitted.',
+        explanation: 'AKURU assessment feedback is added in Step 12.',
+        points: (frozen.rubric?.markingPoints || []).map((point: { text?: string }) => point.text || 'Marking point'),
+        createdAt: completed.submittedAt || new Date().toISOString() });
       await p.refresh();
     } catch (e: unknown) {
       setError(errorMessage(e));
@@ -270,11 +279,15 @@ export function Practice(p: FeatureProps) {
   if (!q)
     return (
       <Empty title="No questions available for this term">
-        Ask your Admin to confirm your enrolment, covered units and approved
-        question mappings.
+        <Button className="primary spaced" onClick={async () => {
+          setBusy(true); setError('');
+          try { await api('assessments/start', { mode: 'practice', subjectId: p.subject }); await p.refresh(); }
+          catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
+        }} disabled={busy}>Start eligible practice</Button>
+        {error || 'AKURU selects from all mapped units covered up to your current term.'}
       </Empty>
     );
-  const active = p.data.exams.find((e) => e.status === 'active');
+  const active = p.data.exams.find((e) => e.status === 'active' && e.mode !== 'practice');
   if (active)
     return (
       <>
@@ -327,6 +340,9 @@ export function Practice(p: FeatureProps) {
           <h2>{q.title}</h2>
           <p className="question-text">{q.prompt}</p>
           <Diagram kind={q.diagram} />
+          {q.assetIds?.map((assetId) => (
+            <Image key={assetId} unoptimized width={800} height={600} className="assessment-asset" src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} alt="Question diagram" />
+          ))}
           <div className="source-note">
             <BookOpen size={14} />
             {q.source}
@@ -391,7 +407,8 @@ export function Practice(p: FeatureProps) {
                       disabled={busy}
                       onClick={async () => {
                         try {
-                          await api('drafts', { questionId: q.id, answer });
+                          if (!practice) return;
+                          await api(`assessments/${practice.id}/answers`, { questionId: q.id, answer, fileId: file?.id, idempotencyKey: crypto.randomUUID() });
                           await p.refresh();
                           p.notify('Draft saved privately to your account.');
                         } catch (e: unknown) {
@@ -542,10 +559,10 @@ export function Exams(p: FeatureProps) {
     [index, setIndex] = useState(0),
     [draft, setDraft] = useState(''),
     [dirty, setDirty] = useState(false);
-  const exam = p.data.exams.find((e) => e.status === 'active');
+  const exam = p.data.exams.find((e) => e.status === 'active' && e.mode !== 'practice');
   const qs = exam
     ? exam.questionIds.map((id) => p.data.questions.find((q) => q.id === id)!)
-    : p.data.questions.filter((q) => q.subject === p.subject);
+    : [];
   const q = qs[index] || qs[0];
   useEffect(() => {
     const t = setInterval(() => setTime(Date.now()), 1000);
@@ -559,11 +576,26 @@ export function Exams(p: FeatureProps) {
   const remaining = exam
     ? Math.max(0, Math.ceil((Date.parse(exam.endsAt) - time) / 1000))
     : 0;
+  useEffect(() => {
+    if (!exam || !q || !dirty || !remaining) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        await api(`assessments/${exam.id}/answers`, {
+          questionId: q.id, answer: draft, idempotencyKey: crypto.randomUUID(),
+        });
+        setDirty(false);
+        await p.refresh();
+      } catch (cause: unknown) {
+        setError(errorMessage(cause));
+      }
+    }, 1200);
+    return () => window.clearTimeout(timer);
+  }, [dirty, draft, exam, q, remaining, p]);
   async function save() {
     if (!exam) return;
     setBusy(true);
     try {
-      await api('exams/save', { id: exam.id, questionId: q.id, answer: draft });
+      await api(`assessments/${exam.id}/answers`, { questionId: q.id, answer: draft, idempotencyKey: crypto.randomUUID() });
       setDirty(false);
       await p.refresh();
       p.notify('Answer saved.');
@@ -579,12 +611,16 @@ export function Exams(p: FeatureProps) {
     setError('');
     try {
       if (dirty && remaining > 0)
-        await api('exams/save', {
-          id: exam.id,
+        await api(`assessments/${exam.id}/answers`, {
           questionId: q.id,
           answer: draft,
+          idempotencyKey: crypto.randomUUID(),
         });
-      await api('exams/submit', { id: exam.id });
+      const storageKey = `akuru-submit-${exam.id}`;
+      const idempotencyKey = sessionStorage.getItem(storageKey) || crypto.randomUUID();
+      sessionStorage.setItem(storageKey, idempotencyKey);
+      await api(`assessments/${exam.id}/submit`, { idempotencyKey });
+      sessionStorage.removeItem(storageKey);
       setConfirm(false);
       setIndex(0);
       setDirty(false);
@@ -641,6 +677,9 @@ export function Exams(p: FeatureProps) {
               </div>
               <p className="question-text">{q.prompt}</p>
               <Diagram kind={q.diagram} />
+              {q.assetIds?.map((assetId) => (
+                <Image key={assetId} unoptimized width={800} height={600} className="assessment-asset" src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} alt="Question diagram" />
+              ))}
             </section>
             <section className="panel">
               <label htmlFor="exam-answer">Your answer and working</label>
@@ -678,11 +717,11 @@ export function Exams(p: FeatureProps) {
                     setBusy(true);
                     try {
                       const uploaded = await upload(f);
-                      await api('exams/save', {
-                        id: exam.id,
+                      await api(`assessments/${exam.id}/answers`, {
                         questionId: q.id,
                         answer: draft,
                         fileId: uploaded.id,
+                        idempotencyKey: crypto.randomUUID(),
                       });
                       setDirty(false);
                       await p.refresh();
@@ -745,8 +784,8 @@ export function Exams(p: FeatureProps) {
                 mock
               </h2>
               <p>
-                {qs.length} questions · {qs.reduce((n, q) => n + q.marks, 0)}{' '}
-                marks · 15 minutes
+                {p.data.assessmentBlueprints.find((b) => b.subjectId === p.subject)?.questionCount || 'Configured'} questions ·{' '}
+                {p.data.assessmentBlueprints.find((b) => b.subjectId === p.subject)?.targetMarks || 'configured'} marks
               </p>
               <p className="small spaced">
                 Choose a quiet spot. You can upload working or type answers.
@@ -756,11 +795,11 @@ export function Exams(p: FeatureProps) {
             <div className="stack">
               <Button
                 className="primary"
-                disabled={busy || !qs.length}
+                disabled={busy || !p.data.assessmentBlueprints.some((b) => b.subjectId === p.subject)}
                 onClick={async () => {
                   setBusy(true);
                   try {
-                    await api('exams/start', { subject: p.subject });
+                    await api('assessments/start', { mode: 'mock', subjectId: p.subject });
                     setIndex(0);
                     await p.refresh();
                   } catch (e: unknown) {
@@ -773,6 +812,13 @@ export function Exams(p: FeatureProps) {
                 Start mock exam
                 <ArrowRight size={16} />
               </Button>
+              {p.data.officialPapers.filter((paper) => paper.subjectId === p.subject).map((paper) => (
+                <Button key={paper.id} variant="outline" disabled={busy} onClick={async () => {
+                  setBusy(true); setError('');
+                  try { await api('assessments/start', { mode: 'official_paper', subjectId: p.subject, paperId: paper.id }); setIndex(0); await p.refresh(); }
+                  catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
+                }}>Take {paper.title}</Button>
+              ))}
               <Button variant="outline" onClick={() => window.print()}>
                 <Download size={16} />
                 Print practice paper
@@ -801,10 +847,10 @@ export function Exams(p: FeatureProps) {
           <div className="section-heading">
             <h2>Previous mock exams</h2>
           </div>
-          {p.data.exams.filter((e) => e.status === 'submitted').length ? (
+          {p.data.exams.filter((e) => ['submitted', 'expired'].includes(e.status) && e.mode !== 'practice').length ? (
             <div className="panel">
               {p.data.exams
-                .filter((e) => e.status === 'submitted')
+                .filter((e) => ['submitted', 'expired'].includes(e.status) && e.mode !== 'practice')
                 .map((e) => (
                   <button
                     className="resource-row"

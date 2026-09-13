@@ -28,8 +28,8 @@ The portal state endpoint supplies the document list used by the Admin dashboard
 
 | Frontend area | Required backend step |
 | --- | --- |
-| Student practice, official papers and mocks | Step 11 |
+| Student practice, official papers and mocks | Connected in Step 11 through immutable assessment sessions |
 | Marking and Parent review | Steps 12–13 |
 | Mastery, recommendations and study plans | Steps 14–16 |
 
-The standalone legacy unit-entry and question forms remain disabled previews. Textbook units are created through the reviewed textbook workflow, and curriculum coverage now uses the Step 7 versioned FastAPI endpoints. Student and Parent assessment collections remain empty until their later APIs are implemented.
+The standalone legacy unit-entry form remains a disabled preview. Student practice, eligible uploaded papers and blueprint-driven term mocks now use FastAPI assessment sessions. Questions, assets, rubrics, cumulative coverage and deadlines are frozen when a session starts; active exam responses hide marking guidance.

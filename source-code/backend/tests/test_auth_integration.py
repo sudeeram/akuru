@@ -1,6 +1,6 @@
 import uuid
 from contextlib import contextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pymupdf as fitz
@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AIProviderAccount, AssessmentCurriculumSnapshot, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
+    AIProviderAccount, Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentCurriculumSnapshot, AssessmentQuestion, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
@@ -848,3 +848,90 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert session.query(OfficialQuestionVersion).count() == 2
     assert session.query(MarkSchemeEntryVersion).count() == 2
     assert session.query(ExaminerCommentVersion).count() == 2
+
+    # Complete the second mapping so the full official paper is eligible.
+    assert client.post(f"/api/v1/questions/{second_question['questionId']}/unit-mapping", headers=csrf, json={"mappings": [
+        {"unitId": str(biology_units[1].id), "weight": 100, "method": "admin", "rationale": "Diffusion"}
+    ]}).status_code == 200
+    assert client.post(f"/api/v1/questions/{second_question['questionId']}/unit-mapping/publish", headers=csrf, json={}).status_code == 200
+
+    parent_user = User(username=f"assessment-parent-{uuid.uuid4().hex}", display_name="Assessment Parent",
+        role="parent", password_hash=hash_password("assessment parent password"), must_change_password=False)
+    student_user = User(username=f"assessment-student-{uuid.uuid4().hex}", display_name="Assessment Student",
+        role="student", password_hash=hash_password("assessment student password"), must_change_password=False)
+    session.add_all([parent_user, student_user]); session.flush()
+    session.add_all([StudentProfile(student_id=student_user.id, parent_id=parent_user.id),
+        StudentProgression(student_id=student_user.id, course_id="igcse", grade=10, term=1, is_current=True),
+        StudentSubject(student_id=student_user.id, subject_id="biology")])
+    plan = CurriculumPlan(course_id="igcse", subject_id="biology", textbook_content_version_id=content.id,
+        version_number=1, status="published", created_by=admin.id, published_by=admin.id)
+    session.add(plan); session.flush()
+    session.add_all([CurriculumPlanUnit(plan_id=plan.id, grade=10, term=1, unit_id=unit.id) for unit in biology_units])
+    session.commit()
+
+    blueprint = client.post("/api/v1/assessments/admin/blueprints", headers=csrf, json={
+        "name": "Biology Term 1 mock", "subjectId": "biology", "grade": 10, "term": 1,
+        "targetMarks": 2, "durationMinutes": 30, "questionCount": 1,
+        "skills": ["application"], "difficultyProfile": {"mixed": 1},
+    })
+    assert blueprint.status_code == 201, blueprint.text
+    shortage_blueprint = client.post("/api/v1/assessments/admin/blueprints", headers=csrf, json={
+        "name": "Impossible mock", "subjectId": "biology", "grade": 10, "term": 1,
+        "targetMarks": 99, "durationMinutes": 30, "questionCount": 1,
+        "skills": [], "difficultyProfile": {"mixed": 1},
+    }).json()
+    student_login = client.post("/api/v1/auth/login", json={
+        "username": student_user.username, "password": "assessment student password",
+    }).json()
+    student_csrf = {"X-CSRF-Token": student_login["csrfToken"]}
+    shortage = client.post("/api/v1/assessments/start", headers=student_csrf, json={
+        "mode": "mock", "subjectId": "biology", "blueprintId": shortage_blueprint["id"],
+    })
+    assert shortage.status_code == 409 and shortage.json()["error"]["code"] == "question_pool_shortage"
+    started = client.post("/api/v1/assessments/start", headers=student_csrf, json={
+        "mode": "mock", "subjectId": "biology", "blueprintId": blueprint.json()["id"],
+    })
+    assert started.status_code == 201, started.text
+    exam = started.json(); frozen = exam["questions"][0]
+    assert frozen["rubric"] is None and exam["feedbackVisible"] is False
+    assert client.post("/api/v1/assessments/start", headers=student_csrf, json={
+        "mode": "practice", "subjectId": "biology",
+    }).status_code == 409
+    source_question = session.get(OfficialQuestionVersion, uuid.UUID(frozen["id"]))
+    assert source_question is None  # Public IDs identify frozen snapshots, not source questions.
+    snapshot_row = session.get(AssessmentQuestion, uuid.UUID(frozen["id"]))
+    original_prompt = snapshot_row.prompt
+    session.get(OfficialQuestionVersion, snapshot_row.source_question_version_id).prompt = "Edited after start"
+    session.commit()
+    assert client.get("/api/v1/assessments").json()["assessments"][0]["questions"][0]["prompt"] == original_prompt
+    save_payload = {"questionId": frozen["id"], "answer": "Cell membrane", "idempotencyKey": "save-answer-0001"}
+    arbitrary = client.post(f"/api/v1/assessments/{exam['id']}/answers", headers=student_csrf, json={
+        "questionId": second_question["questionId"], "answer": "client-selected", "idempotencyKey": "bad-answer-0001"})
+    assert arbitrary.status_code == 404
+    first_save = client.post(f"/api/v1/assessments/{exam['id']}/answers", headers=student_csrf, json=save_payload)
+    retry_save = client.post(f"/api/v1/assessments/{exam['id']}/answers", headers=student_csrf, json=save_payload)
+    assert first_save.json()["questions"][0]["saveRevision"] == retry_save.json()["questions"][0]["saveRevision"] == 1
+    submitted = client.post(f"/api/v1/assessments/{exam['id']}/submit", headers=student_csrf,
+        json={"idempotencyKey": "submit-exam-0001"})
+    repeated = client.post(f"/api/v1/assessments/{exam['id']}/submit", headers=student_csrf,
+        json={"idempotencyKey": "submit-exam-0001"})
+    assert submitted.status_code == repeated.status_code == 200
+    assert submitted.json()["feedbackVisible"] is True and submitted.json()["questions"][0]["rubric"] is not None
+
+    official = client.post("/api/v1/assessments/start", headers=student_csrf, json={
+        "mode": "official_paper", "subjectId": "biology", "paperId": paper_id,
+    })
+    assert official.status_code == 201 and len(official.json()["questions"]) == 2
+    official_row = session.get(Assessment, uuid.UUID(official.json()["id"]))
+    official_row.ends_at = datetime.now(timezone.utc) - timedelta(seconds=1); session.commit()
+    late_save = client.post(f"/api/v1/assessments/{official.json()['id']}/answers", headers=student_csrf, json={
+        "questionId": official.json()["questions"][0]["id"], "answer": "late edit", "idempotencyKey": "late-answer-0001"})
+    assert late_save.status_code == 409
+    expired_submit = client.post(f"/api/v1/assessments/{official.json()['id']}/submit", headers=student_csrf,
+        json={"idempotencyKey": "submit-late-0001"})
+    assert expired_submit.status_code == 200 and expired_submit.json()["status"] == "expired"
+    assert expired_submit.json()["feedbackVisible"] is True
+    practice = client.post("/api/v1/assessments/start", headers=student_csrf, json={
+        "mode": "practice", "subjectId": "biology",
+    })
+    assert practice.status_code == 201 and len(practice.json()["questions"]) == 1

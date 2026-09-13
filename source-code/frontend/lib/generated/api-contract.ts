@@ -5,6 +5,14 @@ export interface Schemas {
   "AIAccountWriteRequest": { "name": string; "credentialAlias": string; "priority": number; "model": string; "enabled"?: boolean; };
   "AccountResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
   "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
+  "AnswerSave": { "questionId": string; "answer"?: string; "fileId"?: string | null; "idempotencyKey": string; };
+  "AssessmentListResponse": { "assessments": Array<Schemas["AssessmentResponse"]>; };
+  "AssessmentMode": "practice" | "official_paper" | "mock";
+  "AssessmentQuestionResponse": { "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "sourceLocations": Array<unknown>; "unitIds": Array<unknown>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; };
+  "AssessmentResponse": { "id": string; "studentId": string; "subjectId": string; "mode": string; "status": string; "title": string; "targetMarks": number; "durationMinutes": number; "startedAt": string; "endsAt": string; "submittedAt": string | null; "skills": Array<unknown>; "difficultyProfile": { [key: string]: unknown; }; "feedbackVisible": boolean; "questions": Array<Schemas["AssessmentQuestionResponse"]>; };
+  "AssessmentStart": { "mode": Schemas["AssessmentMode"]; "subjectId": string; "blueprintId"?: string | null; "paperId"?: string | null; };
+  "BlueprintCreate": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; };
+  "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
   "CourseResponse": { "id": string; "name": string; "phase1Active": boolean; };
@@ -34,7 +42,7 @@ export interface Schemas {
   "PlanPeriod": { "grade": number; "term": number; "unitIds"?: Array<string>; };
   "PlanUnitResponse": { "id": string; "code": string; "title": string; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
-  "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; };
+  "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "assessmentBlueprints"?: Array<{ [key: string]: unknown; }>; "officialPapers"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; };
   "ProgressionPairResponse": { "grade": string; "term": string; };
   "ProgressionResponse": { "grade": string; "term": string; };
   "PublishOfficialMaterialRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmSourcePaper"?: boolean; "confirmComplete": boolean; };
@@ -55,6 +63,7 @@ export interface Schemas {
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
   "SubjectPresentationResponse": { "id": string; "name": string; "symbol": string; "color": string; "topic": string; "topics": Array<string>; "course": string; };
   "SubjectResponse": { "id": string; "name": string; };
+  "SubmissionRequest": { "idempotencyKey": string; };
   "TextbookReviewResponse": { "versionNumber": number; "status": string; "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
   "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
   "UiFeaturesResponse": { "allowed": true; "user": Schemas["UiFeaturesUserResponse"]; };
@@ -77,6 +86,13 @@ export interface ApiOperations {
   "GET /api/v1/admin/students/{student_id}/coverage": { request: unknown; response: Schemas["CoverageDiagnosticResponse"] };
   "GET /api/v1/admin/students/{student_id}/question-pool": { request: unknown; response: Schemas["QuestionPoolDiagnosticResponse"] };
   "GET /api/v1/admin/ui-features": { request: unknown; response: Schemas["UiFeaturesResponse"] };
+  "GET /api/v1/assessments": { request: unknown; response: Schemas["AssessmentListResponse"] };
+  "POST /api/v1/assessments/admin/blueprints": { request: Schemas["BlueprintCreate"]; response: Schemas["BlueprintResponse"] };
+  "GET /api/v1/assessments/blueprints": { request: unknown; response: Array<Schemas["BlueprintResponse"]> };
+  "POST /api/v1/assessments/start": { request: Schemas["AssessmentStart"]; response: Schemas["AssessmentResponse"] };
+  "POST /api/v1/assessments/{assessment_id}/answers": { request: Schemas["AnswerSave"]; response: Schemas["AssessmentResponse"] };
+  "GET /api/v1/assessments/{assessment_id}/assets/{asset_id}": { request: unknown; response: unknown };
+  "POST /api/v1/assessments/{assessment_id}/submit": { request: Schemas["SubmissionRequest"]; response: Schemas["AssessmentResponse"] };
   "POST /api/v1/auth/change-password": { request: Schemas["ChangePasswordRequest"]; response: unknown };
   "POST /api/v1/auth/login": { request: Schemas["LoginRequest"]; response: Schemas["LoginResponse"] };
   "POST /api/v1/auth/logout": { request: unknown; response: unknown };
