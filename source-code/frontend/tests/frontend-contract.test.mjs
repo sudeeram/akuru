@@ -99,3 +99,11 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.doesNotMatch(admin, /api\('documents\/review'/);
   assert.match(admin, /Its write API is not implemented yet/);
 });
+
+test('admin manages OpenAI aliases and priorities without receiving keys', () => {
+  assert.match(page, /OpenAI accounts/);
+  assert.match(admin, /admin\/ai-accounts/);
+  assert.match(admin, /Priorities must be unique/);
+  assert.match(admin, /Credential configured/);
+  assert.doesNotMatch(admin, /openai_account_keys|API_KEY|sk-/);
+});

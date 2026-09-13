@@ -21,6 +21,7 @@ The default is safe and makes no provider call:
 AKURU_AI_PROVIDER=disabled
 AKURU_OPENAI_API_KEY=
 AKURU_OPENAI_MODEL=
+AKURU_OPENAI_ACCOUNT_KEYS={}
 ```
 
 To use OpenAI locally, copy `.env.example` to the ignored backend `.env`, then set:
@@ -33,13 +34,23 @@ AKURU_OPENAI_MODEL=your-approved-model-id
 
 Keep the key only in `backend/.env`. Never prefix it with `VITE_`, return it through an API, commit it, put it in frontend storage or log the settings object. Tests use `FakeAIProvider` and never need a key or paid call.
 
+For ordered account routing, keep a JSON alias-to-key map in the same ignored dotenv file:
+
+```dotenv
+AKURU_OPENAI_ACCOUNT_KEYS='{"HOME":"sk-...","BACKUP":"sk-..."}'
+```
+
+In **OpenAI accounts** in the Admin portal, create rows using aliases `HOME` and `BACKUP`, assign each a unique priority from 0–100, and use the same model for accounts that should fail over to one another. The lowest priority number is attempted first. PostgreSQL stores aliases and operational health only; API responses report `credentialConfigured` without returning a key.
+
+Account switching occurs only between complete requests. A failed partial response is discarded, and the next account receives the identical request object, prompt version, schema and selected source pages. This can add retry latency and may lose project-specific prompt caching, but it does not change AKURU's curriculum context. Attempts share one operation ID and are recorded in `ai_provider_attempts`.
+
 Timeout, retry, concurrency, page, text, image and output-token ceilings are configurable with the `AKURU_AI_*` settings documented in `.env.example`. These bound request cost and resource use. Configure OpenAI project budgets and alerts as the account-wide monetary backstop.
 
 ## Production secrets
 
-Store the key in OCI Vault as a secret. At deployment, grant only the AKURU backend service identity permission to read that secret and inject its current value into the backend process environment as `AKURU_OPENAI_API_KEY`. Do not grant the web server, frontend build, Redis worker users unrelated to AI work, or database users access to the vault secret. Rotate the vault secret and restart the backend/AI workers without rebuilding frontend assets.
+Keep production keys in a dotenv file readable only by the AKURU backend service account and inject that file into the backend/AI worker process. Do not grant the frontend build, web assets, database users or unrelated operating-system users access. Rotate a key in the dotenv file and restart the backend/AI workers without rebuilding frontend assets.
 
-The Ubuntu playbook creates infrastructure and application services; it must not contain an API key. A later deployment step can add a Vault retrieval unit or OCI SDK integration after the server identity and Vault OCIDs are known.
+The Ubuntu playbook creates infrastructure and application services; its committed files must not contain API keys.
 
 ## Adding a workflow
 

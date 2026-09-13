@@ -26,6 +26,19 @@ type Props = {
   refresh: () => Promise<void>;
   notify: (s: string) => void;
 };
+type AIAccount = {
+  name: string;
+  credentialAlias: string;
+  priority: number;
+  model: string;
+  enabled: boolean;
+  credentialConfigured: boolean;
+  healthStatus: string;
+  cooldownUntil?: string | null;
+  lastErrorCode?: string | null;
+  lastSuccessAt?: string | null;
+  lastFailureAt?: string | null;
+};
 const options = (items: string[]) =>
   items.map((value) => ({ value, label: value }));
 function Field({
@@ -299,6 +312,7 @@ export function AdminWorkspace(p: Props) {
             units: 'Textbook units',
             coverage: 'Grade & term coverage',
             questions: 'Question mapping',
+            'ai-accounts': 'OpenAI account routing',
           }[p.view] || 'Administration'
         }
       >
@@ -514,6 +528,7 @@ export function AdminWorkspace(p: Props) {
             </section>
           </>
         )}
+        {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
         {p.view === 'library' && (
           <>
             <section className="panel stack">
@@ -959,6 +974,125 @@ export function AdminWorkspace(p: Props) {
           </>
         )}
       </fieldset>
+    </>
+  );
+}
+
+function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {
+  const [accounts, setAccounts] = useState<AIAccount[]>([]);
+  const [name, setName] = useState('');
+  const [credentialAlias, setCredentialAlias] = useState('');
+  const [priority, setPriority] = useState('0');
+  const [model, setModel] = useState('');
+  const [enabled, setEnabled] = useState(true);
+  const [editingAlias, setEditingAlias] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function load() {
+    const result = (await api('admin/ai-accounts')) as AIAccount[];
+    setAccounts(result);
+  }
+  useEffect(() => {
+    let active = true;
+    void api('admin/ai-accounts')
+      .then((result) => {
+        if (active) setAccounts(result as AIAccount[]);
+      })
+      .catch((cause) => {
+        if (active) setError(errorMessage(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+  function edit(account: AIAccount) {
+    setEditingAlias(account.credentialAlias);
+    setName(account.name);
+    setCredentialAlias(account.credentialAlias);
+    setPriority(String(account.priority));
+    setModel(account.model);
+    setEnabled(account.enabled);
+    setError('');
+  }
+  function clear() {
+    setEditingAlias('');
+    setName('');
+    setCredentialAlias('');
+    setPriority('0');
+    setModel('');
+    setEnabled(true);
+  }
+  return (
+    <>
+      {error && <div className="error" role="alert">{error}</div>}
+      <section className="panel stack">
+        <h2>{editingAlias ? `Edit ${name}` : 'Add an OpenAI account'}</h2>
+        <p>
+          Add the key to the backend dotenv JSON map first. AKURU stores only its alias.
+          Priorities must be unique; the lowest number is selected first.
+        </p>
+        <form
+          className="stack"
+          onSubmit={(event) => {
+            event.preventDefault();
+            setBusy(true);
+            setError('');
+            void api(
+              editingAlias ? `admin/ai-accounts/${editingAlias}` : 'admin/ai-accounts',
+              { name, credentialAlias, priority: Number(priority), model, enabled },
+            )
+              .then(load)
+              .then(() => {
+                notify(editingAlias ? 'OpenAI account updated.' : 'OpenAI account added.');
+                clear();
+              })
+              .catch((cause) => setError(errorMessage(cause)))
+              .finally(() => setBusy(false));
+          }}
+        >
+          <Field label="Account name" value={name} onChange={setName} />
+          <Field
+            label="Credential alias"
+            value={credentialAlias}
+            onChange={setCredentialAlias}
+          />
+          <Field label="Priority (0–100)" value={priority} onChange={setPriority} type="number" />
+          <Field label="OpenAI model" value={model} onChange={setModel} />
+          <label className="check-label" htmlFor="ai-account-enabled">
+            <Checkbox id="ai-account-enabled" checked={enabled} onCheckedChange={(value) => setEnabled(Boolean(value))} />
+            Enabled for new AI operations
+          </label>
+          <div className="button-row">
+            <Button className="primary" type="submit" disabled={busy}>
+              {editingAlias ? 'Save account' : 'Add account'}
+            </Button>
+            {editingAlias && <Button type="button" variant="outline" onClick={clear}>Cancel edit</Button>}
+          </div>
+        </form>
+      </section>
+      <div className="learner-grid spaced">
+        {accounts.map((account) => (
+          <section className="panel stack" key={account.credentialAlias}>
+            <div className="spread">
+              <h3>{account.name}</h3>
+              <strong>Priority {account.priority}</strong>
+            </div>
+            <p>{account.credentialAlias} · {account.model}</p>
+            <p>
+              {account.enabled ? 'Enabled' : 'Disabled'} · {account.healthStatus.replaceAll('_', ' ')} ·{' '}
+              {account.credentialConfigured ? 'Credential configured' : 'Credential missing'}
+            </p>
+            {account.lastErrorCode && <p>Last error: {account.lastErrorCode.replaceAll('_', ' ')}</p>}
+            <Button variant="outline" onClick={() => edit(account)}>Edit configuration</Button>
+          </section>
+        ))}
+      </div>
+      {!accounts.length && (
+        <Empty title="No OpenAI accounts configured">
+          Add credential aliases to the backend dotenv, then create the first account here.
+        </Empty>
+      )}
     </>
   );
 }

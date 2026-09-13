@@ -13,9 +13,15 @@ AI_PURPOSES = frozenset({
 class AIProviderError(RuntimeError):
     """A safe provider failure that callers may record without leaking source content."""
 
-    def __init__(self, code: str, message: str):
+    def __init__(
+        self, code: str, message: str, *, failover_allowed: bool = False,
+        disable_account: bool = False, cooldown_seconds: int | None = None,
+    ):
         super().__init__(message)
         self.code = code
+        self.failover_allowed = failover_allowed
+        self.disable_account = disable_account
+        self.cooldown_seconds = cooldown_seconds
 
 
 @dataclass(frozen=True)

@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     ai_provider: str = "disabled"
     openai_api_key: SecretStr | None = Field(default=None, repr=False)
     openai_model: str | None = None
+    openai_account_keys: dict[str, SecretStr] = Field(default_factory=dict, repr=False)
     ai_timeout_seconds: float = Field(default=45, ge=5, le=180)
     ai_max_retries: int = Field(default=2, ge=0, le=3)
     ai_max_concurrency: int = Field(default=2, ge=1, le=16)
@@ -60,6 +61,10 @@ class Settings(BaseSettings):
                 "AKURU_OPENAI_API_KEY and AKURU_OPENAI_MODEL are required when AKURU_AI_PROVIDER=openai"
             )
         return self
+
+    def openai_account_key(self, alias: str) -> str | None:
+        secret = self.openai_account_keys.get(alias.upper())
+        return secret.get_secret_value() if secret else None
 
     @property
     def database_url(self) -> URL:

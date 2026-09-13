@@ -78,3 +78,19 @@ units 2 and 3 is excluded. Missing material never triggers a full-syllabus fallb
 Full papers, marking schemes and examiner reports stay in the Admin library.
 Students practise eligible questions. Approved textbooks and reference resources
 are visible to families enrolled in that subject.
+
+7. CONFIGURE OPENAI ACCOUNTS
+
+Ask the server administrator to add each OpenAI key to the backend-only
+AKURU_OPENAI_ACCOUNT_KEYS JSON map. Do not paste API keys into the portal.
+
+Open OpenAI accounts in the Admin navigation. Add a friendly name, the exact
+credential alias from the dotenv map, a model and a unique priority from 0 to
+100. The lowest number is tried first. Accounts intended to back up one another
+must use the same model. The portal shows whether a credential alias is
+configured, but it never displays its key.
+
+Disable an account to stop new work from using it. Editing and saving an account
+resets its recorded health so AKURU can try it again after credit is added or a
+configuration problem is corrected. A failover restarts one complete AI request
+and can take longer, but it uses the same prompt, schema and curriculum context.

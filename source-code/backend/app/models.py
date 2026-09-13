@@ -387,15 +387,54 @@ class AIInvocation(Base):
         CheckConstraint("status IN ('processing','completed','failed')", name="ck_ai_invocations_status"),
         CheckConstraint("attempt_count >= 0", name="ck_ai_invocations_attempt_count"),
         CheckConstraint("latency_ms IS NULL OR latency_ms >= 0", name="ck_ai_invocations_latency"),
+        CheckConstraint("input_tokens IS NULL OR input_tokens >= 0", name="ck_ai_invocations_input_tokens"),
+        CheckConstraint("output_tokens IS NULL OR output_tokens >= 0", name="ck_ai_invocations_output_tokens"),
+        CheckConstraint("total_tokens IS NULL OR total_tokens >= 0", name="ck_ai_invocations_total_tokens"),
+    )
+
+
+class AIProviderAccount(TimestampMixin, Base):
+    __tablename__ = "ai_provider_accounts"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    display_name: Mapped[str] = mapped_column(String(120), unique=True)
+    credential_alias: Mapped[str] = mapped_column(String(40), unique=True)
+    priority: Mapped[int] = mapped_column(Integer, unique=True)
+    model: Mapped[str] = mapped_column(String(120))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    health_status: Mapped[str] = mapped_column(String(24), default="unknown", server_default="unknown")
+    cooldown_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error_code: Mapped[str | None] = mapped_column(String(80))
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_failure_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("priority BETWEEN 0 AND 100", name="ck_ai_provider_accounts_priority"),
         CheckConstraint(
-            "input_tokens IS NULL OR input_tokens >= 0", name="ck_ai_invocations_input_tokens"
+            "health_status IN ('unknown','available','cooldown','credit_exhausted','invalid_credential')",
+            name="ck_ai_provider_accounts_health",
         ),
-        CheckConstraint(
-            "output_tokens IS NULL OR output_tokens >= 0", name="ck_ai_invocations_output_tokens"
-        ),
-        CheckConstraint(
-            "total_tokens IS NULL OR total_tokens >= 0", name="ck_ai_invocations_total_tokens"
-        ),
+    )
+
+
+class AIProviderAttempt(Base):
+    __tablename__ = "ai_provider_attempts"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    operation_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    account_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("ai_provider_accounts.id", ondelete="RESTRICT"), index=True
+    )
+    attempt_number: Mapped[int] = mapped_column(Integer)
+    purpose: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(24))
+    response_id: Mapped[str | None] = mapped_column(String(120))
+    error_code: Mapped[str | None] = mapped_column(String(80))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("attempt_number > 0", name="ck_ai_provider_attempts_number"),
+        CheckConstraint("status IN ('processing','completed','failed')", name="ck_ai_provider_attempts_status"),
+        UniqueConstraint("operation_id", "attempt_number", name="uq_ai_provider_attempt_operation_number"),
     )
 
 

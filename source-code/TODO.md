@@ -90,6 +90,26 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Done when:** No provider secret reaches the frontend or logs, malformed AI output fails safely, and tests run without external calls.
 
+## Step 5A — Add ordered OpenAI account routing
+
+**Goal:** Let Admin configure an ordered pool of backend-only OpenAI credentials and continue work when a preferred account is temporarily unavailable or has exhausted prepaid credit.
+
+- [x] Store account name, credential alias, unique priority (0–100), model, enabled state and health in PostgreSQL without storing keys.
+- [x] Resolve credential aliases from `AKURU_OPENAI_ACCOUNT_KEYS` in the backend dotenv file.
+- [x] Build authenticated Admin list, create and update APIs without returning secrets or internal IDs.
+- [x] Add an Admin portal screen for priority, model, enabled state and sanitized health information.
+- [x] Route each complete AI operation through enabled accounts in ascending priority order.
+- [x] Retry only a failed complete operation; never combine partial results from two accounts.
+- [x] Fail over after exhausted credit or bounded transient failures and preserve one logical operation ID.
+- [x] Disable invalid credentials and use cooldowns for temporary failures.
+- [x] Require the same requested model and prompt/schema/context across attempts.
+- [x] Record every provider attempt and selected account without secrets or source content.
+- [x] Add deterministic tests for ordering, failover, uniqueness, authorization and secret isolation.
+
+**Architecture decision:** Account configuration is database-managed, while keys remain in dotenv. The database stores a credential alias that resolves against a JSON map such as `AKURU_OPENAI_ACCOUNT_KEYS='{"HOME":"sk-..."}'`. Account switching occurs between complete Responses API calls and may add latency or lose project-specific prompt caching, but it must not change curriculum inputs or accepted output schemas.
+
+**Done when:** Admin can safely manage unique priorities, the router selects the first healthy configured account, failover produces one validated result, and no credential appears in an API response, database row or log.
+
 ## Step 6 — Extract and approve textbooks
 
 **Goal:** Turn each textbook into the reviewed unit vocabulary for its subject.

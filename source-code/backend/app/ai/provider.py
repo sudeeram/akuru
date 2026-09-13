@@ -3,13 +3,13 @@ import time
 from threading import BoundedSemaphore
 from typing import Any
 
-from openai import APIConnectionError, APITimeoutError, InternalServerError, OpenAI, RateLimitError
+from openai import APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, OpenAI, RateLimitError
 from pydantic import ValidationError
 
 from app.ai.base import AIProviderError, AIRequest, AIResult, AIUsage, AI_PURPOSES
 
 
-_TRANSIENT = (APIConnectionError, APITimeoutError, InternalServerError, RateLimitError)
+_TRANSIENT = (APIConnectionError, APITimeoutError, InternalServerError)
 
 
 class OpenAIProvider:
@@ -85,6 +85,25 @@ class OpenAIProvider:
                     )
                 except AIProviderError:
                     raise
+                except AuthenticationError as exc:
+                    raise AIProviderError(
+                        "invalid_credential", "The provider credential is invalid.",
+                        failover_allowed=True, disable_account=True,
+                    ) from exc
+                except RateLimitError as exc:
+                    body = exc.body if isinstance(exc.body, dict) else {}
+                    code = body.get("code") or (
+                        body.get("error", {}).get("code") if isinstance(body.get("error"), dict) else None
+                    )
+                    if code == "credit_balance_exhausted":
+                        raise AIProviderError(
+                            "credit_balance_exhausted", "The provider account has exhausted its credit.",
+                            failover_allowed=True,
+                        ) from exc
+                    last_error = exc
+                    if attempts > self.max_retries:
+                        break
+                    time.sleep(min(0.25 * (2 ** (attempts - 1)), 1.0))
                 except _TRANSIENT as exc:
                     last_error = exc
                     if attempts > self.max_retries:
@@ -92,7 +111,10 @@ class OpenAIProvider:
                     time.sleep(min(0.25 * (2 ** (attempts - 1)), 1.0))
                 except Exception as exc:
                     raise AIProviderError("ai_provider_error", "The AI provider request failed.") from exc
-        raise AIProviderError("ai_provider_unavailable", "The AI provider is temporarily unavailable.") from last_error
+        raise AIProviderError(
+            "ai_provider_unavailable", "The AI provider is temporarily unavailable.",
+            failover_allowed=True, cooldown_seconds=60,
+        ) from last_error
 
     def _validate(self, request: AIRequest) -> None:
         if request.purpose not in AI_PURPOSES:

@@ -31,5 +31,24 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_TESSERACT_COMMAND` | No | Tesseract executable name or absolute path; default `tesseract`. |
 | `AKURU_OCI_OBJECT_NAMESPACE` | OCI | OCI Object Storage namespace. |
 | `AKURU_OCI_OBJECT_BUCKET` | OCI | Private bucket dedicated to AKURU documents. |
+| `AKURU_AI_PROVIDER` | No | Single-provider compatibility mode: `disabled`, `fake` or `openai`; default `disabled`. |
+| `AKURU_OPENAI_API_KEY` | Single-provider mode | One backend-only OpenAI key. Prefer the account pool for production. |
+| `AKURU_OPENAI_MODEL` | Single-provider mode | Model for the single-provider compatibility configuration. |
+| `AKURU_OPENAI_ACCOUNT_KEYS` | Account pool | JSON map from Admin-managed aliases to backend-only OpenAI keys. |
+| `AKURU_AI_TIMEOUT_SECONDS` | No | Timeout for a complete provider request; default `45`. |
+| `AKURU_AI_MAX_RETRIES` | No | Bounded retries within one account; default `2`, maximum `3`. |
+| `AKURU_AI_MAX_CONCURRENCY` | No | Concurrent requests allowed per provider client; default `2`. |
+| `AKURU_AI_MAX_PAGES_PER_REQUEST` | No | Maximum selected source pages in one AI request; default `8`. |
+| `AKURU_AI_MAX_INPUT_CHARACTERS` | No | Maximum source/task text characters; default `80000`. |
+| `AKURU_AI_MAX_IMAGE_BYTES` | No | Maximum decoded image bytes in one request; default `20971520`. |
+| `AKURU_AI_MAX_OUTPUT_TOKENS` | No | Responses API output ceiling; default `4000`. |
 
-Production credentials belong in OCI Vault and should be injected into the backend and worker processes at deployment time. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production. OpenAI settings will be added when that roadmap step is implemented.
+Protect the production dotenv file with operating-system permissions so only the AKURU backend service account can read it. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production.
+
+Example account pool:
+
+```dotenv
+AKURU_OPENAI_ACCOUNT_KEYS='{"HOME":"sk-...","BACKUP":"sk-..."}'
+```
+
+The names are aliases, not account IDs. Add the same aliases in the Admin portal and assign unique priorities from 0–100. Changing priority never requires changing the dotenv file.

@@ -122,6 +122,40 @@ def test_rejects_untrusted_origins(auth_client) -> None:
 
 
 @pytest.mark.integration
+def test_admin_manages_openai_account_priorities_without_exposing_secrets(auth_client) -> None:
+    client, username, password = auth_client
+    assert client.get("/api/v1/admin/ai-accounts").status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    created = client.post("/api/v1/admin/ai-accounts", headers=headers, json={
+        "name": "Primary project", "credentialAlias": "PRIMARY_TEST",
+        "priority": 7, "model": "test-model", "enabled": True,
+    })
+    assert created.status_code == 201
+    assert created.json() == {
+        "name": "Primary project", "credentialAlias": "PRIMARY_TEST", "priority": 7,
+        "model": "test-model", "enabled": True, "credentialConfigured": False,
+        "healthStatus": "unknown", "cooldownUntil": None, "lastErrorCode": None,
+        "lastSuccessAt": None, "lastFailureAt": None,
+    }
+    assert "key" not in str(created.json()).lower()
+    conflict = client.post("/api/v1/admin/ai-accounts", headers=headers, json={
+        "name": "Backup project", "credentialAlias": "BACKUP_TEST",
+        "priority": 7, "model": "test-model", "enabled": True,
+    })
+    assert conflict.status_code == 409
+    assert conflict.json()["error"]["code"] == "ai_account_conflict"
+    updated = client.post("/api/v1/admin/ai-accounts/PRIMARY_TEST", headers=headers, json={
+        "name": "Primary project", "credentialAlias": "PRIMARY_TEST",
+        "priority": 2, "model": "test-model", "enabled": False,
+    })
+    assert updated.status_code == 200
+    listed = client.get("/api/v1/admin/ai-accounts")
+    assert listed.status_code == 200
+    assert any(row["priority"] == 2 and not row["enabled"] for row in listed.json())
+
+
+@pytest.mark.integration
 def test_admin_creates_parent_and_student_with_scoped_state(auth_client) -> None:
     client, admin_username, admin_password = auth_client
     login = client.post("/api/v1/auth/login", json={"username": admin_username, "password": admin_password}).json()

@@ -18,6 +18,7 @@ import {
   Users,
   ShieldCheck,
   Palette,
+  KeyRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,7 @@ const adminNav = [
   ['units', 'Textbook units', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
   ['questions', 'Question mapping', ClipboardCheck],
+  ['ai-accounts', 'OpenAI accounts', KeyRound],
 ] as const;
 export default function Portal() {
   const [data, setData] = useState<State | null>(null),
