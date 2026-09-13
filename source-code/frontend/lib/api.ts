@@ -264,6 +264,36 @@ export type Doc = {
   processingProgress?: number;
   processingError?: string | null;
 };
+export type ExtractionBlock = {
+  sequenceNumber: number;
+  kind: string;
+  text: string;
+  latex?: string | null;
+  boundingBox: Record<string, number>;
+  method: string;
+  confidence: number;
+  needsReview: boolean;
+  sourceAssetId?: string | null;
+  metadata: Record<string, unknown>;
+};
+export type ExtractionPage = {
+  pageNumber: number;
+  widthPoints: number;
+  heightPoints: number;
+  renderAssetId: string;
+  method: string;
+  confidence: number;
+  needsReview: boolean;
+  metadata: Record<string, unknown>;
+  blocks: ExtractionBlock[];
+};
+export type DocumentExtraction = {
+  status: string;
+  pages: ExtractionPage[];
+};
+export async function getDocumentExtraction(id: string): Promise<DocumentExtraction> {
+  return api(`documents/${id}/extraction`) as Promise<DocumentExtraction>;
+}
 export type Exam = {
   id: string;
   studentId: string;

@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–3 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 1–4 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 ## Implemented boundaries
 
@@ -51,7 +51,7 @@ For OCI or home deployment, use an HTTPS reverse proxy, private database/object 
 
 The implemented storage interface has local-filesystem and OCI adapters. PostgreSQL stores logical documents, immutable versions, derived-asset provenance and append-only events. Original bytes use server-generated private keys and are returned only by an authorized API. See [document storage](document-storage.md) for the endpoint and deployment contract.
 
-The document worker claims queued rows transactionally, records a versioned stage run, and runs untrusted parsing in a spawned subprocess. It enforces a timeout and page limit everywhere, plus an address-space memory limit on the Linux production target. Startup recovery republishes PostgreSQL queued jobs and returns stale processing jobs to the queue. A completed stage with the same input checksum and extraction version is reused instead of duplicated. See [document processing](document-processing.md).
+The document worker claims queued rows transactionally, records a versioned stage run, and runs untrusted parsing in a spawned subprocess. It enforces a timeout and page limit everywhere, plus an address-space memory limit on the Linux production target. Startup recovery republishes PostgreSQL queued jobs and returns stale processing jobs to the queue. A completed stage with the same input checksum and extraction version is reused instead of duplicated. See [document processing](document-processing.md) and [deterministic extraction](document-extraction.md).
 
 ## Identity and permissions
 

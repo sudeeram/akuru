@@ -65,3 +65,37 @@ class DocumentJobResponse(BaseModel):
 class DocumentUploadResponse(BaseModel):
     document: DocumentResponse
     job: DocumentJobResponse
+
+
+class ExtractionBlockResponse(BaseModel):
+    id: str
+    sequenceNumber: int
+    kind: str
+    text: str
+    latex: str | None = None
+    boundingBox: dict
+    method: str
+    confidence: float
+    needsReview: bool
+    sourceAssetId: str | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class ExtractionPageResponse(BaseModel):
+    id: str
+    pageNumber: int
+    widthPoints: float
+    heightPoints: float
+    renderAssetId: str
+    method: str
+    confidence: float
+    needsReview: bool
+    metadata: dict = Field(default_factory=dict)
+    blocks: list[ExtractionBlockResponse] = Field(default_factory=list)
+
+
+class DocumentExtractionResponse(BaseModel):
+    documentId: str
+    versionId: str
+    status: str
+    pages: list[ExtractionPageResponse] = Field(default_factory=list)

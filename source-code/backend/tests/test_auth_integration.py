@@ -1,6 +1,7 @@
 import uuid
 from contextlib import contextmanager
 
+import pymupdf as fitz
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -8,7 +9,8 @@ from sqlalchemy.orm import Session
 from app.database import engine, get_db
 from app.main import app
 from app.models import (
-    AuditEvent, Document, DocumentEvent, DocumentJob, DocumentVersion, StudentProfile,
+    AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
+    DocumentPage, DocumentVersion, StudentProfile,
     StudentProgression, StudentSubject, User,
 )
 from app.security import hash_password
@@ -242,7 +244,12 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
         "year": 2025,
         "publisher": "Test Publisher",
     }
-    content = b"%PDF-1.7\n/Type /Page\nsynthetic integration fixture\n%%EOF"
+    fixture = fitz.open()
+    fixture_page = fixture.new_page()
+    fixture_page.insert_text((72, 72), "BIOLOGY", fontsize=20)
+    fixture_page.insert_text((72, 120), "1. Explain how cells exchange materials.", fontsize=12)
+    content = fixture.tobytes()
+    fixture.close()
     uploaded = client.post("/api/v1/documents", params=params, headers=headers, content=content)
     assert uploaded.status_code == 201, uploaded.text
     upload_payload = uploaded.json()
@@ -298,6 +305,7 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
         )
         assert changed.status_code == 204
         assert parent_client.get(f"/api/v1/documents/{document['id']}/content").status_code == 403
+        assert parent_client.get(f"/api/v1/documents/{document['id']}/extraction").status_code == 403
 
     session: Session = next(app.dependency_overrides[get_db]())
     stored_document = session.get(Document, uuid.UUID(document["id"]))
@@ -343,13 +351,45 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     assert status_response.json()["status"] == "needs_review"
     assert status_response.json()["progress"] == 100
     assert status_response.json()["result"]["pageCount"] == 1
+    extraction = client.get(f"/api/v1/documents/{document['id']}/extraction")
+    assert extraction.status_code == 200
+    extracted_page = extraction.json()["pages"][0]
+    assert extracted_page["pageNumber"] == 1
+    assert extracted_page["blocks"]
+    render = client.get(
+        f"/api/v1/documents/{document['id']}/assets/{extracted_page['renderAssetId']}/content"
+    )
+    assert render.status_code == 200
+    assert render.headers["content-type"] == "image/png"
+    assert render.headers["cache-control"] == "private, no-store"
+    assert session.query(DocumentPage).filter_by(document_version_id=stored_version.id).count() == 1
+    assert session.query(DocumentBlock).filter_by(document_version_id=stored_version.id).count() >= 1
+    assert session.query(DocumentAsset).filter_by(document_version_id=stored_version.id).count() >= 1
+    assert session.query(DocumentEvent).filter_by(
+        document_id=stored_document.id, event_type="extraction_completed"
+    ).count() == 1
+    assert status_response.json()["result"]["blockCount"] >= 2
+    assert session.query(DocumentBlock).filter_by(document_version_id=stored_version.id).count() >= 2
+    assert session.query(DocumentAsset).filter_by(
+        document_version_id=stored_version.id, asset_kind="page_render"
+    ).count() == 1
 
     attempts = stored_job.attempt_count
+    extraction_counts = (
+        session.query(DocumentPage).filter_by(document_version_id=stored_version.id).count(),
+        session.query(DocumentBlock).filter_by(document_version_id=stored_version.id).count(),
+        session.query(DocumentAsset).filter_by(document_version_id=stored_version.id).count(),
+    )
     stored_job.status = "queued"
     stored_version.status = "queued"
     session.commit()
     assert document_processing.process_job(stored_job.id, storage) == "idempotent"
     assert stored_job.attempt_count == attempts
+    assert extraction_counts == (
+        session.query(DocumentPage).filter_by(document_version_id=stored_version.id).count(),
+        session.query(DocumentBlock).filter_by(document_version_id=stored_version.id).count(),
+        session.query(DocumentAsset).filter_by(document_version_id=stored_version.id).count(),
+    )
 
     removed = client.delete(
         f"/api/v1/documents/{document['id']}",

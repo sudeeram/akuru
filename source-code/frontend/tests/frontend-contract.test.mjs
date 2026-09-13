@@ -85,3 +85,12 @@ test('all portal roles receive horizontally scrollable navigation', () => {
   assert.match(styles, /-webkit-overflow-scrolling: touch/);
   assert.doesNotMatch(page, /SidebarProvider|PortalNavigation|app-sidebar/);
 });
+
+test('admin review displays deterministic extraction evidence', () => {
+  assert.match(api, /getDocumentExtraction/);
+  assert.match(api, /documents\/\$\{id\}\/extraction/);
+  assert.match(admin, /Extracted page \{page\.pageNumber\}/);
+  assert.match(admin, /review required/);
+  assert.match(admin, /renderAssetId/);
+  assert.match(admin, /block\.latex/);
+});

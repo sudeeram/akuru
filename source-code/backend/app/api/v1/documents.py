@@ -9,7 +9,8 @@ from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.queue import DocumentQueue, get_document_queue
 from app.schemas.documents import (
-    DocumentJobResponse, DocumentListResponse, DocumentResponse, DocumentType, DocumentUploadResponse,
+    DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
+    DocumentType, DocumentUploadResponse,
 )
 from app.security import Principal
 from app.services import documents
@@ -103,6 +104,31 @@ def download_document(
             "Cache-Control": "private, no-store",
             "X-Content-Type-Options": "nosniff",
         },
+    )
+
+
+@router.get("/{document_id}/extraction", response_model=DocumentExtractionResponse)
+def document_extraction(
+    document_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> DocumentExtractionResponse:
+    return documents.extraction_response(db, document_id)
+
+
+@router.get("/{document_id}/assets/{asset_id}/content")
+def download_document_asset(
+    document_id: uuid.UUID,
+    asset_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)],
+) -> Response:
+    stored = documents.download_asset(db, storage, document_id, asset_id)
+    return Response(
+        content=stored.content,
+        media_type=stored.content_type,
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"},
     )
 
 

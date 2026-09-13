@@ -4,7 +4,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Course, Document, DocumentEvent, DocumentJob, DocumentStageRun, DocumentVersion, Subject,
+    Course, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage,
+    DocumentStageRun, DocumentVersion, Subject,
 )
 
 
@@ -47,6 +48,23 @@ class DocumentRepository:
             DocumentStageRun.stage == stage,
             DocumentStageRun.extraction_version == extraction_version,
         )).scalar_one_or_none()
+
+    def pages_with_blocks(self, version_id: uuid.UUID) -> list[tuple[DocumentPage, list[DocumentBlock]]]:
+        pages = list(self.db.execute(select(DocumentPage).where(
+            DocumentPage.document_version_id == version_id
+        ).order_by(DocumentPage.page_number)).scalars())
+        if not pages:
+            return []
+        blocks = list(self.db.execute(select(DocumentBlock).where(
+            DocumentBlock.page_id.in_([page.id for page in pages])
+        ).order_by(DocumentBlock.page_id, DocumentBlock.sequence_number)).scalars())
+        by_page: dict[uuid.UUID, list[DocumentBlock]] = {page.id: [] for page in pages}
+        for block in blocks:
+            by_page[block.page_id].append(block)
+        return [(page, by_page[page.id]) for page in pages]
+
+    def asset(self, asset_id: uuid.UUID) -> DocumentAsset | None:
+        return self.db.get(DocumentAsset, asset_id)
 
     def checksum_exists(self, checksum: str) -> bool:
         return self.db.execute(select(DocumentVersion.id).where(

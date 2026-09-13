@@ -22,7 +22,7 @@ Phase 1 focuses on iGCSE students in Grades 10 and 11. The supported subjects ar
 | Argon2 authentication, revocable sessions, CSRF, and login throttling | Implemented |
 | Frontend authentication and account administration through FastAPI | Implemented |
 | Remaining frontend-to-FastAPI feature integration | In progress |
-| Automated PDF/OCR/equation/diagram ingestion | Planned |
+| Deterministic PDF/OCR/equation/diagram extraction | Implemented; Admin review required |
 | RAG tutor, AI assessment, and generated media | Planned |
 | Public production release | Blocked on frontend/FastAPI integration and production hardening |
 

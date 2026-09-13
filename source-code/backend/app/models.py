@@ -200,6 +200,79 @@ class DocumentAsset(Base):
     __table_args__ = (
         CheckConstraint("size_bytes > 0", name="ck_document_assets_size"),
         CheckConstraint("page_number IS NULL OR page_number > 0", name="ck_document_assets_page"),
+        UniqueConstraint("id", "document_version_id", name="uq_document_asset_version"),
+    )
+
+
+class DocumentPage(Base):
+    __tablename__ = "document_pages"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    page_number: Mapped[int] = mapped_column(Integer)
+    width_points: Mapped[float] = mapped_column()
+    height_points: Mapped[float] = mapped_column()
+    render_asset_id: Mapped[uuid.UUID] = mapped_column(unique=True)
+    native_text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    extraction_method: Mapped[str] = mapped_column(String(24))
+    confidence: Mapped[float] = mapped_column()
+    needs_review: Mapped[bool] = mapped_column(default=False, server_default="false")
+    page_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("page_number > 0", name="ck_document_pages_number"),
+        CheckConstraint("width_points > 0 AND height_points > 0", name="ck_document_pages_dimensions"),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_document_pages_confidence"),
+        ForeignKeyConstraint(
+            ["render_asset_id", "document_version_id"],
+            ["document_assets.id", "document_assets.document_version_id"],
+            ondelete="RESTRICT",
+            name="fk_document_page_render_asset_version",
+        ),
+        UniqueConstraint("id", "document_version_id", name="uq_document_page_version"),
+        UniqueConstraint("document_version_id", "page_number", name="uq_document_page_number"),
+    )
+
+
+class DocumentBlock(Base):
+    __tablename__ = "document_blocks"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
+    )
+    page_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    sequence_number: Mapped[int] = mapped_column(Integer)
+    block_kind: Mapped[str] = mapped_column(String(32), index=True)
+    text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    latex: Mapped[str | None] = mapped_column(Text)
+    bounding_box: Mapped[dict] = mapped_column(JSON)
+    extraction_method: Mapped[str] = mapped_column(String(24))
+    confidence: Mapped[float] = mapped_column()
+    needs_review: Mapped[bool] = mapped_column(default=False, server_default="false")
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column()
+    block_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("sequence_number > 0", name="ck_document_blocks_sequence"),
+        CheckConstraint(
+            "block_kind IN ('heading','paragraph','table','question','subpart','answer_space','equation','image','diagram')",
+            name="ck_document_blocks_kind",
+        ),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_document_blocks_confidence"),
+        ForeignKeyConstraint(
+            ["page_id", "document_version_id"],
+            ["document_pages.id", "document_pages.document_version_id"],
+            ondelete="CASCADE",
+            name="fk_document_block_page_version",
+        ),
+        ForeignKeyConstraint(
+            ["source_asset_id", "document_version_id"],
+            ["document_assets.id", "document_assets.document_version_id"],
+            ondelete="RESTRICT",
+            name="fk_document_block_source_asset_version",
+        ),
+        UniqueConstraint("page_id", "sequence_number", name="uq_document_block_sequence"),
     )
 
 

@@ -1,0 +1,7 @@
+[
+  {"subject": "Maths", "heading": "ALGEBRA", "body": "1. Solve x² + 3 = 12 [2 marks]", "expected": "equation"},
+  {"subject": "Biology", "heading": "CELLS", "body": "1. Explain how the cell membrane controls movement.", "expected": "question"},
+  {"subject": "ICT", "heading": "NETWORKS", "body": "1. State one advantage of a LAN.", "expected": "question"},
+  {"subject": "English", "heading": "READING", "body": "1. Explain how the writer creates tension.", "expected": "question"},
+  {"subject": "French", "heading": "LECTURE", "body": "1. Expliquez pourquoi Marie aime son école.", "expected": "question"}
+]

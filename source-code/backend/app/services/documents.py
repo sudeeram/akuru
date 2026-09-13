@@ -12,7 +12,10 @@ from app.errors import DomainError
 from app.models import Document, DocumentJob, DocumentVersion
 from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
-from app.schemas.documents import DocumentResponse, DocumentType, DocumentUploadResponse
+from app.schemas.documents import (
+    DocumentExtractionResponse, DocumentResponse, DocumentType, DocumentUploadResponse,
+    ExtractionBlockResponse, ExtractionPageResponse,
+)
 from app.security import Principal, utcnow
 from app.services.document_processing import enqueue_safely, job_response
 from app.storage.base import ObjectStorage, StoredObject
@@ -169,7 +172,7 @@ def upload_document(
     job = DocumentJob(
         document_id=document_id,
         document_version_id=version_id,
-        stage="preflight",
+        stage="deterministic_extraction",
         status="queued",
         progress=0,
         extraction_version=settings.extraction_version,
@@ -252,6 +255,43 @@ def download_document(db: Session, storage: ObjectStorage, document_id: uuid.UUI
         return storage.get(version.object_key, version.mime_type)
     except FileNotFoundError as exc:
         raise DomainError("document_bytes_missing", "The stored document could not be found.", 500) from exc
+
+
+def extraction_response(db: Session, document_id: uuid.UUID) -> DocumentExtractionResponse:
+    document, version = get_document(db, document_id)
+    repository = DocumentRepository(db)
+    pages = []
+    for page, blocks in repository.pages_with_blocks(version.id):
+        pages.append(ExtractionPageResponse(
+            id=str(page.id), pageNumber=page.page_number, widthPoints=page.width_points,
+            heightPoints=page.height_points, renderAssetId=str(page.render_asset_id),
+            method=page.extraction_method, confidence=page.confidence,
+            needsReview=page.needs_review, metadata=page.page_metadata,
+            blocks=[ExtractionBlockResponse(
+                id=str(block.id), sequenceNumber=block.sequence_number, kind=block.block_kind,
+                text=block.text, latex=block.latex, boundingBox=block.bounding_box,
+                method=block.extraction_method, confidence=block.confidence,
+                needsReview=block.needs_review,
+                sourceAssetId=str(block.source_asset_id) if block.source_asset_id else None,
+                metadata=block.block_metadata,
+            ) for block in blocks],
+        ))
+    return DocumentExtractionResponse(
+        documentId=str(document.id), versionId=str(version.id), status=version.status, pages=pages,
+    )
+
+
+def download_asset(
+    db: Session, storage: ObjectStorage, document_id: uuid.UUID, asset_id: uuid.UUID
+) -> StoredObject:
+    _document, version = get_document(db, document_id)
+    asset = DocumentRepository(db).asset(asset_id)
+    if not asset or asset.document_version_id != version.id:
+        raise DomainError("document_asset_not_found", "Document asset not found.", 404)
+    try:
+        return storage.get(asset.object_key, asset.mime_type)
+    except FileNotFoundError as exc:
+        raise DomainError("document_asset_missing", "The extracted asset could not be found.", 500) from exc
 
 
 def remove_document(db: Session, principal: Principal, document_id: uuid.UUID) -> None:

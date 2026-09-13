@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +8,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   api,
   errorMessage,
+  getDocumentExtraction,
   uploadLearningDocument,
+  type DocumentExtraction,
   type State,
   type Student,
 } from '@/lib/api';
@@ -131,6 +134,8 @@ export function AdminWorkspace(p: Props) {
     [explanation, setExplanation] = useState(''),
     [points, setPoints] = useState(''),
     [hints, setHints] = useState('');
+  const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
+  const [extractionError, setExtractionError] = useState('');
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
   const books = p.data.documents.filter(
     (d) =>
@@ -163,6 +168,22 @@ export function AdminWorkspace(p: Props) {
     const timer = window.setInterval(() => void refreshPortal(), 2000);
     return () => window.clearInterval(timer);
   }, [currentView, refreshPortal, processingDocuments]);
+  useEffect(() => {
+    if (currentView !== 'library' || !docId) return;
+    const selected = p.data.documents.find((document) => document.id === docId);
+    if (!selected || !['needs_review', 'completed'].includes(selected.status)) return;
+    let active = true;
+    void getDocumentExtraction(docId)
+      .then((value) => {
+        if (active) setExtraction(value);
+      })
+      .catch((cause) => {
+        if (active) setExtractionError(errorMessage(cause));
+      });
+    return () => {
+      active = false;
+    };
+  }, [currentView, docId, p.data.documents]);
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
     setError('');
@@ -552,6 +573,8 @@ export function AdminWorkspace(p: Props) {
                 value={docId}
                 onChange={(v) => {
                   setDocId(v);
+                  setExtraction(null);
+                  setExtractionError('');
                   setNotes(
                     p.data.documents.find((d) => d.id === v)?.notes || '',
                   );
@@ -571,6 +594,36 @@ export function AdminWorkspace(p: Props) {
                   >
                     Open original document
                   </a>
+                  {extractionError && <p className="error" role="alert">{extractionError}</p>}
+                  {extraction?.pages.map((page) => (
+                    <article className="panel stack" key={`page-${page.pageNumber}`}>
+                      <div className="spread small">
+                        <strong>Extracted page {page.pageNumber}</strong>
+                        <span>
+                          {page.method} · {Math.round(page.confidence * 100)}%
+                          {page.needsReview ? ' · review required' : ''}
+                        </span>
+                      </div>
+                      <Image
+                        src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
+                        alt={`Rendered source page ${page.pageNumber}`}
+                        width={Math.max(1, Math.round(page.widthPoints))}
+                        height={Math.max(1, Math.round(page.heightPoints))}
+                        unoptimized
+                        loading="lazy"
+                        style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
+                      />
+                      {page.blocks.map((block) => (
+                        <div className="small" key={`${page.pageNumber}-${block.sequenceNumber}`}>
+                          <strong>{block.kind}</strong> · {block.method} ·{' '}
+                          {Math.round(block.confidence * 100)}%
+                          {block.needsReview ? ' · review required' : ''}
+                          {block.text && <p>{block.text}</p>}
+                          {block.latex && <code>{block.latex}</code>}
+                        </div>
+                      ))}
+                    </article>
+                  ))}
                   <label htmlFor="admin-review-notes">
                     Review notes
                     <Textarea

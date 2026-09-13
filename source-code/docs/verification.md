@@ -37,6 +37,17 @@
 - Alembic is at revision `73eec4d0d322`; the schema-drift check found no pending model changes.
 - A post-migration backup restored successfully at revision `73eec4d0d322` with 20 public tables; the isolated restore database was removed.
 
+## Step 4 deterministic-extraction verification
+
+- Generated fixtures cover Maths equations, Biology text and raster diagrams, ICT, English, French, standalone images, scanned PDF OCR and vector-only diagrams without including copyrighted Pearson material.
+- PyMuPDF renders each page and stores native text coordinates; Tesseract OCR is exercised locally for scan/image paths with English and French language data. Missing requested language data still produces an explicit review flag.
+- Equation candidates retain deterministic LaTeX and source crops. Embedded image bytes, rendered diagram crops, vector drawing crops and full page renders remain in private storage.
+- PostgreSQL enforces same-document-version relationships between pages, blocks and their source/render assets. Worker integration verifies persistence and idempotent reuse.
+- Authenticated API integration verifies Admin extraction metadata and private page-image retrieval, plus Parent denial.
+- `npm run verify` passed: 8 frontend tests, 29 backend tests, generated-contract check, TypeScript, Oxlint and the production frontend build. Reported warnings come from upstream PyMuPDF SWIG and Starlette/httpx compatibility layers.
+- Alembic is at revision `37308ed3ea42`; the schema-drift check found no pending model changes.
+- A post-migration backup restored successfully at revision `37308ed3ea42` with 22 public tables; the isolated restore database was removed.
+
 Run the local quality gate from `source-code/` with `npm run verify`. Run `npm run database:restore-drill` separately when validating backup recoverability.
 
 ## Automated checks

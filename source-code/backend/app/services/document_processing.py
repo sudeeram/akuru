@@ -1,30 +1,29 @@
 from __future__ import annotations
 
 import multiprocessing
+import hashlib
 import re
 import resource
 import sys
 import uuid
-from dataclasses import dataclass
 from datetime import timedelta
 
-from sqlalchemy import select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.errors import DomainError
-from app.models import DocumentJob, DocumentStageRun, DocumentVersion
+from app.config import get_settings
+from app.models import (
+    DocumentAsset, DocumentBlock, DocumentJob, DocumentPage, DocumentStageRun, DocumentVersion,
+)
 from app.queue import DocumentQueue, QueueUnavailable
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import DocumentJobResponse
 from app.security import utcnow
+from app.services.document_extraction import extract_document
+from app.services.document_processing_types import ProcessingFailure
 from app.storage import ObjectStorage, get_storage
-
-
-@dataclass
-class ProcessingFailure(Exception):
-    code: str
-    message: str
 
 
 def job_response(job: DocumentJob) -> DocumentJobResponse:
@@ -112,12 +111,25 @@ def preflight(content: bytes, mime_type: str, max_pages: int) -> dict:
     return {"pageCount": page_count, "contentType": mime_type}
 
 
-def _isolated_preflight(connection, content: bytes, mime_type: str, max_pages: int, max_memory_mb: int) -> None:
+def _isolated_extraction(
+    connection,
+    content: bytes,
+    mime_type: str,
+    subject_id: str,
+    max_pages: int,
+    max_memory_mb: int,
+    render_dpi: int,
+    ocr_min_characters: int,
+    tesseract_command: str,
+) -> None:
     try:
         if sys.platform.startswith("linux"):
             memory_bytes = max_memory_mb * 1024 * 1024
             resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
-        connection.send(("ok", preflight(content, mime_type, max_pages)))
+        connection.send(("ok", extract_document(
+            content, mime_type, subject_id, max_pages, render_dpi,
+            ocr_min_characters, tesseract_command,
+        )))
     except ProcessingFailure as exc:
         connection.send(("failure", (exc.code, exc.message)))
     except BaseException:
@@ -126,14 +138,25 @@ def _isolated_preflight(connection, content: bytes, mime_type: str, max_pages: i
         connection.close()
 
 
-def run_isolated_preflight(
-    content: bytes, mime_type: str, max_pages: int, max_memory_mb: int, timeout_seconds: int
+def run_isolated_extraction(
+    content: bytes,
+    mime_type: str,
+    subject_id: str,
+    max_pages: int,
+    max_memory_mb: int,
+    timeout_seconds: int,
+    render_dpi: int,
+    ocr_min_characters: int,
+    tesseract_command: str,
 ) -> dict:
     context = multiprocessing.get_context("spawn")
     parent, child = context.Pipe(duplex=False)
     process = context.Process(
-        target=_isolated_preflight,
-        args=(child, content, mime_type, max_pages, max_memory_mb),
+        target=_isolated_extraction,
+        args=(
+            child, content, mime_type, subject_id, max_pages, max_memory_mb,
+            render_dpi, ocr_min_characters, tesseract_command,
+        ),
         daemon=True,
     )
     process.start()
@@ -142,15 +165,101 @@ def run_isolated_preflight(
         process.terminate()
         process.join(5)
         raise ProcessingFailure("processing_timeout", "Document processing exceeded its time limit.")
-    outcome, payload = parent.recv()
+    try:
+        outcome, payload = parent.recv()
+    except EOFError as exc:
+        process.join(5)
+        raise ProcessingFailure(
+            "processing_resource_limit", "Document processing stopped at its configured resource limit."
+        ) from exc
     process.join(5)
     if outcome == "failure":
         raise ProcessingFailure(*payload)
     return payload
 
 
+def _store_asset(
+    db: Session,
+    storage: ObjectStorage,
+    version: DocumentVersion,
+    extraction_version: str,
+    page_number: int,
+    sequence: int,
+    kind: str,
+    mime_type: str,
+    content: bytes,
+    bounding_box: dict | None,
+    metadata: dict | None = None,
+) -> DocumentAsset:
+    digest = hashlib.sha256(content).hexdigest()
+    extension = {"image/png": "png", "image/jpeg": "jpg"}.get(mime_type, "bin")
+    key = (
+        f"derived/{version.id}/{extraction_version}/page-{page_number:04d}/"
+        f"{sequence:04d}-{kind}-{digest[:16]}.{extension}"
+    )
+    storage.put(key, content, mime_type)
+    asset = DocumentAsset(
+        document_version_id=version.id, asset_kind=kind, object_key=key,
+        mime_type=mime_type, sha256=digest, size_bytes=len(content),
+        page_number=page_number, bounding_box=bounding_box,
+        asset_metadata=metadata or {},
+    )
+    db.add(asset)
+    db.flush()
+    return asset
+
+
+def persist_extraction(
+    db: Session,
+    storage: ObjectStorage,
+    version: DocumentVersion,
+    extraction_version: str,
+    extraction: dict,
+) -> dict:
+    page_ids = select(DocumentPage.id).where(DocumentPage.document_version_id == version.id)
+    db.execute(delete(DocumentBlock).where(DocumentBlock.page_id.in_(page_ids)))
+    db.execute(delete(DocumentPage).where(DocumentPage.document_version_id == version.id))
+    db.execute(delete(DocumentAsset).where(DocumentAsset.document_version_id == version.id))
+    db.flush()
+    for page_data in extraction["pages"]:
+        page_number = page_data["pageNumber"]
+        render_asset = _store_asset(
+            db, storage, version, extraction_version, page_number, 0, "page_render",
+            "image/png", page_data["render"], None, {"dpi": extraction["renderDpi"]},
+        )
+        asset_rows = []
+        for index, asset_data in enumerate(page_data["assets"], 1):
+            asset_rows.append(_store_asset(
+                db, storage, version, extraction_version, page_number, index,
+                asset_data["kind"], asset_data["mimeType"], asset_data["content"],
+                asset_data.get("bbox"), {"bboxSpace": asset_data.get("bboxSpace", "pdf_points")},
+            ))
+        page = DocumentPage(
+            document_version_id=version.id, page_number=page_number,
+            width_points=page_data["widthPoints"], height_points=page_data["heightPoints"],
+            render_asset_id=render_asset.id, native_text=page_data["nativeText"],
+            extraction_method=page_data["method"], confidence=page_data["confidence"],
+            needs_review=page_data["needsReview"], page_metadata=page_data["metadata"],
+        )
+        db.add(page)
+        db.flush()
+        for sequence, block_data in enumerate(page_data["blocks"], 1):
+            source_index = block_data.get("sourceAssetIndex")
+            db.add(DocumentBlock(
+                document_version_id=version.id, page_id=page.id, sequence_number=sequence,
+                block_kind=block_data["kind"], text=block_data["text"], latex=block_data["latex"],
+                bounding_box=block_data["bbox"], extraction_method=block_data["method"],
+                confidence=block_data["confidence"], needs_review=block_data["needsReview"],
+                source_asset_id=asset_rows[source_index].id if source_index is not None else None,
+                block_metadata={"bboxSpace": block_data["bboxSpace"]},
+            ))
+    db.flush()
+    return {key: value for key, value in extraction.items() if key != "pages"}
+
+
 def process_job(job_id: uuid.UUID, storage: ObjectStorage | None = None) -> str:
     storage = storage or get_storage()
+    settings = get_settings()
     with SessionLocal() as db:
         repository = DocumentRepository(db)
         job = repository.job(job_id, lock=True)
@@ -202,9 +311,12 @@ def process_job(job_id: uuid.UUID, storage: ObjectStorage | None = None) -> str:
 
         try:
             stored = storage.get(version.object_key, version.mime_type)
-            result = run_isolated_preflight(
-                stored.content, version.mime_type, job.max_pages, job.max_memory_mb, job.max_seconds
+            extraction = run_isolated_extraction(
+                stored.content, version.mime_type, document.subject_id, job.max_pages,
+                job.max_memory_mb, job.max_seconds, settings.document_render_dpi,
+                settings.document_ocr_min_characters, settings.tesseract_command,
             )
+            result = persist_extraction(db, storage, version, job.extraction_version, extraction)
         except (ProcessingFailure, FileNotFoundError) as exc:
             failure = exc if isinstance(exc, ProcessingFailure) else ProcessingFailure(
                 "document_bytes_missing", "The original document bytes could not be found."
@@ -233,7 +345,7 @@ def process_job(job_id: uuid.UUID, storage: ObjectStorage | None = None) -> str:
         stage_run.output_data = result
         stage_run.completed_at = job.completed_at
         repository.add_event(
-            document, version, document.uploaded_by, "preflight_completed",
+            document, version, document.uploaded_by, "extraction_completed",
             {"jobId": str(job.id), **result},
         )
         db.commit()

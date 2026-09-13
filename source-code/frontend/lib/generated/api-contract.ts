@@ -7,6 +7,7 @@ export interface Schemas {
   "ChangePasswordRequest": { "newPassword": string; };
   "CourseResponse": { "id": string; "name": string; "phase1Active": boolean; };
   "CreateAccountRequest": { "username": string; "name": string; "password": string; "role": "parent" | "student"; "parentId"?: string | null; "level"?: "iGCSE" | null; "grade"?: "Grade 10" | "Grade 11" | null; "term"?: "Term1" | "Term2" | "Term3" | null; "progression"?: Array<string>; "subjects"?: Array<string>; };
+  "DocumentExtractionResponse": { "documentId": string; "versionId": string; "status": string; "pages"?: Array<Schemas["ExtractionPageResponse"]>; };
   "DocumentJobResponse": { "id": string; "documentId": string; "documentVersionId": string; "stage": string; "status": string; "progress": number; "attemptCount": number; "extractionVersion": string; "errorCode"?: string | null; "errorMessage"?: string | null; "result"?: { [key: string]: unknown; }; "queuedAt": string; "startedAt"?: string | null; "completedAt"?: string | null; };
   "DocumentListResponse": { "documents": Array<Schemas["DocumentResponse"]>; };
   "DocumentResponse": { "id": string; "kind": Schemas["DocumentType"]; "courseId": string; "subjectId": string; "title": string; "originalFilename": string; "contentType": string; "sizeBytes": number; "checksum": string; "status": string; "edition"?: string | null; "year"?: number | null; "session"?: string | null; "component"?: string | null; "variant"?: string | null; "sourceDocumentId"?: string | null; "sourceMetadata"?: { [key: string]: unknown; }; "versionId": string; "versionNumber": number; "createdAt": string; "removedAt"?: string | null; };
@@ -14,6 +15,8 @@ export interface Schemas {
   "DocumentUploadResponse": { "document": Schemas["DocumentResponse"]; "job": Schemas["DocumentJobResponse"]; };
   "ErrorItem": { "code": string; "message": string; "details"?: Array<{ [key: string]: unknown; }>; };
   "ErrorResponse": { "error": Schemas["ErrorItem"]; };
+  "ExtractionBlockResponse": { "id": string; "sequenceNumber": number; "kind": string; "text": string; "latex"?: string | null; "boundingBox": { [key: string]: unknown; }; "method": string; "confidence": number; "needsReview": boolean; "sourceAssetId"?: string | null; "metadata"?: { [key: string]: unknown; }; };
+  "ExtractionPageResponse": { "id": string; "pageNumber": number; "widthPoints": number; "heightPoints": number; "renderAssetId": string; "method": string; "confidence": number; "needsReview": boolean; "metadata"?: { [key: string]: unknown; }; "blocks"?: Array<Schemas["ExtractionBlockResponse"]>; };
   "LoginRequest": { "username": string; "password": string; };
   "LoginResponse": { "user": Schemas["UserResponse"]; "csrfToken": string; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
@@ -43,7 +46,9 @@ export interface ApiOperations {
   "POST /api/v1/documents": { request: unknown; response: Schemas["DocumentUploadResponse"] };
   "GET /api/v1/documents/{document_id}": { request: unknown; response: Schemas["DocumentResponse"] };
   "DELETE /api/v1/documents/{document_id}": { request: unknown; response: unknown };
+  "GET /api/v1/documents/{document_id}/assets/{asset_id}/content": { request: unknown; response: unknown };
   "GET /api/v1/documents/{document_id}/content": { request: unknown; response: unknown };
+  "GET /api/v1/documents/{document_id}/extraction": { request: unknown; response: Schemas["DocumentExtractionResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/latest": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/{job_id}": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "POST /api/v1/documents/{document_id}/retry": { request: unknown; response: Schemas["DocumentJobResponse"] };

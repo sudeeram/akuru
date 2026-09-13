@@ -15,6 +15,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Database backup and restore](docs/database-backup.md)
 - [Private document storage](backend/docs/document-storage.md)
 - [Asynchronous document processing](backend/docs/document-processing.md)
+- [Deterministic PDF/image extraction](backend/docs/document-extraction.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

@@ -36,7 +36,10 @@ class Settings(BaseSettings):
     document_job_timeout_seconds: int = Field(default=120, ge=5, le=3600)
     document_job_memory_mb: int = Field(default=512, ge=128, le=4096)
     document_max_pages: int = Field(default=500, ge=1, le=2000)
-    extraction_version: str = "preflight-v1"
+    extraction_version: str = "deterministic-v1"
+    document_render_dpi: int = Field(default=180, ge=96, le=300)
+    document_ocr_min_characters: int = Field(default=40, ge=0, le=1000)
+    tesseract_command: str = "tesseract"
 
     @property
     def database_url(self) -> URL:

@@ -29,7 +29,7 @@ Each stage run is unique by document version, stage and extraction version. A co
 
 Preflight executes in a spawned child process rather than the FastAPI or long-running worker process. It enforces `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` and `AKURU_DOCUMENT_MAX_PAGES`. On Linux, including the OCI Ubuntu deployment target, it also applies `AKURU_DOCUMENT_JOB_MEMORY_MB` as an address-space limit. macOS local development retains process and timeout isolation but does not apply the Linux resource limit.
 
-The current `preflight-v1` stage validates that the stored bytes remain available and obtains a bounded page count. Step 4 will add deterministic rendering, native-text extraction, OCR, layout, diagram and equation stages behind the same queue and idempotency contract.
+The `deterministic-v1` stage validates the stored bytes, renders source pages, extracts native text and coordinates, invokes OCR for sparse/scanned pages, and records diagram/equation crops behind the same queue and idempotency contract.
 
 ## Admin API
 

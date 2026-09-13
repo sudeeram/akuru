@@ -236,6 +236,36 @@
         "title": "CreateAccountRequest",
         "type": "object"
       },
+      "DocumentExtractionResponse": {
+        "properties": {
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionPageResponse"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "versionId": {
+            "title": "Versionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentId",
+          "versionId",
+          "status"
+        ],
+        "title": "DocumentExtractionResponse",
+        "type": "object"
+      },
       "DocumentJobResponse": {
         "properties": {
           "attemptCount": {
@@ -576,6 +606,142 @@
           "error"
         ],
         "title": "ErrorResponse",
+        "type": "object"
+      },
+      "ExtractionBlockResponse": {
+        "properties": {
+          "boundingBox": {
+            "additionalProperties": true,
+            "title": "Boundingbox",
+            "type": "object"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "latex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latex"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "boolean"
+          },
+          "sequenceNumber": {
+            "title": "Sequencenumber",
+            "type": "integer"
+          },
+          "sourceAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceassetid"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sequenceNumber",
+          "kind",
+          "text",
+          "boundingBox",
+          "method",
+          "confidence",
+          "needsReview"
+        ],
+        "title": "ExtractionBlockResponse",
+        "type": "object"
+      },
+      "ExtractionPageResponse": {
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/ExtractionBlockResponse"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "heightPoints": {
+            "title": "Heightpoints",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "boolean"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          },
+          "renderAssetId": {
+            "title": "Renderassetid",
+            "type": "string"
+          },
+          "widthPoints": {
+            "title": "Widthpoints",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "pageNumber",
+          "widthPoints",
+          "heightPoints",
+          "renderAssetId",
+          "method",
+          "confidence",
+          "needsReview"
+        ],
+        "title": "ExtractionPageResponse",
         "type": "object"
       },
       "LoginRequest": {
@@ -2313,6 +2479,93 @@
         ]
       }
     },
+    "/api/v1/documents/{document_id}/assets/{asset_id}/content": {
+      "get": {
+        "operationId": "download_document_asset_api_v1_documents__document_id__assets__asset_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Download Document Asset",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/api/v1/documents/{document_id}/content": {
       "get": {
         "operationId": "download_document_api_v1_documents__document_id__content_get",
@@ -2385,6 +2638,85 @@
           }
         },
         "summary": "Download Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/extraction": {
+      "get": {
+        "operationId": "document_extraction_api_v1_documents__document_id__extraction_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Document Extraction",
         "tags": [
           "documents"
         ]

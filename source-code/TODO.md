@@ -61,14 +61,14 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Preserve text, equations, diagrams and source locations before using AI.
 
-- [ ] Render every PDF page at review resolution.
-- [ ] Extract native PDF text and coordinates where available.
-- [ ] Run OCR on scans and image-only regions.
-- [ ] Detect headings, paragraphs, tables, questions, subparts and answer spaces.
-- [ ] Extract embedded images plus diagram and page crops.
-- [ ] Recognize equations; store LaTeX and the original crop.
-- [ ] Store page, bounding box, method and confidence for every block.
-- [ ] Add Maths, Science, ICT, English and French fixtures.
+- [x] Render every PDF page at review resolution.
+- [x] Extract native PDF text and coordinates where available.
+- [x] Run OCR on scans and image-only regions.
+- [x] Detect headings, paragraphs, tables, questions, subparts and answer spaces.
+- [x] Extract embedded images plus diagram and page crops.
+- [x] Recognize equations; store LaTeX and the original crop.
+- [x] Store page, bounding box, method and confidence for every block.
+- [x] Add Maths, Science, ICT, English and French fixtures.
 
 **Done when:** Every block traces to its source, diagram-only questions are retained, and low-confidence OCR/equations are flagged for review.
 
