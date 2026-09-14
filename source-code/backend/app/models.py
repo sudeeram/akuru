@@ -126,6 +126,90 @@ class StudentSubject(TimestampMixin, Base):
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), primary_key=True)
 
 
+class TutorAvatar(TimestampMixin, Base):
+    __tablename__ = "tutor_avatars"
+    code: Mapped[str] = mapped_column(String(40), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(80))
+    description: Mapped[str] = mapped_column(String(240))
+    image_path: Mapped[str] = mapped_column(String(240))
+    presentation: Mapped[str] = mapped_column(String(16))
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    __table_args__ = (
+        CheckConstraint("presentation IN ('masculine','feminine','neutral')", name="ck_tutor_avatar_presentation"),
+        CheckConstraint("sort_order BETWEEN 0 AND 1000", name="ck_tutor_avatar_sort_order"),
+    )
+
+
+class TutorVoicePreset(TimestampMixin, Base):
+    __tablename__ = "tutor_voice_presets"
+    code: Mapped[str] = mapped_column(String(40), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(80))
+    description: Mapped[str] = mapped_column(String(240))
+    provider_voice_ref: Mapped[str | None] = mapped_column(String(80))
+    presentation: Mapped[str] = mapped_column(String(16))
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    __table_args__ = (
+        CheckConstraint("presentation IN ('masculine','feminine','neutral')", name="ck_tutor_voice_presentation"),
+        CheckConstraint("sort_order BETWEEN 0 AND 1000", name="ck_tutor_voice_sort_order"),
+    )
+
+
+class TutorProfile(TimestampMixin, Base):
+    __tablename__ = "tutor_profiles"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(48), unique=True, index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True
+    )
+    current_version_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    __table_args__ = (
+        CheckConstraint("current_version_number > 0", name="ck_tutor_profile_current_version"),
+    )
+
+
+class TutorProfileVersion(Base):
+    __tablename__ = "tutor_profile_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    profile_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("tutor_profiles.id", ondelete="CASCADE"), index=True
+    )
+    version_number: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(60))
+    presentation: Mapped[str] = mapped_column(String(16))
+    avatar_code: Mapped[str] = mapped_column(ForeignKey("tutor_avatars.code", ondelete="RESTRICT"))
+    voice_code: Mapped[str] = mapped_column(ForeignKey("tutor_voice_presets.code", ondelete="RESTRICT"))
+    tone: Mapped[str] = mapped_column(String(16))
+    friendliness: Mapped[str] = mapped_column(String(8))
+    enthusiasm: Mapped[str] = mapped_column(String(8))
+    speed: Mapped[str] = mapped_column(String(8))
+    communication_character: Mapped[str] = mapped_column(String(16))
+    explanation_depth: Mapped[str] = mapped_column(String(16))
+    teaching_style: Mapped[str] = mapped_column(String(20))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_tutor_profile_version_number"),
+        CheckConstraint("presentation IN ('masculine','feminine','neutral')", name="ck_tutor_profile_presentation"),
+        CheckConstraint("tone IN ('calm','encouraging','direct','playful')", name="ck_tutor_profile_tone"),
+        CheckConstraint("friendliness IN ('low','medium','high')", name="ck_tutor_profile_friendliness"),
+        CheckConstraint("enthusiasm IN ('low','medium','high')", name="ck_tutor_profile_enthusiasm"),
+        CheckConstraint("speed IN ('low','medium','high')", name="ck_tutor_profile_speed"),
+        CheckConstraint(
+            "communication_character IN ('childlike','balanced','authoritative')",
+            name="ck_tutor_profile_character",
+        ),
+        CheckConstraint("explanation_depth IN ('concise','standard','detailed')", name="ck_tutor_profile_depth"),
+        CheckConstraint(
+            "teaching_style IN ('guided','socratic','example_led','exam_focused')",
+            name="ck_tutor_profile_teaching_style",
+        ),
+        UniqueConstraint("profile_id", "version_number", name="uq_tutor_profile_version"),
+    )
+
+
 class Document(TimestampMixin, Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

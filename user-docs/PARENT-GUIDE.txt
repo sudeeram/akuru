@@ -62,3 +62,6 @@ Video is not enabled in Phase 1.
 PRIVACY AND DELETION
 
 AKURU keeps answers and learning history only for the configured retention period and removes handwritten working sooner. Ask the administrator if you want a copy of the applicable retention periods or want your child's answer and working artifacts deleted. The administrator must verify the request before applying it. Deletion also ages out of encrypted backups after the backup-retention window.
+YOUR CHILD'S TUTORS
+
+Open Tutors to see the tutor profiles created by each linked child. Tutor choices come from child-safe AKURU avatars, voices and teaching settings, so individual Parent approval is not required. Parent access is read-only and remains separate for each child.

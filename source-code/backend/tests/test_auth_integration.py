@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorProfile, TutorProfileVersion, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -277,6 +277,115 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
     })
     assert response.status_code == 204
     assert client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
+
+
+@pytest.mark.integration
+def test_tutor_profiles_are_versioned_role_scoped_and_use_curated_presets(auth_client) -> None:
+    client, admin_username, admin_password = auth_client
+    session: Session = next(app.dependency_overrides[get_db]())
+    parent = User(username=f"tutor-parent-{uuid.uuid4().hex}", display_name="Tutor Parent", role="parent",
+                  password_hash=hash_password("tutor parent password"), must_change_password=False)
+    other_parent = User(username=f"tutor-other-parent-{uuid.uuid4().hex}", display_name="Other Parent", role="parent",
+                        password_hash=hash_password("other tutor parent password"), must_change_password=False)
+    student = User(username=f"tutor-student-{uuid.uuid4().hex}", display_name="Tutor Student", role="student",
+                   password_hash=hash_password("tutor student password"), must_change_password=False)
+    sibling = User(username=f"tutor-sibling-{uuid.uuid4().hex}", display_name="Tutor Sibling", role="student",
+                   password_hash=hash_password("tutor sibling password"), must_change_password=False)
+    session.add_all([parent, other_parent, student, sibling]); session.flush()
+    session.add_all([
+        StudentProfile(student_id=student.id, parent_id=parent.id),
+        StudentProfile(student_id=sibling.id, parent_id=other_parent.id),
+    ]); session.commit()
+
+    assert client.get("/api/v1/tutoring/options").status_code == 401
+    student_login = client.post("/api/v1/auth/login", json={
+        "username": student.username, "password": "tutor student password",
+    }).json()
+    student_headers = {"X-CSRF-Token": student_login["csrfToken"]}
+    options = client.get("/api/v1/tutoring/options")
+    assert options.status_code == 200
+    assert len(options.json()["avatars"]) == 5 and len(options.json()["voices"]) == 3
+    assert "providerVoice" not in options.text and '"id"' not in options.text
+    assert all(row["enabled"] is True and "sortOrder" not in row for row in options.json()["avatars"])
+    assert options.json()["communicationCharacters"] == ["childlike", "balanced", "authoritative"]
+
+    first_payload = {
+        "name": "Spark Tutor", "presentation": "neutral", "avatarCode": "akuru-spark",
+        "voiceCode": "bright-companion", "tone": "encouraging", "friendliness": "high",
+        "enthusiasm": "medium", "speed": "medium", "communicationCharacter": "balanced",
+        "explanationDepth": "standard", "teachingStyle": "guided",
+    }
+    invalid_name = client.post("/api/v1/tutoring/profiles", headers=student_headers,
+                               json={**first_payload, "name": "<script>"})
+    assert invalid_name.status_code == 422
+    assert client.post("/api/v1/tutoring/profiles", json=first_payload).status_code == 403
+    created = client.post("/api/v1/tutoring/profiles", headers=student_headers, json=first_payload)
+    assert created.status_code == 201, created.text
+    profile = created.json()
+    assert profile["profileRef"].startswith("tutor_") and profile["version"] == 1
+    assert "id" not in profile and "studentId" not in profile
+
+    renamed_payload = {
+        **first_payload, "name": "Atlas Algebra", "presentation": "masculine",
+        "avatarCode": "akuru-atlas", "voiceCode": "clear-coach", "tone": "direct",
+        "communicationCharacter": "authoritative", "teachingStyle": "example_led",
+    }
+    renamed = client.post(f"/api/v1/tutoring/profiles/{profile['profileRef']}",
+                          headers=student_headers, json=renamed_payload)
+    assert renamed.status_code == 200 and renamed.json()["version"] == 2
+    assert renamed.json()["name"] == "Atlas Algebra"
+    database_profile = session.scalar(select(TutorProfile).where(TutorProfile.public_ref == profile["profileRef"]))
+    assert database_profile and database_profile.current_version_number == 2
+    versions = session.scalars(select(TutorProfileVersion).where(
+        TutorProfileVersion.profile_id == database_profile.id).order_by(TutorProfileVersion.version_number)).all()
+    assert [row.name for row in versions] == ["Spark Tutor", "Atlas Algebra"]
+
+    client.post("/api/v1/auth/logout", headers=student_headers)
+    sibling_login = client.post("/api/v1/auth/login", json={
+        "username": sibling.username, "password": "tutor sibling password",
+    }).json()
+    sibling_headers = {"X-CSRF-Token": sibling_login["csrfToken"]}
+    assert client.post(f"/api/v1/tutoring/profiles/{profile['profileRef']}",
+                       headers=sibling_headers, json=first_payload).status_code == 404
+
+    client.post("/api/v1/auth/logout", headers=sibling_headers)
+    parent_login = client.post("/api/v1/auth/login", json={
+        "username": parent.username, "password": "tutor parent password",
+    }).json()
+    own_profiles = client.get(f"/api/v1/tutoring/students/{student.id}/profiles")
+    assert own_profiles.status_code == 200 and own_profiles.json()["profiles"][0]["name"] == "Atlas Algebra"
+    client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": parent_login["csrfToken"]})
+
+    other_login = client.post("/api/v1/auth/login", json={
+        "username": other_parent.username, "password": "other tutor parent password",
+    }).json()
+    assert client.get(f"/api/v1/tutoring/students/{student.id}/profiles").status_code == 404
+    client.post("/api/v1/auth/logout", headers={"X-CSRF-Token": other_login["csrfToken"]})
+
+    admin_login = client.post("/api/v1/auth/login", json={
+        "username": admin_username, "password": admin_password,
+    }).json()
+    admin_headers = {"X-CSRF-Token": admin_login["csrfToken"]}
+    assert client.post("/api/v1/tutoring/profiles", headers=admin_headers, json=first_payload).status_code == 403
+    presets = client.get("/api/v1/tutoring/admin/presets")
+    assert presets.status_code == 200 and "provider_voice_ref" not in presets.text
+    disabled = client.post("/api/v1/tutoring/admin/avatars/akuru-spark", headers=admin_headers,
+                           json={"enabled": False, "sortOrder": 99})
+    assert disabled.status_code == 200
+    spark = next(row for row in disabled.json()["avatars"] if row["code"] == "akuru-spark")
+    assert spark["enabled"] is False and spark["sortOrder"] == 99
+
+    client.post("/api/v1/auth/logout", headers=admin_headers)
+    student_login = client.post("/api/v1/auth/login", json={
+        "username": student.username, "password": "tutor student password",
+    }).json()
+    student_headers = {"X-CSRF-Token": student_login["csrfToken"]}
+    assert client.post("/api/v1/tutoring/profiles", headers=student_headers,
+                       json=first_payload).json()["error"]["code"] == "tutor_avatar_unavailable"
+    removed = client.delete(f"/api/v1/tutoring/profiles/{profile['profileRef']}", headers=student_headers)
+    assert removed.status_code == 204
+    assert client.get("/api/v1/tutoring/profiles").json() == {"profiles": []}
+    assert session.query(TutorProfileVersion).filter_by(profile_id=database_profile.id).count() == 2
 
 
 @pytest.mark.integration

@@ -32,6 +32,8 @@ Every authenticated workspace uses a role-specific horizontal navigation strip b
 
 `components/route-loading-overlay.tsx` provides shared page-transition feedback. It preloads and rotates five transparent AKURU BOT scenes stored in `public/akuru-loading`, handles full internal route changes and the portal's hash-based workspace navigation, and disables motion when the browser requests reduced motion. File downloads, external links, modified clicks, and same-page documentation anchors do not trigger the overlay.
 
+The role navigation also exposes Tutor profile setup. Students manage multiple profiles from curated AKURU BOT and persona values, Parents have read-only child-by-child visibility, and Admin controls preset availability and order. Editing creates a backend-owned immutable version; the frontend never displays internal profile identifiers or provider voice mappings. See [Tutor Step 1 profiles](tutor-step-01-profiles.md).
+
 ## Local commands
 
 From `source-code`:

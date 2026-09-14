@@ -29,6 +29,10 @@ const styles = readFileSync(
   new URL('../app/globals.css', import.meta.url),
   'utf8',
 );
+const tutorProfiles = readFileSync(
+  new URL('../features/tutor-profiles.tsx', import.meta.url),
+  'utf8',
+);
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -258,4 +262,18 @@ test('admin operations exposes alerts, usage and audit without secrets', () => {
   assert.match(operations, /Provider tokens/);
   assert.match(operations, /Recent security and content audit/);
   assert.doesNotMatch(operations, /OPENAI_API_KEY|DATABASE_PASSWORD/);
+});
+
+test('role-scoped tutor profiles use curated AKURU heroes and immutable API versions', () => {
+  assert.match(page, /My tutors/);
+  assert.match(page, /Tutor presets/);
+  assert.match(api, /getTutorProfiles/);
+  assert.match(api, /saveTutorProfile/);
+  assert.match(api, /deleteTutorProfile/);
+  assert.match(tutorProfiles, /switching|multiple tutor|more than one tutor/i);
+  assert.match(tutorProfiles, /Save new version/);
+  assert.match(tutorProfiles, /Child-safe AKURU hero|CURATED AKURU BOT/i);
+  assert.match(tutorProfiles, /getTutorAdminPresets/);
+  assert.doesNotMatch(tutorProfiles, /providerVoice|provider_voice|generated avatar/i);
+  assert.doesNotMatch(tutorProfiles, />\{item\.id\}</);
 });

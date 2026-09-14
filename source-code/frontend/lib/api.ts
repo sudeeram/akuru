@@ -122,6 +122,28 @@ export type UiFeaturesAccess = {
   allowed: true;
   user: { name: string; role: 'admin' };
 };
+export type TutorAvatar = {
+  code: string; name: string; description: string; imagePath: string;
+  presentation: 'masculine' | 'feminine' | 'neutral'; enabled?: boolean; sortOrder?: number;
+};
+export type TutorVoice = {
+  code: string; name: string; description: string;
+  presentation: 'masculine' | 'feminine' | 'neutral'; enabled?: boolean; sortOrder?: number;
+};
+export type TutorOptions = {
+  presentations: string[]; tones: string[]; levels: string[]; communicationCharacters: string[];
+  explanationDepths: string[]; teachingStyles: string[]; avatars: TutorAvatar[]; voices: TutorVoice[];
+};
+export type TutorProfileDraft = {
+  name: string; presentation: 'masculine' | 'feminine' | 'neutral'; avatarCode: string; voiceCode: string;
+  tone: 'calm' | 'encouraging' | 'direct' | 'playful'; friendliness: 'low' | 'medium' | 'high';
+  enthusiasm: 'low' | 'medium' | 'high'; speed: 'low' | 'medium' | 'high';
+  communicationCharacter: 'childlike' | 'balanced' | 'authoritative';
+  explanationDepth: 'concise' | 'standard' | 'detailed';
+  teachingStyle: 'guided' | 'socratic' | 'example_led' | 'exam_focused';
+};
+export type TutorProfile = TutorProfileDraft & { profileRef: string; version: number; active: boolean };
+export type TutorAdminPresets = { avatars: TutorAvatar[]; voices: TutorVoice[] };
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -169,6 +191,21 @@ async function request(
   }
   return data;
 }
+export const getTutorOptions = () => request('tutoring/options') as Promise<TutorOptions>;
+export const getTutorProfiles = (studentId?: string) => request(
+  studentId ? `tutoring/students/${studentId}/profiles` : 'tutoring/profiles',
+) as Promise<{ profiles: TutorProfile[] }>;
+export const saveTutorProfile = (draft: TutorProfileDraft, profileRef?: string) => request(
+  profileRef ? `tutoring/profiles/${profileRef}` : 'tutoring/profiles',
+  { method: 'POST', body: draft },
+) as Promise<TutorProfile>;
+export const deleteTutorProfile = (profileRef: string) => request(
+  `tutoring/profiles/${profileRef}`, { method: 'DELETE' },
+);
+export const getTutorAdminPresets = () => request('tutoring/admin/presets') as Promise<TutorAdminPresets>;
+export const updateTutorPreset = (kind: 'avatars' | 'voices', code: string, enabled: boolean, sortOrder: number) => request(
+  `tutoring/admin/${kind}/${code}`, { method: 'POST', body: { enabled, sortOrder } },
+) as Promise<TutorAdminPresets>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {

@@ -4674,6 +4674,90 @@
         "title": "TextbookUnitDraft",
         "type": "object"
       },
+      "TutorAdminPresetsResponse": {
+        "properties": {
+          "avatars": {
+            "items": {
+              "$ref": "#/components/schemas/TutorAvatarResponse"
+            },
+            "title": "Avatars",
+            "type": "array"
+          },
+          "voices": {
+            "items": {
+              "$ref": "#/components/schemas/TutorVoiceResponse"
+            },
+            "title": "Voices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "avatars",
+          "voices"
+        ],
+        "title": "TutorAdminPresetsResponse",
+        "type": "object"
+      },
+      "TutorAvatarResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "imagePath": {
+            "title": "Imagepath",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "presentation": {
+            "enum": [
+              "masculine",
+              "feminine",
+              "neutral"
+            ],
+            "title": "Presentation",
+            "type": "string"
+          },
+          "sortOrder": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sortorder"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "imagePath",
+          "presentation"
+        ],
+        "title": "TutorAvatarResponse",
+        "type": "object"
+      },
       "TutorCapabilitiesResponse": {
         "properties": {
           "blockedReason": {
@@ -4706,6 +4790,406 @@
           "toolsEnabled"
         ],
         "title": "TutorCapabilitiesResponse",
+        "type": "object"
+      },
+      "TutorOptionsResponse": {
+        "properties": {
+          "avatars": {
+            "items": {
+              "$ref": "#/components/schemas/TutorAvatarResponse"
+            },
+            "title": "Avatars",
+            "type": "array"
+          },
+          "communicationCharacters": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Communicationcharacters",
+            "type": "array"
+          },
+          "explanationDepths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Explanationdepths",
+            "type": "array"
+          },
+          "levels": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Levels",
+            "type": "array"
+          },
+          "presentations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Presentations",
+            "type": "array"
+          },
+          "teachingStyles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Teachingstyles",
+            "type": "array"
+          },
+          "tones": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tones",
+            "type": "array"
+          },
+          "voices": {
+            "items": {
+              "$ref": "#/components/schemas/TutorVoiceResponse"
+            },
+            "title": "Voices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "presentations",
+          "tones",
+          "levels",
+          "communicationCharacters",
+          "explanationDepths",
+          "teachingStyles",
+          "avatars",
+          "voices"
+        ],
+        "title": "TutorOptionsResponse",
+        "type": "object"
+      },
+      "TutorPresetUpdate": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Sortorder",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "sortOrder"
+        ],
+        "title": "TutorPresetUpdate",
+        "type": "object"
+      },
+      "TutorProfileInput": {
+        "properties": {
+          "avatarCode": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Avatarcode",
+            "type": "string"
+          },
+          "communicationCharacter": {
+            "default": "balanced",
+            "enum": [
+              "childlike",
+              "balanced",
+              "authoritative"
+            ],
+            "title": "Communicationcharacter",
+            "type": "string"
+          },
+          "enthusiasm": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Enthusiasm",
+            "type": "string"
+          },
+          "explanationDepth": {
+            "default": "standard",
+            "enum": [
+              "concise",
+              "standard",
+              "detailed"
+            ],
+            "title": "Explanationdepth",
+            "type": "string"
+          },
+          "friendliness": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Friendliness",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "presentation": {
+            "enum": [
+              "masculine",
+              "feminine",
+              "neutral"
+            ],
+            "title": "Presentation",
+            "type": "string"
+          },
+          "speed": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Speed",
+            "type": "string"
+          },
+          "teachingStyle": {
+            "default": "guided",
+            "enum": [
+              "guided",
+              "socratic",
+              "example_led",
+              "exam_focused"
+            ],
+            "title": "Teachingstyle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "encouraging",
+            "enum": [
+              "calm",
+              "encouraging",
+              "direct",
+              "playful"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "voiceCode": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Voicecode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "presentation",
+          "avatarCode",
+          "voiceCode"
+        ],
+        "title": "TutorProfileInput",
+        "type": "object"
+      },
+      "TutorProfileListResponse": {
+        "properties": {
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/TutorProfileResponse"
+            },
+            "title": "Profiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "profiles"
+        ],
+        "title": "TutorProfileListResponse",
+        "type": "object"
+      },
+      "TutorProfileResponse": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "avatarCode": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Avatarcode",
+            "type": "string"
+          },
+          "communicationCharacter": {
+            "default": "balanced",
+            "enum": [
+              "childlike",
+              "balanced",
+              "authoritative"
+            ],
+            "title": "Communicationcharacter",
+            "type": "string"
+          },
+          "enthusiasm": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Enthusiasm",
+            "type": "string"
+          },
+          "explanationDepth": {
+            "default": "standard",
+            "enum": [
+              "concise",
+              "standard",
+              "detailed"
+            ],
+            "title": "Explanationdepth",
+            "type": "string"
+          },
+          "friendliness": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Friendliness",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 60,
+            "minLength": 2,
+            "title": "Name",
+            "type": "string"
+          },
+          "presentation": {
+            "enum": [
+              "masculine",
+              "feminine",
+              "neutral"
+            ],
+            "title": "Presentation",
+            "type": "string"
+          },
+          "profileRef": {
+            "title": "Profileref",
+            "type": "string"
+          },
+          "speed": {
+            "default": "medium",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Speed",
+            "type": "string"
+          },
+          "teachingStyle": {
+            "default": "guided",
+            "enum": [
+              "guided",
+              "socratic",
+              "example_led",
+              "exam_focused"
+            ],
+            "title": "Teachingstyle",
+            "type": "string"
+          },
+          "tone": {
+            "default": "encouraging",
+            "enum": [
+              "calm",
+              "encouraging",
+              "direct",
+              "playful"
+            ],
+            "title": "Tone",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "voiceCode": {
+            "maxLength": 40,
+            "minLength": 2,
+            "title": "Voicecode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "presentation",
+          "avatarCode",
+          "voiceCode",
+          "profileRef",
+          "version",
+          "active"
+        ],
+        "title": "TutorProfileResponse",
+        "type": "object"
+      },
+      "TutorVoiceResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enabled"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "presentation": {
+            "enum": [
+              "masculine",
+              "feminine",
+              "neutral"
+            ],
+            "title": "Presentation",
+            "type": "string"
+          },
+          "sortOrder": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sortorder"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "description",
+          "presentation"
+        ],
+        "title": "TutorVoiceResponse",
         "type": "object"
       },
       "UiFeaturesResponse": {
@@ -12071,6 +12555,283 @@
         ]
       }
     },
+    "/api/v1/tutoring/admin/avatars/{code}": {
+      "post": {
+        "operationId": "update_avatar_api_v1_tutoring_admin_avatars__code__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorPresetUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorAdminPresetsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Avatar",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/presets": {
+      "get": {
+        "operationId": "presets_api_v1_tutoring_admin_presets_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorAdminPresetsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Presets",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/voices/{code}": {
+      "post": {
+        "operationId": "update_voice_api_v1_tutoring_admin_voices__code__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "title": "Code",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorPresetUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorAdminPresetsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Voice",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
     "/api/v1/tutoring/capabilities": {
       "get": {
         "operationId": "capabilities_api_v1_tutoring_capabilities_get",
@@ -12135,6 +12896,505 @@
           }
         },
         "summary": "Capabilities",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/options": {
+      "get": {
+        "operationId": "profile_options_api_v1_tutoring_options_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Profile Options",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/profiles": {
+      "get": {
+        "operationId": "profiles_api_v1_tutoring_profiles_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorProfileListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Profiles",
+        "tags": [
+          "tutoring"
+        ]
+      },
+      "post": {
+        "operationId": "create_profile_api_v1_tutoring_profiles_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Profile",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/profiles/{profile_ref}": {
+      "delete": {
+        "operationId": "remove_profile_api_v1_tutoring_profiles__profile_ref__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_ref",
+            "required": true,
+            "schema": {
+              "title": "Profile Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Remove Profile",
+        "tags": [
+          "tutoring"
+        ]
+      },
+      "post": {
+        "operationId": "update_profile_api_v1_tutoring_profiles__profile_ref__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_ref",
+            "required": true,
+            "schema": {
+              "title": "Profile Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorProfileInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorProfileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Profile",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/students/{student_id}/profiles": {
+      "get": {
+        "operationId": "visible_profiles_api_v1_tutoring_students__student_id__profiles_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorProfileListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Visible Profiles",
         "tags": [
           "tutoring"
         ]

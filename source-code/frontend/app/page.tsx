@@ -23,6 +23,7 @@ import {
   Images,
   FlaskConical,
   Activity,
+  Bot,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,10 +45,12 @@ import {
 import { Reviews, Assignments } from '@/features/parent';
 import { AdminWorkspace, FamilyCourses, FamilyLibrary } from '@/features/admin';
 import { usePortalTools } from '@/features/use-portal-tools';
+import { TutorProfiles } from '@/features/tutor-profiles';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
   ['subjects', 'My subjects', BookOpen],
+  ['tutors', 'My tutors', Bot],
   ['practice', 'Practice', ClipboardCheck],
   ['exams', 'Mock exams', Clock3],
   ['progress', 'My progress', TrendingUp],
@@ -56,6 +59,7 @@ const studentNav = [
 const parentNav = [
   ['today', 'Family overview', LayoutDashboard],
   ['students', 'Children & courses', Users],
+  ['tutors', 'Tutors', Bot],
   ['library', 'Content library', Library],
   ['reviews', 'Assessment reviews', ClipboardCheck],
   ['assignments', 'Assignments', CalendarDays],
@@ -70,6 +74,7 @@ const adminNav = [
   ['questions', 'Question mapping', ClipboardCheck],
   ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
+  ['tutor-presets', 'Tutor presets', Bot],
   ['assessment-audit', 'Assessment audit', ScanSearch],
   ['media', 'Visual media', Images],
   ['evaluations', 'Evaluation gates', FlaskConical],
@@ -398,6 +403,8 @@ export default function Portal() {
           )
         ) : view === 'subjects' && !parent ? (
           <Subjects {...props} />
+        ) : view === 'tutors' ? (
+          <TutorProfiles data={data} notify={notify} />
         ) : view === 'practice' && !parent ? (
           <Practice {...props} />
         ) : view === 'exams' && !parent ? (

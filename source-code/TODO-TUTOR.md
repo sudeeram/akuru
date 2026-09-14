@@ -27,16 +27,20 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Let each student create multiple safe, reusable tutor identities from controlled options.
 
-- [ ] Add `tutor_profiles`, immutable `tutor_profile_versions`, `tutor_avatars` and `tutor_voice_presets` tables.
-- [ ] Support masculine, feminine and neutral presentation.
-- [ ] Support controlled tone, friendliness, enthusiasm, speed, communication character, explanation depth and teaching style values.
-- [ ] Use **Childlike**, **Balanced** and **Authoritative** communication-character labels, with Balanced as the default unless configured otherwise.
-- [ ] Seed child-safe fictional superhuman avatar presets based on the AKURU BOT visual family.
-- [ ] Exclude text-prompt avatar generation, real-person imitation, voice cloning and per-profile approval workflows.
-- [ ] Let students create multiple tutors, freely rename owned tutors and select any Admin-published preset.
-- [ ] Validate names for length and unsuitable content without exposing internal UUIDs.
-- [ ] Add Student profile management, Parent read-only visibility and Admin preset/voice management screens.
-- [ ] Add family-isolation, role-authorization, enum-validation and immutable-version tests.
+- [x] Add `tutor_profiles`, immutable `tutor_profile_versions`, `tutor_avatars` and `tutor_voice_presets` tables.
+- [x] Support masculine, feminine and neutral presentation.
+- [x] Support controlled tone, friendliness, enthusiasm, speed, communication character, explanation depth and teaching style values.
+- [x] Use **Childlike**, **Balanced** and **Authoritative** communication-character labels, with Balanced as the default unless configured otherwise.
+- [x] Seed child-safe fictional superhuman avatar presets based on the AKURU BOT visual family.
+- [x] Exclude text-prompt avatar generation, real-person imitation, voice cloning and per-profile approval workflows.
+- [x] Let students create multiple tutors, freely rename owned tutors and select any Admin-published preset.
+- [x] Validate names for length and unsuitable content without exposing internal UUIDs.
+- [x] Add Student profile management, Parent read-only visibility and Admin preset/voice management screens.
+- [x] Add family-isolation, role-authorization, enum-validation and immutable-version tests.
+
+**Completed:** Students can create, rename, edit and remove multiple profiles from controlled persona values and five curated AKURU BOT hero assets. Every edit creates an immutable complete version behind a stable public reference. Parents have read-only access to linked children; Admin manages preset availability and order without receiving provider voice references or permission to impersonate a Student. Disabled presets remain renderable for historical profiles but cannot be newly selected. Backend and frontend behavior is documented in [Tutor Step 1 backend](backend/docs/tutor-step-01-profiles.md) and [Tutor Step 1 frontend](frontend/docs/tutor-step-01-profiles.md).
+
+**Validation:** Migration `a31c0f4e8b72` applies cleanly and Alembic reports no drift. `npm run verify` passes with 24 frontend and 85 backend tests, the generated OpenAPI contract, TypeScript, lint and the production frontend build. Tests cover CSRF, role and family isolation, immutable version history, hidden UUID/provider fields, name validation, Admin preset changes and soft deletion.
 
 **Done when:** A student can safely manage multiple tutor profiles from curated values, siblings cannot access one another's profiles, and historical sessions can retain the exact profile version used.
 

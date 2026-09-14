@@ -129,3 +129,6 @@ SECURITY AND OPERATIONS
 Use the Operations page to review failed document jobs, provider failures, AI token usage, latency alerts and recent administrative audit events. Investigate alerts before publishing content or enabling automatic feedback. Never paste OpenAI keys, database passwords, student answers or private files into support messages.
 
 Authorized deletion requests are performed by an operator with the backend retention command. Preview first with `python -m app.retention --student-id CHILD_UUID`; apply only after verifying the requesting guardian and recording the request, using `--apply`.
+TUTOR PRESETS
+
+Open Tutor presets to manage the child-safe AKURU hero avatars and voice styles offered to Students. You can enable, disable and reorder a preset. Disabling it prevents new selections but preserves existing profile history. Admins can view a Student's tutor profiles for support but cannot create or edit a profile as that Student.

@@ -162,6 +162,8 @@ Production runs behind a loopback-only systemd/Nginx boundary with TLS, dual-lay
 
 Tutor capabilities have independent backend-only text, voice and tool feature flags that default to disabled. `app/services/assessment_access.py` owns the practice/formal classification and blocks every Tutor capability while the authenticated student has a live mock or official-paper attempt. Future Tutor endpoints must use this guard before retrieval or provider work. See [Tutor Step 0 foundation](tutor-step-00-foundation.md).
 
+Tutor profiles use stable public references and immutable complete versions. Students may own multiple profiles and choose only enabled, curated AKURU BOT avatars and voice styles. Parents have read-only access to their own children's profiles; Admin manages preset availability and order but cannot impersonate a Student to create a profile. Provider voice references and profile UUIDs stay server-side. See [Tutor Step 1 profiles](tutor-step-01-profiles.md).
+
 ## API and migration strategy
 
 Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.

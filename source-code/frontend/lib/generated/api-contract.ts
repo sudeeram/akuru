@@ -100,7 +100,15 @@ export interface Schemas {
   "SubmissionRequest": { "idempotencyKey": string; };
   "TextbookReviewResponse": { "versionNumber": number; "status": string; "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
   "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
+  "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
+  "TutorAvatarResponse": { "code": string; "name": string; "description": string; "imagePath": string; "presentation": "masculine" | "feminine" | "neutral"; "enabled"?: boolean | null; "sortOrder"?: number | null; };
   "TutorCapabilitiesResponse": { "textEnabled": boolean; "voiceEnabled": boolean; "toolsEnabled": boolean; "blockedReason"?: string | null; };
+  "TutorOptionsResponse": { "presentations": Array<string>; "tones": Array<string>; "levels": Array<string>; "communicationCharacters": Array<string>; "explanationDepths": Array<string>; "teachingStyles": Array<string>; "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
+  "TutorPresetUpdate": { "enabled": boolean; "sortOrder": number; };
+  "TutorProfileInput": { "name": string; "presentation": "masculine" | "feminine" | "neutral"; "avatarCode": string; "voiceCode": string; "tone"?: "calm" | "encouraging" | "direct" | "playful"; "friendliness"?: "low" | "medium" | "high"; "enthusiasm"?: "low" | "medium" | "high"; "speed"?: "low" | "medium" | "high"; "communicationCharacter"?: "childlike" | "balanced" | "authoritative"; "explanationDepth"?: "concise" | "standard" | "detailed"; "teachingStyle"?: "guided" | "socratic" | "example_led" | "exam_focused"; };
+  "TutorProfileListResponse": { "profiles": Array<Schemas["TutorProfileResponse"]>; };
+  "TutorProfileResponse": { "name": string; "presentation": "masculine" | "feminine" | "neutral"; "avatarCode": string; "voiceCode": string; "tone"?: "calm" | "encouraging" | "direct" | "playful"; "friendliness"?: "low" | "medium" | "high"; "enthusiasm"?: "low" | "medium" | "high"; "speed"?: "low" | "medium" | "high"; "communicationCharacter"?: "childlike" | "balanced" | "authoritative"; "explanationDepth"?: "concise" | "standard" | "detailed"; "teachingStyle"?: "guided" | "socratic" | "example_led" | "exam_focused"; "profileRef": string; "version": number; "active": boolean; };
+  "TutorVoiceResponse": { "code": string; "name": string; "description": string; "presentation": "masculine" | "feminine" | "neutral"; "enabled"?: boolean | null; "sortOrder"?: number | null; };
   "UiFeaturesResponse": { "allowed": true; "user": Schemas["UiFeaturesUserResponse"]; };
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
   "UnitMapping": { "unitId": string; "weight": number; "rationale"?: string; "confidence"?: number | null; "method"?: string | null; };
@@ -187,7 +195,16 @@ export interface ApiOperations {
   "GET /api/v1/retrieval/evidence/{chunk_id}": { request: unknown; response: Schemas["EvidenceResponse"] };
   "POST /api/v1/retrieval/search": { request: Schemas["RetrievalRequest"]; response: Schemas["RetrievalResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
+  "POST /api/v1/tutoring/admin/avatars/{code}": { request: Schemas["TutorPresetUpdate"]; response: Schemas["TutorAdminPresetsResponse"] };
+  "GET /api/v1/tutoring/admin/presets": { request: unknown; response: Schemas["TutorAdminPresetsResponse"] };
+  "POST /api/v1/tutoring/admin/voices/{code}": { request: Schemas["TutorPresetUpdate"]; response: Schemas["TutorAdminPresetsResponse"] };
   "GET /api/v1/tutoring/capabilities": { request: unknown; response: Schemas["TutorCapabilitiesResponse"] };
+  "GET /api/v1/tutoring/options": { request: unknown; response: Schemas["TutorOptionsResponse"] };
+  "GET /api/v1/tutoring/profiles": { request: unknown; response: Schemas["TutorProfileListResponse"] };
+  "POST /api/v1/tutoring/profiles": { request: Schemas["TutorProfileInput"]; response: Schemas["TutorProfileResponse"] };
+  "POST /api/v1/tutoring/profiles/{profile_ref}": { request: Schemas["TutorProfileInput"]; response: Schemas["TutorProfileResponse"] };
+  "DELETE /api/v1/tutoring/profiles/{profile_ref}": { request: unknown; response: unknown };
+  "GET /api/v1/tutoring/students/{student_id}/profiles": { request: unknown; response: Schemas["TutorProfileListResponse"] };
   "GET /health": { request: unknown; response: { [key: string]: string; } };
   "GET /ready": { request: unknown; response: { [key: string]: string; } };
 }
