@@ -50,7 +50,7 @@ export interface Schemas {
   "PlanPeriod": { "grade": number; "term": number; "unitIds"?: Array<string>; };
   "PlanUnitResponse": { "id": string; "code": string; "title": string; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
-  "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "assessmentBlueprints"?: Array<{ [key: string]: unknown; }>; "officialPapers"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; "mastery"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; };
+  "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "assessmentBlueprints"?: Array<{ [key: string]: unknown; }>; "officialPapers"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; "mastery"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; "recommendations"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; };
   "ProgressionPairResponse": { "grade": string; "term": string; };
   "ProgressionResponse": { "grade": string; "term": string; };
   "PublishOfficialMaterialRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmSourcePaper"?: boolean; "confirmComplete": boolean; };
@@ -58,6 +58,9 @@ export interface Schemas {
   "PublishTextbookRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmEdition": boolean; };
   "QuestionMappingResponse": { "questionId": string; "number": string; "prompt": string; "marks": number; "status": string; "mappings": Array<Schemas["UnitMapping"]>; };
   "QuestionPoolDiagnosticResponse": { "status": string; "message": string; "planVersion"?: number | null; "eligibleQuestionCount"?: number; "eligibleMarks"?: number; "requestedQuestionCount"?: number; "requestedMarks"?: number; "shortageQuestionCount"?: number; "shortageMarks"?: number; };
+  "RecommendationListResponse": { "recommendations": Array<Schemas["RecommendationResponse"]>; };
+  "RecommendationResponse": { "id": string; "diagnosisId": string; "studentId": string; "subjectId": string; "unitId": string; "unitCode": string; "unitTitle": string; "category": string; "description": string; "observedEvidence": Array<string>; "occurrenceCount": number; "activityType": string; "title": string; "reason": string; "action": string; "successCondition": string; "sourceTitle": string; "sourcePage": number; "sourceUrl": string; "questionId": string | null; "reviewStatus": string; "reviewReason": string; "createdAt": string; };
+  "RecommendationReview": { "decision": string; "reason"?: string; };
   "ReindexRequest": { "documentId": string; };
   "ReindexResponse": { "documentId": string; "indexedChunks": number; "supersededChunks": number; "embeddingModel": string; };
   "RetrievalRequest": { "studentId": string; "subjectId": string; "query": string; "limit"?: number; };
@@ -135,6 +138,8 @@ export interface ApiOperations {
   "POST /api/v1/questions/{question_id}/unit-mapping": { request: Schemas["SaveUnitMappingsRequest"]; response: Schemas["QuestionMappingResponse"] };
   "POST /api/v1/questions/{question_id}/unit-mapping/publish": { request: unknown; response: Schemas["QuestionMappingResponse"] };
   "POST /api/v1/questions/{question_id}/unit-mapping/suggest": { request: unknown; response: Schemas["MappingSuggestionResponse"] };
+  "GET /api/v1/recommendations": { request: unknown; response: Schemas["RecommendationListResponse"] };
+  "POST /api/v1/recommendations/{recommendation_id}/review": { request: Schemas["RecommendationReview"]; response: Schemas["RecommendationResponse"] };
   "POST /api/v1/retrieval/admin/reindex": { request: Schemas["ReindexRequest"]; response: Schemas["ReindexResponse"] };
   "GET /api/v1/retrieval/evidence/{chunk_id}": { request: unknown; response: Schemas["EvidenceResponse"] };
   "POST /api/v1/retrieval/search": { request: Schemas["RetrievalRequest"]; response: Schemas["RetrievalResponse"] };

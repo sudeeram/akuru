@@ -240,13 +240,13 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Turn missed marking points into specific next actions.
 
-- [ ] Create a subject-aware mistake taxonomy.
-- [ ] Tag issues such as formula selection, units, terminology, graph interpretation and command-word response.
-- [ ] Detect recurring mistakes without mixing siblings.
-- [ ] Generate recommendations from diagnosed weakness and approved textbook material.
-- [ ] Link each recommendation to its unit, source and activity.
-- [ ] Recommend review, targeted practice, spaced retry and short unit checks.
-- [ ] Provide Parent/Admin review for sensitive or low-confidence recommendations.
+- [x] Create a subject-aware mistake taxonomy.
+- [x] Tag issues such as formula selection, units, terminology, graph interpretation and command-word response.
+- [x] Detect recurring mistakes without mixing siblings.
+- [x] Generate recommendations from diagnosed weakness and approved textbook material.
+- [x] Link each recommendation to its unit, source and activity.
+- [x] Recommend review, targeted practice, spaced retry and short unit checks.
+- [x] Provide Parent/Admin review for sensitive or low-confidence recommendations.
 
 **Done when:** Recommendations state the observed weakness and evidence, and every suggested question passes student eligibility.
 

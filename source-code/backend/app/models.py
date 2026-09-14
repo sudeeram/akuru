@@ -972,3 +972,52 @@ class UnitMasteryEvent(Base):
         CheckConstraint("new_score BETWEEN 0 AND 10", name="ck_unit_mastery_event_new"),
         UniqueConstraint("unit_id", "trigger_result_id", name="uq_unit_mastery_event_trigger"),
     )
+
+
+class WeaknessDiagnosis(Base):
+    __tablename__ = "weakness_diagnoses"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_results.id", ondelete="RESTRICT"), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="RESTRICT"))
+    category: Mapped[str] = mapped_column(String(40), index=True)
+    dimension: Mapped[str] = mapped_column(String(24))
+    severity: Mapped[str] = mapped_column(String(12))
+    description: Mapped[str] = mapped_column(Text)
+    evidence: Mapped[dict] = mapped_column(JSON)
+    occurrence_number: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column(Float)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("severity IN ('minor','moderate','major')", name="ck_weakness_diagnosis_severity"),
+        CheckConstraint("confidence BETWEEN 0 AND 1 AND occurrence_number > 0", name="ck_weakness_diagnosis_values"),
+        UniqueConstraint("result_id", "unit_id", "category", name="uq_weakness_diagnosis_result_unit_category"),
+    )
+
+
+class ImprovementRecommendation(Base):
+    __tablename__ = "improvement_recommendations"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    diagnosis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("weakness_diagnoses.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    source_chunk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("retrieval_chunks.id", ondelete="RESTRICT"))
+    activity_question_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_question_versions.id", ondelete="RESTRICT"))
+    activity_type: Mapped[str] = mapped_column(String(24))
+    title: Mapped[str] = mapped_column(String(180))
+    reason: Mapped[str] = mapped_column(Text)
+    action: Mapped[str] = mapped_column(Text)
+    success_condition: Mapped[str] = mapped_column(Text)
+    review_status: Mapped[str] = mapped_column(String(20), index=True)
+    review_reason: Mapped[str] = mapped_column(Text, default="", server_default="")
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("activity_type IN ('review','targeted_practice','spaced_retry','unit_check')", name="ck_improvement_recommendation_activity"),
+        CheckConstraint("review_status IN ('approved','pending_review','rejected')", name="ck_improvement_recommendation_review"),
+        UniqueConstraint("diagnosis_id", "activity_type", name="uq_improvement_recommendation_activity"),
+    )

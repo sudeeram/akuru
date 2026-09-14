@@ -181,6 +181,16 @@ test('progress uses backend-calculated explainable unit mastery', () => {
   assert.match(student, /questions\/\$\{q\.id\}\/hint/);
 });
 
+test('frontend presents source-linked improvement recommendations for review', () => {
+  assert.match(api, /type ImprovementRecommendation/);
+  assert.match(api, /recommendations: Record<string, ImprovementRecommendation\[\]>/);
+  assert.match(student, /AKURU next steps/);
+  assert.match(student, /successCondition/);
+  assert.match(student, /sourceUrl/);
+  assert.match(student, /reviewStatus === 'approved'/);
+  assert.match(readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8'), /recommendations\/\$\{id\}\/review/);
+});
+
 test('handwritten working uses the private authenticated assessment endpoint', () => {
   assert.match(api, /export async function uploadWorking/);
   assert.match(api, /questions\/\$\{questionId\}\/working/);

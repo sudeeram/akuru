@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User,
+    ImprovementRecommendation, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -26,6 +26,8 @@ from app.services import document_processing
 from app.services import question_mappings
 from app.services import assessment_marking
 from app.services import assessment_working
+from app.services import weaknesses
+from app.services import assessments
 from app.config import Settings
 from app.schemas.question_mappings import AIUnitSuggestionOutput
 from app.ai.base import AIResult, AIUsage
@@ -956,6 +958,23 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     expected_mastery = result["awardedMarks"] / result["maxMarks"] * 10
     assert all(unit["score"] == expected_mastery and unit["preciseScore"] == expected_mastery for unit in mastery_api.json()["units"])
     first_row = session.query(AssessmentResult).filter_by(assessment_id=uuid.UUID(exam["id"])).one()
+    for index, unit in enumerate(biology_units):
+        session.add(RetrievalChunk(document_id=textbook.id, document_version_id=textbook_file.id,
+            textbook_content_version_id=content.id, official_material_version_id=None, unit_id=unit.id,
+            course_id="igcse", subject_id="biology", source_type="textbook_section", source_item_id=uuid.uuid4(),
+            source_ordinal=index, content=f"Approved explanation for {unit.title}.", page_number=index + 1,
+            bounding_box={}, content_hash=uuid.uuid4().hex * 2, embedding_model="test", embedding_version=1,
+            embedding=embed_texts(Settings(database_password="test", embedding_provider="local"), [unit.title])[0], status="active"))
+    first_row.small_mistakes = ["Use the correct scientific terminology."]
+    session.commit(); weaknesses.record_result(session, first_row)
+    diagnoses = session.query(WeaknessDiagnosis).filter_by(student_id=student_user.id).all()
+    recommendations = session.query(ImprovementRecommendation).filter_by(student_id=student_user.id).all()
+    assert len(diagnoses) == 2 and all(row.category == "terminology" and row.occurrence_number == 1 for row in diagnoses)
+    assert len(recommendations) == 8 and {row.activity_type for row in recommendations} == {"review", "targeted_practice", "spaced_retry", "unit_check"}
+    assert all(row.review_status == "pending_review" and row.source_chunk_id for row in recommendations)
+    eligible_ids = {row[0].id for row in assessments.eligible_questions(session, student_user.id, "biology")}
+    assert all(row.activity_question_version_id in eligible_ids for row in recommendations if row.activity_question_version_id)
+    assert client.get("/api/v1/recommendations").json()["recommendations"] == []
     assert first_row.rubric_snapshot and first_row.prompt_version == "2.0.0"
     assert {source["type"] for source in first_row.source_manifest} >= {"frozen_question", "frozen_rubric"}
     assert client.post(f"/api/v1/assessments/{exam['id']}/evaluate", headers=student_csrf,
@@ -1010,6 +1029,12 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     parent_login = client.post("/api/v1/auth/login", json={
         "username": parent_user.username, "password": "assessment parent password"})
     assert parent_login.status_code == 200
+    parent_csrf = {"X-CSRF-Token": parent_login.json()["csrfToken"]}
+    pending_recommendations = client.get(f"/api/v1/recommendations?studentId={student_user.id}")
+    assert pending_recommendations.status_code == 200 and len(pending_recommendations.json()["recommendations"]) == 8
+    reviewed_recommendation = client.post(f"/api/v1/recommendations/{recommendations[0].id}/review", headers=parent_csrf,
+        json={"decision": "approved", "reason": "Suitable for this child."})
+    assert reviewed_recommendation.status_code == 200 and reviewed_recommendation.json()["reviewStatus"] == "approved"
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 200
     working_url = f"/api/v1/assessments/{practice_data['id']}/working/{working.json()['id']}"
     assert client.get(working_url).status_code == 200
@@ -1020,3 +1045,4 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
         "password": "unrelated parent password"}).status_code == 200
     assert client.get(working_url).status_code == 404
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 403
+    assert client.get(f"/api/v1/recommendations?studentId={student_user.id}").status_code == 403

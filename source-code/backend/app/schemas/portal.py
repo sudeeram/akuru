@@ -81,6 +81,7 @@ class PortalStateResponse(BaseModel):
     reviews: list[dict[str, Any]] = Field(default_factory=list)
     plans: dict[str, Any] = Field(default_factory=dict)
     mastery: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    recommendations: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 
 class UiFeaturesUserResponse(BaseModel):

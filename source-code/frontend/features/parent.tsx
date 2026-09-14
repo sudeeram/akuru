@@ -37,6 +37,14 @@ export function Reviews(p: FeatureProps) {
       (student === 'all' || a.studentId === student) &&
       (filter === 'all' || a.status === 'needs-review'),
   );
+  const recommendationReviews = Object.values(p.data.recommendations || {}).flat().filter(
+    (item) => item.reviewStatus === 'pending_review' && (student === 'all' || item.studentId === student),
+  );
+  async function reviewRecommendation(id: string, decision: 'approved' | 'rejected') {
+    setBusy(true); setError('');
+    try { await api(`recommendations/${id}/review`, { decision, reason: decision === 'approved' ? 'Reviewed by parent.' : 'Parent declined this recommendation.' }); await p.refresh(); }
+    catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
+  }
   async function save(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -117,6 +125,15 @@ export function Reviews(p: FeatureProps) {
             Written answers and uploaded working appear here after submission.
           </Empty>
         )}
+      </section>
+      <div className="section-heading"><h2>AKURU recommendation review</h2></div>
+      <section className="panel">
+        {recommendationReviews.map((item) => <div className="resource-row" key={item.id}>
+          <div><h3>{item.title}</h3><p>{p.data.students.find((s) => s.id === item.studentId)?.name} · {item.unitCode} · {item.reason}</p><small>Evidence: {item.observedEvidence.join(' ')}</small></div>
+          <Button variant="outline" disabled={busy} onClick={() => reviewRecommendation(item.id, 'rejected')}>Decline</Button>
+          <Button className="primary" disabled={busy} onClick={() => reviewRecommendation(item.id, 'approved')}>Approve</Button>
+        </div>)}
+        {!recommendationReviews.length && <Empty title="No recommendations awaiting review.">Low-confidence and subjective suggestions appear here before students can see them.</Empty>}
       </section>
       <Dialog open={!!review} onOpenChange={(v) => !v && setReview(null)}>
         <DialogContent className="wide-dialog">

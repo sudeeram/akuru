@@ -334,6 +334,14 @@ export type UnitMastery = {
   dimensions: { dimension: string; score: number; evidenceWeight: number }[];
   recentEvents: { id: string; previousScore?: number | null; newScore: number; previousConfidence?: string | null; newConfidence: string; explanation: string; createdAt: string }[];
 };
+export type ImprovementRecommendation = {
+  id: string; diagnosisId: string; studentId: string; subjectId: string; unitId: string;
+  unitCode: string; unitTitle: string; category: string; description: string; observedEvidence: string[];
+  occurrenceCount: number; activityType: 'review' | 'targeted_practice' | 'spaced_retry' | 'unit_check';
+  title: string; reason: string; action: string; successCondition: string; sourceTitle: string;
+  sourcePage: number; sourceUrl: string; questionId?: string | null;
+  reviewStatus: 'approved' | 'pending_review' | 'rejected'; reviewReason: string; createdAt: string;
+};
 export type Assignment = {
   id: string;
   studentId: string;
@@ -484,6 +492,7 @@ export type State = {
     }
   >;
   mastery: Record<string, UnitMastery[]>;
+  recommendations: Record<string, ImprovementRecommendation[]>;
 };
 export type Unit = {
   id: string;

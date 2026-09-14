@@ -921,6 +921,7 @@ export function ProgressView(p: FeatureProps) {
   const [chosen, setChosen] = useState<Attempt | null>(null);
   const own = p.data.attempts.filter((a) => a.studentId === p.child.id);
   const unitMastery = p.data.mastery?.[p.child.id] || [];
+  const nextSteps = (p.data.recommendations?.[p.child.id] || []).filter((item) => item.reviewStatus === 'approved');
   return (
     <>
       <Heading
@@ -987,9 +988,20 @@ export function ProgressView(p: FeatureProps) {
             </div>
           ))}
       </div>
-      <p className="source-note">
-        Unit scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
-      </p>
+          <p className="source-note">
+            Unit scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
+          </p>
+          <div className="section-heading"><h2>AKURU next steps</h2></div>
+          <div className="subject-grid">
+            {nextSteps.map((item) => <article className="panel" key={item.id}>
+              <span className="eyebrow">{item.unitCode} · {item.category.replaceAll('_', ' ')}</span>
+              <h3>{item.title}</h3><p>{item.reason}</p>
+              <p className="small spaced"><strong>Try this:</strong> {item.action}</p>
+              <p className="small"><strong>Success:</strong> {item.successCondition}</p>
+              <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceTitle} · page {item.sourcePage} ↗</a>
+            </article>)}
+            {!nextSteps.length && <div className="panel"><Empty title="No approved next steps yet.">AKURU will add source-linked activities when assessed work shows a specific improvement area.</Empty></div>}
+          </div>
       <div className="section-heading">
         <h2>Recent work & feedback</h2>
       </div>
