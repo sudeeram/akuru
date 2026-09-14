@@ -29,11 +29,11 @@ npm test
 
 Run the API, worker and frontend in separate terminals. Redis must be available at the configured URL before starting the worker. The API runs at `http://127.0.0.1:8000`; interactive OpenAPI documentation is at `/docs`. `npm test` runs the frontend suite and then the backend suite. Authentication integration tests use PostgreSQL transactions that are rolled back, so test users and sessions are not retained.
 
-Uploads return after the original bytes and an authoritative queued job are stored. The worker performs bounded preflight processing and updates progress for the Admin UI. See [document processing](docs/document-processing.md) for states, retries and recovery.
+Uploads return after the original bytes and an authoritative queued job are stored. The worker performs bounded preflight processing and updates progress for the Admin UI. See [Step 3 document processing](docs/step-03-document-processing.md) for states, retries and recovery.
 
-AI is disabled by default and tests use a fake provider. See the [AI provider guide](docs/ai-provider.md) before configuring a backend-only OpenAI key and model.
+AI is disabled by default and tests use a fake provider. See the [Step 5 AI provider guide](docs/step-05-ai-provider.md) and [Step 5A account-routing guide](docs/step-05a-ai-account-routing.md) before configuring backend-only OpenAI keys and models.
 
-After deterministic extraction, Admins review and publish versioned textbook units before past papers can be accepted. See [textbook review](docs/textbook-review.md).
+After deterministic extraction, Admins review and publish versioned textbook units before past papers can be accepted. See [Step 6 textbook review](docs/step-06-textbook-review.md).
 
 ## Create the first administrator
 

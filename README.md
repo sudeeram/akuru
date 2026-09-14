@@ -99,7 +99,7 @@ python3 -m venv .venv
 .venv/bin/python -m alembic upgrade head
 ```
 
-AI is disabled by default, so local setup and tests do not require an OpenAI key or make paid calls. Follow the [AI provider guide](source-code/backend/docs/ai-provider.md) when you are ready to configure a backend-only key and model.
+AI is disabled by default, so local setup and tests do not require an OpenAI key or make paid calls. Follow the [Step 5 AI provider guide](source-code/backend/docs/step-05-ai-provider.md) and [Step 5A account-routing guide](source-code/backend/docs/step-05a-ai-account-routing.md) when you are ready to configure backend-only keys and models.
 
 Create the first Admin interactively. The password is read without echoing and is stored only as an Argon2 hash:
 

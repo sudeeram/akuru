@@ -157,7 +157,7 @@ sudo -u akuru .venv/bin/python -m alembic current
 sudo -u akuru .venv/bin/python -m alembic check
 ```
 
-Keep `/data/akuru`, PostgreSQL backups, and the private `.env` outside release replacement. See the [database backup guide](../../source-code/docs/database-backup.md), [environment reference](../../source-code/docs/environment.md), and [document-storage guide](../../source-code/backend/docs/document-storage.md).
+Keep `/data/akuru`, PostgreSQL backups, and the private `.env` outside release replacement. See the [database backup guide](../../source-code/docs/database-backup.md), [environment reference](../../source-code/docs/environment.md), and [Step 2 document-storage guide](../../source-code/backend/docs/step-02-document-storage.md).
 
 ## Upgrade outline
 

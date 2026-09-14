@@ -20,7 +20,7 @@ Source documents remain private. The response contains feedback but does not exp
 
 ## Local configuration
 
-Configure the backend-only OpenAI accounts as documented in [ai-provider.md](ai-provider.md). The Admin portal controls their unique priorities. Set the publication threshold and evidence limit in `.env`:
+Configure the backend-only provider as documented in [Step 5](step-05-ai-provider.md) and its ordered accounts as documented in [Step 5A](step-05a-ai-account-routing.md). The Admin portal controls their unique priorities. Set the publication threshold and evidence limit in `.env`:
 
 ```dotenv
 AKURU_ASSESSMENT_CONFIDENCE_THRESHOLD=0.75

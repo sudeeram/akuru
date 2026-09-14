@@ -34,15 +34,7 @@ AKURU_OPENAI_MODEL=your-approved-model-id
 
 Keep the key only in `backend/.env`. Never prefix it with `VITE_`, return it through an API, commit it, put it in frontend storage or log the settings object. Tests use `FakeAIProvider` and never need a key or paid call.
 
-For ordered account routing, keep a JSON alias-to-key map in the same ignored dotenv file:
-
-```dotenv
-AKURU_OPENAI_ACCOUNT_KEYS='{"HOME":"sk-...","BACKUP":"sk-..."}'
-```
-
-In **OpenAI accounts** in the Admin portal, create rows using aliases `HOME` and `BACKUP`, assign each a unique priority from 0–100, and use the same model for accounts that should fail over to one another. The lowest priority number is attempted first. PostgreSQL stores aliases and operational health only; API responses report `credentialConfigured` without returning a key.
-
-Account switching occurs only between complete requests. A failed partial response is discarded, and the next account receives the identical request object, prompt version, schema and selected source pages. This can add retry latency and may lose project-specific prompt caching, but it does not change AKURU's curriculum context. Attempts share one operation ID and are recorded in `ai_provider_attempts`.
+Ordered account routing and failover are documented separately in [Step 5A](step-05a-ai-account-routing.md).
 
 Timeout, retry, concurrency, page, text, image and output-token ceilings are configurable with the `AKURU_AI_*` settings documented in `.env.example`. These bound request cost and resource use. Configure OpenAI project budgets and alerts as the account-wide monetary backstop.
 
