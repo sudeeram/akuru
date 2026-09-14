@@ -327,6 +327,13 @@ export type Attempt = {
   assessmentId?: string;
   workingUrl?: string;
 };
+export type UnitMastery = {
+  unitId: string; unitCode: string; unitTitle: string; subjectId: string;
+  score: number; preciseScore: number; confidence: 'low' | 'medium' | 'high'; provisional: boolean;
+  evidenceCount: number; evidenceWeight: number; varietyCount: number; trend: number; lastEvidenceAt: string;
+  dimensions: { dimension: string; score: number; evidenceWeight: number }[];
+  recentEvents: { id: string; previousScore?: number | null; newScore: number; previousConfidence?: string | null; newConfidence: string; explanation: string; createdAt: string }[];
+};
 export type Assignment = {
   id: string;
   studentId: string;
@@ -476,6 +483,7 @@ export type State = {
       }[];
     }
   >;
+  mastery: Record<string, UnitMastery[]>;
 };
 export type Unit = {
   id: string;

@@ -224,15 +224,15 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Produce a meaningful, explainable unit score such as 7/10.
 
-- [ ] Add `unit_mastery`, `unit_mastery_dimensions` and append-only `unit_mastery_events`.
-- [ ] Track relevant knowledge, application, method, accuracy, reasoning, communication and retention dimensions.
-- [ ] Weight evidence by marks, unit mapping, difficulty, assessment mode, hints, retries and recency.
-- [ ] Give timed mocks and official exam-mode papers more weight than hinted practice.
-- [ ] Calculate a 0–10 display score with higher internal precision.
-- [ ] Calculate low, medium or high confidence from quantity, variety and recency.
-- [ ] Mark scores provisional when evidence is insufficient.
-- [ ] Store every previous score, new score and contributing event.
-- [ ] Calculate recent trend without discarding older evidence.
+- [x] Add `unit_mastery`, `unit_mastery_dimensions` and append-only `unit_mastery_events`.
+- [x] Track relevant knowledge, application, method, accuracy, reasoning, communication and retention dimensions.
+- [x] Weight evidence by marks, unit mapping, difficulty, assessment mode, hints, retries and recency.
+- [x] Give timed mocks and official exam-mode papers more weight than hinted practice.
+- [x] Calculate a 0–10 display score with higher internal precision.
+- [x] Calculate low, medium or high confidence from quantity, variety and recency.
+- [x] Mark scores provisional when evidence is insufficient.
+- [x] Store every previous score, new score and contributing event.
+- [x] Calculate recent trend without discarding older evidence.
 
 **Done when:** One easy question cannot create a high-confidence ranking, multi-unit results update by approved weights, and every change can be explained.
 

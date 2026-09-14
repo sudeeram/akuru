@@ -240,7 +240,8 @@ export function Practice(p: FeatureProps) {
   async function hint() {
     setBusy(true);
     try {
-      const r = await api('hint', { questionId: q.id, index: hints.length });
+      if (!practice) return;
+      const r = await api(`assessments/${practice.id}/questions/${q.id}/hint`, { idempotencyKey: crypto.randomUUID() }) as { hint: string; total: number };
       if (hints.length < r.total) setHints([...hints, r.hint]);
       else p.notify('You have opened all hints for this question.');
     } catch (e: unknown) {
@@ -919,6 +920,7 @@ function ClipboardIcon() {
 export function ProgressView(p: FeatureProps) {
   const [chosen, setChosen] = useState<Attempt | null>(null);
   const own = p.data.attempts.filter((a) => a.studentId === p.child.id);
+  const unitMastery = p.data.mastery?.[p.child.id] || [];
   return (
     <>
       <Heading
@@ -972,12 +974,21 @@ export function ProgressView(p: FeatureProps) {
                 </div>
               </div>
               <Evidence attempts={own.filter((a) => a.subject === s.id)} />
+              <div className="stack spaced">
+                {unitMastery.filter((unit) => unit.subjectId === s.id).map((unit) => (
+                  <div className="source-note" key={unit.unitId}>
+                        <div className="spread"><strong>{unit.unitCode} · {unit.unitTitle}</strong><strong>{unit.score.toFixed(1)}/10</strong></div>
+                        <div className="spread small"><span>{unit.provisional ? 'Provisional' : unit.confidence} · {unit.confidence} confidence</span><span>{unit.trend > 0 ? '↑' : unit.trend < 0 ? '↓' : '→'} {Math.abs(unit.trend).toFixed(1)} recent trend</span></div>
+                    <p className="small">{unit.evidenceCount} assessed evidence item{unit.evidenceCount === 1 ? '' : 's'}</p>
+                  </div>
+                ))}
+                {!unitMastery.some((unit) => unit.subjectId === s.id) && <p className="muted small">Complete assessed work to build unit mastery.</p>}
+              </div>
             </div>
           ))}
       </div>
       <p className="source-note">
-        Scores describe assessed attempts, not predicted exam grades or mastery.
-        Pending reviews are excluded.
+        Unit scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
       </p>
       <div className="section-heading">
         <h2>Recent work & feedback</h2>

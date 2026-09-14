@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentQuestion, AssessmentWorkingFile,
+from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentInteraction, AssessmentQuestion, AssessmentWorkingFile,
     Document, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
     OfficialQuestionUnitMapping, OfficialQuestionVersion, StudentProgression, StudentSubject)
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
@@ -95,6 +95,15 @@ def _rubric(db, paper_version_id, number):
         "markingPoints": entry.marking_points if entry else [], "alternatives": entry.alternatives if entry else [],
         "commonMistakes": comment.common_mistakes if comment else [], "examinerAdvice": comment.advice if comment else []}
 
+def _unit_weights(db, question_id, units):
+    rows = db.execute(select(OfficialQuestionUnitMapping.unit_id, OfficialQuestionUnitMapping.weight).where(
+        OfficialQuestionUnitMapping.question_version_id == question_id,
+        OfficialQuestionUnitMapping.status == "confirmed")).all()
+    weights = {str(unit_id): weight for unit_id, weight in rows if unit_id in units}
+    if weights and sum(weights.values()) == 100: return weights
+    base, remainder = divmod(100, len(units))
+    return {str(unit_id): base + (1 if index < remainder else 0) for index, unit_id in enumerate(units)}
+
 def start(db, principal, payload):
     student_id = principal.user.id
     active = db.scalar(select(Assessment).where(Assessment.student_id == student_id, Assessment.status == "active"))
@@ -140,7 +149,8 @@ def start(db, principal, payload):
             source_document_version_id=material.source_document_version_id, question_number=question.question_number,
             prompt=question.prompt, shared_stem=question.shared_stem, marks=question.marks, equations=question.equations,
             asset_ids=question.asset_ids, source_locations=question.source_locations, rubric=_rubric(db, material.id, question.question_number),
-            unit_ids=[str(value) for value in units], skills=blueprint.skills if blueprint else [], difficulty="mixed"))
+            unit_ids=[str(value) for value in units], unit_weights=_unit_weights(db, question.id, units),
+            skills=blueprint.skills if blueprint else [], difficulty="mixed"))
     db.commit(); db.refresh(assessment); return response(db, assessment)
 
 def _owned(db, principal, assessment_id, lock=False):
@@ -193,6 +203,28 @@ def submit(db, principal, assessment_id, key):
         return response(db, row)
     now = _now(); row.status = "submitted" if now < row.ends_at else "expired"; row.submitted_at = now; row.submission_key = key
     db.commit(); db.refresh(row); return response(db, row)
+
+def record_hint(db, principal, assessment_id, question_id, request_key):
+    row = _owned(db, principal, assessment_id, True)
+    if row.status != "active" or row.ends_at <= _now():
+        raise DomainError("assessment_deadline_passed", "Hints are unavailable after the assessment ends.", 409)
+    if row.mode != "practice":
+        raise DomainError("hints_disabled", "Hints are unavailable during mock and official papers.", 403)
+    question = db.get(AssessmentQuestion, question_id)
+    if not question or question.assessment_id != row.id:
+        raise DomainError("assessment_question_not_found", "Question not found in this assessment.", 404)
+    existing = db.scalar(select(AssessmentInteraction).where(AssessmentInteraction.assessment_id == row.id,
+        AssessmentInteraction.question_id == question.id, AssessmentInteraction.request_key == request_key))
+    if not existing:
+        db.add(AssessmentInteraction(assessment_id=row.id, question_id=question.id,
+            student_id=principal.user.id, kind="hint", request_key=request_key)); db.commit()
+    count = db.scalar(select(func.count()).select_from(AssessmentInteraction).where(
+        AssessmentInteraction.assessment_id == row.id, AssessmentInteraction.question_id == question.id,
+        AssessmentInteraction.kind == "hint")) or 0
+    hints = ["Identify the command word and what the marks require.",
+        "Write one relevant fact or method step, then connect it to the question.",
+        "Check each step, unit and conclusion against the information given."]
+    return {"hint": hints[min(count - 1, len(hints) - 1)], "total": len(hints)}
 
 def authorize_asset(db, principal, assessment_id, asset_id):
     row = _owned(db, principal, assessment_id)

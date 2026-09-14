@@ -13,6 +13,7 @@ from app.errors import DomainError
 from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
+from app.services import mastery
 
 
 SCHEMA_VERSION = "assessment-result-v1"
@@ -185,4 +186,5 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             pass_one_output=first.output.model_dump(), pass_two_output=second.output.model_dump(),
             subject_engine=selected_policy.name, subject_engine_version=subject_marking.ENGINE_VERSION,
             deterministic_checks=deterministic)
-        db.add(row); db.commit()
+        db.add(row); db.flush()
+        mastery.record_result(db, row)

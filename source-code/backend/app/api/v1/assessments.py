@@ -8,6 +8,7 @@ from app.config import Settings, get_settings
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.assessments import (AnswerSave, AssessmentListResponse, AssessmentResponse, AssessmentStart,
     AssessmentEvaluateRequest, BlueprintCreate, BlueprintResponse, SubmissionRequest, WorkingFileResponse)
+from app.schemas.mastery import HintInteractionRequest, HintInteractionResponse
 from app.security import Principal
 from app.services import assessments
 from app.services import assessment_marking
@@ -36,6 +37,12 @@ def start(payload: AssessmentStart, principal: Annotated[Principal, Depends(requ
 @router.post("/{assessment_id}/answers", response_model=AssessmentResponse)
 def save(assessment_id: uuid.UUID, payload: AnswerSave, principal: Annotated[Principal, Depends(require_csrf_roles("student"))], db: Annotated[Session, Depends(get_db)]):
     return assessments.save_answer(db, principal, assessment_id, payload)
+
+@router.post("/{assessment_id}/questions/{question_id}/hint", response_model=HintInteractionResponse)
+def hint(assessment_id: uuid.UUID, question_id: uuid.UUID, payload: HintInteractionRequest,
+         principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+         db: Annotated[Session, Depends(get_db)]):
+    return assessments.record_hint(db, principal, assessment_id, question_id, payload.idempotencyKey)
 
 @router.post("/{assessment_id}/questions/{question_id}/working", response_model=WorkingFileResponse, status_code=status.HTTP_201_CREATED)
 def upload_working(assessment_id: uuid.UUID, question_id: uuid.UUID,

@@ -1748,6 +1748,39 @@
         "title": "ExtractionPageResponse",
         "type": "object"
       },
+      "HintInteractionRequest": {
+        "properties": {
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Idempotencykey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "idempotencyKey"
+        ],
+        "title": "HintInteractionRequest",
+        "type": "object"
+      },
+      "HintInteractionResponse": {
+        "properties": {
+          "hint": {
+            "title": "Hint",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "hint",
+          "total"
+        ],
+        "title": "HintInteractionResponse",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "password": {
@@ -1953,6 +1986,113 @@
           "text"
         ],
         "title": "MarkingPoint",
+        "type": "object"
+      },
+      "MasteryDimensionResponse": {
+        "properties": {
+          "dimension": {
+            "title": "Dimension",
+            "type": "string"
+          },
+          "evidenceWeight": {
+            "minimum": 0.0,
+            "title": "Evidenceweight",
+            "type": "number"
+          },
+          "score": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "dimension",
+          "score",
+          "evidenceWeight"
+        ],
+        "title": "MasteryDimensionResponse",
+        "type": "object"
+      },
+      "MasteryEventResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "newConfidence": {
+            "title": "Newconfidence",
+            "type": "string"
+          },
+          "newScore": {
+            "title": "Newscore",
+            "type": "number"
+          },
+          "previousConfidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousconfidence"
+          },
+          "previousScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previousscore"
+          }
+        },
+        "required": [
+          "id",
+          "previousScore",
+          "newScore",
+          "previousConfidence",
+          "newConfidence",
+          "explanation",
+          "createdAt"
+        ],
+        "title": "MasteryEventResponse",
+        "type": "object"
+      },
+      "MasteryResponse": {
+        "properties": {
+          "studentId": {
+            "format": "uuid",
+            "title": "Studentid",
+            "type": "string"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/UnitMasteryResponse"
+            },
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "studentId",
+          "units"
+        ],
+        "title": "MasteryResponse",
         "type": "object"
       },
       "OfficialMaterialReview": {
@@ -2341,6 +2481,17 @@
             },
             "title": "Exams",
             "type": "array"
+          },
+          "mastery": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "title": "Mastery",
+            "type": "object"
           },
           "officialPapers": {
             "items": {
@@ -3258,6 +3409,101 @@
           "weight"
         ],
         "title": "UnitMapping",
+        "type": "object"
+      },
+      "UnitMasteryResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/MasteryDimensionResponse"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "evidenceCount": {
+            "title": "Evidencecount",
+            "type": "integer"
+          },
+          "evidenceWeight": {
+            "title": "Evidenceweight",
+            "type": "number"
+          },
+          "lastEvidenceAt": {
+            "format": "date-time",
+            "title": "Lastevidenceat",
+            "type": "string"
+          },
+          "preciseScore": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Precisescore",
+            "type": "number"
+          },
+          "provisional": {
+            "title": "Provisional",
+            "type": "boolean"
+          },
+          "recentEvents": {
+            "items": {
+              "$ref": "#/components/schemas/MasteryEventResponse"
+            },
+            "title": "Recentevents",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "trend": {
+            "title": "Trend",
+            "type": "number"
+          },
+          "unitCode": {
+            "title": "Unitcode",
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "title": "Unitid",
+            "type": "string"
+          },
+          "unitTitle": {
+            "title": "Unittitle",
+            "type": "string"
+          },
+          "varietyCount": {
+            "title": "Varietycount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unitId",
+          "unitCode",
+          "unitTitle",
+          "subjectId",
+          "score",
+          "preciseScore",
+          "confidence",
+          "provisional",
+          "evidenceCount",
+          "evidenceWeight",
+          "varietyCount",
+          "trend",
+          "lastEvidenceAt",
+          "dimensions",
+          "recentEvents"
+        ],
+        "title": "UnitMasteryResponse",
         "type": "object"
       },
       "UnitOption": {
@@ -5077,6 +5323,121 @@
           }
         },
         "summary": "Evaluate",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/questions/{question_id}/hint": {
+      "post": {
+        "operationId": "hint_api_v1_assessments__assessment_id__questions__question_id__hint_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HintInteractionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HintInteractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Hint",
         "tags": [
           "assessments"
         ]
@@ -7587,6 +7948,101 @@
         "summary": "Publish Textbook Review",
         "tags": [
           "documents"
+        ]
+      }
+    },
+    "/api/v1/mastery/students/{student_id}": {
+      "get": {
+        "operationId": "student_mastery_api_v1_mastery_students__student_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Student Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subjectid"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasteryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Student Mastery",
+        "tags": [
+          "mastery"
         ]
       }
     },

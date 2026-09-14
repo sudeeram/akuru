@@ -169,6 +169,18 @@ test('student submissions request traceable AKURU assessment feedback', () => {
   assert.match(api, /studentEvidence: string/);
 });
 
+test('progress uses backend-calculated explainable unit mastery', () => {
+  assert.match(api, /type UnitMastery/);
+  assert.match(api, /preciseScore: number/);
+  assert.match(api, /confidence: 'low' \| 'medium' \| 'high'/);
+  assert.match(api, /mastery: Record<string, UnitMastery\[\]>/);
+  assert.match(student, /unit\.score\.toFixed\(1\)\}\/10/);
+  assert.match(student, /unit\.provisional \? 'Provisional' : unit\.confidence/);
+  assert.match(student, /evidenceCount/);
+  assert.match(student, /unit\.trend/);
+  assert.match(student, /questions\/\$\{q\.id\}\/hint/);
+});
+
 test('handwritten working uses the private authenticated assessment endpoint', () => {
   assert.match(api, /export async function uploadWorking/);
   assert.match(api, /questions\/\$\{questionId\}\/working/);

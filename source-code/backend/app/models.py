@@ -4,7 +4,7 @@ from datetime import datetime
 
 from sqlalchemy import (
     Boolean, CheckConstraint, DateTime, Float, ForeignKey, ForeignKeyConstraint, Index, Integer,
-    JSON, String, Text, UniqueConstraint, func, text,
+    JSON, Numeric, String, Text, UniqueConstraint, func, text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
 from pgvector.sqlalchemy import VECTOR
@@ -811,6 +811,7 @@ class AssessmentQuestion(Base):
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     rubric: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     unit_ids: Mapped[list] = mapped_column(JSON)
+    unit_weights: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     skills: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     difficulty: Mapped[str] = mapped_column(String(24), default="mixed", server_default="mixed")
     __table_args__ = (
@@ -898,4 +899,76 @@ class AssessmentResult(Base):
         CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_assessment_result_confidence"),
         UniqueConstraint("question_id", "version_number", name="uq_assessment_result_question_version"),
         UniqueConstraint("assessment_id", "question_id", "request_key", name="uq_assessment_result_request"),
+    )
+
+
+class AssessmentInteraction(Base):
+    __tablename__ = "assessment_interactions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(24))
+    request_key: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("kind IN ('hint')", name="ck_assessment_interaction_kind"),
+        UniqueConstraint("assessment_id", "question_id", "request_key", name="uq_assessment_interaction_request"),
+    )
+
+
+class UnitMastery(Base):
+    __tablename__ = "unit_mastery"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    score: Mapped[float] = mapped_column(Numeric(8, 5))
+    display_score: Mapped[float] = mapped_column(Numeric(3, 1))
+    confidence: Mapped[str] = mapped_column(String(12))
+    provisional: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    evidence_count: Mapped[int] = mapped_column(Integer)
+    evidence_weight: Mapped[float] = mapped_column(Numeric(10, 5))
+    variety_count: Mapped[int] = mapped_column(Integer)
+    trend: Mapped[float] = mapped_column(Numeric(8, 5), default=0, server_default="0")
+    last_evidence_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    version_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("score BETWEEN 0 AND 10 AND display_score BETWEEN 0 AND 10", name="ck_unit_mastery_score"),
+        CheckConstraint("confidence IN ('low','medium','high')", name="ck_unit_mastery_confidence"),
+        CheckConstraint("evidence_count >= 0 AND evidence_weight >= 0 AND variety_count >= 0 AND version_number > 0", name="ck_unit_mastery_counts"),
+        UniqueConstraint("student_id", "unit_id", name="uq_unit_mastery_student_unit"),
+    )
+
+
+class UnitMasteryDimension(Base):
+    __tablename__ = "unit_mastery_dimensions"
+    mastery_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unit_mastery.id", ondelete="CASCADE"), primary_key=True)
+    dimension: Mapped[str] = mapped_column(String(24), primary_key=True)
+    score: Mapped[float] = mapped_column(Numeric(8, 5))
+    evidence_weight: Mapped[float] = mapped_column(Numeric(10, 5))
+    __table_args__ = (
+        CheckConstraint("dimension IN ('knowledge','application','method','accuracy','reasoning','communication','retention')", name="ck_unit_mastery_dimension_name"),
+        CheckConstraint("score BETWEEN 0 AND 10 AND evidence_weight >= 0", name="ck_unit_mastery_dimension_values"),
+    )
+
+
+class UnitMasteryEvent(Base):
+    __tablename__ = "unit_mastery_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    mastery_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unit_mastery.id", ondelete="RESTRICT"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    trigger_result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_results.id", ondelete="RESTRICT"), index=True)
+    previous_score: Mapped[float | None] = mapped_column(Numeric(8, 5))
+    new_score: Mapped[float] = mapped_column(Numeric(8, 5))
+    previous_confidence: Mapped[str | None] = mapped_column(String(12))
+    new_confidence: Mapped[str] = mapped_column(String(12))
+    contribution: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("previous_score IS NULL OR previous_score BETWEEN 0 AND 10", name="ck_unit_mastery_event_previous"),
+        CheckConstraint("new_score BETWEEN 0 AND 10", name="ck_unit_mastery_event_new"),
+        UniqueConstraint("unit_id", "trigger_result_id", name="uq_unit_mastery_event_trigger"),
     )

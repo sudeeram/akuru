@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy.orm import Session
 
 from app.repositories.catalog import CatalogRepository
@@ -5,7 +6,7 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
-from app.services import assessments
+from app.services import assessments, mastery
 
 
 GRADES = ("Grade 10", "Grade 11")
@@ -123,6 +124,10 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
             "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,
             "feedbackVisible": item.feedbackVisible})
+    visible_students = student_rows(db, principal) if not principal.user.must_change_password else []
+    mastery_rows = ({row["id"]: [unit.model_dump(mode="json") for unit in mastery.list_mastery(
+        db, principal, uuid.UUID(row["id"])).units] for row in visible_students}
+        if principal.user.role in {"student", "parent"} else {})
     return {
         "user": {
             "id": str(principal.user.id),
@@ -152,7 +157,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             }
             for subject in subjects
         ],
-        "students": [] if principal.user.must_change_password else student_rows(db, principal),
+        "students": visible_students,
         "units": [],
         "coverage": [],
         "questionBank": [],
@@ -166,4 +171,5 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "officialPapers": assessments.official_papers(db, principal.user.id) if principal.user.role == "student" and not principal.user.must_change_password else [],
         "reviews": [],
         "plans": {},
+        "mastery": mastery_rows,
     }

@@ -16,7 +16,8 @@ from app.models import (
     AIProviderAccount, Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentCurriculumSnapshot, AssessmentQuestion, AssessmentResult, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
-    RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion, User,
+    RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
+    UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -945,6 +946,15 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     result = assessed.json()["questions"][0]["result"]
     assert result["awardedMarks"] <= result["maxMarks"] and result["status"] == "published"
     assert result["markingDecisions"][0]["studentEvidence"] == "Cell membrane"
+    mastery_rows = session.query(UnitMastery).filter_by(student_id=student_user.id).order_by(UnitMastery.unit_id).all()
+    assert len(mastery_rows) == 2 and all(row.confidence == "low" and row.provisional for row in mastery_rows)
+    assert sorted(round(float(row.evidence_weight), 2) for row in mastery_rows) == [0.64, 0.96]
+    assert session.query(UnitMasteryDimension).count() == 14
+    assert session.query(UnitMasteryEvent).count() == 2
+    mastery_api = client.get(f"/api/v1/mastery/students/{student_user.id}")
+    assert mastery_api.status_code == 200 and len(mastery_api.json()["units"]) == 2
+    expected_mastery = result["awardedMarks"] / result["maxMarks"] * 10
+    assert all(unit["score"] == expected_mastery and unit["preciseScore"] == expected_mastery for unit in mastery_api.json()["units"])
     first_row = session.query(AssessmentResult).filter_by(assessment_id=uuid.UUID(exam["id"])).one()
     assert first_row.rubric_snapshot and first_row.prompt_version == "2.0.0"
     assert {source["type"] for source in first_row.source_manifest} >= {"frozen_question", "frozen_rubric"}
@@ -955,6 +965,8 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
         json={"idempotencyKey": "evaluate-exam-0002"}).status_code == 200
     assert [row.version_number for row in session.query(AssessmentResult).filter_by(
         assessment_id=uuid.UUID(exam["id"])).order_by(AssessmentResult.version_number)] == [1, 2]
+    assert all(row.evidence_count == 1 and row.version_number == 2 for row in session.query(UnitMastery).all())
+    assert session.query(UnitMasteryEvent).count() == 4
 
     official = client.post("/api/v1/assessments/start", headers=student_csrf, json={
         "mode": "official_paper", "subjectId": "biology", "paperId": paper_id,
@@ -974,6 +986,9 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     })
     assert practice.status_code == 201 and len(practice.json()["questions"]) == 1
     practice_data = practice.json(); practice_question = practice_data["questions"][0]
+    hint = client.post(f"/api/v1/assessments/{practice_data['id']}/questions/{practice_question['id']}/hint",
+        headers=student_csrf, json={"idempotencyKey": "practice-hint-0001"})
+    assert hint.status_code == 200 and hint.json()["total"] == 3
     monkeypatch.setattr(assessment_working, "extract_document", lambda *args, **kwargs: {"pageCount": 1, "pages": [{
         "blocks": [{"text": "cell membrane", "confidence": 0.72}]}]})
     working = client.post(f"/api/v1/assessments/{practice_data['id']}/questions/{practice_question['id']}/working",
@@ -995,6 +1010,7 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     parent_login = client.post("/api/v1/auth/login", json={
         "username": parent_user.username, "password": "assessment parent password"})
     assert parent_login.status_code == 200
+    assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 200
     working_url = f"/api/v1/assessments/{practice_data['id']}/working/{working.json()['id']}"
     assert client.get(working_url).status_code == 200
     unrelated_parent = User(username=f"unrelated-parent-{uuid.uuid4().hex}", display_name="Unrelated Parent",
@@ -1003,3 +1019,4 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert client.post("/api/v1/auth/login", json={"username": unrelated_parent.username,
         "password": "unrelated parent password"}).status_code == 200
     assert client.get(working_url).status_code == 404
+    assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 403

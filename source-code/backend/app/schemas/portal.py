@@ -80,6 +80,7 @@ class PortalStateResponse(BaseModel):
     officialPapers: list[dict[str, Any]] = Field(default_factory=list)
     reviews: list[dict[str, Any]] = Field(default_factory=list)
     plans: dict[str, Any] = Field(default_factory=dict)
+    mastery: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 
 class UiFeaturesUserResponse(BaseModel):
