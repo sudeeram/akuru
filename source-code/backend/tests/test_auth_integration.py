@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorProfile, TutorProfileVersion, TutorSession, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorLearnerContextLog, TutorProfile, TutorProfileVersion, TutorSession, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -366,11 +366,94 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
     assert session.query(TutorSessionProfileEvent).count() == 2
     assert session.query(TutorSessionUnitEvent).count() == 1
 
+    material = OfficialMaterialVersion(document_id=document.id, source_document_version_id=document_version.id,
+        version_number=1, kind="past_paper", course_id="igcse", subject_id="biology",
+        textbook_content_version_id=content.id, status="published", inventory_count=5,
+        completeness_confirmed=True, created_by=admin.id, published_by=admin.id)
+    session.add(material); session.flush()
+    snapshot_row = AssessmentCurriculumSnapshot(assessment_ref=f"tutor-context-{uuid.uuid4().hex}",
+        student_id=student.id, plan_id=plan.id, course_id="igcse", subject_id="biology", grade=10, term=1,
+        covered_unit_ids=[str(item.id) for item in units], progression_periods=[{"grade": 10, "term": 1}])
+    session.add(snapshot_row); session.flush()
+    assessment = Assessment(student_id=student.id, subject_id="biology", mode="practice", status="submitted",
+        curriculum_snapshot_id=snapshot_row.id, title="Tutor evidence", target_marks=10, duration_minutes=20,
+        skills=[], difficulty_profile={}, started_at=datetime.now(timezone.utc) - timedelta(days=2),
+        ends_at=datetime.now(timezone.utc) - timedelta(days=1), submitted_at=datetime.now(timezone.utc) - timedelta(days=1))
+    session.add(assessment); session.flush()
+    results = []
+    for index in range(1, 6):
+        source_question = OfficialQuestionVersion(material_version_id=material.id, question_number=str(index),
+            prompt="Explain sulphuric acid safely.", marks=2, mapping_status="confirmed")
+        session.add(source_question); session.flush()
+        question = AssessmentQuestion(assessment_id=assessment.id, sequence=index,
+            source_question_version_id=source_question.id, source_document_version_id=document_version.id,
+            question_number=str(index), prompt=source_question.prompt, marks=2, rubric={},
+            unit_ids=[str(units[0].id), str(units[1].id)], unit_weights={}, skills=[], difficulty="standard")
+        session.add(question); session.flush()
+        result = AssessmentResult(assessment_id=assessment.id, question_id=question.id, version_number=1,
+            schema_version="assessment-feedback-v1", status="published", answer_revision=1,
+            input_hash=uuid.uuid4().hex * 2, request_key=f"context-result-{index}", awarded_marks=1,
+            max_marks=2, confidence=.95, marking_decisions=[{"awarded": False, "rationale": "The sulphuric acid explanation missed a required fact."}],
+            strengths=[], small_mistakes=["sulphuric acid fact"], conceptual_mistakes=[], improved_answer="Improved.",
+            teaching_explanation="Grounded explanation.", unit_evidence=[], recommendations=[], review_reasons=[],
+            provider="test", model="test", prompt_name="test", prompt_version="1", rubric_snapshot={},
+            source_manifest=[], pass_one_output={}, pass_two_output={}, subject_engine="science",
+            subject_engine_version="1", deterministic_checks={})
+        session.add(result); session.flush(); results.append(result)
+        session.add(WeaknessDiagnosis(student_id=student.id, subject_id="biology", unit_id=units[1].id,
+            result_id=result.id, question_id=question.id, category="factual_knowledge", dimension="knowledge",
+            severity="minor", description="A sulphuric acid fact was missed.",
+            evidence={"topic": "sulphuric acid", "items": ["Required acid fact was absent."]},
+            occurrence_number=index, confidence=.95, created_at=datetime.now(timezone.utc) - timedelta(days=6-index)))
+    strong_mastery = UnitMastery(student_id=student.id, unit_id=units[0].id, subject_id="biology", score=8.2,
+        display_score=8.2, confidence="high", provisional=False, evidence_count=2, evidence_weight=2,
+        variety_count=2, trend=.5, last_evidence_at=datetime.now(timezone.utc), version_number=2)
+    unverified_mastery = UnitMastery(student_id=student.id, unit_id=units[1].id, subject_id="biology", score=9.9,
+        display_score=9.9, confidence="high", provisional=False, evidence_count=10, evidence_weight=10,
+        variety_count=5, trend=1, last_evidence_at=datetime.now(timezone.utc), version_number=1)
+    session.add_all([strong_mastery, unverified_mastery]); session.flush()
+    session.add(UnitMasteryDimension(mastery_id=strong_mastery.id, dimension="knowledge", score=8.5, evidence_weight=2))
+    for index, result in enumerate(results[:2], 1):
+        session.add(UnitMasteryEvent(mastery_id=strong_mastery.id, student_id=student.id, unit_id=units[0].id,
+            trigger_result_id=result.id, previous_score=None if index == 1 else 7.5, new_score=7.5 if index == 1 else 8.2,
+            previous_confidence=None if index == 1 else "medium", new_confidence="high",
+            contribution={"source": "published assessment"}, created_at=datetime.now(timezone.utc) - timedelta(days=3-index)))
+    uncovered = TextbookUnit(textbook_id=document.id, course_id="igcse", subject_id="biology", unit_code="B9",
+        title="Uncovered model claim", sequence=9, content_version_id=content.id)
+    session.add(uncovered); session.flush()
+    session.add(UnitMastery(student_id=student.id, unit_id=uncovered.id, subject_id="biology", score=10,
+        display_score=10, confidence="high", provisional=False, evidence_count=99, evidence_weight=99,
+        variety_count=9, trend=2, last_evidence_at=datetime.now(timezone.utc), version_number=1))
+    session.commit()
+
+    context = client.post(f"/api/v1/tutoring/sessions/{session_ref}/learner-context", headers=headers,
+        json={"requestKey": "learner-context-001"})
+    assert context.status_code == 200, context.text
+    body = context.json()
+    assert [item["unit"]["code"] for item in body["units"]] == ["B1", "B2"]
+    assert "B9" not in context.text
+    first = next(item for item in body["units"] if item["unit"]["code"] == "B1")
+    assert {"strong", "improving"}.issubset(first["signals"])
+    second = next(item for item in body["units"] if item["unit"]["code"] == "B2")
+    acid = next(item for item in second["mistakes"] if item["topic"] == "sulphuric acid")
+    assert acid["last7Days"] == 5 and len(acid["evidenceRefs"]) == 5
+    assert second["masteryScore"] is None and "insufficient_evidence" in second["signals"]
+    assert student.username not in context.text and student.display_name not in context.text
+    assert body["providerContext"]["learnerRef"].startswith("learner_")
+    repeated_context = client.post(f"/api/v1/tutoring/sessions/{session_ref}/learner-context", headers=headers,
+        json={"requestKey": "learner-context-001"})
+    assert repeated_context.json() == body
+    context_log = session.query(TutorLearnerContextLog).filter_by(public_ref=body["operationRef"]).one()
+    assert context_log.context_version == body["contextVersion"]
+    assert context_log.evidence_references == [item["ref"] for item in body["evidence"]]
+
     outsider_login = client.post("/api/v1/auth/login", json={"username": outsider.username, "password": "other student password"}).json()
     assert client.get(f"/api/v1/tutoring/sessions/{session_ref}").status_code == 404
     outsider_headers = {"X-CSRF-Token": outsider_login["csrfToken"]}
     assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=outsider_headers,
         json={"profileRef": profiles[1][0].public_ref, "requestKey": "foreign-switch-001"}).status_code == 404
+    assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/learner-context", headers=outsider_headers,
+        json={"requestKey": "foreign-context-001"}).status_code == 404
 
     login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
     headers = {"X-CSRF-Token": login["csrfToken"]}

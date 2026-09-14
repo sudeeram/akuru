@@ -1152,6 +1152,310 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "ContextAttempt": {
+        "properties": {
+          "awardedMarks": {
+            "title": "Awardedmarks",
+            "type": "integer"
+          },
+          "evidenceRef": {
+            "title": "Evidenceref",
+            "type": "string"
+          },
+          "markingSummary": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Markingsummary",
+            "type": "array"
+          },
+          "maxMarks": {
+            "title": "Maxmarks",
+            "type": "integer"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "observedAt": {
+            "format": "date-time",
+            "title": "Observedat",
+            "type": "string"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "evidenceRef",
+          "observedAt",
+          "mode",
+          "score",
+          "awardedMarks",
+          "maxMarks",
+          "markingSummary"
+        ],
+        "title": "ContextAttempt",
+        "type": "object"
+      },
+      "ContextEvidence": {
+        "properties": {
+          "kind": {
+            "enum": [
+              "mastery_event",
+              "assessment_result",
+              "mistake",
+              "study_plan_item"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "observedAt": {
+            "format": "date-time",
+            "title": "Observedat",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "kind",
+          "observedAt",
+          "summary"
+        ],
+        "title": "ContextEvidence",
+        "type": "object"
+      },
+      "ContextMistakePattern": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "last30Days": {
+            "title": "Last30Days",
+            "type": "integer"
+          },
+          "last7Days": {
+            "title": "Last7Days",
+            "type": "integer"
+          },
+          "lifetime": {
+            "title": "Lifetime",
+            "type": "integer"
+          },
+          "statement": {
+            "$ref": "#/components/schemas/ContextStatement"
+          },
+          "topic": {
+            "title": "Topic",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topic",
+          "category",
+          "last7Days",
+          "last30Days",
+          "lifetime",
+          "evidenceRefs",
+          "statement"
+        ],
+        "title": "ContextMistakePattern",
+        "type": "object"
+      },
+      "ContextPlanItem": {
+        "properties": {
+          "activityType": {
+            "title": "Activitytype",
+            "type": "string"
+          },
+          "evidenceRef": {
+            "title": "Evidenceref",
+            "type": "string"
+          },
+          "scheduledFor": {
+            "format": "date-time",
+            "title": "Scheduledfor",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidenceRef",
+          "title",
+          "activityType",
+          "status",
+          "scheduledFor"
+        ],
+        "title": "ContextPlanItem",
+        "type": "object"
+      },
+      "ContextStatement": {
+        "properties": {
+          "cautious": {
+            "title": "Cautious",
+            "type": "boolean"
+          },
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "signal": {
+            "enum": [
+              "strong",
+              "weak",
+              "improving",
+              "declining",
+              "low_confidence",
+              "insufficient_evidence",
+              "recurring_mistake",
+              "planned_activity"
+            ],
+            "title": "Signal",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "signal",
+          "evidenceRefs",
+          "cautious"
+        ],
+        "title": "ContextStatement",
+        "type": "object"
+      },
+      "ContextUnit": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/ContextAttempt"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "dimensions": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Dimensions",
+            "type": "object"
+          },
+          "evidenceCount": {
+            "default": 0,
+            "title": "Evidencecount",
+            "type": "integer"
+          },
+          "masteryScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masteryscore"
+          },
+          "mistakes": {
+            "items": {
+              "$ref": "#/components/schemas/ContextMistakePattern"
+            },
+            "title": "Mistakes",
+            "type": "array"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/ContextStatement"
+            },
+            "title": "Statements",
+            "type": "array"
+          },
+          "studyPlan": {
+            "items": {
+              "$ref": "#/components/schemas/ContextPlanItem"
+            },
+            "title": "Studyplan",
+            "type": "array"
+          },
+          "trend": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          },
+          "varietyCount": {
+            "default": 0,
+            "title": "Varietycount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "unit",
+          "active"
+        ],
+        "title": "ContextUnit",
+        "type": "object"
+      },
       "CorpusCreate": {
         "properties": {
           "cases": {
@@ -2480,6 +2784,74 @@
         "title": "IllustrationCreate",
         "type": "object"
       },
+      "LearnerContextRequest": {
+        "properties": {
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestKey"
+        ],
+        "title": "LearnerContextRequest",
+        "type": "object"
+      },
+      "LearnerContextResponse": {
+        "properties": {
+          "activeUnit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          },
+          "contextVersion": {
+            "title": "Contextversion",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ContextEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generatedAt": {
+            "format": "date-time",
+            "title": "Generatedat",
+            "type": "string"
+          },
+          "operationRef": {
+            "title": "Operationref",
+            "type": "string"
+          },
+          "providerContext": {
+            "$ref": "#/components/schemas/ProviderLearnerContext"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/ContextUnit"
+            },
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operationRef",
+          "contextVersion",
+          "generatedAt",
+          "subjectId",
+          "activeUnit",
+          "units",
+          "evidence",
+          "providerContext"
+        ],
+        "title": "LearnerContextResponse",
+        "type": "object"
+      },
       "LoginRequest": {
         "properties": {
           "password": {
@@ -3636,6 +4008,61 @@
           "term"
         ],
         "title": "ProgressionResponse",
+        "type": "object"
+      },
+      "ProviderLearnerContext": {
+        "properties": {
+          "activeUnitCode": {
+            "title": "Activeunitcode",
+            "type": "string"
+          },
+          "contextVersion": {
+            "title": "Contextversion",
+            "type": "string"
+          },
+          "learnerRef": {
+            "title": "Learnerref",
+            "type": "string"
+          },
+          "learningSignals": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Learningsignals",
+            "type": "array"
+          },
+          "plannedActivities": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Plannedactivities",
+            "type": "array"
+          },
+          "recurringMistakes": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Recurringmistakes",
+            "type": "array"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "learnerRef",
+          "subjectId",
+          "activeUnitCode",
+          "contextVersion",
+          "learningSignals",
+          "recurringMistakes",
+          "plannedActivities"
+        ],
+        "title": "ProviderLearnerContext",
         "type": "object"
       },
       "PublishOfficialMaterialRequest": {
@@ -14127,6 +14554,110 @@
           }
         },
         "summary": "End Session",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/learner-context": {
+      "post": {
+        "operationId": "learner_context_api_v1_tutoring_sessions__session_ref__learner_context_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnerContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearnerContextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Learner Context",
         "tags": [
           "tutoring"
         ]

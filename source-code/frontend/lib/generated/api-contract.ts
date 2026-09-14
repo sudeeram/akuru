@@ -20,6 +20,12 @@ export interface Schemas {
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
+  "ContextAttempt": { "evidenceRef": string; "observedAt": string; "mode": string; "score": number; "awardedMarks": number; "maxMarks": number; "markingSummary": Array<string>; };
+  "ContextEvidence": { "ref": string; "kind": "mastery_event" | "assessment_result" | "mistake" | "study_plan_item"; "observedAt": string; "summary": string; };
+  "ContextMistakePattern": { "topic": string; "category": string; "last7Days": number; "last30Days": number; "lifetime": number; "evidenceRefs": Array<string>; "statement": Schemas["ContextStatement"]; };
+  "ContextPlanItem": { "evidenceRef": string; "title": string; "activityType": string; "status": string; "scheduledFor": string; };
+  "ContextStatement": { "text": string; "signal": "strong" | "weak" | "improving" | "declining" | "low_confidence" | "insufficient_evidence" | "recurring_mistake" | "planned_activity"; "evidenceRefs": Array<string>; "cautious": boolean; };
+  "ContextUnit": { "unit": Schemas["PlanUnitResponse"]; "active": boolean; "masteryScore"?: number | null; "confidence"?: string | null; "trend"?: number | null; "evidenceCount"?: number; "varietyCount"?: number; "dimensions"?: { [key: string]: number; }; "signals"?: Array<string>; "statements"?: Array<Schemas["ContextStatement"]>; "attempts"?: Array<Schemas["ContextAttempt"]>; "mistakes"?: Array<Schemas["ContextMistakePattern"]>; "studyPlan"?: Array<Schemas["ContextPlanItem"]>; };
   "CorpusCreate": { "subjectId": string; "name": string; "cases": Array<Schemas["EvaluationCase"]>; };
   "CorpusResponse": { "id": string; "subjectId": string; "versionNumber": number; "name": string; "cases": Array<{ [key: string]: unknown; }>; "status": string; "contentHash": string; "createdAt": string; "approvedAt": string | null; };
   "CorpusReview": { "decision": "approved" | "retired"; };
@@ -48,6 +54,8 @@ export interface Schemas {
   "HintInteractionRequest": { "idempotencyKey": string; };
   "HintInteractionResponse": { "hint": string; "total": number; };
   "IllustrationCreate": { "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "prompt": string; };
+  "LearnerContextRequest": { "requestKey": string; };
+  "LearnerContextResponse": { "operationRef": string; "contextVersion": string; "generatedAt": string; "subjectId": string; "activeUnit": Schemas["PlanUnitResponse"]; "units": Array<Schemas["ContextUnit"]>; "evidence": Array<Schemas["ContextEvidence"]>; "providerContext": Schemas["ProviderLearnerContext"]; };
   "LoginRequest": { "username": string; "password": string; };
   "LoginResponse": { "user": Schemas["UserResponse"]; "csrfToken": string; };
   "MappingSuggestionResponse": { "questionId": string; "method": string; "suggestions": Array<Schemas["UnitMapping"]>; };
@@ -73,6 +81,7 @@ export interface Schemas {
   "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "units"?: Array<{ [key: string]: unknown; }>; "coverage"?: Array<{ [key: string]: unknown; }>; "questionBank"?: Array<{ [key: string]: unknown; }>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "assessmentBlueprints"?: Array<{ [key: string]: unknown; }>; "officialPapers"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; "mastery"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; "recommendations"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; };
   "ProgressionPairResponse": { "grade": string; "term": string; };
   "ProgressionResponse": { "grade": string; "term": string; };
+  "ProviderLearnerContext": { "learnerRef": string; "subjectId": string; "activeUnitCode": string; "contextVersion": string; "learningSignals": Array<{ [key: string]: unknown; }>; "recurringMistakes": Array<{ [key: string]: unknown; }>; "plannedActivities": Array<{ [key: string]: unknown; }>; };
   "PublishOfficialMaterialRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmSourcePaper"?: boolean; "confirmComplete": boolean; };
   "PublishPlanRequest": { "confirmSubject": boolean; "confirmTextbook": boolean; };
   "PublishTextbookRequest": { "confirmCourse": boolean; "confirmSubject": boolean; "confirmEdition": boolean; };
@@ -221,6 +230,7 @@ export interface ApiOperations {
   "POST /api/v1/tutoring/sessions": { request: Schemas["TutorSessionStartRequest"]; response: Schemas["TutorSessionResponse"] };
   "GET /api/v1/tutoring/sessions/{session_ref}": { request: unknown; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/end": { request: Schemas["TutorEndSessionRequest"]; response: Schemas["TutorSessionResponse"] };
+  "POST /api/v1/tutoring/sessions/{session_ref}/learner-context": { request: Schemas["LearnerContextRequest"]; response: Schemas["LearnerContextResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-profile": { request: Schemas["TutorSwitchProfileRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-unit": { request: Schemas["TutorSwitchUnitRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/turns": { request: Schemas["TutorTurnCreateRequest"]; response: Schemas["TutorSessionResponse"] };

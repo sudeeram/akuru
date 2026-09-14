@@ -284,6 +284,22 @@ class TutorSessionUnitEvent(Base):
     __table_args__ = (UniqueConstraint("session_id", "request_key", name="uq_tutor_unit_switch_request"),)
 
 
+class TutorLearnerContextLog(Base):
+    __tablename__ = "tutor_learner_context_logs"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(48), unique=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    active_unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"))
+    request_key: Mapped[str] = mapped_column(String(100))
+    context_version: Mapped[str] = mapped_column(String(64), index=True)
+    evidence_references: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    context_snapshot: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (UniqueConstraint("session_id", "request_key", name="uq_tutor_context_request"),)
+
+
 class Document(TimestampMixin, Base):
     __tablename__ = "documents"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

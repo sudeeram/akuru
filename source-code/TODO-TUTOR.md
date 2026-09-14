@@ -70,16 +70,20 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Give tutors accurate knowledge of a student's demonstrated strengths and weak points.
 
-- [ ] Create a read-only learner-context service over mastery, mastery confidence, dimensions, trends, assessed attempts, marking decisions, mistake taxonomy and current study-plan data.
-- [ ] Restrict context to the authenticated student, active enrolled subject and eligible units.
-- [ ] Calculate recurring mistake counts with explicit topic, evidence records and time windows.
-- [ ] Distinguish strong, weak, declining, improving, low-confidence and insufficient-evidence units.
-- [ ] Return structured evidence for every personalised statement the tutor may make.
-- [ ] Use cautious phrasing when evidence quantity, variety or recency is insufficient.
-- [ ] Create pseudonymous provider context with no username, email or unnecessary family data.
-- [ ] Log learner-context version and evidence references used by each tutor operation.
-- [ ] Add tests for examples such as five sulphuric-acid mistakes this week and strong Unit 1 Algebra skills.
-- [ ] Test that siblings, uncovered units and unassessed model claims never enter the context.
+- [x] Create a read-only learner-context service over mastery, mastery confidence, dimensions, trends, assessed attempts, marking decisions, mistake taxonomy and current study-plan data.
+- [x] Restrict context to the authenticated student, active enrolled subject and eligible units.
+- [x] Calculate recurring mistake counts with explicit topic, evidence records and time windows.
+- [x] Distinguish strong, weak, declining, improving, low-confidence and insufficient-evidence units.
+- [x] Return structured evidence for every personalised statement the tutor may make.
+- [x] Use cautious phrasing when evidence quantity, variety or recency is insufficient.
+- [x] Create pseudonymous provider context with no username, email or unnecessary family data.
+- [x] Log learner-context version and evidence references used by each tutor operation.
+- [x] Add tests for examples such as five sulphuric-acid mistakes this week and strong Unit 1 Algebra skills.
+- [x] Test that siblings, uncovered units and unassessed model claims never enter the context.
+
+**Completed:** The authenticated learner-context operation composes only published assessment results, unit-verified mastery events, dimensions, marking decisions, assessed mistake diagnoses and approved current study-plan items. Deterministic signals distinguish strong, weak, improving, declining, low-confidence and insufficient-evidence states. Each personalised statement names its evidence references and whether cautious wording is required. The provider projection is pseudonymous and omits account and family identity. Immutable operation logs retain the context version, evidence manifest and replayable snapshot. See [Tutor Step 3 learner context](backend/docs/tutor-step-03-learner-context.md).
+
+**Validation:** Migration `df4c92a10b33` applies cleanly and Alembic reports no drift. The release checks pass with 25 frontend and 89 backend tests, the generated OpenAPI contract, TypeScript, lint and the production frontend build. Tests prove five assessed sulphuric-acid mistakes in seven days, a strong Unit 1 Algebra statement backed by two events, cautious handling of stale evidence and an unassessed 10/10 database value, cumulative coverage filtering, sibling isolation, pseudonymisation and idempotent operation replay.
 
 **Done when:** Every statement about the student is reproducible from authorized evidence and the tutor cannot invent a strength, weakness, count or time window.
 

@@ -135,6 +135,8 @@ Full past papers, marking schemes and examiner reports remain Admin-only in the 
 
 Tutor practice sessions are scoped to one authenticated Student, one enrolled subject and one cumulatively eligible unit. Ordered transcript turns retain the immutable tutor-profile version used for each turn. Tutor and eligible-unit switches are recorded as events; a server-owned compact handover carries recent context while the same session, transcript and authorized source links remain intact. No raw tutor audio is stored.
 
+Tutor learner context is read-only and rebuilt from published assessment evidence, verified mastery events, mistake diagnoses and approved active study-plan items. Every personalised statement carries evidence references and a cautiousness marker. Uncovered units and mastery values without qualifying published result events are excluded from claims. Provider-facing context uses a pseudonymous learner reference and excludes account and family identity data. Each context operation stores a versioned evidence manifest and immutable response snapshot for replay and audit.
+
 ## Data model and referential rules
 
 | Entity | Required relationships |

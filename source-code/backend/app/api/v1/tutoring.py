@@ -21,9 +21,10 @@ from app.schemas.tutor_sessions import (
     TutorSessionResponse, TutorSessionStartRequest, TutorSwitchProfileRequest,
     TutorSwitchUnitRequest, TutorTurnCreateRequest,
 )
+from app.schemas.tutor_context import LearnerContextRequest, LearnerContextResponse
 from app.security import Principal
 from app.services.assessment_access import tutor_capabilities
-from app.services import tutor_profiles, tutor_sessions
+from app.services import tutor_context, tutor_profiles, tutor_sessions
 
 
 router = APIRouter(prefix="/tutoring", tags=["tutoring"])
@@ -88,6 +89,15 @@ def add_turn(
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
 ):
     return tutor_sessions.add_turn(db, settings, principal, session_ref, payload)
+
+
+@router.post("/sessions/{session_ref}/learner-context", response_model=LearnerContextResponse)
+def learner_context(
+    session_ref: str, payload: LearnerContextRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_context.build_and_log(db, settings, principal, session_ref, payload.requestKey)
 
 
 @router.post("/sessions/{session_ref}/switch-profile", response_model=TutorSessionResponse)
