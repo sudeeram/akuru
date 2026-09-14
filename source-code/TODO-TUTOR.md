@@ -151,15 +151,19 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Let a tutor teach through practice without becoming an unreviewed assessment authority.
 
-- [ ] Create eligible individual practice through the existing deterministic question-selection service.
-- [ ] Preserve active unit and question state when switching tutors.
-- [ ] Offer staged hints only in practice mode and record their use.
-- [ ] Submit answers through the existing AKURU assessment service.
-- [ ] Show assessment feedback, marking evidence and improved answers only when the practice workflow permits it.
-- [ ] Add append-only `tutor_signals` with session, unit, evidence, confidence, prompt and model provenance.
-- [ ] Display appropriate tutor observations to Students and Parents.
-- [ ] Prevent tutor signals from automatically changing mastery, next-unit recommendations or study plans.
-- [ ] Verify tutor and voice endpoints remain unavailable throughout every formal assessment.
+- [x] Create eligible individual practice through the existing deterministic question-selection service.
+- [x] Preserve active unit and question state when switching tutors.
+- [x] Offer staged hints only in practice mode and record their use.
+- [x] Submit answers through the existing AKURU assessment service.
+- [x] Show assessment feedback, marking evidence and improved answers only when the practice workflow permits it.
+- [x] Add append-only `tutor_signals` with session, unit, evidence, confidence, prompt and model provenance.
+- [x] Display appropriate tutor observations to Students and Parents.
+- [x] Prevent tutor signals from automatically changing mastery, next-unit recommendations or study plans.
+- [x] Verify tutor and voice endpoints remain unavailable throughout every formal assessment.
+
+**Completed:** A session-bound guided-practice workflow filters the existing deterministic eligible pool to the active covered unit, retains the exact question through tutor switches, blocks unit movement while active, records staged hints, saves answers and submits through the authoritative assessment/marking services. Only published feedback reaches the Tutor. Validated provider observations are copied to an append-only provenance table and displayed to the Student and linked Parent as non-authoritative; mastery, recommendation and planner services remain independent. See [Tutor Step 7 backend](backend/docs/tutor-step-07-guided-practice-signals.md) and [Tutor Step 7 frontend](frontend/docs/tutor-step-07-guided-practice-signals.md).
+
+**Validation:** `npm run verify` passes with 29 frontend and 94 backend tests, migration drift checking, generated OpenAPI, TypeScript, lint and the production build. Integration coverage verifies active-unit eligibility, deterministic practice creation, recorded staged hints, tutor-switch retention, active-practice unit blocking, authoritative submission feedback, append-only bounded signals, Parent scoping, no mastery side effect and text/practice/voice blocking during a live formal assessment.
 
 **Done when:** The tutor supports eligible practice and discusses its authoritative assessment result, while tutor observations remain separate, explainable and non-authoritative.
 

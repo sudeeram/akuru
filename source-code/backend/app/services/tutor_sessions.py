@@ -9,7 +9,7 @@ from app.config import Settings
 from app.errors import DomainError
 from app.models import (
     AuditEvent, Subject, TextbookUnit, TutorProfile, TutorProfileVersion, TutorSession,
-    TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, TutorTurnSource,
+    TutorPractice, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, TutorTurnSource,
 )
 from app.schemas.curriculum_plans import PlanUnitResponse
 from app.schemas.tutor_sessions import (
@@ -213,6 +213,10 @@ def switch_unit(db: Session, settings: Settings, principal: Principal, session_r
     replay = db.scalar(select(TutorSessionUnitEvent).where(TutorSessionUnitEvent.session_id == row.id, TutorSessionUnitEvent.request_key == payload.requestKey))
     if replay:
         return response(db, row)
+    active_practice = db.scalar(select(TutorPractice).where(
+        TutorPractice.session_id == row.id, TutorPractice.status == "active"))
+    if active_practice:
+        raise DomainError("tutor_practice_active", "Submit the active guided-practice question before moving units.", 409)
     unit = _eligible_unit(db, principal.user.id, row.subject_id, payload.unitId)
     if unit.id == row.active_unit_id:
         raise DomainError("tutor_unit_already_selected", "That unit is already active.", 409)

@@ -384,7 +384,9 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
             "content": "Cell membranes control movement. Use the approved source and then explain it in your own words.",
             "citationRefs": citation_refs,
             "followUpChoices": ["Can you give me one check question?"],
-            "proposedSignals": [],
+            "proposedSignals": ([{"category": "confidence", "observation": "The learner asked for another guided check.",
+                                   "evidenceRefs": ["turn:current"], "confidence": .7}]
+                                if "confidence" in task["learnerMessage"].lower() else []),
         })
         return AIResult(output=output, provider="fake", model="fake-tutor-v1",
             response_id="fake-tutor-response", usage=AIUsage(input_tokens=120, output_tokens=35, total_tokens=155),
@@ -450,6 +452,10 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
         source_question = OfficialQuestionVersion(material_version_id=material.id, question_number=str(index),
             prompt="Explain sulphuric acid safely.", marks=2, mapping_status="confirmed")
         session.add(source_question); session.flush()
+        session.add(OfficialQuestionUnitMapping(question_version_id=source_question.id,
+            unit_id=units[0].id, weight=100, rationale="Confirmed cells practice fixture.",
+            confidence=1, suggestion_method="admin_confirmed", status="confirmed",
+            confirmed_by=admin.id, confirmed_at=datetime.now(timezone.utc)))
         question = AssessmentQuestion(assessment_id=assessment.id, sequence=index,
             source_question_version_id=source_question.id, source_document_version_id=document_version.id,
             question_number=str(index), prompt=source_question.prompt, marks=2, rubric={},
@@ -613,6 +619,82 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
     assert invalid.status_code == 502 and invalid.json()["error"]["code"] == "tutor_output_invalid"
     assert session.query(TutorTurn).count() == before_invalid
 
+    practice = client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice", headers=headers,
+        json={"requestKey": "guided-practice-start"})
+    assert practice.status_code == 201, practice.text
+    practice_body = practice.json()
+    assert practice_body["status"] == "active" and practice_body["unitCode"] == "B1"
+    assert practice_body["question"]["unitIds"] == [str(units[0].id)]
+    first_hint = client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice/hint", headers=headers,
+        json={"requestKey": "guided-hint-001"}).json()
+    second_hint = client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice/hint", headers=headers,
+        json={"requestKey": "guided-hint-002"}).json()
+    assert first_hint["hintCount"] == 1 and second_hint["hintCount"] == 2
+    assert first_hint["latestHint"] != second_hint["latestHint"]
+    switched_during_practice = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=headers,
+        json={"profileRef": profiles[1][0].public_ref, "requestKey": "practice-tutor-switch"})
+    assert switched_during_practice.status_code == 200
+    retained_practice = client.get(f"/api/v1/tutoring/sessions/{session_ref}/practice").json()
+    assert retained_practice["practiceRef"] == practice_body["practiceRef"]
+    blocked_unit_switch = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[1].id), "requestKey": "practice-unit-switch"})
+    assert blocked_unit_switch.status_code == 409 and blocked_unit_switch.json()["error"]["code"] == "tutor_practice_active"
+    answered = client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice/answer", headers=headers,
+        json={"answer": "The membrane controls substances entering and leaving the cell.",
+              "requestKey": "guided-answer-001"})
+    assert answered.status_code == 200 and "entering and leaving" in answered.json()["question"]["answer"]
+
+    def fake_practice_evaluate(db, _settings, assessment_row, request_key):
+        question_row = db.scalar(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment_row.id))
+        if db.scalar(select(AssessmentResult).where(AssessmentResult.assessment_id == assessment_row.id)):
+            return
+        db.add(AssessmentResult(assessment_id=assessment_row.id, question_id=question_row.id, version_number=1,
+            schema_version="assessment-feedback-v1", status="published", answer_revision=1,
+            input_hash=uuid.uuid4().hex * 2, request_key=request_key, awarded_marks=1, max_marks=2,
+            confidence=.95, marking_decisions=[{"pointId": "B1", "criterion": "Explain membrane control",
+                "awarded": True, "marksAwarded": 1, "maxMarks": 2,
+                "studentEvidence": "controls substances entering and leaving",
+                "rationale": "The core control function is stated.", "confidence": .95}],
+            strengths=["Identified selective control."], small_mistakes=["Add an example."], conceptual_mistakes=[],
+            improved_answer="The cell membrane controls substances entering and leaving the cell, for example by diffusion.",
+            teaching_explanation="Use the membrane's selective role and one transport example.", unit_evidence=[],
+            recommendations=["Practise one diffusion example."], review_reasons=[], provider="fake", model="fake-assessor",
+            prompt_name="assessment", prompt_version="2.0.0", rubric_snapshot={}, source_manifest=[],
+            pass_one_output={}, pass_two_output={}, subject_engine="science", subject_engine_version="1",
+            deterministic_checks={}))
+        db.commit()
+
+    monkeypatch.setattr(assessment_marking, "evaluate", fake_practice_evaluate)
+    submitted_practice = client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice/submit", headers=headers,
+        json={"requestKey": "guided-submit-001"})
+    assert submitted_practice.status_code == 200, submitted_practice.text
+    submitted_body = submitted_practice.json()
+    assert submitted_body["status"] == "submitted" and submitted_body["feedbackVisible"] is True
+    assert submitted_body["question"]["result"]["awardedMarks"] == 1
+    assert submitted_body["question"]["result"]["improvedAnswer"].startswith("The cell membrane")
+
+    mastery_before_signal = session.query(UnitMastery).count()
+    signal_turn = client.post(f"/api/v1/tutoring/sessions/{session_ref}/agent-turns", headers=headers,
+        json={"message": "Help my confidence by discussing that assessed result.",
+              "teachingMode": "guided_practice", "requestKey": "agent-practice-discussion"})
+    assert signal_turn.status_code == 200
+    assert any(item["name"] == "guided_practice" and item["status"] == "ready"
+               for item in signal_turn.json()["toolResults"])
+    own_signals = client.get("/api/v1/tutoring/signals").json()["signals"]
+    assert own_signals[0]["category"] == "confidence" and own_signals[0]["evidenceCount"] == 1
+    assert session.query(UnitMastery).count() == mastery_before_signal
+    parent_login = client.post("/api/v1/auth/login", json={"username": parent.username,
+        "password": "session parent password"}).json()
+    parent_signals = client.get(f"/api/v1/tutoring/signals?studentId={student.id}")
+    assert parent_signals.status_code == 200 and parent_signals.json()["signals"][0]["studentName"] == student.display_name
+    assert "studentId" not in parent_signals.text and "model" not in parent_signals.text
+    login = client.post("/api/v1/auth/login", json={"username": student.username,
+        "password": "session student password"}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    moved_after_practice = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[1].id), "requestKey": "practice-unit-switch-after-submit"})
+    assert moved_after_practice.status_code == 200
+
     term_one = session.query(StudentProgression).filter_by(student_id=student.id, is_current=True).one()
     term_one.is_current = False
     term_two = StudentProgression(student_id=student.id, course_id="igcse", grade=10, term=2, is_current=True)
@@ -650,6 +732,22 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
 
     login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
     headers = {"X-CSRF-Token": login["csrfToken"]}
+    formal = Assessment(student_id=student.id, subject_id="biology", mode="mock", status="active",
+        curriculum_snapshot_id=snapshot_row.id, title="Live formal block", target_marks=2,
+        duration_minutes=20, skills=[], difficulty_profile={}, started_at=datetime.now(timezone.utc),
+        ends_at=datetime.now(timezone.utc) + timedelta(minutes=20))
+    session.add(formal); session.commit()
+    blocked_requests = [
+        client.post(f"/api/v1/tutoring/sessions/{session_ref}/agent-turns", headers=headers,
+            json={"message": "Help during mock", "teachingMode": "explanation", "requestKey": "formal-agent-block"}),
+        client.post(f"/api/v1/tutoring/sessions/{session_ref}/practice", headers=headers,
+            json={"requestKey": "formal-practice-block"}),
+        client.post(f"/api/v1/tutoring/sessions/{session_ref}/turns", headers=headers,
+            json={"content": "Voice help during mock", "modality": "voice", "requestKey": "formal-voice-block"}),
+    ]
+    assert all(item.status_code == 403 and item.json()["error"]["code"] == "tutor_disabled_during_formal_assessment"
+               for item in blocked_requests)
+    formal.status = "submitted"; formal.submitted_at = datetime.now(timezone.utc); session.commit()
     ended = client.post(f"/api/v1/tutoring/sessions/{session_ref}/end", headers=headers, json={"requestKey": "end-session-001"})
     assert ended.status_code == 200 and ended.json()["status"] == "ended"
     assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/end", headers=headers,

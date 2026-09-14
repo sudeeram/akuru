@@ -178,6 +178,16 @@ export type TutorAgentReply = {
   proposedSignals: { category: string; observation: string; evidenceRefs: string[]; confidence: number }[];
   provider: string; model: string; promptName: string; promptVersion: string;
 };
+export type TutorPractice = {
+  practiceRef: string; status: 'active' | 'submitted'; unitCode: string; unitTitle: string;
+  question: { id: string; number: string; prompt: string; sharedStem: string; marks: number;
+    equations: string[]; assetIds: string[]; answer: string; result?: AssessmentResult | null };
+  assetUrls: string[]; hintCount: number; latestHint?: string | null; feedbackVisible: boolean;
+  createdAt: string; submittedAt?: string | null;
+};
+export type TutorSignal = { signalRef: string; studentName: string; subjectId: string; unitCode: string;
+  unitTitle: string; category: string; observation: string; confidence: number; evidenceCount: number;
+  promptName: string; promptVersion: string; createdAt: string };
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -251,6 +261,12 @@ export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestK
 export const searchTutorSources = (sessionRef: string, query: string, textbookEdition?: string) => request(`tutoring/sessions/${sessionRef}/sources/search`, { method: 'POST', body: { query, textbookEdition, limit: 5 } }) as Promise<TutorSourceSearch>;
 export const getTutorCitationContext = (sessionRef: string, citationRef: string) => request(`tutoring/sessions/${sessionRef}/sources/${citationRef}/context`) as Promise<TutorCitationContext>;
 export const addTutorAgentTurn = (sessionRef: string, message: string, teachingMode: TutorAgentReply['teachingMode'], requestKey: string) => request(`tutoring/sessions/${sessionRef}/agent-turns`, { method: 'POST', body: { message, teachingMode, requestKey } }) as Promise<TutorAgentReply>;
+export const getTutorPractice = (sessionRef: string) => request(`tutoring/sessions/${sessionRef}/practice`) as Promise<TutorPractice | null>;
+export const startTutorPractice = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/practice`, { method: 'POST', body: { requestKey } }) as Promise<TutorPractice>;
+export const getTutorPracticeHint = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/practice/hint`, { method: 'POST', body: { requestKey } }) as Promise<TutorPractice>;
+export const saveTutorPracticeAnswer = (sessionRef: string, answer: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/practice/answer`, { method: 'POST', body: { answer, requestKey } }) as Promise<TutorPractice>;
+export const submitTutorPractice = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/practice/submit`, { method: 'POST', body: { requestKey } }) as Promise<TutorPractice>;
+export const getTutorSignals = (studentId?: string) => request(`tutoring/signals${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ''}`) as Promise<{ signals: TutorSignal[] }>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {

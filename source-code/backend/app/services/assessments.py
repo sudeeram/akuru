@@ -105,14 +105,17 @@ def _unit_weights(db, question_id, units):
     base, remainder = divmod(100, len(units))
     return {str(unit_id): base + (1 if index < remainder else 0) for index, unit_id in enumerate(units)}
 
-def start(db, principal, payload):
+def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None):
     student_id = principal.user.id
     active = db.scalar(select(Assessment).where(Assessment.student_id == student_id, Assessment.status == "active"))
     if active and active.ends_at > _now(): raise DomainError("assessment_already_active", "Finish the active assessment before starting another.", 409)
     if active:
         active.status = "expired"
         db.commit()
-    candidates = eligible_questions(db, student_id, payload.subjectId); blueprint = None; paper_version = None
+    candidates = eligible_questions(db, student_id, payload.subjectId)
+    if required_unit_id:
+        candidates = [row for row in candidates if required_unit_id in row[2]]
+    blueprint = None; paper_version = None
     if payload.mode == "mock":
         progress = db.scalar(select(StudentProgression).where(StudentProgression.student_id == student_id, StudentProgression.is_current.is_(True)))
         blueprint = db.get(AssessmentBlueprint, payload.blueprintId) if payload.blueprintId else db.scalar(
@@ -135,7 +138,7 @@ def start(db, principal, payload):
             raise DomainError("official_paper_not_eligible", "Every question in an official paper must be within the student's covered units.", 409)
         target = sum(row[0].marks for row in selected); duration = max(1, round(target * 1.5)); title = "Official past paper"
     else:
-        selected = _choose(candidates, 1, 0, str(student_id))
+        selected = _choose(candidates, 1, 0, f"{student_id}:{required_unit_id or ''}")
         if not selected: raise DomainError("question_pool_shortage", "No eligible practice question is available for the covered units.", 409)
         target, duration, title = selected[0][0].marks, 20, "Individual practice"
     ref = f"assessment:{uuid.uuid4()}"; curriculum = snapshot(db, ref, student_id, payload.subjectId); started = _now()

@@ -34,6 +34,7 @@ const tutorProfiles = readFileSync(
   new URL('../features/tutor-profiles.tsx', import.meta.url),
   'utf8',
 );
+const tutorSignals = readFileSync(new URL('../features/tutor-signals.tsx', import.meta.url), 'utf8');
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -322,4 +323,20 @@ test('structured text tutor supports teaching modes, evidence and recoverable ke
   assert.match(tutorSessions, /setMessage\(''\)/);
   assert.match(tutorSessions, /<form className="tutor-composer" onSubmit=/);
   assert.match(tutorSessions, /Proposed tutor observations do not change mastery/);
+});
+
+test('guided tutor practice uses authoritative assessment feedback and bounded observations', () => {
+  const parent = readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8');
+  assert.match(api, /startTutorPractice/);
+  assert.match(api, /getTutorPracticeHint/);
+  assert.match(api, /saveTutorPracticeAnswer/);
+  assert.match(api, /submitTutorPractice/);
+  assert.match(tutorSessions, /Practise one eligible question/);
+  assert.match(tutorSessions, /Submit for assessment/);
+  assert.match(tutorSessions, /How each mark was decided/);
+  assert.match(tutorSessions, /Improved answer/);
+  assert.match(tutorSessions, /Submit it before moving to another unit/);
+  assert.match(tutorSignals, /NON-AUTHORITATIVE/);
+  assert.match(tutorSignals, /does not change mastery or study plans/);
+  assert.match(parent, /TutorSignals studentId=\{child\.id\}/);
 });

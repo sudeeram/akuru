@@ -65,3 +65,6 @@ AKURU keeps answers and learning history only for the configured retention perio
 YOUR CHILD'S TUTORS
 
 Open Tutors to see the tutor profiles created by each linked child. Tutor choices come from child-safe AKURU avatars, voices and teaching settings, so individual Parent approval is not required. Parent access is read-only and remains separate for each child.
+TUTOR OBSERVATIONS
+
+Each child's learning summary can show recent Tutor observations. These are clearly labelled non-authoritative and include a confidence level and supporting-evidence count. Use them as conversation prompts rather than assessment results. Tutor observations cannot change mastery scores, next-unit recommendations or study plans. Published guided-practice marks still come from the AKURU assessment workflow; feedback awaiting review is not shown to the Tutor as authoritative feedback.

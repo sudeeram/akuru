@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { api, errorMessage, type Attempt } from '@/lib/api';
 import { Heading, Picker, Empty, Status, type FeatureProps } from './shared';
+import { TutorSignals } from './tutor-signals';
 export function Reviews(p: FeatureProps) {
   const [filter, setFilter] = useState('pending'),
     [student, setStudent] = useState('all'),
@@ -84,6 +85,7 @@ export function Reviews(p: FeatureProps) {
             <p>{child.grade} · {child.term} · {units.length} measured unit{units.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
             {units.map(unit => <div className="source-note" key={unit.unitId}><div className="spread"><span>{unit.unitCode} · {unit.unitTitle}</span><strong>{unit.score.toFixed(1)}/10</strong></div><p className="small">{unit.trend > 0 ? 'Improving' : unit.trend < 0 ? 'Declining' : 'Steady'} ({unit.trend > 0 ? '+' : ''}{unit.trend.toFixed(1)}) · {unit.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
             {!units.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a unit trend.</p>}
+            <TutorSignals studentId={child.id} />
           </section>;
         })}
       </div>

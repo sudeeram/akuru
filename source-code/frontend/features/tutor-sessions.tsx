@@ -7,11 +7,13 @@ import { ArrowRightLeft, BookMarked, Compass, ExternalLink, MessageCircle, Send,
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Heading } from '@/features/shared';
+import { TutorSignals } from '@/features/tutor-signals';
 import {
   addTutorAgentTurn, endTutorSession, errorMessage, getTutorOptions, getTutorSessionOptions,
-  getTutorCitationContext, getTutorSessions, getNextTutorUnit, searchTutorSources, startTutorSession,
+  getTutorCitationContext, getTutorPractice, getTutorPracticeHint, getTutorSessions, getNextTutorUnit,
+  saveTutorPracticeAnswer, searchTutorSources, startTutorPractice, startTutorSession, submitTutorPractice,
   switchTutorProfile, switchTutorUnit, type NextUnitResult, type TutorCitationContext,
-  type TutorAgentReply, type TutorOptions, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
+  type TutorAgentReply, type TutorOptions, type TutorPractice, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
 } from '@/lib/api';
 
 const key = () => crypto.randomUUID();
@@ -24,6 +26,7 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const [message, setMessage] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [teachingMode, setTeachingMode] = useState<TutorAgentReply['teachingMode']>('explanation');
   const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
+  const [practice, setPractice] = useState<TutorPractice | null>(null), [practiceAnswer, setPracticeAnswer] = useState('');
   const [nextUnit, setNextUnit] = useState<NextUnitResult | null>(null);
   const [sourceQuery, setSourceQuery] = useState(''), [sources, setSources] = useState<TutorSourceSearch | null>(null);
   const [expandedSource, setExpandedSource] = useState<TutorCitationContext | null>(null);
@@ -35,6 +38,7 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
       setSession(active);
       const retained = active ? [...active.turns].reverse().find((item) => item.role === 'assistant' && item.structured?.operationRef) : undefined;
       setAgentReply(retained?.structured as TutorAgentReply || null);
+      if (active) { const retainedPractice = await getTutorPractice(active.sessionRef); setPractice(retainedPractice); setPracticeAnswer(retainedPractice?.question.answer || ''); }
       setSubject((current) => current || choices.subjects[0]?.id || '');
       setProfile((current) => current || choices.profiles[0]?.profileRef || '');
       setError('');
@@ -85,6 +89,11 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
       {sources?.citations.map((citation) => <article className="card stack tutor-citation" key={citation.citationRef}><div className="panel-heading"><div><span className="pill">{citation.contentKind.toUpperCase()}</span><h3>{citation.textbookTitle} · {citation.pageReference}</h3><small>{citation.textbookEdition} · document version {citation.documentVersion} · confidence {Math.round(citation.confidence * 100)}%</small></div></div><blockquote>{citation.passage}</blockquote><div className="button-row"><a className="citation-link" href={citation.assetUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Open cited page or crop</a><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setExpandedSource(await getTutorCitationContext(session.sessionRef, citation.citationRef)); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Show nearby context</Button></div>{expandedSource?.citation.citationRef === citation.citationRef && <div className="source-nearby"><strong>Nearby approved passages</strong>{expandedSource.nearbyPassages.map((item) => <p key={item.citationRef}><span>{item.pageReference}:</span> {item.passage}</p>)}</div>}</article>)}
       <small>AKURU names a page only when it finds an authorized passage in your current unit and published textbook edition.</small>
     </section>
+    <section className="panel stack tutor-guided-practice">
+      <div className="panel-heading"><div><span className="pill">GUIDED PRACTICE</span><h2>Practise one eligible question</h2></div>{!practice || practice.status === 'submitted' ? <Button className="primary" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { const value = await startTutorPractice(session.sessionRef, key()); setPractice(value); setPracticeAnswer(value.question.answer); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Start practice</Button> : null}</div>
+      {practice && <article className="card stack"><div><span className="eyebrow">{practice.unitCode} · QUESTION {practice.question.number} · {practice.question.marks} MARKS</span><h3>{practice.question.prompt}</h3>{practice.question.sharedStem && <p>{practice.question.sharedStem}</p>}</div>{practice.assetUrls.map((url, index) => <Image unoptimized width={640} height={400} src={url} alt={`Question diagram ${index + 1}`} key={url} />)}{practice.status === 'active' ? <><label className="stack"><span>Your answer</span><textarea rows={5} value={practiceAnswer} onChange={(event) => setPracticeAnswer(event.target.value)} /></label>{practice.latestHint && <p className="source-note"><strong>Hint {practice.hintCount}:</strong> {practice.latestHint}</p>}<div className="button-row"><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setPractice(await getTutorPracticeHint(session.sessionRef, key())); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Get next hint</Button><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setPractice(await saveTutorPracticeAnswer(session.sessionRef, practiceAnswer, key())); notify('Practice answer saved.'); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Save answer</Button><Button className="primary" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await saveTutorPracticeAnswer(session.sessionRef, practiceAnswer, key()); setPractice(await submitTutorPractice(session.sessionRef, key())); notify('Practice submitted and assessed.'); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Submit for assessment</Button></div><small>You can switch tutors without losing this question. Submit it before moving to another unit.</small></> : practice.question.result ? <div className="practice-feedback stack"><div className="spread"><h3>Authoritative AKURU assessment</h3><strong>{practice.question.result.awardedMarks}/{practice.question.result.maxMarks}</strong></div><h4>How each mark was decided</h4>{practice.question.result.markingDecisions.map((decision) => <p className="source-note" key={decision.pointId}><strong>{decision.awarded ? 'Awarded' : 'Not awarded'}:</strong> {decision.rationale}<br /><small>Your evidence: {decision.studentEvidence}</small></p>)}{!!practice.question.result.smallMistakes.length && <p><strong>Small improvements:</strong> {practice.question.result.smallMistakes.join(' ')}</p>}<p><strong>Improved answer:</strong> {practice.question.result.improvedAnswer}</p><p><strong>Explanation:</strong> {practice.question.result.teachingExplanation}</p></div> : <p>Assessment feedback is awaiting the permitted review workflow.</p>}</article>}
+      {!practice && <p>Start a question selected deterministically from this covered unit.</p>}
+    </section>
     <section className="panel stack tutor-transcript" aria-label="Tutor transcript">
       <div className="panel-heading"><div><span className="pill"><ArrowRightLeft size={13} /> CONTINUOUS HANDOVER</span><h2>Conversation</h2></div></div>
       {!session.turns.length ? <Empty title="Ask your first question">AKURU will retain this message with the tutor version that received it.</Empty> : <div className="tutor-turn-list">{session.turns.map((turn) => <article key={turn.turnRef} className={`tutor-turn ${turn.role}`}><strong>{turn.role === 'student' ? 'You' : session.currentTutor.name}</strong><p>{turn.content}</p><small>{turn.modality === 'voice' ? 'Voice transcript' : 'Text'} · tutor version {turn.profileVersion}</small></article>)}</div>}
@@ -96,5 +105,6 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
       </form>
       <small>AKURU uses only your eligible unit, verified learner context and approved sources. Proposed tutor observations do not change mastery or your study plan.</small>
     </section>
+    <TutorSignals refreshKey={agentReply?.turnRef} />
   </div>;
 }

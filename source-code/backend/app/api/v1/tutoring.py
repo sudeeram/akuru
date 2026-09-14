@@ -25,9 +25,11 @@ from app.schemas.tutor_context import LearnerContextRequest, LearnerContextRespo
 from app.schemas.tutor_recommendations import NextUnitRequest, NextUnitResponse
 from app.schemas.tutor_sources import TutorCitation, TutorCitationContextResponse, TutorSourceSearchRequest, TutorSourceSearchResponse
 from app.schemas.tutor_agent import TutorAgentTurnRequest, TutorAgentTurnResponse
+from app.schemas.tutor_practice import (TutorPracticeAction, TutorPracticeAnswer, TutorPracticeResponse,
+                                        TutorPracticeStart, TutorSignalListResponse)
 from app.security import Principal
 from app.services.assessment_access import tutor_capabilities
-from app.services import tutor_agent, tutor_context, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
+from app.services import tutor_agent, tutor_context, tutor_practice, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_storage
 
@@ -135,6 +137,59 @@ def tutor_media(
     stored = tutor_agent.open_media(db, settings, principal, storage, session_ref, media_id)
     return Response(content=stored.content, media_type=stored.content_type,
                     headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/sessions/{session_ref}/practice", response_model=TutorPracticeResponse | None)
+def current_practice(
+    session_ref: str, principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_practice.current(db, settings, principal, session_ref)
+
+
+@router.post("/sessions/{session_ref}/practice", response_model=TutorPracticeResponse, status_code=201)
+def start_practice(
+    session_ref: str, payload: TutorPracticeStart,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_practice.start(db, settings, principal, session_ref, payload.requestKey)
+
+
+@router.post("/sessions/{session_ref}/practice/hint", response_model=TutorPracticeResponse)
+def practice_hint(
+    session_ref: str, payload: TutorPracticeAction,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_practice.hint(db, settings, principal, session_ref, payload.requestKey)
+
+
+@router.post("/sessions/{session_ref}/practice/answer", response_model=TutorPracticeResponse)
+def practice_answer(
+    session_ref: str, payload: TutorPracticeAnswer,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_practice.answer(db, settings, principal, session_ref, payload.answer, payload.requestKey)
+
+
+@router.post("/sessions/{session_ref}/practice/submit", response_model=TutorPracticeResponse)
+def submit_practice(
+    session_ref: str, payload: TutorPracticeAction,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_practice.submit(db, settings, principal, session_ref, payload.requestKey)
+
+
+@router.get("/signals", response_model=TutorSignalListResponse)
+def signals(
+    principal: Annotated[Principal, Depends(require_roles("student", "parent", "admin"))],
+    db: Annotated[Session, Depends(get_db)],
+    studentId: Annotated[uuid.UUID | None, Query()] = None,
+):
+    return tutor_practice.list_signals(db, principal, studentId)
 
 
 @router.post("/sessions/{session_ref}/sources/search", response_model=TutorSourceSearchResponse)

@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import TutorSession, TutorTurn, TutorTurnSource
+from app.models import TutorSession, TutorSignal, TutorTurn, TutorTurnSource
 
 
 def replay(db: Session, session_id: uuid.UUID, request_key: str) -> TutorTurn | None:
@@ -37,3 +37,14 @@ def save_exchange(db: Session, session: TutorSession, message: str, request_key:
         db.add(TutorTurnSource(turn_id=assistant.id, retrieval_chunk_id=chunk_id, ordinal=ordinal))
     db.commit(); db.refresh(assistant)
     return assistant
+
+
+def append_signals(db: Session, session: TutorSession, turn: TutorTurn, signals: list,
+                   provider: str, model: str, prompt_name: str, prompt_version: str) -> None:
+    for signal in signals:
+        db.add(TutorSignal(public_ref=f"tutor_signal_{uuid.uuid4().hex}", student_id=session.student_id,
+            session_id=session.id, turn_id=turn.id, unit_id=session.active_unit_id,
+            category=signal.category, observation=signal.observation,
+            evidence_references=signal.evidenceRefs, confidence=signal.confidence,
+            prompt_name=prompt_name, prompt_version=prompt_version, provider=provider, model=model))
+    db.commit()

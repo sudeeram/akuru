@@ -62,12 +62,17 @@ def _media(db: Session, session) -> list[TutorVisual]:
 
 def _tools(db: Session, settings: Settings, principal: Principal, session, payload: TutorAgentTurnRequest,
            operation_id: uuid.UUID):
+    from app.services import tutor_practice
+
     context = tutor_context.build_and_log(db, settings, principal, session.public_ref,
         f"agent-context-{operation_id.hex}")
     source_result = tutor_sources.search(db, settings, principal, session.public_ref,
         payload.message, None, 5)
     active = next(item for item in context.units if item.active)
     evidence_refs = [ref for statement in active.statements for ref in statement.evidenceRefs]
+    practice = tutor_practice.current(db, settings, principal, session.public_ref)
+    practice_refs = ([f"assessment_result:{practice.question.result.id}"]
+                     if practice and practice.question.result else [])
     results = [
         TutorToolResult(name="learner_context", status="ready", summary="Verified learner context loaded.", evidenceRefs=evidence_refs),
         TutorToolResult(name="mastery_summary", status="ready" if active.masteryScore is not None else "evidence_insufficient",
@@ -80,8 +85,11 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
         TutorToolResult(name="authorized_source_opening", status="ready" if source_result.citations else "evidence_insufficient",
             summary="Private source links were authorized for this session." if source_result.citations else "No source was authorized.",
             evidenceRefs=[item.citationRef for item in source_result.citations]),
-        TutorToolResult(name="guided_practice", status="ready" if payload.teachingMode in {"guided_practice", "socratic_practice", "questions"} else "unavailable",
-            summary="A bounded practice dialogue is available; marking remains with the assessment service." if payload.teachingMode in {"guided_practice", "socratic_practice", "questions"} else "Guided practice was not requested."),
+        TutorToolResult(name="guided_practice", status="ready" if practice else ("ready" if payload.teachingMode in {"guided_practice", "socratic_practice", "questions"} else "unavailable"),
+            summary=("Authoritative submitted assessment feedback is available." if practice and practice.feedbackVisible
+                     else "An eligible practice question is active." if practice
+                     else "Eligible practice can be started; marking remains with the assessment service." if payload.teachingMode in {"guided_practice", "socratic_practice", "questions"}
+                     else "Guided practice was not requested."), evidenceRefs=practice_refs),
     ]
     if "what" in payload.message.lower() and ("next" in payload.message.lower() or "improve" in payload.message.lower()):
         recommendation = tutor_recommendations.recommend(db, settings, principal, session.public_ref,
@@ -94,7 +102,7 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
     visuals = _media(db, session)
     results.append(TutorToolResult(name="deterministic_media", status="ready" if visuals else "evidence_insufficient",
         summary=f"{len(visuals)} approved active-unit visual(s) available."))
-    return context, source_result.citations, recommendation, results, visuals
+    return context, source_result.citations, recommendation, results, visuals, practice
 
 
 def _response(turn, stored: dict) -> TutorAgentTurnResponse:
@@ -113,7 +121,7 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     unit = db.get(TextbookUnit, session.active_unit_id)
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)
     operation_id = uuid.uuid4()
-    context, citations, recommendation, tool_results, visuals = _tools(
+    context, citations, recommendation, tool_results, visuals, practice = _tools(
         db, settings, principal, session, payload, operation_id)
     if not citations and not (recommendation and recommendation.status == "ready") and payload.teachingMode != "exam_technique":
         stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
@@ -137,6 +145,7 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         "learnerContext": context.providerContext.model_dump(mode="json"),
         "approvedCitations": [item.model_dump(mode="json") for item in citations],
         "nextUnitRecommendation": recommendation.model_dump(mode="json") if recommendation else None,
+        "guidedPractice": practice.model_dump(mode="json") if practice else None,
         "toolResults": [item.model_dump(mode="json") for item in tool_results],
         "recentTranscript": history,
         "currentTurnEvidenceRef": "turn:current",
@@ -154,7 +163,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         raise DomainError("tutor_output_invalid", "The Tutor returned an unauthorized or invented citation.", 502)
     validated_citations: list[TutorCitation] = [tutor_sources.get_citation(
         db, settings, principal, session_ref, ref) for ref in output.citationRefs]
-    known_evidence = {item.ref for item in context.evidence} | set(allowed) | {"turn:current"}
+    known_evidence = ({item.ref for item in context.evidence} | set(allowed) | {"turn:current"} |
+                      {ref for item in tool_results for ref in item.evidenceRefs})
     if any(ref not in known_evidence for signal in output.proposedSignals for ref in signal.evidenceRefs):
         raise DomainError("tutor_output_invalid", "The Tutor returned an unsupported learner signal.", 502)
     stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
@@ -165,6 +175,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     source_ids = [uuid.UUID(hex=ref.removeprefix("citation_")) for ref in output.citationRefs]
     turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored,
         source_ids, operation_id, result.provider, result.model, prompt.name, prompt.version)
+    repository.append_signals(db, session, turn, output.proposedSignals,
+        result.provider, result.model, prompt.name, prompt.version)
     return _response(turn, stored)
 
 

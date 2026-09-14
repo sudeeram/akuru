@@ -267,6 +267,51 @@ class TutorTurnSource(Base):
     __table_args__ = (CheckConstraint("ordinal >= 0", name="ck_tutor_turn_source_ordinal"),)
 
 
+class TutorPractice(Base):
+    __tablename__ = "tutor_practices"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="RESTRICT"), unique=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="RESTRICT"), unique=True)
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
+    request_key: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('active','submitted')", name="ck_tutor_practice_status"),
+        UniqueConstraint("session_id", "request_key", name="uq_tutor_practice_request"),
+        Index("uq_active_tutor_practice_session", "session_id", unique=True,
+              postgresql_where=text("status = 'active'")),
+    )
+
+
+class TutorSignal(Base):
+    __tablename__ = "tutor_signals"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    turn_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_turns.id", ondelete="CASCADE"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    category: Mapped[str] = mapped_column(String(32))
+    observation: Mapped[str] = mapped_column(Text)
+    evidence_references: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    confidence: Mapped[float] = mapped_column()
+    prompt_name: Mapped[str] = mapped_column(String(80))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("category IN ('engagement','confidence','misconception','practice_need')", name="ck_tutor_signal_category"),
+        CheckConstraint("confidence BETWEEN 0 AND 1", name="ck_tutor_signal_confidence"),
+    )
+
+
 class TutorSessionProfileEvent(Base):
     __tablename__ = "tutor_session_profile_events"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
