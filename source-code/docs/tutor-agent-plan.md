@@ -1,6 +1,6 @@
 # AKURU Tutor Agent plan
 
-Status: proposal for review. This document records the agreed product and architecture direction for a unit-scoped, configurable text and voice tutor. It does not add work to [TODO.md](../TODO.md) until the proposal is approved and divided into delivery steps.
+Status: approved product and architecture direction. Delivery work is tracked separately in [TODO-TUTOR.md](../TODO-TUTOR.md).
 
 ## 1. Purpose
 
@@ -8,19 +8,20 @@ The AKURU Tutor Agent will help a student understand and practise a specific uni
 
 The tutor should feel approachable and consistent without pretending to be a human. Every tutor experience must clearly identify itself as an AI tutor. A selected personality changes presentation and teaching style; it never changes facts, curriculum scope, marking rules, safeguarding rules or permissions.
 
-The first release should make the text tutor dependable before voice and generated avatars add operational cost and complexity.
+The implementation should make grounded text tutoring dependable first, then add realtime voice. French must support voice when French tutoring is released.
 
 ## 2. Core principles
 
-- Keep every session inside one enrolled subject and one eligible unit unless the student explicitly starts a different session.
+- Keep every session inside one enrolled subject. It starts with one eligible unit and may move to another eligible unit only after an explicit student choice.
 - Retrieve only approved, current, same-course and same-subject sources that the student is allowed to use.
 - Cite the source material used in explanations so a student can open the relevant textbook page or approved reference.
 - Adapt explanation depth using the student's mastery evidence, while keeping assessment marks and curriculum eligibility deterministic.
 - Treat conversational observations as supporting evidence. Tutor conversation alone must not directly set or overwrite an official mastery score.
 - Disable tutor hints and voice assistance during timed mocks and official paper attempts.
 - Keep permanent OpenAI credentials on the backend and issue only short-lived session credentials to the browser.
-- Avoid storing raw audio by default. Store the minimum transcript and learning summary required for continuity and parent oversight.
-- Give parents and students clear controls for reviewing and deleting retained tutor history, subject to required audit and safeguarding retention.
+- Store text and voice transcripts by default, but do not store raw audio. Retain transcripts until an Admin deliberately purges records older than a selected number of days.
+- Make educational session summaries visible to the student's parent and notify that parent when a safety event occurs.
+- Apply AI usage quotas per child and let Admin increase or reduce each child's quota.
 
 ## 3. Tutor profiles
 
@@ -29,7 +30,7 @@ A student may create more than one tutor profile, for example a calm Maths tutor
 | Property | Values or rule | Effect |
 | --- | --- | --- |
 | Presentation | Masculine, feminine or neutral | Coordinates approved avatar and voice choices without asserting a human identity |
-| Avatar | Approved preset or reviewed generated image | Visual identity shown in tutor screens and voice state |
+| Avatar | Child-safe preset fictional superhuman character | Visual identity shown in tutor screens and voice state |
 | Voice | Approved provider voice preset | Spoken output; no voice cloning or imitation of a real person |
 | Tone | A small curated set such as calm, encouraging, direct or playful | Wording and conversational manner |
 | Friendliness | Low, medium or high | Warmth and amount of supportive language |
@@ -45,18 +46,9 @@ Property combinations must be bounded by tested prompt templates. For example, l
 
 ## 4. Avatar design and generation
 
-AKURU should ship with a set of reviewed, fictional educational-hero avatar presets based on the AKURU BOT visual family. Presets are available immediately and have no generation delay or moderation workflow.
+AKURU will ship with pre-populated, child-safe fictional superhuman avatar styles based on the AKURU BOT visual family. Students choose from these reviewed presets; AKURU will not generate avatars from text descriptions. Because every option is curated in advance, individual profile or avatar approval by a parent or Admin is not required.
 
-An optional avatar builder may let the student choose controlled attributes such as colour theme, clothing style, subject symbols, pose and background. The backend constructs the final image prompt from these choices. Free-form prompts should be restricted or moderated.
-
-Generated avatars must:
-
-- remain fictional and age-appropriate;
-- avoid photorealistic children, celebrities, copyrighted superheroes and imitation of identifiable people;
-- pass automated safety checks and parent or Admin review before becoming visible to a child;
-- use the existing media asset and provenance system from Step 18;
-- retain generation model, prompt version, moderation result, reviewer and source asset metadata;
-- have a safe preset fallback when generation or review fails.
+Students may rename their tutors freely. Names are validated for length and suitable language and cannot imply that the tutor is an identifiable real person. Avatar assets keep their media provenance and publication state, and only Admin-published presets appear in the student profile builder.
 
 ## 5. Learning modes
 
@@ -109,6 +101,28 @@ FastAPI remains the authority for identity, unit eligibility, source access, pra
 
 The prompt should tell the tutor to admit when approved evidence is insufficient and to ask a focused clarifying question when the student's request is ambiguous. Uploaded source text is always untrusted content and can never override tutor or security instructions.
 
+### Shared learner context and tutor switching
+
+Multiple tutors belong to one student and each tutor may support multiple enrolled subjects. During a learning session the student may switch to another owned tutor without losing the subject, active unit, transcript, cited sources or current practice state. The switch creates a new immutable tutor-profile reference on subsequent turns while preserving one AKURU session. The interface clearly announces the change, and the newly selected tutor receives a compact server-generated handover summary rather than relying on hidden provider conversation state.
+
+Before every turn, AKURU assembles a **grounded learner context** from authoritative student records. It includes:
+
+- current and historical unit mastery score, confidence, dimensions and trend;
+- diagnosed weak points and recommendations from reviewed assessment evidence;
+- recent eligible attempts, marking-point outcomes, hints and recurring mistake tags;
+- counts and time windows for repeated errors, such as five sulphuric-acid mistakes during the current week;
+- strengths supported by sufficient, varied evidence;
+- the current study-plan item as context only; and
+- enrolled subjects, progression and currently covered units.
+
+The tutor must never claim broader knowledge of the child than these records support. Personal statements are produced from structured evidence, not model memory. For example, “You got sulphuric acid questions wrong five times this week” is allowed only when the backend supplies that exact count, topic and date window. Low-confidence or insufficient evidence produces cautious language rather than a definite claim.
+
+When a student asks, “What should I improve next?”, a deterministic recommendation service ranks eligible weak, declining or low-confidence units and returns reasons and evidence. The tutor explains those results conversationally. Tutor signals do not automatically change that ranking, official mastery or the study plan.
+
+### Textbook knowledge and citations
+
+Each explanation retrieves the approved textbook edition and other approved sources for the active subject and unit. The tutor may say, “Please refer to page 101 of the Science textbook,” only when the retrieval result contains that exact document version, printed/page label and supporting passage. The response links to the authorized page or crop and can offer a further explanation. The model cannot invent page numbers or cite a different edition without naming it.
+
 ## 8. Voice tutoring flow
 
 Voice should use WebRTC between the browser and the OpenAI Realtime API for low-latency speech. The browser requests a short-lived session credential from an authenticated FastAPI endpoint. The permanent provider key remains in backend configuration.
@@ -125,7 +139,7 @@ The voice interface should provide:
 - clear connection and account-failover states;
 - automatic session termination after inactivity or quota exhaustion.
 
-One OpenAI account is selected for an entire realtime connection. If that account becomes unavailable, AKURU ends the failed connection, selects the next healthy configured account and reconnects using the same AKURU session context. The student may notice a brief pause. The curriculum scope, profile version and saved transcript remain stable, although provider-side conversation state and prompt caching may need to be rebuilt.
+One OpenAI account is selected for an entire realtime connection. If that account becomes unavailable, AKURU ends the failed connection, selects the next healthy configured account and reconnects using the same AKURU session context. The student may notice a brief pause. The curriculum scope, active tutor profile and saved transcript remain stable, although provider-side conversation state and prompt caching may need to be rebuilt. A tutor switch similarly rebuilds realtime instructions from the selected profile and the server-generated handover summary.
 
 ## 9. Tutor tools
 
@@ -139,6 +153,8 @@ The model receives only task-specific tools with strict request and response sch
 - `submit_practice_answer` through the existing assessment service;
 - `render_equation_or_diagram` through deterministic media services;
 - `request_reviewed_illustration` when an approved visual is available or can be queued;
+- `get_learner_context` for evidence-backed strengths, weaknesses, trends and recurring mistakes;
+- `recommend_next_unit` for deterministic eligible-unit recommendations with reasons;
 - `record_tutor_signal` for bounded, non-authoritative learning observations.
 
 Tools must derive the student from the authenticated session. The model cannot supply a different student ID, broaden the unit scope, fetch unapproved documents or reveal marking material during an active assessment.
@@ -147,7 +163,7 @@ Tools must derive the student from the authenticated session. The model cannot s
 
 Short-term context lives inside the current session. Long-term continuity should use compact, structured summaries instead of replaying every historical message. A summary may record concepts covered, practice completed, recurring confusion, stated preferences and the next suggested action.
 
-Tutor signals may indicate that a student explained a concept correctly, repeatedly needed a hint or showed uncertainty. These are supporting observations with low evidence weight. They can suggest practice or influence study-plan priority, but only completed assessed work processed through the assessment and mastery services can make authoritative mastery changes.
+Tutor signals may indicate that a student explained a concept correctly, repeatedly needed a hint or showed uncertainty. These are supporting observations only. They do not automatically change mastery, recommendations or study-plan priority. Completed assessed work processed through the assessment and mastery services remains the authoritative evidence source.
 
 Every signal records its source session, unit, timestamp, prompt/model versions and confidence. Signals must never mix siblings and must remain explainable to the student and parent.
 
@@ -160,13 +176,16 @@ The detailed schema should be designed during implementation. The expected domai
 | `tutor_profiles` | Student-owned current profile; family-scoped and soft-deletable |
 | `tutor_profile_versions` | Immutable persona settings used to reproduce historical sessions |
 | `tutor_subjects` | Optional subject/unit preferences; only enrolled subjects and eligible units |
-| `tutor_avatars` | Preset or generated asset, moderation/review state and media provenance |
+| `tutor_avatars` | Admin-published child-safe preset asset and media provenance |
 | `tutor_voice_presets` | Admin-approved provider voices and supported presentation settings |
 | `tutor_sessions` | Student, profile version, subject, unit, mode, status, usage and timestamps |
+| `tutor_session_profile_events` | Immutable record of tutor switches and handover summaries within a session |
 | `tutor_turns` | Retained text/caption turns, role, moderation state and provider metadata |
 | `tutor_turn_sources` | Approved source chunks, pages, bounding boxes and media cited by a turn |
 | `tutor_signals` | Append-only supporting learning observations with confidence and provenance |
 | `tutor_safety_events` | Restricted audit events for moderation, escalation and policy actions |
+| `student_ai_quotas` | Per-child token, request and voice allowances plus Admin changes |
+| `student_ai_usage` | Append-only per-child usage debits, operation references and periods |
 
 Internal UUIDs stay out of normal user-facing screens and public API fields unless a non-sensitive opaque reference is required. Database constraints and service validation must enforce ownership, subject/unit consistency, unique profile versioning and valid enum values.
 
@@ -179,11 +198,12 @@ All routes are versioned, authenticated, rate-limited and scoped from the curren
 - `GET /api/v1/tutor/options` returns allowed profile, avatar and voice choices.
 - `GET|POST /api/v1/tutor/profiles` lists or creates the current student's profiles.
 - `GET|PATCH|DELETE /api/v1/tutor/profiles/{profile_ref}` manages an owned profile.
-- `POST /api/v1/tutor/avatars` requests a controlled generated avatar.
 - `POST /api/v1/tutor/sessions` starts a unit-scoped text session.
 - `GET /api/v1/tutor/sessions` lists the student's retained sessions.
 - `GET|DELETE /api/v1/tutor/sessions/{session_ref}` reads or requests deletion of an owned session.
+- `POST /api/v1/tutor/sessions/{session_ref}/switch-profile` switches tutors and creates a handover event.
 - `POST /api/v1/tutor/sessions/{session_ref}/turns` sends a text turn.
+- `GET /api/v1/tutor/recommendations/next-unit` returns evidence-backed improvement priorities.
 - `POST /api/v1/tutor/sessions/{session_ref}/realtime-token` creates a short-lived voice credential.
 - `POST /api/v1/tutor/sessions/{session_ref}/end` closes and summarizes a session.
 
@@ -191,41 +211,42 @@ All routes are versioned, authenticated, rate-limited and scoped from the curren
 
 - `GET /api/v1/parent/children/{child_ref}/tutor-summary` returns educational summaries and usage for an owned child.
 - `GET /api/v1/parent/children/{child_ref}/tutor-sessions` returns the permitted history view.
-- `POST /api/v1/parent/children/{child_ref}/tutor-avatars/{avatar_ref}/review` approves or rejects a generated avatar.
+- `GET /api/v1/parent/children/{child_ref}/tutor-safety-events` returns safety notifications for an owned child.
 - `DELETE /api/v1/parent/children/{child_ref}/tutor-sessions/{session_ref}` requests deletion within retention rules.
 
 ### Admin routes
 
-- Manage approved voice presets, avatar presets and bounded persona options.
-- Review generated avatars and moderation events.
-- Inspect aggregate health, latency, quota, cost and safety metrics.
+- Manage approved voice presets, child-safe avatar presets and bounded persona options.
+- Set and amend per-child quotas and inspect each child's usage without exposing provider secrets.
+- Inspect aggregate health, latency, cost and safety metrics.
+- Preview and purge transcripts older than an Admin-selected number of days with audit records.
 - Configure age-appropriate defaults and feature flags without reading family conversations as a routine operation.
 
 ## 13. Role-specific frontend experience
 
 ### Student portal
 
-The student sees a **My Tutors** area for choosing or building a tutor, selecting a subject/unit and starting a text or voice lesson. The session page combines conversation, citations, diagrams, practice cards, captions and voice controls. It shows the current unit and makes mode changes explicit.
+The student sees a **My Tutors** area for creating multiple tutors from curated choices, freely renaming them, selecting a subject/unit and starting a text or voice lesson. During learning, a tutor switcher changes tutor without losing the subject, unit, conversation or practice state. The session page combines conversation, evidence-based learning suggestions, citations, diagrams, practice cards, captions and voice controls. It shows the current unit and makes mode or unit changes explicit.
 
 ### Parent portal
 
-The parent sees tutor usage for each linked child, recent units, session summaries, generated-avatar approvals, quota controls and deletion controls. The view should focus on learning progress and safety without turning every private learning conversation into surveillance. The exact transcript visibility policy must be decided before implementation.
+The parent sees tutor usage for each linked child, recent units, educational session summaries and safety-event notifications. Parents do not approve profiles or avatars because students can select only pre-populated options. Full transcript access remains governed by the role and privacy policy implemented for the portal.
 
 ### Admin portal
 
-The Admin manages approved voices and preset avatars, feature flags, quotas, provider health and content-safety queues. Admin access to an individual conversation must require a support or safeguarding reason and produce an audit event.
+The Admin manages approved voices and preset avatars, feature flags, per-child quotas, provider health, transcript-retention operations and content-safety queues. Admin may increase a child's quota when required. Access to an individual conversation must require a support or safeguarding reason and produce an audit event.
 
 ## 14. Safety, privacy and transparency
 
 - Label every tutor as AI in profile creation and during sessions.
 - Do not let an avatar, name or voice imply that it is a real teacher, child, celebrity or known fictional hero.
 - Do not support voice cloning in this scope.
-- Apply age-appropriate moderation to user input, model output and avatar generation.
+- Apply age-appropriate moderation to user input and model output; only reviewed preset avatars are available.
 - Keep tutor conversations educational and redirect inappropriate or unsafe requests using a consistent safeguarding response.
-- Define when a safety event is visible to the parent and when it requires an Admin review.
+- Notify the linked parent when a safety event occurs and make the event available to an authorized Admin for review.
 - Never include family identity, email address or username in OpenAI requests when a pseudonymous reference is sufficient.
 - Redact secrets and sensitive source content from application logs.
-- Store no raw audio by default. If later enabled, require an explicit retention purpose, parent control, encryption and a separate deletion policy.
+- Store text and voice transcripts by default without automatic expiry, but store no raw audio. Admin can preview a count and manually purge transcripts older than a selected number of days. Deletion is audited and cannot silently remove required security audit events.
 - Reuse Step 20 encryption, backup, audit, quota, retention and incident-response controls.
 
 ## 15. Reliability, cost and account routing
@@ -234,13 +255,12 @@ The existing ordered OpenAI account router should route text operations. Each op
 
 Control cost and availability through:
 
-- per-family daily and monthly voice-minute limits;
+- per-child token, request and voice-minute allowances configured by Admin;
 - per-session duration and inactivity limits;
 - maximum output length and tool-call count;
 - text fallback when realtime voice is unavailable;
-- generated-avatar quotas and reuse of approved assets;
 - provider latency, error, token and audio-minute monitoring;
-- a kill switch for voice or image generation without disabling text tutoring.
+- a kill switch for voice without disabling text tutoring.
 
 Account switching during text tutoring may add latency but does not change the structured request. Switching a realtime account requires reconnection and reconstructed context, so the UI must preserve the local transcript and explain the brief interruption.
 
@@ -259,9 +279,14 @@ Required gates include:
 - no answer or hint leakage during active exam mode;
 - safe handling of requests outside the educational scope;
 - transcript, family-scope and deletion isolation;
+- exactness of personalised claims, recurring-error counts and time windows;
+- deterministic next-unit recommendations that ignore tutor signals;
+- successful tutor switching without losing or crossing student context;
+- exact textbook edition and page citations without invented references;
+- per-child quota enforcement and authorized Admin overrides;
 - voice intelligibility, interruption, caption and reconnect behavior;
 - acceptable latency, cost and failure rates;
-- human review of generated-avatar safety and AKURU brand consistency.
+- child-safety and AKURU brand review for every published preset avatar.
 
 Text and voice should have separate feature flags and release gates. A profile combination that fails a persona or safety evaluation remains unavailable even when other combinations pass.
 
@@ -270,65 +295,68 @@ Text and voice should have separate feature flags and release gates. A profile c
 ### Phase A — Profile foundation
 
 - Add tutor profile, immutable version, preset avatar and approved voice models.
-- Build Student profile creation and Parent/Admin visibility.
+- Build multiple Student profiles, free renaming and Parent/Admin visibility.
 - Add controlled settings and validation for presentation, tone, friendliness, enthusiasm, speed, communication character, depth and teaching style.
 - Use existing AKURU BOT assets for initial presets.
+- Add per-child quota configuration and usage accounting.
 
 ### Phase B — Unit-scoped text tutor
 
 - Add session and turn models, Tutor API and Responses API orchestration.
-- Integrate approved RAG, citations, equations, diagrams and mastery summaries.
+- Integrate approved RAG, exact textbook page citations, equations, diagrams and grounded learner context.
 - Add guided practice and tutor signals with strict assessment boundaries.
+- Add evidence-backed next-unit recommendations that do not automatically change study plans.
+- Support switching between a student's tutors with a safe session handover.
 - Deliver Student conversation UI and Parent learning summaries.
 
-### Phase C — Generated avatar builder
-
-- Add controlled avatar attributes, generation jobs, moderation and review.
-- Reuse the Step 18 private media and provenance pipeline.
-- Add parent/Admin approval, quotas and safe preset fallback.
-
-### Phase D — Realtime voice
+### Phase C — Realtime voice
 
 - Add the short-lived credential endpoint and WebRTC client.
 - Add captions, interruption, speed control, text fallback and session limits.
 - Connect authorized backend tools and ordered-account reconnection.
+- Deliver French voice with the initial French tutor release.
 - Verify no raw audio retention and document provider data handling.
 
-### Phase E — Visual and practice tools
+### Phase D — Visual and practice tools
 
 - Let the tutor present approved source images, deterministic diagrams and reviewed conceptual illustrations.
 - Add interactive guided practice while keeping exam-mode restrictions.
-- Connect supporting tutor signals to study-plan recommendations.
+- Display supporting tutor signals without using them to modify study-plan recommendations automatically.
+
+### Phase E — Retention, parent safety and operations
+
+- Store transcripts by default and build audited Admin preview/purge by age.
+- Notify linked parents about safety events and show educational session summaries.
+- Add per-child quota editing, enforcement, usage views and exhaustion handling.
+- Enforce voice availability during practice and block it during every formal assessment.
 
 ### Phase F — Evaluation and controlled release
 
 - Expand automated and human evaluation datasets.
 - Run security, privacy, accessibility, latency and cost gates.
 - Release to Admin, then a parent-controlled pilot, then eligible students.
-- Monitor outcomes and retain rollback switches for voice, generation and tutor tools.
+- Monitor outcomes and retain rollback switches for voice and tutor tools.
 
 ## 18. Recommended first release
 
-The recommended initial release includes multiple tutor profiles per student, reviewed AKURU BOT preset avatars, approved provider voices, the unit-scoped text tutor, source citations, equations and diagrams, guided practice, parent-visible educational summaries, transcript deletion controls and the required evaluation gates.
+The recommended initial release includes multiple tutor profiles per student, freely editable names, curated fictional superhuman AKURU BOT avatars, approved provider voices, tutor switching, grounded learner context, evidence-backed improvement recommendations, exact textbook citations, equations and diagrams, guided practice, parent-visible educational summaries and safety notifications, retained transcripts with Admin purge controls, per-child quotas and the required evaluation gates.
 
-Generated avatars and realtime voice should follow after the text tutor proves its grounding, permissions and learning behavior. This order also produces the session, profile, RAG, tool, audit and UI foundations that voice will reuse.
+Realtime voice should follow the grounded text tutor foundation and must be included when French tutoring is released. This order produces the session, profile, RAG, tool, audit and UI foundations that voice will reuse.
 
-## 19. Decisions required before converting this plan into TODO steps
+## 19. Confirmed product decisions
 
-1. Confirm that each student may create multiple tutor profiles.
-2. Confirm the approved tone choices shown in the interface.
-3. Confirm that **Balanced** is the default communication character.
-4. Confirm whether a profile may be used for all subjects or is assigned to selected subjects.
-5. Confirm that preset avatars are immediately available.
-6. Decide whether generated avatars require Parent approval, Admin approval or both.
-7. Confirm that photorealistic people, celebrity likenesses and copyrighted superhero imitation are excluded.
-8. Select the approved OpenAI voices after listening tests with children and parents.
-9. Confirm that no raw audio is stored.
-10. Choose transcript and structured-summary retention periods.
-11. Decide whether parents can see complete transcripts, summaries only or transcripts only after a stated safety/support reason.
-12. Set per-family voice-minute and avatar-generation quotas.
-13. Confirm that one active tutor session is restricted to one subject and one unit.
-14. Confirm that tutor observations remain supporting signals and never directly set official mastery.
-15. Confirm that all tutor assistance is disabled during timed mocks and official paper attempts.
+1. Each student may create multiple tutor profiles and switch tutors during a subject learning session.
+2. A tutor may support multiple enrolled subjects.
+3. Students may freely rename tutors, subject to basic name validation.
+4. Profile settings and avatars come from pre-populated choices and require no individual Parent or Admin approval.
+5. Avatars are child-safe fictional superhuman characters; text-described avatar generation is out of scope.
+6. Transcripts are stored by default without automatic expiry; raw audio is not stored.
+7. Admin can preview and manually delete transcripts older than a selected number of days.
+8. Educational session summaries are visible to parents and safety events notify the linked parent.
+9. AI quotas are assigned per child and can be changed by Admin.
+10. French tutoring supports voice when released.
+11. Tutor signals do not automatically change mastery, next-unit ranking or study plans.
+12. Voice is enabled only during practice and is blocked during every formal assessment.
+13. Personalised tutor statements and textbook page references require exact backend-supplied evidence.
 
-Recommended defaults are: multiple profiles per student; presets available immediately; generated avatars reviewed by a parent and visible to Admin moderation; no real-person imitation; no raw audio; short-lived transcripts plus longer-lived structured learning summaries; parent-visible educational summaries; one subject and unit per session; and voice/tutor assistance disabled during timed assessment.
+The initial controlled values for tone, voice presets, superhuman avatar set, transcript visibility detail and default per-child allowance can be selected during their respective implementation steps without changing these architecture decisions.
