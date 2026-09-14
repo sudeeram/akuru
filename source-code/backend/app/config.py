@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     ai_max_output_tokens: int = Field(default=4_000, ge=100, le=32_000)
     assessment_confidence_threshold: float = Field(default=0.75, ge=0, le=1)
     assessment_context_chunks: int = Field(default=12, ge=1, le=30)
+    assessment_working_max_bytes: int = Field(default=5 * 1024 * 1024, ge=1024, le=25 * 1024 * 1024)
+    assessment_ocr_review_threshold: float = Field(default=0.85, ge=0, le=1)
     embedding_provider: str = "local"
     embedding_model: str = "akuru-local-v1"
     embedding_dimensions: int = Field(default=256, ge=64, le=3072)

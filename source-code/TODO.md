@@ -211,12 +211,12 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Combine AI judgement with checks suited to each subject.
 
-- [ ] Maths: symbolic equivalence, method, formula, substitution, units and rounding.
-- [ ] Science: terminology, causal reasoning, experiments, variables, calculations and conclusions.
-- [ ] ICT: vocabulary, scenario application, trade-offs and extended reasoning.
-- [ ] English: approved task, evidence, organisation and language rubrics.
-- [ ] French: approved comprehension, vocabulary, grammar and communication rubrics.
-- [ ] Handwritten answers: OCR confidence plus original-image review.
+- [x] Maths: symbolic equivalence, method, formula, substitution, units and rounding.
+- [x] Science: terminology, causal reasoning, experiments, variables, calculations and conclusions.
+- [x] ICT: vocabulary, scenario application, trade-offs and extended reasoning.
+- [x] English: approved task, evidence, organisation and language rubrics.
+- [x] French: approved comprehension, vocabulary, grammar and communication rubrics.
+- [x] Handwritten answers: OCR confidence plus original-image review.
 
 **Done when:** Maths can award method marks despite a wrong final answer, deterministic and AI results remain separate, and every enabled engine has reviewed examples.
 

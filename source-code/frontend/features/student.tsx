@@ -30,7 +30,7 @@ import {
 import {
   api,
   errorMessage,
-  upload,
+  uploadWorking,
   type Question,
   type Attempt,
   type Lesson,
@@ -386,15 +386,17 @@ export function Practice(p: FeatureProps) {
                     {file ? file.name : 'Upload handwritten working'}
                     <input
                       type="file"
-                      accept="image/png,image/jpeg,image/webp,application/pdf"
+                      accept="image/png,image/jpeg,application/pdf"
                       disabled={busy || !!result}
                       onChange={async (e) => {
                         const f = e.target.files?.[0];
                         if (!f) return;
                         setBusy(true);
                         try {
-                          setFile(await upload(f));
-                          p.notify('Working uploaded.');
+                          if (!practice) return;
+                          const uploaded = await uploadWorking(f, practice.id, q.id);
+                          setFile(uploaded);
+                          p.notify(uploaded.needsReview ? 'Working uploaded. AKURU will keep it for review.' : 'Working uploaded and read by AKURU.');
                         } catch (e: unknown) {
                           setError(errorMessage(e));
                         } finally {
@@ -717,14 +719,14 @@ export function Exams(p: FeatureProps) {
                 Upload working
                 <input
                   type="file"
-                  accept="image/png,image/jpeg,image/webp,application/pdf"
+                  accept="image/png,image/jpeg,application/pdf"
                   disabled={!remaining || busy}
                   onChange={async (e) => {
                     const f = e.target.files?.[0];
                     if (!f) return;
                     setBusy(true);
                     try {
-                      const uploaded = await upload(f);
+                      const uploaded = await uploadWorking(f, exam.id, q.id);
                       await api(`assessments/${exam.id}/answers`, {
                         questionId: q.id,
                         answer: draft,
@@ -1028,7 +1030,7 @@ export function ProgressView(p: FeatureProps) {
                 <a
                   target="_blank"
                   rel="noreferrer"
-                  href={'/api/files/' + chosen.fileId}
+                  href={chosen.workingUrl}
                 >
                   Open submitted working ↗
                 </a>

@@ -158,7 +158,7 @@ PostgreSQL foreign keys, unique/check constraints and transactional domain valid
 
 Implemented with FastAPI/PostgreSQL: three roles, Argon2 authentication, forced first-login password replacement, Admin account creation, audit events, parent-child isolation, active iGCSE catalog, progression and subject enrolments, and role-scoped portal state. The frontend screens for later workflows remain while their APIs are implemented.
 
-Implemented foundations now include private document ingestion, reviewed versioned textbook and official-material extraction, same-subject weighted unit mappings, approved retrieval, immutable assessment delivery, and two-pass source-grounded AI assessment with versioned audit history. Still planned: full account lifecycle, advanced mathematical recognition, subject-specific marking, mastery/study planning, generated media and deployment to OCI.
+Implemented foundations now include private document ingestion, reviewed versioned textbook and official-material extraction, same-subject weighted unit mappings, approved retrieval, immutable assessment delivery, two-pass source-grounded AI assessment, subject-specific marking policies, and private OCR-assisted handwritten working. Still planned: full account lifecycle, advanced mathematical recognition, mastery/study planning, generated media and deployment to OCI.
 
 Legacy mock records are not imported automatically. Any future import must preserve provenance and require Admin confirmation rather than inventing grade, term, subject, or unit mappings.
 

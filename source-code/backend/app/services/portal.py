@@ -116,7 +116,9 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "explanation": result.teachingExplanation,
                     "points": [decision.rationale for decision in result.markingDecisions],
                     "createdAt": result.createdAt.isoformat(), "examId": str(item.id) if item.mode != "practice" else None,
-                    "improvedAnswer": result.improvedAnswer, "recommendations": result.recommendations})
+                    "improvedAnswer": result.improvedAnswer, "recommendations": result.recommendations,
+                    "assessmentId": str(item.id),
+                    "workingUrl": f"/api/v1/assessments/{item.id}/working/{question.fileId}" if question.fileId else None})
         exams.append({"id": str(item.id), "studentId": str(item.studentId), "subject": item.subjectId,
             "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
             "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,

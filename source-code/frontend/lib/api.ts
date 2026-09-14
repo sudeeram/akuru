@@ -132,9 +132,7 @@ type ApiResult<P extends string> = P extends 'state'
         ? { hint: string; total: number }
         : P extends 'attempt'
           ? Attempt
-          : P extends 'upload'
-            ? FileRef
-            : P extends `exams/${string}`
+        : P extends `exams/${string}`
               ? Exam
               : unknown;
 export async function api<P extends string>(
@@ -257,22 +255,16 @@ export const saveQuestionMappings = (questionId: string, mappings: UnitMapping[]
   api(`questions/${questionId}/unit-mapping`, { mappings }) as Promise<PaperMappings['questions'][number]>;
 export const publishQuestionMappings = (questionId: string) =>
   api(`questions/${questionId}/unit-mapping/publish`, {}) as Promise<PaperMappings['questions'][number]>;
-export async function upload(
-  file: File,
-  extra: Record<string, string> = {},
-): Promise<FileRef> {
-  if (file.size > 5 * 1024 * 1024)
-    throw new Error('Choose a file smaller than 5 MB.');
-  const data = await new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () =>
-      typeof r.result === 'string'
-        ? resolve(r.result)
-        : reject(new Error('Could not read this file.'));
-    r.onerror = () => reject(new Error('Could not read this file.'));
-    r.readAsDataURL(file);
+export async function uploadWorking(file: File, assessmentId: string, questionId: string): Promise<FileRef & { ocrConfidence: number; needsReview: boolean }> {
+  if (file.size > 5 * 1024 * 1024) throw new Error('Choose a file smaller than 5 MB.');
+  const token = csrfToken();
+  const response = await fetch(`/api/v1/assessments/${assessmentId}/questions/${questionId}/working`, {
+    method: 'POST', headers: { 'Content-Type': file.type, 'X-Filename': file.name, ...(token ? { 'X-CSRF-Token': token } : {}) }, body: file,
   });
-  return api('upload', { name: file.name, data, purpose: 'working', ...extra });
+  const raw = await response.text();
+  const data = raw ? JSON.parse(raw) : {};
+  if (!response.ok) throw new Error(data?.error?.message || 'Working could not be uploaded.');
+  return data;
 }
 export type Subject = {
   id: string;
@@ -332,6 +324,8 @@ export type Attempt = {
   recommendations?: string[];
   createdAt: string;
   examId?: string;
+  assessmentId?: string;
+  workingUrl?: string;
 };
 export type Assignment = {
   id: string;
@@ -432,6 +426,7 @@ export type AssessmentResult = {
   confidence: number; strengths: string[]; smallMistakes: string[]; conceptualMistakes: string[];
   improvedAnswer: string; teachingExplanation: string; recommendations: string[]; reviewReasons: string[];
   markingDecisions: { pointId: string; criterion: string; awarded: boolean; marksAwarded: number; maxMarks: number; studentEvidence: string; rationale: string; confidence: number }[];
+  subjectEngine: string; subjectEngineVersion: string; deterministicChecks: Record<string, unknown>;
 };
 export type State = {
   catalog: {

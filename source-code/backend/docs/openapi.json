@@ -506,6 +506,11 @@
             "title": "Createdat",
             "type": "string"
           },
+          "deterministicChecks": {
+            "additionalProperties": true,
+            "title": "Deterministicchecks",
+            "type": "object"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -558,6 +563,14 @@
             "title": "Strengths",
             "type": "array"
           },
+          "subjectEngine": {
+            "title": "Subjectengine",
+            "type": "string"
+          },
+          "subjectEngineVersion": {
+            "title": "Subjectengineversion",
+            "type": "string"
+          },
           "teachingExplanation": {
             "title": "Teachingexplanation",
             "type": "string"
@@ -591,6 +604,9 @@
           "unitEvidence",
           "recommendations",
           "reviewReasons",
+          "subjectEngine",
+          "subjectEngineVersion",
+          "deterministicChecks",
           "createdAt"
         ],
         "title": "AssessmentResultResponse",
@@ -3376,6 +3392,45 @@
         ],
         "title": "UserResponse",
         "type": "object"
+      },
+      "WorkingFileResponse": {
+        "properties": {
+          "contentType": {
+            "title": "Contenttype",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "boolean"
+          },
+          "ocrConfidence": {
+            "title": "Ocrconfidence",
+            "type": "number"
+          },
+          "ocrText": {
+            "title": "Ocrtext",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contentType",
+          "ocrText",
+          "ocrConfidence",
+          "needsReview"
+        ],
+        "title": "WorkingFileResponse",
+        "type": "object"
       }
     }
   },
@@ -5027,6 +5082,143 @@
         ]
       }
     },
+    "/api/v1/assessments/{assessment_id}/questions/{question_id}/working": {
+      "post": {
+        "operationId": "upload_working_api_v1_assessments__assessment_id__questions__question_id__working_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Filename",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "X-Filename",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "title": "Content-Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Content",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkingFileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Upload Working",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
     "/api/v1/assessments/{assessment_id}/submit": {
       "post": {
         "operationId": "submit_api_v1_assessments__assessment_id__submit_post",
@@ -5127,6 +5319,93 @@
           }
         },
         "summary": "Submit",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/working/{file_id}": {
+      "get": {
+        "operationId": "download_working_api_v1_assessments__assessment_id__working__file_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "file_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "File Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Download Working",
         "tags": [
           "assessments"
         ]

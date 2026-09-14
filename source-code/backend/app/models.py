@@ -835,6 +835,27 @@ class AssessmentAnswer(Base):
     )
 
 
+class AssessmentWorkingFile(Base):
+    __tablename__ = "assessment_working_files"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), index=True)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="RESTRICT"), index=True)
+    original_filename: Mapped[str] = mapped_column(String(255))
+    content_type: Mapped[str] = mapped_column(String(80))
+    byte_size: Mapped[int] = mapped_column(Integer)
+    checksum: Mapped[str] = mapped_column(String(64))
+    object_key: Mapped[str] = mapped_column(String(500), unique=True)
+    ocr_text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    ocr_confidence: Mapped[float] = mapped_column(Float, default=0, server_default="0")
+    ocr_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("byte_size > 0", name="ck_assessment_working_file_size"),
+        CheckConstraint("ocr_confidence BETWEEN 0 AND 1", name="ck_assessment_working_ocr_confidence"),
+    )
+
+
 class AssessmentResult(Base):
     __tablename__ = "assessment_results"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -866,6 +887,9 @@ class AssessmentResult(Base):
     source_manifest: Mapped[list] = mapped_column(JSON)
     pass_one_output: Mapped[dict] = mapped_column(JSON)
     pass_two_output: Mapped[dict] = mapped_column(JSON)
+    subject_engine: Mapped[str] = mapped_column(String(80))
+    subject_engine_version: Mapped[str] = mapped_column(String(40))
+    deterministic_checks: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("version_number > 0 AND answer_revision >= 0", name="ck_assessment_result_versions"),

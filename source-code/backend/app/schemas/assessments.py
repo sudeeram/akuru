@@ -101,7 +101,18 @@ class AssessmentResultResponse(BaseModel):
     unitEvidence: list[dict]
     recommendations: list[str]
     reviewReasons: list[str]
+    subjectEngine: str
+    subjectEngineVersion: str
+    deterministicChecks: dict
     createdAt: datetime
+
+class WorkingFileResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    contentType: str
+    ocrText: str
+    ocrConfidence: float
+    needsReview: bool
 
 class AssessmentQuestionResponse(BaseModel):
     id: uuid.UUID

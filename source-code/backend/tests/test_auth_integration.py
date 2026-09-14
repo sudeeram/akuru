@@ -24,6 +24,7 @@ from app.queue.factory import get_document_queue
 from app.services import document_processing
 from app.services import question_mappings
 from app.services import assessment_marking
+from app.services import assessment_working
 from app.config import Settings
 from app.schemas.question_mappings import AIUnitSuggestionOutput
 from app.ai.base import AIResult, AIUsage
@@ -972,3 +973,33 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
         "mode": "practice", "subjectId": "biology",
     })
     assert practice.status_code == 201 and len(practice.json()["questions"]) == 1
+    practice_data = practice.json(); practice_question = practice_data["questions"][0]
+    monkeypatch.setattr(assessment_working, "extract_document", lambda *args, **kwargs: {"pageCount": 1, "pages": [{
+        "blocks": [{"text": "cell membrane", "confidence": 0.72}]}]})
+    working = client.post(f"/api/v1/assessments/{practice_data['id']}/questions/{practice_question['id']}/working",
+        headers={**student_csrf, "X-Filename": "working.png", "Content-Type": "image/png"},
+        content=b"\x89PNG\r\n\x1a\nreviewed-test-image")
+    assert working.status_code == 201, working.text
+    assert working.json()["ocrConfidence"] == 0.72 and working.json()["needsReview"] is True
+    assert client.get(f"/api/v1/assessments/{practice_data['id']}/working/{working.json()['id']}").content.startswith(b"\x89PNG")
+    assert client.post(f"/api/v1/assessments/{practice_data['id']}/answers", headers=student_csrf, json={
+        "questionId": practice_question["id"], "answer": "", "fileId": working.json()["id"],
+        "idempotencyKey": "working-answer-0001"}).status_code == 200
+    assert client.post(f"/api/v1/assessments/{practice_data['id']}/submit", headers=student_csrf,
+        json={"idempotencyKey": "working-submit-0001"}).status_code == 200
+    reviewed = client.post(f"/api/v1/assessments/{practice_data['id']}/evaluate", headers=student_csrf,
+        json={"idempotencyKey": "working-evaluate-0001"})
+    assert reviewed.status_code == 200, reviewed.text
+    assert reviewed.json()["questions"][0]["result"]["status"] == "needs_review"
+    assert "inspect the original image" in reviewed.json()["questions"][0]["result"]["reviewReasons"][0]
+    parent_login = client.post("/api/v1/auth/login", json={
+        "username": parent_user.username, "password": "assessment parent password"})
+    assert parent_login.status_code == 200
+    working_url = f"/api/v1/assessments/{practice_data['id']}/working/{working.json()['id']}"
+    assert client.get(working_url).status_code == 200
+    unrelated_parent = User(username=f"unrelated-parent-{uuid.uuid4().hex}", display_name="Unrelated Parent",
+        role="parent", password_hash=hash_password("unrelated parent password"), must_change_password=False)
+    session.add(unrelated_parent); session.commit()
+    assert client.post("/api/v1/auth/login", json={"username": unrelated_parent.username,
+        "password": "unrelated parent password"}).status_code == 200
+    assert client.get(working_url).status_code == 404

@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentQuestion,
+from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentQuestion, AssessmentWorkingFile,
     Document, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
     OfficialQuestionUnitMapping, OfficialQuestionVersion, StudentProgression, StudentSubject)
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
@@ -175,6 +175,11 @@ def save_answer(db, principal, assessment_id, payload):
     if row.status != "active" or row.ends_at <= _now(): raise DomainError("assessment_deadline_passed", "The assessment deadline has passed; saved answers can still be submitted.", 409)
     question = db.get(AssessmentQuestion, payload.questionId)
     if not question or question.assessment_id != row.id: raise DomainError("assessment_question_not_found", "Question not found in this assessment.", 404)
+    if payload.fileId:
+        try: working = db.get(AssessmentWorkingFile, uuid.UUID(payload.fileId))
+        except ValueError: working = None
+        if not working or working.assessment_id != row.id or working.question_id != question.id or working.student_id != principal.user.id:
+            raise DomainError("working_not_found", "Upload working for this question before attaching it to the answer.", 404)
     if existing:
         existing.answer_text, existing.file_id, existing.idempotency_key = payload.answer, payload.fileId, payload.idempotencyKey
         existing.save_revision += 1; existing.saved_at = _now()

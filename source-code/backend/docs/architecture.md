@@ -148,6 +148,8 @@ Numeric validation should distinguish final-answer checks from method marking. H
 
 The Step 12 assessment service uses two structured AI passes after submission. The first decides every frozen official marking point from the student's meaning and method and cites the relevant student evidence. The second reconciles those decisions and creates an exam-ready answer plus a teaching explanation. Server validation requires the exact official point set, preserves the frozen rubric and source bundle, caps marks at the question maximum, and creates an immutable result version for each reassessment. Low-confidence, subjective English and attached-working results enter `needs_review` and are excluded from published progress scores.
 
+Step 13 selects a versioned policy for Maths, Science, ICT, English or French and supplies its deterministic signals to both assessment passes. These signals remain separately audited and cannot award marks. Private handwritten files retain their originals with an OCR transcription and confidence; low-confidence transcription routes the result to review and linked-family access controls protect the original.
+
 Study plans aggregate each student's assessed history and covered units. Do not mix siblings' reviews or infer mastery from another child's data. AI tutor and media services can explain material only after eligibility/source authorization; they cannot change enrolments, publish documents or expand coverage.
 
 ## API and migration strategy

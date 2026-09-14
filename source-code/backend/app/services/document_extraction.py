@@ -68,7 +68,7 @@ def _available_languages(command: str) -> set[str]:
 
 def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], dict]:
     available = _available_languages(command)
-    wanted = ["fra", "eng"] if subject_id == "French" else ["eng"]
+    wanted = ["fra", "eng"] if subject_id.lower() == "french" else ["eng"]
     selected = [language for language in wanted if language in available]
     if not selected:
         raise ProcessingFailure("ocr_language_unavailable", "No configured OCR language is installed.")

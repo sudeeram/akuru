@@ -168,3 +168,14 @@ test('student submissions request traceable AKURU assessment feedback', () => {
   assert.match(api, /type AssessmentResult/);
   assert.match(api, /studentEvidence: string/);
 });
+
+test('handwritten working uses the private authenticated assessment endpoint', () => {
+  assert.match(api, /export async function uploadWorking/);
+  assert.match(api, /questions\/\$\{questionId\}\/working/);
+  assert.match(api, /'X-Filename': file\.name/);
+  assert.match(api, /'X-CSRF-Token'/);
+  assert.match(student, /uploadWorking\(f, practice\.id, q\.id\)/);
+  assert.match(student, /uploadWorking\(f, exam\.id, q\.id\)/);
+  assert.doesNotMatch(api, /readAsDataURL/);
+  assert.doesNotMatch(student, /'\/api\/files\/' \+ chosen\.fileId/);
+});

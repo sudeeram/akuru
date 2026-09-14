@@ -11,7 +11,7 @@ export interface Schemas {
   "AssessmentMode": "practice" | "official_paper" | "mock";
   "AssessmentQuestionResponse": { "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "sourceLocations": Array<unknown>; "unitIds": Array<unknown>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; "result"?: Schemas["AssessmentResultResponse"] | null; };
   "AssessmentResponse": { "id": string; "studentId": string; "subjectId": string; "mode": string; "status": string; "title": string; "targetMarks": number; "durationMinutes": number; "startedAt": string; "endsAt": string; "submittedAt": string | null; "skills": Array<unknown>; "difficultyProfile": { [key: string]: unknown; }; "feedbackVisible": boolean; "questions": Array<Schemas["AssessmentQuestionResponse"]>; };
-  "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "unitEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "createdAt": string; };
+  "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "unitEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "subjectEngine": string; "subjectEngineVersion": string; "deterministicChecks": { [key: string]: unknown; }; "createdAt": string; };
   "AssessmentStart": { "mode": Schemas["AssessmentMode"]; "subjectId": string; "blueprintId"?: string | null; "paperId"?: string | null; };
   "BlueprintCreate": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; };
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
@@ -75,6 +75,7 @@ export interface Schemas {
   "UnitOption": { "id": string; "code": string; "title": string; };
   "UpdateStudentRequest": { "id": string; "name": string; "parentId": string; "level": "iGCSE"; "grade": "Grade 10" | "Grade 11"; "term": "Term1" | "Term2" | "Term3"; "progression": Array<string>; "subjects": Array<string>; };
   "UserResponse": { "id": string; "username": string; "name": string; "role": "admin" | "parent" | "student"; "mustChangePassword": boolean; };
+  "WorkingFileResponse": { "id": string; "name": string; "contentType": string; "ocrText": string; "ocrConfidence": number; "needsReview": boolean; };
 }
 
 export interface ApiOperations {
@@ -96,7 +97,9 @@ export interface ApiOperations {
   "POST /api/v1/assessments/{assessment_id}/answers": { request: Schemas["AnswerSave"]; response: Schemas["AssessmentResponse"] };
   "GET /api/v1/assessments/{assessment_id}/assets/{asset_id}": { request: unknown; response: unknown };
   "POST /api/v1/assessments/{assessment_id}/evaluate": { request: Schemas["AssessmentEvaluateRequest"]; response: Schemas["AssessmentResponse"] };
+  "POST /api/v1/assessments/{assessment_id}/questions/{question_id}/working": { request: unknown; response: Schemas["WorkingFileResponse"] };
   "POST /api/v1/assessments/{assessment_id}/submit": { request: Schemas["SubmissionRequest"]; response: Schemas["AssessmentResponse"] };
+  "GET /api/v1/assessments/{assessment_id}/working/{file_id}": { request: unknown; response: unknown };
   "POST /api/v1/auth/change-password": { request: Schemas["ChangePasswordRequest"]; response: unknown };
   "POST /api/v1/auth/login": { request: Schemas["LoginRequest"]; response: Schemas["LoginResponse"] };
   "POST /api/v1/auth/logout": { request: unknown; response: unknown };
