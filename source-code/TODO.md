@@ -254,12 +254,12 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Create an adaptive, reviewable plan for each student.
 
-- [ ] Prioritize weak, declining and low-confidence units within covered scope.
-- [ ] Balance enrolled subjects and upcoming assessments.
-- [ ] Give each plan item a duration, reason, source and success condition.
-- [ ] Schedule spaced retries after feedback.
-- [ ] Keep completed plan history and regenerate only from new evidence or request.
-- [ ] Keep every child's plans and Parent reviews separate.
+- [x] Prioritize weak, declining and low-confidence units within covered scope.
+- [x] Balance enrolled subjects and upcoming assessments.
+- [x] Give each plan item a duration, reason, source and success condition.
+- [x] Schedule spaced retries after feedback.
+- [x] Keep completed plan history and regenerate only from new evidence or request.
+- [x] Keep every child's plans and Parent reviews separate.
 
 **Done when:** Plans contain only assigned subjects and covered units, and every activity explains why it was selected.
 

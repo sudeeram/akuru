@@ -41,7 +41,7 @@ flowchart TD
     ELIG --> TUTOR[Tutor, assessment and study planning]
 ```
 
-FastAPI authentication, account administration, document processing, approved retrieval, deterministic eligibility, immutable assessment delivery, AI assessment and explainable unit mastery are implemented. Weakness diagnosis and adaptive study planning continue in later roadmap steps.
+FastAPI authentication, account administration, document processing, approved retrieval, deterministic eligibility, immutable assessment delivery, AI assessment, explainable unit mastery, weakness diagnosis and adaptive study planning are implemented.
 
 ## Roles and family ownership
 
@@ -158,7 +158,7 @@ PostgreSQL foreign keys, unique/check constraints and transactional domain valid
 
 Implemented with FastAPI/PostgreSQL: three roles, Argon2 authentication, forced first-login password replacement, Admin account creation, audit events, parent-child isolation, active iGCSE catalog, progression and subject enrolments, and role-scoped portal state. The frontend screens for later workflows remain while their APIs are implemented.
 
-Implemented foundations now include private document ingestion, reviewed versioned textbook and official-material extraction, same-subject weighted unit mappings, approved retrieval, immutable assessment delivery, two-pass source-grounded AI assessment, subject-specific marking policies, private OCR-assisted handwritten working, explainable per-student unit mastery, and reviewed source-linked weakness recommendations. Still planned: full account lifecycle, adaptive study planning, generated media and deployment to OCI.
+Implemented foundations now include private document ingestion, reviewed versioned textbook and official-material extraction, same-subject weighted unit mappings, approved retrieval, immutable assessment delivery, two-pass source-grounded AI assessment, subject-specific marking policies, private OCR-assisted handwritten working, explainable per-student unit mastery, reviewed source-linked weakness recommendations, and versioned adaptive study plans. Still planned: full account lifecycle, generated media and deployment to OCI.
 
 Legacy mock records are not imported automatically. Any future import must preserve provenance and require Admin confirmation rather than inventing grade, term, subject, or unit mappings.
 

@@ -31,6 +31,7 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Step 13: Subject-specific marking](backend/docs/step-13-subject-marking.md)
 - [Step 14: Unit mastery and confidence](backend/docs/step-14-unit-mastery.md)
 - [Step 15: Weakness diagnosis and recommendations](backend/docs/step-15-weakness-diagnosis.md)
+- [Step 16: Adaptive study planner](backend/docs/step-16-adaptive-study-planner.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

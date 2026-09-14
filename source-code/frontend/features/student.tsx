@@ -1099,7 +1099,7 @@ export function Plan(p: FeatureProps) {
             onClick={async () => {
               setBusy(true);
               try {
-                await api('plans', {});
+                await api('plans', { studentId: p.child.id });
                 await p.refresh();
                 p.notify('Your study plan is ready.');
               } catch (e: unknown) {
@@ -1109,7 +1109,7 @@ export function Plan(p: FeatureProps) {
               }
             }}
           >
-            {busy ? 'Preparing…' : plan ? 'Refresh my plan' : 'Create my plan'}
+                {busy ? 'Preparing…' : plan?.items.length ? 'Refresh my plan' : 'Create my plan'}
             <ArrowRight size={16} />
           </Button>
         }
@@ -1120,7 +1120,7 @@ export function Plan(p: FeatureProps) {
       <div className="two-cols">
         <section className="panel">
           <h2>Suggested revision</h2>
-          {plan ? (
+              {plan?.items.length ? (
             <>
               <p className="source-note">
                 Updated {new Date(plan.updatedAt).toLocaleDateString()} ·
@@ -1133,16 +1133,23 @@ export function Plan(p: FeatureProps) {
                   </span>
                   <div>
                     <h3>{item.topic}</h3>
-                    <p>{item.reason}</p>
+                        <p>{item.reason}</p>
                     <span className="small muted">
                       {p.data.subjects.find((s) => s.id === item.subject)?.name}{' '}
-                      · {item.minutes} min
-                    </span>
-                    <button
-                      className="text-button spaced"
-                      onClick={() => p.go('practice', item.subject)}
-                    >
-                      Start practice
+                          · {item.minutes} min
+                        </span>
+                        <p className="small spaced"><strong>Source:</strong> <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source} ↗</a></p>
+                        <p className="small"><strong>Success:</strong> {item.successCondition}</p>
+                        <p className="small">Scheduled {new Date(item.scheduledFor).toLocaleDateString()}</p>
+                        <button
+                          className="text-button spaced"
+                          onClick={async () => {
+                            if (item.status === 'completed') return p.go('practice', item.subject);
+                            try { await api(`plans/items/${item.id}/complete`, {}); await p.refresh(); p.notify('Study activity completed.'); }
+                            catch (e: unknown) { setError(errorMessage(e)); }
+                          }}
+                        >
+                          {item.status === 'completed' ? 'Practise again' : 'Mark complete'}
                       <ArrowRight size={14} />
                     </button>
                   </div>

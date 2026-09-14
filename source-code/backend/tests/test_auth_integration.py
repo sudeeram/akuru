@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    ImprovementRecommendation, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -1038,6 +1038,28 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 200
     working_url = f"/api/v1/assessments/{practice_data['id']}/working/{working.json()['id']}"
     assert client.get(working_url).status_code == 200
+    first_plan = client.get(f"/api/v1/plans/students/{student_user.id}")
+    assert first_plan.status_code == 200 and first_plan.json()["generationReason"] == "evidence"
+    assert len(first_plan.json()["items"]) == 1
+    planned = first_plan.json()["items"][0]
+    assert planned["subject"] == "biology" and uuid.UUID(planned["unitId"]) in {unit.id for unit in biology_units}
+    assert planned["reason"] and planned["source"] == reviewed_recommendation.json()["sourceTitle"] + " · page " + str(reviewed_recommendation.json()["sourcePage"])
+    assert planned["successCondition"] and planned["minutes"] >= 5
+    unchanged = client.get(f"/api/v1/plans/students/{student_user.id}")
+    assert unchanged.json()["id"] == first_plan.json()["id"]
+    requested = client.post("/api/v1/plans", headers=parent_csrf, json={"studentId": str(student_user.id)})
+    assert requested.status_code == 200 and requested.json()["version"] == 2
+    student_login_again = client.post("/api/v1/auth/login", json={"username": student_user.username, "password": "assessment student password"}).json()
+    student_csrf_again = {"X-CSRF-Token": student_login_again["csrfToken"]}
+    completed = client.post(f"/api/v1/plans/items/{requested.json()['items'][0]['id']}/complete", headers=student_csrf_again, json={})
+    assert completed.status_code == 200 and completed.json()["items"][0]["status"] == "completed"
+    regenerated = client.post("/api/v1/plans", headers=student_csrf_again, json={})
+    assert regenerated.status_code == 200 and regenerated.json()["version"] == 3
+    history = client.get(f"/api/v1/plans/students/{student_user.id}/history")
+    assert history.status_code == 200 and len(history.json()["plans"]) == 3
+    assert any(item["status"] == "completed" for plan in history.json()["plans"] for item in plan["items"])
+    assert session.query(StudyPlan).filter_by(student_id=student_user.id).count() == 3
+    assert session.query(StudyPlanItem).filter_by(student_id=student_user.id).count() == 3
     unrelated_parent = User(username=f"unrelated-parent-{uuid.uuid4().hex}", display_name="Unrelated Parent",
         role="parent", password_hash=hash_password("unrelated parent password"), must_change_password=False)
     session.add(unrelated_parent); session.commit()
@@ -1046,3 +1068,4 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert client.get(working_url).status_code == 404
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 403
     assert client.get(f"/api/v1/recommendations?studentId={student_user.id}").status_code == 403
+    assert client.get(f"/api/v1/plans/students/{student_user.id}").status_code == 403

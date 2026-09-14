@@ -1,6 +1,6 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 0–15 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, assessment, mastery and recommendation services, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 0–16 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, assessment, mastery, recommendation and adaptive study-plan services, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
 The implementation baseline and module rules are documented in [Step 0 foundation protection](step-00-foundation-protection.md) and [Step 1 backend module boundaries](step-01-module-boundaries.md).
 
@@ -152,7 +152,7 @@ The Step 12 assessment service uses two structured AI passes after submission. T
 
 Step 13 selects a versioned policy for Maths, Science, ICT, English or French and supplies its deterministic signals to both assessment passes. These signals remain separately audited and cannot award marks. Private handwritten files retain their originals with an OCR transcription and confidence; low-confidence transcription routes the result to review and linked-family access controls protect the original.
 
-Study plans aggregate each student's assessed history and covered units. Do not mix siblings' reviews or infer mastery from another child's data. AI tutor and media services can explain material only after eligibility/source authorization; they cannot change enrolments, publish documents or expand coverage.
+Study plans aggregate each student's assessed history and covered units. Versioned plans prioritize weak, declining, low-confidence and recurring evidence, balance assigned subjects, retain completed history, and cite approved sources. Do not mix siblings' reviews or infer mastery from another child's data. See [Step 16 adaptive study planner](step-16-adaptive-study-planner.md). AI tutor and media services can explain material only after eligibility/source authorization; they cannot change enrolments, publish documents or expand coverage.
 
 ## API and migration strategy
 

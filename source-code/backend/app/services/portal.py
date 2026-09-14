@@ -6,7 +6,7 @@ from app.repositories.documents import DocumentRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
-from app.services import assessments, mastery, weaknesses
+from app.services import assessments, mastery, study_plans, weaknesses
 
 
 GRADES = ("Grade 10", "Grade 11")
@@ -131,6 +131,8 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
     recommendation_rows = ({row["id"]: [item.model_dump(mode="json") for item in weaknesses.list_recommendations(
         db, principal, uuid.UUID(row["id"])).recommendations] for row in visible_students}
         if principal.user.role in {"student", "parent"} else {})
+    plan_rows = ({row["id"]: study_plans.current(db, principal, uuid.UUID(row["id"])).model_dump(mode="json")
+        for row in visible_students} if principal.user.role in {"student", "parent"} else {})
     return {
         "user": {
             "id": str(principal.user.id),
@@ -173,7 +175,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "assessmentBlueprints": [row.model_dump(mode="json") for row in assessments.list_blueprints(db, principal)] if principal.user.role in {"admin", "student"} and not principal.user.must_change_password else [],
         "officialPapers": assessments.official_papers(db, principal.user.id) if principal.user.role == "student" and not principal.user.must_change_password else [],
         "reviews": [],
-        "plans": {},
+        "plans": plan_rows,
         "mastery": mastery_rows,
         "recommendations": recommendation_rows,
     }

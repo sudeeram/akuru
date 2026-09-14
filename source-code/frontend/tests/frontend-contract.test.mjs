@@ -191,6 +191,15 @@ test('frontend presents source-linked improvement recommendations for review', (
   assert.match(readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8'), /recommendations\/\$\{id\}\/review/);
 });
 
+test('study planner uses persisted adaptive plans and completion APIs', () => {
+  assert.match(student, /api\('plans', \{ studentId: p\.child\.id \}\)/);
+  assert.match(student, /plans\/items\/\$\{item\.id\}\/complete/);
+  assert.match(student, /item\.sourceUrl/);
+  assert.match(student, /item\.successCondition/);
+  assert.match(student, /item\.scheduledFor/);
+  assert.match(api, /generationReason/);
+});
+
 test('handwritten working uses the private authenticated assessment endpoint', () => {
   assert.match(api, /export async function uploadWorking/);
   assert.match(api, /questions\/\$\{questionId\}\/working/);

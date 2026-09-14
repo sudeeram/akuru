@@ -47,6 +47,9 @@ export interface Schemas {
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds": Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
   "PaperMappingResponse": { "paperId": string; "paperTitle": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "units": Array<Schemas["UnitOption"]>; "questions": Array<Schemas["QuestionMappingResponse"]>; };
+  "PlanGenerateRequest": { "studentId"?: string | null; };
+  "PlanHistoryResponse": { "plans": Array<Schemas["StudyPlanResponse"]>; };
+  "PlanItemResponse": { "id": string; "subject": string; "unitId": string; "unitCode": string; "topic": string; "activityType": string; "minutes": number; "reason": string; "source": string; "sourceUrl": string; "successCondition": string; "scheduledFor": string; "status": string; };
   "PlanPeriod": { "grade": number; "term": number; "unitIds"?: Array<string>; };
   "PlanUnitResponse": { "id": string; "code": string; "title": string; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
@@ -71,6 +74,7 @@ export interface Schemas {
   "SaveUnitMappingsRequest": { "mappings": Array<Schemas["UnitMapping"]>; };
   "SourceLocation": { "page": number; "blockId": string; "boundingBox"?: { [key: string]: unknown; }; };
   "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; };
+  "StudyPlanResponse": { "id": string; "studentId": string; "version": number; "updatedAt": string; "generationReason": string; "items": Array<Schemas["PlanItemResponse"]>; };
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
   "SubjectPresentationResponse": { "id": string; "name": string; "symbol": string; "color": string; "topic": string; "topics": Array<string>; "course": string; };
   "SubjectResponse": { "id": string; "name": string; };
@@ -134,6 +138,10 @@ export interface ApiOperations {
   "POST /api/v1/documents/{document_id}/textbook-review/propose": { request: unknown; response: Schemas["TextbookReviewResponse"] };
   "POST /api/v1/documents/{document_id}/textbook-review/publish": { request: Schemas["PublishTextbookRequest"]; response: Schemas["TextbookReviewResponse"] };
   "GET /api/v1/mastery/students/{student_id}": { request: unknown; response: Schemas["MasteryResponse"] };
+  "POST /api/v1/plans": { request: Schemas["PlanGenerateRequest"]; response: Schemas["StudyPlanResponse"] };
+  "POST /api/v1/plans/items/{item_id}/complete": { request: unknown; response: Schemas["StudyPlanResponse"] };
+  "GET /api/v1/plans/students/{student_id}": { request: unknown; response: Schemas["StudyPlanResponse"] };
+  "GET /api/v1/plans/students/{student_id}/history": { request: unknown; response: Schemas["PlanHistoryResponse"] };
   "GET /api/v1/questions/papers/{paper_id}/unit-mappings": { request: unknown; response: Schemas["PaperMappingResponse"] };
   "POST /api/v1/questions/{question_id}/unit-mapping": { request: Schemas["SaveUnitMappingsRequest"]; response: Schemas["QuestionMappingResponse"] };
   "POST /api/v1/questions/{question_id}/unit-mapping/publish": { request: unknown; response: Schemas["QuestionMappingResponse"] };

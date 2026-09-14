@@ -1021,3 +1021,50 @@ class ImprovementRecommendation(Base):
         CheckConstraint("review_status IN ('approved','pending_review','rejected')", name="ck_improvement_recommendation_review"),
         UniqueConstraint("diagnosis_id", "activity_type", name="uq_improvement_recommendation_activity"),
     )
+
+
+class StudyPlan(Base):
+    __tablename__ = "study_plans"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    evidence_fingerprint: Mapped[str] = mapped_column(String(64))
+    generation_reason: Mapped[str] = mapped_column(String(20))
+    requested_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_study_plan_version"),
+        CheckConstraint("status IN ('active','superseded')", name="ck_study_plan_status"),
+        CheckConstraint("generation_reason IN ('evidence','request')", name="ck_study_plan_reason"),
+        UniqueConstraint("student_id", "version_number", name="uq_study_plan_student_version"),
+        Index("uq_study_plan_active_student", "student_id", unique=True, postgresql_where=text("status = 'active'")),
+    )
+
+
+class StudyPlanItem(Base):
+    __tablename__ = "study_plan_items"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("study_plans.id", ondelete="RESTRICT"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    recommendation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("improvement_recommendations.id", ondelete="RESTRICT"))
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    sequence: Mapped[int] = mapped_column(Integer)
+    activity_type: Mapped[str] = mapped_column(String(24))
+    title: Mapped[str] = mapped_column(String(180))
+    duration_minutes: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str] = mapped_column(Text)
+    source_chunk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("retrieval_chunks.id", ondelete="RESTRICT"))
+    success_condition: Mapped[str] = mapped_column(Text)
+    scheduled_for: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(16), index=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("sequence > 0 AND duration_minutes BETWEEN 5 AND 120", name="ck_study_plan_item_values"),
+        CheckConstraint("status IN ('planned','completed')", name="ck_study_plan_item_status"),
+        UniqueConstraint("plan_id", "sequence", name="uq_study_plan_item_sequence"),
+        UniqueConstraint("plan_id", "recommendation_id", name="uq_study_plan_item_recommendation"),
+    )

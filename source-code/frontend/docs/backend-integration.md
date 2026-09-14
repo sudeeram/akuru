@@ -24,7 +24,7 @@ This inventory records which frontend workflows are backed by implemented FastAP
 
 The portal state endpoint supplies the document list used by the Admin dashboard. The dedicated document-list/status and specific-job routes remain available for future focused screens; duplicating those requests is unnecessary in the current portal.
 
-## Visible previews awaiting backend roadmap steps
+## Learning workflows connected to the backend
 
 | Frontend area | Required backend step |
 | --- | --- |

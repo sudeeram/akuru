@@ -482,12 +482,25 @@ export type State = {
   plans: Record<
     string,
     {
+      id: string;
+      studentId: string;
+      version: number;
       updatedAt: string;
+      generationReason: 'evidence' | 'request';
       items: {
+        id: string;
         subject: string;
+        unitId: string;
+        unitCode: string;
         topic: string;
+        activityType: string;
         minutes: number;
         reason: string;
+        source: string;
+        sourceUrl: string;
+        successCondition: string;
+        scheduledFor: string;
+        status: string;
       }[];
     }
   >;

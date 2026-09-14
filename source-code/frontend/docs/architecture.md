@@ -16,7 +16,7 @@ FastAPI validation responses may contain multiple structured field errors. `lib/
 
 The backend OpenAPI schema generates `lib/generated/api-contract.ts`. Do not edit that file directly. After changing a FastAPI route or schema, run `npm run contract:generate` from `source-code/`; CI uses `npm run contract:check` to detect drift. The API wrapper translates the backend's structured error envelope into field-specific messages for the portal.
 
-The document, textbook-unit, coverage, question, practice, exam, review, assignment, and plan screens remain in the interface, but their PostgreSQL-backed endpoints are the next implementation phases. Empty collections keep the screens safe while those services are built.
+The document, textbook-unit, coverage, question, practice, exam, recommendation-review and adaptive-plan screens use PostgreSQL-backed endpoints. The standalone legacy assignment preview remains until its service is implemented.
 
 ## Authorization boundary
 
