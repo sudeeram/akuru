@@ -1449,6 +1449,12 @@ small {
   max-height: 285px;
   fill: #344f74;
 }
+.mastery-dimensions { display: grid; gap: .5rem; margin-top: .75rem; }
+.mastery-dimensions progress { width: 100%; accent-color: var(--primary); }
+.equations { display: flex; flex-wrap: wrap; gap: .5rem; margin: .75rem 0; }
+.equations code { font-size: 1.05rem; padding: .45rem .7rem; border: 1px solid var(--border); border-radius: .5rem; background: var(--surface-subtle); }
+.extraction-review-grid { display: grid; grid-template-columns: minmax(18rem, 1fr) minmax(18rem, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 800px) { .extraction-review-grid { grid-template-columns: 1fr; } }
 .diagram-controls {
   padding: 10px;
 }
@@ -2031,3 +2037,5 @@ small {
     display: none !important;
   }
 }
+
+pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; }

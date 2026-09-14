@@ -47,7 +47,7 @@ def _eligible_question(db, student_id, subject_id, unit_id):
         if mapped and mapped.issubset(allowed): return question
     return None
 
-def record_result(db: Session, result: AssessmentResult):
+def record_result(db: Session, result: AssessmentResult, *, commit=True):
     if result.status != "published": return
     question = db.get(AssessmentQuestion, result.question_id); assessment = db.get(Assessment, result.assessment_id)
     raw = [(str(item), None, "minor") for item in result.small_mistakes] + [(str(item), None, "major") for item in result.conceptual_mistakes]
@@ -94,7 +94,8 @@ def record_result(db: Session, result: AssessmentResult):
                     activity_question_version_id=candidate.id if candidate and activity != "review" else None,
                     activity_type=activity, title=title, reason=diagnosis.description + repeated,
                     action=action, success_condition=success, review_status=status, review_reason=reason))
-    db.commit()
+    if commit: db.commit()
+    else: db.flush()
 
 def _authorize(db, principal, student_id):
     if principal.user.role == "student" and principal.user.id != student_id: raise DomainError("student_access_denied", "Students may only view their own recommendations.", 403)

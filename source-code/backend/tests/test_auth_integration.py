@@ -92,11 +92,13 @@ def auth_client(tmp_path):
 def test_login_protected_routes_and_logout(auth_client) -> None:
     client, username, password = auth_client
     assert client.get("/api/v1/catalog").status_code == 401
+    assert client.get("/api/v1/assessments/admin/audit").status_code == 401
     assert client.post("/api/v1/auth/login", json={"username": username, "password": "wrong-password"}).status_code == 401
 
     login = client.post("/api/v1/auth/login", json={"username": username, "password": password})
     assert login.status_code == 200
     payload = login.json()
+    assert client.get("/api/v1/assessments/admin/audit").status_code == 200
     assert payload["user"] == {
         "id": payload["user"]["id"], "username": username,
         "name": "Security Test Admin", "role": "admin",
@@ -1069,3 +1071,55 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 403
     assert client.get(f"/api/v1/recommendations?studentId={student_user.id}").status_code == 403
     assert client.get(f"/api/v1/plans/students/{student_user.id}").status_code == 403
+
+    # Step 17: the new state path and review endpoints preserve family boundaries.
+    assert client.get("/api/v1/state").json()["attempts"] == []
+    review_result = reviewed.json()["questions"][0]["result"]
+    review_url = f"/api/v1/assessments/results/{review_result['id']}/review"
+    review_payload = {"idempotencyKey": "human-review-0001", "markingDecisions": review_result["markingDecisions"],
+        "feedback": "Reviewed against the original working and rubric.", "improvedAnswer": review_result["improvedAnswer"],
+        "strengths": ["Identified a membrane."], "smallMistakes": [], "conceptualMistakes": [], "reason": "Verified original working."}
+    login = client.post("/api/v1/auth/login", json={"username": unrelated_parent.username, "password": "unrelated parent password"}).json()
+    unrelated_csrf = {"X-CSRF-Token": login["csrfToken"]}
+    assert client.post(review_url, headers=unrelated_csrf, json=review_payload).status_code == 404
+    assert client.get("/api/v1/assessments/admin/audit").status_code == 403
+    login = client.post("/api/v1/auth/login", json={"username": student_user.username, "password": "assessment student password"}).json()
+    assert client.post(review_url, headers={"X-CSRF-Token": login["csrfToken"]}, json=review_payload).status_code == 403
+    assert client.get("/api/v1/assessments/admin/audit").status_code == 403
+    login = client.post("/api/v1/auth/login", json={"username": parent_user.username, "password": "assessment parent password"}).json()
+    review_csrf = {"X-CSRF-Token": login["csrfToken"]}
+    state = client.get("/api/v1/state").json()
+    assert state["attempts"] and all(item["studentId"] == str(student_user.id) for item in state["attempts"])
+    assert client.post(review_url, json=review_payload).status_code == 403
+    bad_payload = {**review_payload, "markingDecisions": [{**review_payload["markingDecisions"][0], "criterion": "Invented criterion"}]}
+    assert client.post(review_url, headers=review_csrf, json=bad_payload).status_code == 422
+    published_review = client.post(review_url, headers=review_csrf, json=review_payload)
+    assert published_review.status_code == 200, published_review.text
+    assert published_review.json()["status"] == "published"
+    assert published_review.json()["version"] == review_result["version"] + 1
+    assert client.post(review_url, headers=review_csrf, json=review_payload).json()["id"] == published_review.json()["id"]
+    assert client.post(review_url, headers=review_csrf, json={**review_payload, "idempotencyKey": "human-review-0002"}).status_code == 409
+    session.expire_all()
+    persisted = session.get(AssessmentResult, uuid.UUID(published_review.json()["id"]))
+    assert persisted.source_manifest[-1]["type"] == "human_review"
+    assert session.get(AssessmentResult, uuid.UUID(review_result["id"])).status == "needs_review"
+    admin_login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    admin_csrf = {"X-CSRF-Token": admin_login["csrfToken"]}
+    audit = client.get("/api/v1/assessments/admin/audit")
+    assert audit.status_code == 200 and any(row["resultId"] == published_review.json()["id"] for row in audit.json()["results"])
+    reassess_url = f"/api/v1/assessments/admin/{practice_data['id']}/reassess"
+    assert client.post(reassess_url, json={"idempotencyKey": "admin-reassess-0001"}).status_code == 403
+    reassessed = client.post(reassess_url, headers=admin_csrf, json={"idempotencyKey": "admin-reassess-0001"})
+    assert reassessed.status_code == 200, reassessed.text
+    new_result = reassessed.json()["questions"][0]["result"]
+    assert new_result["version"] == published_review.json()["version"] + 1
+    assert client.post(reassess_url, headers=admin_csrf, json={"idempotencyKey": "admin-reassess-0001"}).json()["questions"][0]["result"]["id"] == new_result["id"]
+    session.expire_all()
+    assert session.get(AssessmentResult, uuid.UUID(new_result["id"])).status == "needs_review"
+    assert client.get(working_url).status_code == 200
+    admin_review_payload = {**review_payload, "idempotencyKey": "admin-review-0001",
+        "markingDecisions": [{**point, "awarded": False, "marksAwarded": 0, "rationale": "The required evidence is absent."} for point in new_result["markingDecisions"]]}
+    corrected = client.post(f"/api/v1/assessments/results/{new_result['id']}/review", headers=admin_csrf, json=admin_review_payload)
+    assert corrected.status_code == 200, corrected.text
+    assert corrected.json()["awardedMarks"] == 0 and corrected.json()["version"] == new_result["version"] + 1
+    assert session.query(AuditEvent).filter_by(action="assessment.review", target_id=corrected.json()["id"]).one().actor_id == uuid.UUID(admin_login["user"]["id"])

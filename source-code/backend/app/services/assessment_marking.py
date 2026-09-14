@@ -10,7 +10,7 @@ from app.ai.prompts import get_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit
+from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit, User
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
 from app.services import mastery, weaknesses
@@ -80,7 +80,9 @@ def _task(question: AssessmentQuestion, answer: AssessmentAnswer | None, points:
 
 
 def _generate(db: Session, settings: Settings, request: AIRequest) -> AIResult:
-    return AIAccountRouter(db, settings).generate(request)
+    # Provider routing commits usage/health independently; keep assessment locks intact.
+    with Session(bind=db.get_bind()) as provider_db:
+        return AIAccountRouter(provider_db, settings).generate(request)
 
 
 def _validate(decisions, points: list[dict], question_marks: int) -> int:
@@ -109,6 +111,26 @@ def result_response(row: AssessmentResult) -> dict:
             | {"subjectEngine": row.subject_engine, "subjectEngineVersion": row.subject_engine_version,
                "deterministicChecks": row.deterministic_checks})
 
+def audit_results(db: Session) -> dict:
+    rows = db.execute(select(AssessmentResult, AssessmentQuestion, Assessment, User).join(
+        AssessmentQuestion, AssessmentQuestion.id == AssessmentResult.question_id).join(
+        Assessment, Assessment.id == AssessmentResult.assessment_id).join(
+        User, User.id == Assessment.student_id).order_by(AssessmentResult.created_at.desc())).all()
+    answers = {(row.assessment_id, row.question_id): row for row in db.scalars(select(AssessmentAnswer)).all()}
+    return {"results": [{"answer": answers[(a.id, q.id)].answer_text if (a.id, q.id) in answers else "",
+        "workingUrl": f"/api/v1/assessments/{a.id}/working/{answers[(a.id, q.id)].file_id}" if (a.id, q.id) in answers and answers[(a.id, q.id)].file_id else None,
+        "resultId": r.id, "assessmentId": a.id, "questionId": q.id,
+        "studentId": a.student_id, "studentName": u.display_name, "subjectId": a.subject_id,
+        "assessmentTitle": a.title, "questionNumber": q.question_number, "questionPrompt": q.prompt,
+        "version": r.version_number, "status": r.status, "awardedMarks": r.awarded_marks, "maxMarks": r.max_marks,
+        "confidence": r.confidence, "provider": r.provider, "model": r.model, "promptName": r.prompt_name,
+        "promptVersion": r.prompt_version, "subjectEngine": r.subject_engine,
+        "subjectEngineVersion": r.subject_engine_version, "reviewReasons": r.review_reasons,
+        "markingDecisions": r.marking_decisions, "strengths": r.strengths, "smallMistakes": r.small_mistakes,
+        "conceptualMistakes": r.conceptual_mistakes, "improvedAnswer": r.improved_answer,
+        "teachingExplanation": r.teaching_explanation, "deterministicChecks": r.deterministic_checks,
+        "sourceManifest": r.source_manifest, "createdAt": r.created_at} for r, q, a, u in rows]}
+
 
 def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, AssessmentResult]:
     rows = db.scalars(select(AssessmentResult).where(AssessmentResult.assessment_id == assessment_id).order_by(
@@ -120,6 +142,7 @@ def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, Ass
 
 
 def evaluate(db: Session, settings: Settings, assessment: Assessment, request_key: str) -> None:
+    assessment = db.scalar(select(Assessment).where(Assessment.id == assessment.id).with_for_update())
     if assessment.status not in {"submitted", "expired"}:
         raise DomainError("assessment_submission_required", "Submit the assessment before AKURU marks it.", 409)
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment.id).order_by(AssessmentQuestion.sequence)).all()
@@ -187,5 +210,6 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             subject_engine=selected_policy.name, subject_engine_version=subject_marking.ENGINE_VERSION,
             deterministic_checks=deterministic)
         db.add(row); db.flush()
-        mastery.record_result(db, row)
-        weaknesses.record_result(db, row)
+        mastery.record_result(db, row, commit=False)
+        weaknesses.record_result(db, row, commit=False)
+    db.commit()

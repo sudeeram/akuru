@@ -2,39 +2,35 @@
 /* SVG diagrams require role=img; an HTML img cannot host interactive vector elements. */
 /* eslint-disable jsx-a11y/prefer-tag-over-role */
 import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Maximize2 } from 'lucide-react';
+const descriptions: Record<string, string> = {
+  fraction: 'Eight equal sections, three shaded', triangle: 'Triangle with angles 50 degrees, 60 degrees and x',
+  coordinates: 'Coordinate plane with P at 4, 3', particles: 'Particles in a solid compared with a liquid',
+  forces: 'Box with opposing 8 and 12 newton forces', circuit: 'Series circuit with an open switch',
+  network: 'Home devices connected through a router to the internet', algorithm: 'Algorithm: start at 3, double, then add 4',
+  reading: 'Reading strategy: notice the words, make a connection, and support your idea',
+};
 export function Diagram({
   kind,
   interactive = false,
+  enlarged = false,
 }: {
   kind: string;
   interactive?: boolean;
+  enlarged?: boolean;
 }) {
   const [playing, setPlaying] = useState(false);
   const [filled, setFilled] = useState(3);
-  if (!kind) return null;
+  const [zoomed, setZoomed] = useState(false);
+  if (!kind || kind === 'none') return null;
   return (
-    <div className={`diagram ${playing ? 'playing' : ''}`}>
+    <div className={`diagram ${playing ? 'playing' : ''}`} role="figure" aria-label={descriptions[kind]}>
       <svg
         viewBox="0 0 480 230"
         role="img"
-        aria-label={
-          (
-            {
-              fraction: 'Eight equal sections, three shaded',
-              triangle: 'Triangle with angles 50 degrees, 60 degrees and x',
-              coordinates: 'Coordinate plane with P at 4, 3',
-              particles: 'Particles in a solid compared with a liquid',
-              forces: 'Box with opposing 8 and 12 newton forces',
-              circuit: 'Series circuit with an open switch',
-              network:
-                'Home devices connected through a router to the internet',
-              algorithm: 'Algorithm: start at 3, double, then add 4',
-              reading: 'Reading and evidence diagram',
-            } as Record<string, string>
-          )[kind]
-        }
+        aria-label={kind === 'fraction' ? `Eight equal sections, ${filled} shaded` : descriptions[kind] || 'Educational diagram'}
       >
         <defs>
           <marker
@@ -357,6 +353,8 @@ export function Diagram({
           </>
         )}
       </svg>
+      <p className="small visually-supported-description">{descriptions[kind]}</p>
+      {!enlarged && <Button variant="outline" onClick={() => setZoomed(!zoomed)} aria-expanded={zoomed} aria-label={`${zoomed ? 'Close enlarged' : 'Enlarge'} diagram: ${descriptions[kind]}`}><Maximize2 size={15} /> {zoomed ? 'Close enlarged view' : 'Enlarge diagram'}</Button>}
       {interactive && kind === 'particles' && (
         <Button variant="outline" onClick={() => setPlaying(!playing)}>
           {playing ? <Pause size={15} /> : <Play size={15} />}{' '}
@@ -382,6 +380,7 @@ export function Diagram({
           </Button>
         </div>
       )}
+      {!enlarged && <Dialog open={zoomed} onOpenChange={setZoomed}><DialogContent className="wide-dialog"><DialogHeader><DialogTitle>Enlarged diagram</DialogTitle><DialogDescription>{descriptions[kind]}</DialogDescription></DialogHeader><Diagram kind={kind} enlarged /></DialogContent></Dialog>}
     </div>
   );
 }

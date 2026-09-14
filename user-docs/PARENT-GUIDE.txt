@@ -39,3 +39,16 @@ grades or proof that the full syllabus is mastered. Discuss the child's study
 plan and repeated difficulties, then assign a small amount of focused practice.
 
 Sign out after using a shared device. Report wrong family links to Admin.
+
+STEP 17: REVIEWING YOUR CHILD'S RESULTS
+Open Assessment reviews and choose a child, or view all your linked children.
+Each child's summary includes unit scores, confidence and the latest ten score
+changes. These are learning indicators, not predicted exam grades.
+
+Open a question to inspect the submitted answer and any uploaded working.
+Review each official marking point, its evidence and awarded marks. You can
+correct the explanation, improved answer, strengths and mistakes. Enter your
+reason and select Publish reviewed result. AKURU retains the previous result
+and recalculates mastery. If a newer result exists, refresh before reviewing it.
+If saving fails, retry the unchanged form; it will not publish duplicate versions.
+Recommendation approval and decline remain separate tasks below the summaries.

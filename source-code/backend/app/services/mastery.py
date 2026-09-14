@@ -99,7 +99,7 @@ def calculate(rows, now=None):
         "provisional": confidence == "low", "count": len(rows), "variety": variety,
         "trend": max(-10, min(10, recent_score - older_score)), "last": max(dates), "dimensions": dimensions}
 
-def record_result(db, result):
+def record_result(db, result, *, commit=True):
     if result.status != "published": return
     question = db.get(AssessmentQuestion, result.question_id); assessment = db.get(Assessment, result.assessment_id)
     all_evidence = _evidence(db, assessment.student_id)
@@ -128,7 +128,8 @@ def record_result(db, result):
             previous_confidence=previous_confidence, new_confidence=calculated["confidence"],
             contribution={"explanation": explanation, "factors": trigger["factors"], "unitWeight": trigger["unitWeight"],
                 "contributingResultIds": [str(row["result"].id) for row in rows]}))
-    db.commit()
+    if commit: db.commit()
+    else: db.flush()
 
 def list_mastery(db, principal, student_id, subject_id=None):
     authorize(db, principal, student_id)

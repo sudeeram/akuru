@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Palette,
   KeyRound,
+  ScanSearch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -66,6 +67,7 @@ const adminNav = [
   ['questions', 'Question mapping', ClipboardCheck],
   ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
+  ['assessment-audit', 'Assessment audit', ScanSearch],
 ] as const;
 export default function Portal() {
   const [data, setData] = useState<State | null>(null),
@@ -232,8 +234,7 @@ export default function Portal() {
               <ArrowRight size={18} />
             </Button>
             <p className="fineprint">
-              Accounts are created by an AKURU administrator. No external AI
-              services are connected yet.
+              Accounts are created by an AKURU administrator. Sign in to access your assigned learning resources.
             </p>
           </form>
         </div>

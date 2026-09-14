@@ -93,3 +93,16 @@ Disable an account to stop new work from using it. Editing and saving an account
 resets its recorded health so AKURU can try it again after credit is added or a
 configuration problem is corrected. A failover restarts one complete AI request
 and can take longer, but it uses the same prompt, schema and curriculum context.
+
+STEP 17: ASSESSMENT AUDIT
+Open Assessment audit in the top navigation. Select a result to inspect its
+marks, confidence, model, prompt/engine versions, sources and marking evidence.
+Inspect the original submitted working where available. You can correct each
+marking decision and teaching feedback, give a reason, and publish a reviewed
+result. Earlier versions and the reviewer provenance are retained.
+
+Reassess and create new version sends the entire assessment through AKURU's
+OpenAI marking workflow. It can still produce a result needing human review.
+After a failure, retry the same operation. If you left the page during an
+uncertain request, refresh the audit to check whether a new version was saved.
+The document review screen shows the original page beside extracted content.

@@ -7,16 +7,35 @@ from app.database import get_db
 from app.config import Settings, get_settings
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.assessments import (AnswerSave, AssessmentListResponse, AssessmentResponse, AssessmentStart,
-    AssessmentEvaluateRequest, BlueprintCreate, BlueprintResponse, SubmissionRequest, WorkingFileResponse)
+    AssessmentReviewRequest, AssessmentResultResponse, AssessmentAuditListResponse, AssessmentEvaluateRequest, BlueprintCreate, BlueprintResponse, SubmissionRequest, WorkingFileResponse)
 from app.schemas.mastery import HintInteractionRequest, HintInteractionResponse
 from app.security import Principal
 from app.services import assessments
 from app.services import assessment_marking
-from app.services import assessment_working
+from app.services import assessment_working, assessment_reviews
 from app.services import documents
 from app.storage import ObjectStorage, get_storage
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
+
+@router.post("/results/{result_id}/review", response_model=AssessmentResultResponse)
+def review_result(result_id: uuid.UUID, payload: AssessmentReviewRequest,
+                 principal: Annotated[Principal, Depends(require_csrf_roles("admin", "parent"))],
+                 db: Annotated[Session, Depends(get_db)]):
+    return assessment_reviews.review(db, principal, result_id, payload)
+
+@router.get("/admin/audit", response_model=AssessmentAuditListResponse)
+def audit(principal: Annotated[Principal, Depends(require_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return assessment_marking.audit_results(db)
+
+@router.post("/admin/{assessment_id}/reassess", response_model=AssessmentResponse)
+def reassess(assessment_id: uuid.UUID, payload: AssessmentEvaluateRequest,
+             principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+             db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)]):
+    row = assessments.admin_assessment(db, assessment_id)
+    assessment_marking.evaluate(db, settings, row, payload.idempotencyKey)
+    db.refresh(row)
+    return assessments.response(db, row)
 
 @router.get("", response_model=AssessmentListResponse)
 def list_rows(principal: Annotated[Principal, Depends(require_roles("student"))], db: Annotated[Session, Depends(get_db)]):
@@ -57,7 +76,7 @@ def upload_working(assessment_id: uuid.UUID, question_id: uuid.UUID,
 
 @router.get("/{assessment_id}/working/{file_id}")
 def download_working(assessment_id: uuid.UUID, file_id: uuid.UUID,
-                     principal: Annotated[Principal, Depends(require_roles("student", "parent"))],
+                     principal: Annotated[Principal, Depends(require_roles("student", "parent", "admin"))],
                      db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
     row = assessment_working.owned(db, principal, assessment_id, file_id)
     stored = storage.get(row.object_key, row.content_type)

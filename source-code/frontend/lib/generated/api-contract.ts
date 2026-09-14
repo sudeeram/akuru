@@ -6,12 +6,15 @@ export interface Schemas {
   "AccountResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
   "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
   "AnswerSave": { "questionId": string; "answer"?: string; "fileId"?: string | null; "idempotencyKey": string; };
+  "AssessmentAuditListResponse": { "results": Array<Schemas["AssessmentAuditResponse"]>; };
+  "AssessmentAuditResponse": { "resultId": string; "assessmentId": string; "questionId": string; "studentId": string; "studentName": string; "subjectId": string; "assessmentTitle": string; "questionNumber": string; "questionPrompt": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "provider": string; "model": string; "promptName": string; "promptVersion": string; "subjectEngine": string; "subjectEngineVersion": string; "reviewReasons": Array<string>; "markingDecisions": Array<{ [key: string]: unknown; }>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "deterministicChecks": { [key: string]: unknown; }; "sourceManifest": Array<{ [key: string]: unknown; }>; "createdAt": string; "answer": string; "workingUrl": string | null; };
   "AssessmentEvaluateRequest": { "idempotencyKey": string; };
   "AssessmentListResponse": { "assessments": Array<Schemas["AssessmentResponse"]>; };
   "AssessmentMode": "practice" | "official_paper" | "mock";
   "AssessmentQuestionResponse": { "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "sourceLocations": Array<unknown>; "unitIds": Array<unknown>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; "result"?: Schemas["AssessmentResultResponse"] | null; };
   "AssessmentResponse": { "id": string; "studentId": string; "subjectId": string; "mode": string; "status": string; "title": string; "targetMarks": number; "durationMinutes": number; "startedAt": string; "endsAt": string; "submittedAt": string | null; "skills": Array<unknown>; "difficultyProfile": { [key: string]: unknown; }; "feedbackVisible": boolean; "questions": Array<Schemas["AssessmentQuestionResponse"]>; };
   "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "unitEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "subjectEngine": string; "subjectEngineVersion": string; "deterministicChecks": { [key: string]: unknown; }; "createdAt": string; };
+  "AssessmentReviewRequest": { "idempotencyKey": string; "markingDecisions": Array<Schemas["MarkingDecision"]>; "feedback": string; "improvedAnswer": string; "strengths"?: Array<string>; "smallMistakes"?: Array<string>; "conceptualMistakes"?: Array<string>; "reason": string; };
   "AssessmentStart": { "mode": Schemas["AssessmentMode"]; "subjectId": string; "blueprintId"?: string | null; "paperId"?: string | null; };
   "BlueprintCreate": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; };
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
@@ -104,8 +107,11 @@ export interface ApiOperations {
   "GET /api/v1/admin/students/{student_id}/question-pool": { request: unknown; response: Schemas["QuestionPoolDiagnosticResponse"] };
   "GET /api/v1/admin/ui-features": { request: unknown; response: Schemas["UiFeaturesResponse"] };
   "GET /api/v1/assessments": { request: unknown; response: Schemas["AssessmentListResponse"] };
+  "GET /api/v1/assessments/admin/audit": { request: unknown; response: Schemas["AssessmentAuditListResponse"] };
   "POST /api/v1/assessments/admin/blueprints": { request: Schemas["BlueprintCreate"]; response: Schemas["BlueprintResponse"] };
+  "POST /api/v1/assessments/admin/{assessment_id}/reassess": { request: Schemas["AssessmentEvaluateRequest"]; response: Schemas["AssessmentResponse"] };
   "GET /api/v1/assessments/blueprints": { request: unknown; response: Array<Schemas["BlueprintResponse"]> };
+  "POST /api/v1/assessments/results/{result_id}/review": { request: Schemas["AssessmentReviewRequest"]; response: Schemas["AssessmentResultResponse"] };
   "POST /api/v1/assessments/start": { request: Schemas["AssessmentStart"]; response: Schemas["AssessmentResponse"] };
   "POST /api/v1/assessments/{assessment_id}/answers": { request: Schemas["AnswerSave"]; response: Schemas["AssessmentResponse"] };
   "GET /api/v1/assessments/{assessment_id}/assets/{asset_id}": { request: unknown; response: unknown };

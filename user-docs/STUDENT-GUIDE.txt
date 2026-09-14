@@ -49,3 +49,16 @@ APPROVED RESOURCES AND SIGN-OUT
 Read approved textbooks and reference material from your subject page. They may
 contain later units, but assessed practice remains limited to your covered units.
 Show your working, answer in your own words, and sign out on shared devices.
+
+STEP 17: UNDERSTANDING FEEDBACK
+Open My progress, then select a question. Read how each mark was decided,
+the evidence from your answer, what went well and the mistakes to fix.
+Compare your response with the improved answer and worked explanation.
+A result awaiting human review is provisional until your Parent or Admin reviews it.
+
+Unit cards show scores out of 10, confidence, skill dimensions, recent trends
+and the latest ten score changes. Follow the approved next steps and their
+linked textbook evidence. No score means more assessed evidence is needed.
+Use Enlarge diagram to inspect images; Escape closes the enlarged view.
+Common equations are formatted mathematically; unusual notation retains its
+original source so you can compare it with the original question.

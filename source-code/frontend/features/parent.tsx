@@ -2,10 +2,10 @@
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { useState } from 'react';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { ResultReview } from './result-review';
 import {
   Table,
   TableHeader,
@@ -20,7 +20,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { api, errorMessage, type Attempt } from '@/lib/api';
 import { Heading, Picker, Empty, Status, type FeatureProps } from './shared';
@@ -28,8 +27,6 @@ export function Reviews(p: FeatureProps) {
   const [filter, setFilter] = useState('pending'),
     [student, setStudent] = useState('all'),
     [review, setReview] = useState<Attempt | null>(null),
-    [mark, setMark] = useState(''),
-    [feedback, setFeedback] = useState(''),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const attempts = p.data.attempts.filter(
@@ -44,22 +41,6 @@ export function Reviews(p: FeatureProps) {
     setBusy(true); setError('');
     try { await api(`recommendations/${id}/review`, { decision, reason: decision === 'approved' ? 'Reviewed by parent.' : 'Parent declined this recommendation.' }); await p.refresh(); }
     catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
-  }
-  async function save(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await api('reviews', { id: review?.id, mark: Number(mark), feedback });
-      await p.refresh();
-      setReview(null);
-      p.notify(
-        'Individual feedback saved. The student can see it in My progress.',
-      );
-    } catch (e: unknown) {
-      setError(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
   }
   return (
     <>
@@ -93,6 +74,20 @@ export function Reviews(p: FeatureProps) {
           ]}
         />
       </div>
+      <div className="section-heading"><h2>Child-by-child learning summary</h2></div>
+      <div className="learner-grid">
+        {p.data.students.filter(child => student === 'all' || child.id === student).map(child => {
+          const units = p.data.mastery?.[child.id] || [];
+          const pending = (p.data.recommendations?.[child.id] || []).filter(item => item.reviewStatus === 'pending_review').length;
+          const average = units.length ? units.reduce((total, unit) => total + unit.score, 0) / units.length : null;
+          return <section className="panel stack" key={child.id}><div className="spread"><h3>{child.name}</h3><strong>{average == null ? 'More evidence needed' : `${average.toFixed(1)}/10 average`}</strong></div>
+            <p>{child.grade} · {child.term} · {units.length} measured unit{units.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
+            {units.map(unit => <div className="source-note" key={unit.unitId}><div className="spread"><span>{unit.unitCode} · {unit.unitTitle}</span><strong>{unit.score.toFixed(1)}/10</strong></div><p className="small">{unit.trend > 0 ? 'Improving' : unit.trend < 0 ? 'Declining' : 'Steady'} ({unit.trend > 0 ? '+' : ''}{unit.trend.toFixed(1)}) · {unit.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
+            {!units.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a unit trend.</p>}
+          </section>;
+        })}
+      </div>
+      {error && <div className="error" role="alert">{error} Retry the review action.</div>}
       <section className="panel">
         {attempts.length ? (
           [...attempts].reverse().map((a) => (
@@ -101,8 +96,6 @@ export function Reviews(p: FeatureProps) {
               key={a.id}
               onClick={() => {
                 setReview(a);
-                setMark(a.mark === null ? '' : String(a.mark));
-                setFeedback(a.status === 'reviewed' ? a.feedback : '');
                 setError('');
               }}
             >
@@ -145,7 +138,7 @@ export function Reviews(p: FeatureProps) {
             </DialogDescription>
           </DialogHeader>
           {review && (
-            <form onSubmit={save}>
+            <div className="stack">
               <div className="review-answer">
                 <h3>Submitted answer</h3>
                 <p className="preserve">
@@ -153,7 +146,7 @@ export function Reviews(p: FeatureProps) {
                 </p>
                 {review.fileId && (
                   <a
-                    href={'/api/files/' + review.fileId}
+                    href={review.workingUrl}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -161,60 +154,8 @@ export function Reviews(p: FeatureProps) {
                   </a>
                 )}
               </div>
-              <h3 className="spaced">Demo marking guidance</h3>
-              <ol className="steps">
-                {review.points.map((x, i) => (
-                  <li key={x}>
-                    <span>{i + 1}</span>
-                    {x}
-                  </li>
-                ))}
-              </ol>
-              <label htmlFor="awarded-mark">
-                Awarded marks (0–{review.maxMarks})
-              </label>
-              <Input
-                id="awarded-mark"
-                type="number"
-                min="0"
-                max={review.maxMarks}
-                step="1"
-                required
-                value={mark}
-                onChange={(e) => setMark(e.target.value)}
-              />
-              <label htmlFor="review-feedback" className="spaced">
-                Feedback for this student
-              </label>
-              <Textarea
-                id="review-feedback"
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                required
-                placeholder="What went well? Which step should they revisit?"
-              />
-              <p className="source-note">
-                Previous marks and feedback are retained in the review history.
-              </p>
-              {error && (
-                <div className="error" role="alert">
-                  {error}
-                </div>
-              )}
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setReview(null)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="primary" disabled={busy}>
-                  Save review
-                  <Check size={16} />
-                </Button>
-              </DialogFooter>
-            </form>
+              <ResultReview key={review.id} resultId={review.id} decisions={review.markingDecisions || []} feedback={review.explanation} improvedAnswer={review.improvedAnswer || ''} strengths={review.strengths || []} smallMistakes={review.smallMistakes || []} conceptualMistakes={review.conceptualMistakes || []} saved={async () => { await p.refresh(); setReview(null); p.notify('Reviewed result published.'); }} />
+            </div>
           )}
         </DialogContent>
       </Dialog>

@@ -210,3 +210,20 @@ test('handwritten working uses the private authenticated assessment endpoint', (
   assert.doesNotMatch(api, /readAsDataURL/);
   assert.doesNotMatch(student, /'\/api\/files\/' \+ chosen\.fileId/);
 });
+
+test('role-specific experiences expose evidence, trends, review tasks and audit controls', () => {
+  const parent = readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8');
+  const admin = readFileSync(new URL('../features/admin.tsx', import.meta.url), 'utf8');
+  const diagram = readFileSync(new URL('../features/diagram.tsx', import.meta.url), 'utf8');
+  assert.match(student, /How each mark was decided/);
+  assert.match(student, /studentEvidence/);
+  assert.match(student, /mastery-dimensions/);
+  assert.match(student, /Mistake pattern/);
+  assert.match(parent, /Child-by-child learning summary/);
+  assert.match(parent, /Latest 10 score changes/);
+  assert.match(api, /assessments\/admin\/audit/);
+  assert.match(admin, /Reassess and create new version/);
+  assert.match(admin, /extraction-review-grid/);
+  assert.match(diagram, /Enlarge diagram/);
+  assert.match(student, /<Equation key={equation}/);
+});

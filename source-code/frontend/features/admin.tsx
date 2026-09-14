@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   api,
   errorMessage,
@@ -37,7 +38,11 @@ import {
   type OfficialMaterialReview,
   type PaperMappings,
   type UnitMapping,
+  type AssessmentAudit,
+  getAssessmentAudit,
+  reassessAssessment,
 } from '@/lib/api';
+import { ResultReview } from './result-review';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -358,6 +363,7 @@ export function AdminWorkspace(p: Props) {
             questions: 'Question mapping',
             blueprints: 'Mock paper blueprints',
             'ai-accounts': 'OpenAI account routing',
+            'assessment-audit': 'Assessment audit',
           }[p.view] || 'Administration'
         }
       >
@@ -574,6 +580,7 @@ export function AdminWorkspace(p: Props) {
           </>
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
+        {p.view === 'assessment-audit' && <AssessmentAuditPanel notify={p.notify} />}
         {p.view === 'blueprints' && (
           <>
             <form className="panel stack" onSubmit={(event) => {
@@ -866,7 +873,7 @@ export function AdminWorkspace(p: Props) {
                           {page.needsReview ? ' · review required' : ''}
                         </span>
                       </div>
-                      <Image
+                      <div className="extraction-review-grid"><div><strong className="small">Original rendered page</strong><Image
                         src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
                         alt={`Rendered source page ${page.pageNumber}`}
                         width={Math.max(1, Math.round(page.widthPoints))}
@@ -874,8 +881,7 @@ export function AdminWorkspace(p: Props) {
                         unoptimized
                         loading="lazy"
                         style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
-                      />
-                      {page.blocks.map((block) => (
+                      /></div><div><strong className="small">Extracted content</strong>{page.blocks.map((block) => (
                         <div className="small" key={`${page.pageNumber}-${block.sequenceNumber}`}>
                           <strong>{block.kind}</strong> · {block.method} ·{' '}
                           {Math.round(block.confidence * 100)}%
@@ -894,7 +900,7 @@ export function AdminWorkspace(p: Props) {
                             />
                           )}
                         </div>
-                      ))}
+                      ))}</div></div>
                     </article>
                   ))}
                   <p className="small">
@@ -1050,6 +1056,54 @@ export function AdminWorkspace(p: Props) {
       </fieldset>
     </>
   );
+}
+
+function AssessmentAuditPanel({ notify }: { notify: (message: string) => void }) {
+  const [results, setResults] = useState<AssessmentAudit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [requestKeys] = useState(() => new Map<string, string>());
+  const [chosen, setChosen] = useState<AssessmentAudit | null>(null);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function load() {
+    setError(''); setLoading(true);
+    try { setResults((await getAssessmentAudit()).results); }
+    catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); }
+  }
+  useEffect(() => {
+    let active = true;
+    void getAssessmentAudit().then(data => { if (active) setResults(data.results); }).catch(cause => { if (active) setError(errorMessage(cause)); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  async function reassess(row: AssessmentAudit) {
+    setBusy(true); setError('');
+    try { await reassessAssessment(row.assessmentId, requestKeys.get(row.resultId) || (() => { const key = crypto.randomUUID(); requestKeys.set(row.resultId, key); return key; })()); await load(); setChosen(null); notify('AKURU created a new, fully versioned assessment result.'); }
+    catch (cause) { setError(errorMessage(cause)); }
+    finally { setBusy(false); }
+  }
+  return <>
+    {error && <div className="error" role="alert">{error} <Button variant="outline" onClick={() => void load()}>Retry</Button></div>}
+    <section className="panel stack">
+      <div className="spread"><div><h2>AI-derived assessment results</h2><p>Inspect evidence, versions and confidence before asking AKURU to reassess.</p></div><Button variant="outline" onClick={() => void load()}>Refresh</Button></div>
+      {results.map((row) => <button className="attempt-row" key={row.resultId} onClick={() => setChosen(row)}>
+        <div><h3>{row.studentName} · {row.assessmentTitle} · Q{row.questionNumber}</h3><p>{row.subjectId} · result v{row.version} · {row.provider}/{row.model}</p></div>
+        <span>{Math.round(row.confidence * 100)}% confidence</span><strong>{row.awardedMarks}/{row.maxMarks}</strong>
+      </button>)}
+      {loading && <output>Loading assessment audit…</output>}
+      {!loading && !results.length && !error && <Empty title="No assessment results yet">Submitted, evaluated answers will appear here with their full audit trail.</Empty>}
+    </section>
+    <Dialog open={!!chosen} onOpenChange={(open) => !open && setChosen(null)}><DialogContent className="wide-dialog"><DialogHeader><DialogTitle>{chosen?.studentName} · Question {chosen?.questionNumber}</DialogTitle><DialogDescription>Result audit and provenance</DialogDescription></DialogHeader>
+      {chosen && <div className="stack">{error && <div className="error" role="alert">{error} Retry the action below.</div>}<p>{chosen.questionPrompt}</p><h3>Submitted answer</h3><p className="preserve">{chosen.answer || 'No typed answer.'}</p>{chosen.workingUrl && <a href={chosen.workingUrl} target="_blank" rel="noreferrer">Open original submitted working</a>}<div className="source-note"><strong>{chosen.awardedMarks}/{chosen.maxMarks}</strong> · {Math.round(chosen.confidence * 100)}% confidence · {chosen.status.replaceAll('_', ' ')} · version {chosen.version}</div>
+        {!!chosen.reviewReasons.length && <div className="error"><strong>Review required</strong><ul>{chosen.reviewReasons.map(x => <li key={x}>{x}</li>)}</ul></div>}
+        <h3>Marking decisions and student evidence</h3>{chosen.markingDecisions.map(point => <article className="source-note" key={point.pointId}><div className="spread"><strong>{point.pointId} · {point.criterion}</strong><strong>{point.marksAwarded}/{point.maxMarks}</strong></div><p>Evidence: {point.studentEvidence}</p><p>{point.rationale} · {Math.round(point.confidence * 100)}% confidence</p></article>)}
+        <h3>Versions and checks</h3><p className="small">Prompt {chosen.promptName} v{chosen.promptVersion} · engine {chosen.subjectEngine} v{chosen.subjectEngineVersion} · {chosen.provider}/{chosen.model}</p><pre className="source-note">{JSON.stringify(chosen.deterministicChecks, null, 2)}</pre>
+        <h3>Source manifest</h3>{chosen.sourceManifest.map((source, index) => <pre className="source-note" key={index}>{JSON.stringify(source, null, 2)}</pre>)}
+        <ResultReview key={chosen.resultId} resultId={chosen.resultId} decisions={chosen.markingDecisions} feedback={chosen.teachingExplanation} improvedAnswer={chosen.improvedAnswer} strengths={chosen.strengths} smallMistakes={chosen.smallMistakes} conceptualMistakes={chosen.conceptualMistakes} saved={async () => { await load(); setChosen(null); notify('Reviewed result published.'); }} />
+        <p className="small">Reassessment evaluates every question in this assessment using OpenAI.</p>
+        <Button className="primary" disabled={busy} onClick={() => void reassess(chosen)}>{busy ? 'Reassessing…' : 'Reassess and create new version'}</Button>
+      </div>}
+    </DialogContent></Dialog>
+  </>;
 }
 
 function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {

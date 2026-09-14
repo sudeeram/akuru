@@ -59,7 +59,7 @@ def upload(db: Session, storage: ObjectStorage, settings: Settings, principal: P
 def owned(db: Session, principal: Principal, assessment_id: uuid.UUID, file_id: uuid.UUID) -> AssessmentWorkingFile:
     assessment = db.get(Assessment, assessment_id)
     profile = db.get(StudentProfile, assessment.student_id) if assessment else None
-    allowed = bool(assessment and (principal.user.id == assessment.student_id or
+    allowed = bool(assessment and (principal.user.role == "admin" or principal.user.id == assessment.student_id or
         (principal.user.role == "parent" and profile and profile.parent_id == principal.user.id)))
     if not allowed:
         raise DomainError("working_not_found", "Submitted working not found.", 404)

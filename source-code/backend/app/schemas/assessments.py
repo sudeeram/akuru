@@ -151,3 +151,28 @@ class AssessmentResponse(BaseModel):
 
 class AssessmentListResponse(BaseModel):
     assessments: list[AssessmentResponse]
+
+class AssessmentAuditResponse(BaseModel):
+    resultId: uuid.UUID; assessmentId: uuid.UUID; questionId: uuid.UUID; studentId: uuid.UUID
+    studentName: str; subjectId: str; assessmentTitle: str; questionNumber: str; questionPrompt: str
+    version: int; status: str; awardedMarks: int; maxMarks: int; confidence: float
+    provider: str; model: str; promptName: str; promptVersion: str
+    subjectEngine: str; subjectEngineVersion: str; reviewReasons: list[str]
+    markingDecisions: list[dict]; strengths: list[str]; smallMistakes: list[str]; conceptualMistakes: list[str]
+    improvedAnswer: str; teachingExplanation: str; deterministicChecks: dict; sourceManifest: list[dict]
+    createdAt: datetime
+    answer: str
+    workingUrl: str | None
+
+class AssessmentAuditListResponse(BaseModel):
+    results: list[AssessmentAuditResponse]
+
+class AssessmentReviewRequest(BaseModel):
+    idempotencyKey: str = Field(min_length=8, max_length=100)
+    markingDecisions: list[MarkingDecision] = Field(min_length=1, max_length=100)
+    feedback: str = Field(min_length=1, max_length=30000)
+    improvedAnswer: str = Field(min_length=1, max_length=20000)
+    strengths: list[str] = Field(default_factory=list, max_length=30)
+    smallMistakes: list[str] = Field(default_factory=list, max_length=30)
+    conceptualMistakes: list[str] = Field(default_factory=list, max_length=30)
+    reason: str = Field(min_length=1, max_length=2000)

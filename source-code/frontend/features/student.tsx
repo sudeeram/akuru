@@ -1,8 +1,8 @@
 'use client';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
+import { Equation, LearningImage } from './learning-media';
 import { useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import {
   ArrowLeft,
   ArrowRight,
@@ -346,9 +346,10 @@ export function Practice(p: FeatureProps) {
           </div>
           <h2>{q.title}</h2>
           <p className="question-text">{q.prompt}</p>
+          {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
           <Diagram kind={q.diagram} />
           {q.assetIds?.map((assetId) => (
-            <Image key={assetId} unoptimized width={800} height={600} className="assessment-asset" src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} alt="Question diagram" />
+            <LearningImage key={assetId} src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={`Source diagram for ${q.title}: ${q.prompt}`} />
           ))}
           <div className="source-note">
             <BookOpen size={14} />
@@ -687,9 +688,10 @@ export function Exams(p: FeatureProps) {
                 <span className="pill">{q.marks} marks</span>
               </div>
               <p className="question-text">{q.prompt}</p>
+              {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
               <Diagram kind={q.diagram} />
               {q.assetIds?.map((assetId) => (
-                <Image key={assetId} unoptimized width={800} height={600} className="assessment-asset" src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} alt="Question diagram" />
+                <LearningImage key={assetId} src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={`Source diagram for ${q.title}: ${q.prompt}`} />
               ))}
             </section>
             <section className="panel">
@@ -850,6 +852,7 @@ export function Exams(p: FeatureProps) {
                   {i + 1}. {q.title} ({q.marks} marks)
                 </h3>
                 <p>{q.prompt}</p>
+                {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
                 <Diagram kind={q.diagram} />
                 <div className="writing-lines" />
               </section>
@@ -979,8 +982,13 @@ export function ProgressView(p: FeatureProps) {
                 {unitMastery.filter((unit) => unit.subjectId === s.id).map((unit) => (
                   <div className="source-note" key={unit.unitId}>
                         <div className="spread"><strong>{unit.unitCode} · {unit.unitTitle}</strong><strong>{unit.score.toFixed(1)}/10</strong></div>
-                        <div className="spread small"><span>{unit.provisional ? 'Provisional' : unit.confidence} · {unit.confidence} confidence</span><span>{unit.trend > 0 ? '↑' : unit.trend < 0 ? '↓' : '→'} {Math.abs(unit.trend).toFixed(1)} recent trend</span></div>
+                      <div className="spread small"><span>{unit.provisional ? 'Provisional' : unit.confidence} · {unit.confidence} confidence</span><span>{unit.trend > 0 ? '↑' : unit.trend < 0 ? '↓' : '→'} {Math.abs(unit.trend).toFixed(1)} recent trend</span></div>
                     <p className="small">{unit.evidenceCount} assessed evidence item{unit.evidenceCount === 1 ? '' : 's'}</p>
+                    <div className="mastery-dimensions" aria-label={`${unit.unitTitle} skill dimensions`}>
+                      {unit.dimensions.map((dimension) => <div key={dimension.dimension}><div className="spread small"><span>{dimension.dimension.replaceAll('_', ' ')}</span><span>{dimension.score.toFixed(1)}/10</span></div><progress max="10" value={dimension.score}>{dimension.score} out of 10</progress></div>)}
+                    </div>
+                    {!!unit.recentEvents.length && <details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.previousScore == null ? 'Started' : `${event.previousScore.toFixed(1)} →`} {event.newScore.toFixed(1)}/10. {event.explanation}</li>)}</ol></details>}
+                    {(p.data.recommendations?.[p.child.id] || []).filter(item => item.unitId === unit.unitId && item.reviewStatus !== 'rejected').filter((item, index, items) => items.findIndex(other => other.diagnosisId === item.diagnosisId) === index).map(item => <div className="small" key={item.id}><strong>Mistake pattern:</strong> {item.category.replaceAll('_', ' ')} ({item.occurrenceCount} observation{item.occurrenceCount === 1 ? '' : 's'})<ul>{item.observedEvidence.map(evidence => <li key={evidence}>{evidence}</li>)}</ul></div>)}
                   </div>
                 ))}
                 {!unitMastery.some((unit) => unit.subjectId === s.id) && <p className="muted small">Complete assessed work to build unit mastery.</p>}
@@ -1045,6 +1053,8 @@ export function ProgressView(p: FeatureProps) {
           {chosen && (
             <>
               <Status status={chosen.status} />
+              <div className="source-note"><strong>{chosen.mark === null ? 'Awaiting human review' : `${chosen.mark}/${chosen.maxMarks} marks`}</strong>{chosen.confidence != null && <> · {Math.round(chosen.confidence * 100)}% confidence · result version {chosen.resultVersion}</>}</div>
+              {!!chosen.reviewReasons?.length && <output className="error">This result needs review: {chosen.reviewReasons.join(' ')}</output>}
               <h3>Your answer</h3>
               <p className="preserve">
                 {chosen.answer || 'Working uploaded without typed text.'}
@@ -1060,17 +1070,14 @@ export function ProgressView(p: FeatureProps) {
               )}
               <h3>Feedback</h3>
               <p>{chosen.feedback}</p>
+              {!!chosen.strengths?.length && <><h3>What you did well</h3><ul>{chosen.strengths.map(item => <li key={item}>{item}</li>)}</ul></>}
+              {!!chosen.smallMistakes?.length && <><h3>Small mistakes to fix</h3><ul>{chosen.smallMistakes.map(item => <li key={item}>{item}</li>)}</ul></>}
+              {!!chosen.conceptualMistakes?.length && <><h3>Ideas to revisit</h3><ul>{chosen.conceptualMistakes.map(item => <li key={item}>{item}</li>)}</ul></>}
               <h3>Worked explanation</h3>
               <p>{chosen.explanation}</p>
               {chosen.improvedAnswer && <><h3>An exam-ready answer</h3><p className="preserve">{chosen.improvedAnswer}</p></>}
-              <ol className="steps">
-                {chosen.points.map((x, i) => (
-                  <li key={x}>
-                    <span>{i + 1}</span>
-                    {x}
-                  </li>
-                ))}
-              </ol>
+              <h3>How each mark was decided</h3>
+              {(chosen.markingDecisions || []).map(point => <article className="source-note" key={point.pointId}><div className="spread"><strong>{point.pointId} · {point.criterion}</strong><strong>{point.marksAwarded}/{point.maxMarks}</strong></div><p><strong>Evidence in your answer:</strong> {point.studentEvidence}</p><p>{point.rationale}</p></article>)}
               {!!chosen.recommendations?.length && <><h3>What to do next</h3><ul>{chosen.recommendations.map((item) => <li key={item}>{item}</li>)}</ul></>}
             </>
           )}

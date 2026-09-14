@@ -267,13 +267,17 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Make assessment and mastery understandable to Students, Parents and Admins.
 
-- [ ] Student answer review with marks, evidence, improvements, model answer and explanation.
-- [ ] Student unit dashboard with score, confidence, trend, dimensions, mistakes and next steps.
-- [ ] Parent child-by-child summaries, longer-term trends and review tasks.
-- [ ] Admin extraction review with original page beside extracted content.
-- [ ] Admin assessment audit with sources, versions, confidence and reassessment controls.
-- [ ] Accessible equations, diagram zoom, keyboard navigation and descriptions.
-- [ ] Clear loading, failure, retry and insufficient-evidence states.
+- [x] Student answer review with marks, evidence, improvements, model answer and explanation.
+- [x] Student unit dashboard with score, confidence, trend, dimensions, mistakes and next steps.
+- [x] Parent child-by-child summaries, longer-term trends and review tasks.
+- [x] Admin extraction review with original page beside extracted content.
+- [x] Admin assessment audit with sources, versions, confidence and reassessment controls.
+- [x] Accessible equations, diagram zoom, keyboard navigation and descriptions.
+- [x] Clear loading, failure, retry and insufficient-evidence states.
+
+**Completed:** Parent/Admin review validates official marking points, preserves earlier versions and reviewer provenance, rejects stale reviews and supports idempotent retries. Assessment writes are serialized and pending-review results are persisted. Parent history is explicitly labelled as the latest ten score changes. Common equations use MathML with a visible source fallback; both uploaded and built-in diagrams have keyboard-dismissable enlarged views. Loading, error and retry states are connected.
+
+**Validation:** `npm run verify` passes (20 frontend tests, 69 backend tests, contract check, TypeScript, lint and production build). The PostgreSQL integration scenario covers family isolation, Student denial, Admin access, CSRF, rubric validation, duplicate/stale review, review provenance, corrected marks and reassessment persistence. The isolated Chrome browser test covers Student evidence, MathML, both diagram dialogs, Parent review failure/retry with a stable request key, and Admin audit failure/retry. No live OpenAI calls were made. Frontend/backend and user guides are updated; no new dependency or migration is needed.
 
 **Done when:** Students understand the result and next action, Parent scope remains isolated, and Admin can correct all AI-derived content.
 

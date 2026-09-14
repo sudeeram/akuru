@@ -303,6 +303,7 @@ export type Question = {
   diagram: string;
   source: string;
   assetIds?: string[];
+  equations?: string[];
   assessmentId?: string;
 };
 export type Attempt = {
@@ -326,7 +327,32 @@ export type Attempt = {
   examId?: string;
   assessmentId?: string;
   workingUrl?: string;
+  confidence?: number;
+  resultVersion?: number;
+  reviewReasons?: string[];
+  strengths?: string[];
+  smallMistakes?: string[];
+  conceptualMistakes?: string[];
+  markingDecisions?: { pointId: string; criterion: string; awarded: boolean; marksAwarded: number; maxMarks: number; studentEvidence: string; rationale: string; confidence: number }[];
 };
+export type AssessmentAudit = {
+  answer: string; workingUrl?: string | null;
+  resultId: string; assessmentId: string; questionId: string; studentId: string; studentName: string;
+  subjectId: string; assessmentTitle: string; questionNumber: string; questionPrompt: string; version: number;
+  status: string; awardedMarks: number; maxMarks: number; confidence: number; provider: string; model: string;
+  promptName: string; promptVersion: string; subjectEngine: string; subjectEngineVersion: string;
+  reviewReasons: string[]; markingDecisions: NonNullable<Attempt['markingDecisions']>; strengths: string[];
+  smallMistakes: string[]; conceptualMistakes: string[]; improvedAnswer: string; teachingExplanation: string;
+  deterministicChecks: Record<string, unknown>; sourceManifest: Record<string, unknown>[]; createdAt: string;
+};
+
+export async function getAssessmentAudit() {
+  return request('assessments/admin/audit') as Promise<{ results: AssessmentAudit[] }>;
+}
+
+export async function reassessAssessment(id: string, idempotencyKey: string) {
+  return request(`assessments/admin/${id}/reassess`, { method: 'POST', body: { idempotencyKey } });
+}
 export type UnitMastery = {
   unitId: string; unitCode: string; unitTitle: string; subjectId: string;
   score: number; preciseScore: number; confidence: 'low' | 'medium' | 'high'; provisional: boolean;

@@ -1,4 +1,5 @@
 import uuid
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.repositories.catalog import CatalogRepository
@@ -7,6 +8,7 @@ from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
 from app.services import assessments, mastery, study_plans, weaknesses
+from app.models import Assessment
 
 
 GRADES = ("Grade 10", "Grade 11")
@@ -89,7 +91,15 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "processingError": job.error_message if job else None,
                 "edition": document.edition,
             })
-    assessment_rows = assessments.list_assessments(db, principal).assessments if principal.user.role == "student" and not principal.user.must_change_password else []
+    visible_students = student_rows(db, principal) if not principal.user.must_change_password else []
+    if principal.user.role == "student" and not principal.user.must_change_password:
+        assessment_rows = assessments.list_assessments(db, principal).assessments
+    elif principal.user.role == "parent" and visible_students:
+        student_ids = [uuid.UUID(row["id"]) for row in visible_students]
+        rows = db.scalars(select(Assessment).where(Assessment.student_id.in_(student_ids)).order_by(Assessment.started_at.desc())).all()
+        assessment_rows = [assessments.response(db, row) for row in rows]
+    else:
+        assessment_rows = []
     assessment_questions = []
     assessment_attempts = []
     seen_questions = set()
@@ -105,6 +115,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "title": f"Question {question.number}", "prompt": question.prompt, "marks": question.marks,
                     "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
                     "unitIds": question.unitIds, "rubric": question.rubric, "assetIds": question.assetIds,
+                    "equations": question.equations,
                     "assessmentId": str(item.id)})
             if question.result:
                 result = question.result
@@ -118,13 +129,16 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "points": [decision.rationale for decision in result.markingDecisions],
                     "createdAt": result.createdAt.isoformat(), "examId": str(item.id) if item.mode != "practice" else None,
                     "improvedAnswer": result.improvedAnswer, "recommendations": result.recommendations,
+                    "confidence": result.confidence, "resultVersion": result.version,
+                    "reviewReasons": result.reviewReasons, "strengths": result.strengths,
+                    "smallMistakes": result.smallMistakes, "conceptualMistakes": result.conceptualMistakes,
+                    "markingDecisions": [decision.model_dump(mode="json") for decision in result.markingDecisions],
                     "assessmentId": str(item.id),
                     "workingUrl": f"/api/v1/assessments/{item.id}/working/{question.fileId}" if question.fileId else None})
         exams.append({"id": str(item.id), "studentId": str(item.studentId), "subject": item.subjectId,
             "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
             "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,
             "feedbackVisible": item.feedbackVisible})
-    visible_students = student_rows(db, principal) if not principal.user.must_change_password else []
     mastery_rows = ({row["id"]: [unit.model_dump(mode="json") for unit in mastery.list_mastery(
         db, principal, uuid.UUID(row["id"])).units] for row in visible_students}
         if principal.user.role in {"student", "parent"} else {})

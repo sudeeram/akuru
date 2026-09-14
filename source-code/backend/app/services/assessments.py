@@ -159,6 +159,13 @@ def _owned(db, principal, assessment_id, lock=False):
     if not row: raise DomainError("assessment_not_found", "Assessment not found.", 404)
     return row
 
+def admin_assessment(db, assessment_id):
+    row = db.get(Assessment, assessment_id)
+    if not row: raise DomainError("assessment_not_found", "Assessment not found.", 404)
+    if row.status not in {"submitted", "expired"}:
+        raise DomainError("assessment_not_submitted", "Only submitted assessments can be reassessed.", 409)
+    return row
+
 def response(db, row):
     if row.status == "active" and row.ends_at <= _now(): row.status = "expired"; db.commit(); db.refresh(row)
     visible = row.status in {"submitted", "expired"}
