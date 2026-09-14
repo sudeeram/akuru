@@ -100,6 +100,7 @@ export interface Schemas {
   "SubmissionRequest": { "idempotencyKey": string; };
   "TextbookReviewResponse": { "versionNumber": number; "status": string; "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
   "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
+  "TutorCapabilitiesResponse": { "textEnabled": boolean; "voiceEnabled": boolean; "toolsEnabled": boolean; "blockedReason"?: string | null; };
   "UiFeaturesResponse": { "allowed": true; "user": Schemas["UiFeaturesUserResponse"]; };
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
   "UnitMapping": { "unitId": string; "weight": number; "rationale"?: string; "confidence"?: number | null; "method"?: string | null; };
@@ -186,6 +187,7 @@ export interface ApiOperations {
   "GET /api/v1/retrieval/evidence/{chunk_id}": { request: unknown; response: Schemas["EvidenceResponse"] };
   "POST /api/v1/retrieval/search": { request: Schemas["RetrievalRequest"]; response: Schemas["RetrievalResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
+  "GET /api/v1/tutoring/capabilities": { request: unknown; response: Schemas["TutorCapabilitiesResponse"] };
   "GET /health": { request: unknown; response: { [key: string]: string; } };
   "GET /ready": { request: unknown; response: { [key: string]: string; } };
 }

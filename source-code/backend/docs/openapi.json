@@ -4674,6 +4674,40 @@
         "title": "TextbookUnitDraft",
         "type": "object"
       },
+      "TutorCapabilitiesResponse": {
+        "properties": {
+          "blockedReason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blockedreason"
+          },
+          "textEnabled": {
+            "title": "Textenabled",
+            "type": "boolean"
+          },
+          "toolsEnabled": {
+            "title": "Toolsenabled",
+            "type": "boolean"
+          },
+          "voiceEnabled": {
+            "title": "Voiceenabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "textEnabled",
+          "voiceEnabled",
+          "toolsEnabled"
+        ],
+        "title": "TutorCapabilitiesResponse",
+        "type": "object"
+      },
       "UiFeaturesResponse": {
         "properties": {
           "allowed": {
@@ -12034,6 +12068,75 @@
         "summary": "State",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/tutoring/capabilities": {
+      "get": {
+        "operationId": "capabilities_api_v1_tutoring_capabilities_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorCapabilitiesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Capabilities",
+        "tags": [
+          "tutoring"
         ]
       }
     },

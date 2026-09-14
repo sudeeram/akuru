@@ -2,7 +2,7 @@
 
 Status: Steps 0–16 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, assessment, mastery, recommendation and adaptive study-plan services, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
 
-The implementation baseline and module rules are documented in [Step 0 foundation protection](step-00-foundation-protection.md) and [Step 1 backend module boundaries](step-01-module-boundaries.md).
+The implementation baseline and module rules are documented in [Step 0 foundation protection](step-00-foundation-protection.md) and [Step 1 backend module boundaries](step-01-module-boundaries.md). The Tutor Agent begins with separate [Tutor Step 0 assessment and release boundaries](tutor-step-00-foundation.md).
 
 ## Implemented boundaries
 
@@ -159,6 +159,8 @@ Educational media is recorded separately from official evidence. Controlled SVG 
 Evaluation release gates bind automatic assessment feedback to an Admin-approved, subject-specific corpus and a passing run for the exact model and prompt version in use. Missing, failing, stale or low-confidence releases fail closed to human review. See [Step 19 evaluation and release gates](step-19-evaluation-release-gates.md).
 
 Production runs behind a loopback-only systemd/Nginx boundary with TLS, dual-layer rate limiting, production configuration validation, malware scanning, per-family AI/storage quotas, pseudonymous provider references, automated retention, encrypted backups, and Admin operational monitoring. Secrets use the owner-selected root-protected `/etc/akuru/akuru.env` deployment rather than OCI Vault. See [Step 20 production security and operations](step-20-production-security-operations.md).
+
+Tutor capabilities have independent backend-only text, voice and tool feature flags that default to disabled. `app/services/assessment_access.py` owns the practice/formal classification and blocks every Tutor capability while the authenticated student has a live mock or official-paper attempt. Future Tutor endpoints must use this guard before retrieval or provider work. See [Tutor Step 0 foundation](tutor-step-00-foundation.md).
 
 ## API and migration strategy
 

@@ -12,6 +12,7 @@ from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionRe
 from app.security import Principal
 from app.services.curriculum_plans import snapshot, student_coverage
 from app.services import assessment_marking
+from app.services.assessment_access import require_practice_assistance
 
 def _now(): return datetime.now(timezone.utc)
 
@@ -215,8 +216,7 @@ def record_hint(db, principal, assessment_id, question_id, request_key):
     row = _owned(db, principal, assessment_id, True)
     if row.status != "active" or row.ends_at <= _now():
         raise DomainError("assessment_deadline_passed", "Hints are unavailable after the assessment ends.", 409)
-    if row.mode != "practice":
-        raise DomainError("hints_disabled", "Hints are unavailable during mock and official papers.", 403)
+    require_practice_assistance(row.mode)
     question = db.get(AssessmentQuestion, question_id)
     if not question or question.assessment_id != row.id:
         raise DomainError("assessment_question_not_found", "Question not found in this assessment.", 404)

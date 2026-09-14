@@ -10,12 +10,16 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Establish a verified baseline before adding conversational access to student data and content.
 
-- [ ] Record the current full frontend, backend and PostgreSQL integration verification result.
-- [ ] Catalogue the existing enrolment, curriculum, RAG, mastery, study-planner, media, OpenAI routing, quota and formal-assessment services the tutor will call.
-- [ ] Define practice versus formal-assessment states in one reusable backend policy.
-- [ ] Add a server-side guard that denies tutor hints and voice in every formal-assessment state.
-- [ ] Add feature flags for text tutor, voice tutor and tutor tools, defaulting to disabled in production.
-- [ ] Document the new data flows and threat boundaries without placing provider credentials in the browser.
+- [x] Record the current full frontend, backend and PostgreSQL integration verification result.
+- [x] Catalogue the existing enrolment, curriculum, RAG, mastery, study-planner, media, OpenAI routing, quota and formal-assessment services the tutor will call.
+- [x] Define practice versus formal-assessment states in one reusable backend policy.
+- [x] Add a server-side guard that denies tutor hints and voice in every formal-assessment state.
+- [x] Add feature flags for text tutor, voice tutor and tutor tools, defaulting to disabled in production.
+- [x] Document the new data flows and threat boundaries without placing provider credentials in the browser.
+
+**Completed:** `assessment_access.py` now owns practice/formal classification, fails closed for unknown modes, protects existing hints and provides the mandatory guard for future text, voice and tool endpoints. The authenticated Student capability endpoint combines that guard with independent backend-only release flags. The service catalogue, provider boundary, microphone-header boundary and configuration are documented in [Tutor Step 0 foundation](backend/docs/tutor-step-00-foundation.md).
+
+**Validation:** The pre-change baseline passed with 23 frontend and 79 backend tests. The completed step passes contract generation/checking, 23 frontend and 84 backend tests, TypeScript, lint and the production frontend build. No dependency or database migration was added.
 
 **Done when:** Existing checks pass, formal assessments fail closed against tutor access, and production can enable or disable text and voice independently.
 

@@ -57,8 +57,13 @@ Copy `backend/.env.example` to `backend/.env` for local development. Production 
 | `AKURU_AI_MAX_INPUT_CHARACTERS` | No | Maximum source/task text characters; default `80000`. |
 | `AKURU_AI_MAX_IMAGE_BYTES` | No | Maximum decoded image bytes in one request; default `20971520`. |
 | `AKURU_AI_MAX_OUTPUT_TOKENS` | No | Responses API output ceiling; default `4000`. |
+| `AKURU_TUTOR_TEXT_ENABLED` | No | Release flag for text tutoring; defaults to `false`. |
+| `AKURU_TUTOR_VOICE_ENABLED` | No | Release flag for realtime voice; defaults to `false`. |
+| `AKURU_TUTOR_TOOLS_ENABLED` | No | Release flag for Tutor tool calls; defaults to `false`. |
 
 Protect the production dotenv file as `root:akuru` mode `0640`. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production.
+
+Tutor flags are backend controls and must never use a frontend-exposed environment-variable prefix. Enabling a flag does not permit Tutor access during a live mock or official-paper attempt; FastAPI applies that restriction independently.
 
 Example account pool:
 
