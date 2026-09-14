@@ -81,14 +81,12 @@ sudo -u akuru .venv/bin/python -m pip install --upgrade pip
 sudo -u akuru .venv/bin/python -m pip install -r requirements.txt
 ```
 
-Create the production environment file from `backend/.env.example`. Set permissions before editing it:
+Create the production environment file outside the checkout. The project owner selected this root-protected dotenv approach instead of OCI Vault:
 
 ```bash
-cd /opt/akuru/source-code/backend
-sudo -u akuru cp .env.example .env
-sudo chmod 600 .env
-sudo chown akuru:akuru .env
-sudoedit .env
+sudo install -d -o root -g akuru -m 0750 /etc/akuru
+sudo install -o root -g akuru -m 0640 /opt/akuru/source-code/backend/.env.example /etc/akuru/akuru.env
+sudoedit /etc/akuru/akuru.env
 ```
 
 At minimum, set the real database password and public hostname, and verify these production values:
@@ -103,8 +101,10 @@ AKURU_DATABASE_PASSWORD=replace-with-a-generated-secret
 AKURU_CORS_ORIGINS='["https://akuru.example.com"]'
 AKURU_ALLOWED_HOSTS='["akuru.example.com"]'
 AKURU_COOKIE_SECURE=true
+AKURU_OPERATIONS_TOKEN=replace-with-at-least-32-random-bytes
 AKURU_STORAGE_BACKEND=local
 AKURU_LOCAL_STORAGE_PATH=/data/akuru/documents
+AKURU_MALWARE_SCAN_COMMAND=clamscan
 AKURU_REDIS_URL=redis://127.0.0.1:6379/0
 AKURU_EMBEDDING_PROVIDER=openai
 AKURU_EMBEDDING_MODEL=text-embedding-3-small
@@ -120,6 +120,8 @@ sudo -u akuru .venv/bin/python -m app.bootstrap_admin \
   --username admin --name "AKURU Administrator"
 ```
 
+Generate an operations token without printing it into shell history, and place OpenAI/database credentials only in this protected file. Confirm `sudo stat -c '%U %G %a' /etc/akuru/akuru.env` reports `root akuru 640`.
+
 ## 5. Services and HTTPS
 
 AKURU requires three application processes in production:
@@ -128,13 +130,44 @@ AKURU requires three application processes in production:
 2. the document worker connected to PostgreSQL, private storage and Redis;
 3. the compiled frontend bound to `127.0.0.1:5181`.
 
-Systemd units and the final Nginx configuration will be added when the production frontend/API routing gate in the roadmap is completed. At that point Nginx will serve the public HTTPS endpoint while the application ports remain private. Request a certificate only after DNS is correct:
+Request a certificate after DNS is correct, while the default Nginx site is active:
 
 ```bash
 sudo certbot --nginx -d akuru.example.com
 ```
 
-## 6. Verification and operations
+Install the hardened Nginx proxy and systemd services, then start them:
+
+```bash
+cd /opt/akuru
+sudo bash deploy/ubuntu/install-services.sh akuru.example.com
+sudo systemctl start akuru-api akuru-worker akuru-web
+sudo systemctl start akuru-retention.timer akuru-backup.timer
+sudo systemctl reload nginx
+```
+
+The services bind the application only to loopback. In OCI, permit inbound 22 only from administrator addresses and 80/443 from intended clients; never permit 5432, 6379, 8000 or 5181.
+
+## 6. Encrypted backups
+
+Create an age identity on a separate protected operator machine. Put only its public `age1...` recipient on the server:
+
+```bash
+sudo install -o root -g akuru -m 0640 /dev/null /etc/akuru/backup-age-recipient
+sudoedit /etc/akuru/backup-age-recipient
+sudo systemctl start akuru-backup.service
+```
+
+For the monthly restoration drill, copy the matching `.dump.age` and `akuru-documents-*.tar.age` files to an isolated operator machine. Decrypt both, extract the document archive into a temporary private directory, verify representative checksums, then run:
+
+```bash
+cd /opt/akuru/source-code/backend
+sudo -u akuru .venv/bin/python -m app.database_maintenance restore-drill --backup /secure/path/akuru.dump
+```
+
+Never copy the age private identity to the AKURU server. Keep at least one encrypted backup in a separate protected location.
+
+## 7. Verification and operations
 
 Before enabling public access:
 
@@ -155,9 +188,13 @@ Verify database migrations and back up the database before every release:
 cd /opt/akuru/source-code/backend
 sudo -u akuru .venv/bin/python -m alembic current
 sudo -u akuru .venv/bin/python -m alembic check
+sudo -u akuru .venv/bin/python -m app.retention
+sudo systemctl --failed
+sudo systemctl status akuru-api akuru-worker akuru-web akuru-backup.timer akuru-retention.timer
+curl --fail https://akuru.example.com/health
 ```
 
-Keep `/data/akuru`, PostgreSQL backups, and the private `.env` outside release replacement. See the [database backup guide](../../source-code/docs/database-backup.md), [environment reference](../../source-code/docs/environment.md), and [Step 2 document-storage guide](../../source-code/backend/docs/step-02-document-storage.md).
+Keep `/data/akuru`, encrypted PostgreSQL backups, and `/etc/akuru/akuru.env` outside release replacement. See the [database backup guide](../../source-code/docs/database-backup.md), [environment reference](../../source-code/docs/environment.md), [production security guide](../../source-code/backend/docs/step-20-production-security-operations.md), and [Step 2 document-storage guide](../../source-code/backend/docs/step-02-document-storage.md).
 
 ## Upgrade outline
 

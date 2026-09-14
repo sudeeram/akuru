@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -93,11 +93,13 @@ def test_login_protected_routes_and_logout(auth_client) -> None:
     client, username, password = auth_client
     assert client.get("/api/v1/catalog").status_code == 401
     assert client.get("/api/v1/assessments/admin/audit").status_code == 401
+    assert client.get("/api/v1/operations/admin/status").status_code == 401
     assert client.post("/api/v1/auth/login", json={"username": username, "password": "wrong-password"}).status_code == 401
 
     login = client.post("/api/v1/auth/login", json={"username": username, "password": password})
     assert login.status_code == 200
     payload = login.json()
+    assert client.get("/api/v1/operations/admin/status").status_code == 200
     assert client.get("/api/v1/assessments/admin/audit").status_code == 200
     assert payload["user"] == {
         "id": payload["user"]["id"], "username": username,
@@ -959,6 +961,8 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert assessed.status_code == 200, assessed.text
     result = assessed.json()["questions"][0]["result"]
     assert result["awardedMarks"] <= result["maxMarks"] and result["status"] == "published"
+    usage = session.query(FamilyUsageEvent).filter_by(student_id=student_user.id).all()
+    assert {(row.kind, row.quantity) for row in usage} == {("ai_request", 2), ("ai_token", 0)}
     assert result["markingDecisions"][0]["studentEvidence"] == "Cell membrane"
     mastery_rows = session.query(UnitMastery).filter_by(student_id=student_user.id).order_by(UnitMastery.unit_id).all()
     assert len(mastery_rows) == 2 and all(row.confidence == "low" and row.provisional for row in mastery_rows)

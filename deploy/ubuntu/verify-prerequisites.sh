@@ -32,6 +32,9 @@ check_command psql PostgreSQL-client
 check_command pg_dump PostgreSQL-backup
 check_command redis-cli Redis-client
 check_command nginx Nginx
+check_command ufw Firewall
+check_command age Backup-encryption
+check_command clamscan Malware-scanner
 check_command pdftoppm Poppler
 check_command tesseract Tesseract-OCR
 
@@ -46,6 +49,12 @@ fi
 check_service postgresql
 check_service redis-server
 check_service nginx
+
+if ufw status | grep -q '^Status: active'; then
+  echo "PASS  host firewall            active"
+else
+  echo "FAIL  host firewall            inactive" >&2; failed=1
+fi
 
 if sudo -u postgres psql -Atqc "SELECT 1 FROM pg_available_extensions WHERE name='vector'" | grep -qx 1; then
   echo "PASS  pgvector extension       available"
@@ -67,6 +76,24 @@ if ss -lnt | awk '{print $4}' | grep -Eq '(^|:)6379$' && \
   failed=1
 else
   echo "PASS  Redis exposure           no public wildcard listener"
+fi
+
+for port in 5432 6379 8000 5181; do
+  if ss -lnt | awk '{print $4}' | grep -Eq "(^0\\.0\\.0\\.0:${port}$|^\\[::\\]:${port}$)"; then
+    echo "FAIL  private port ${port}      public wildcard listener" >&2; failed=1
+  else
+    printf 'PASS  private port %-9s no public wildcard listener\n' "${port}"
+  fi
+done
+
+if [[ -f /etc/akuru/akuru.env ]]; then
+  env_mode="$(stat -c '%a' /etc/akuru/akuru.env)"
+  env_owner="$(stat -c '%U:%G' /etc/akuru/akuru.env)"
+  if [[ "${env_mode}" == "640" && "${env_owner}" == "root:akuru" ]]; then
+    echo "PASS  production secrets       root:akuru 640"
+  else
+    echo "FAIL  production secrets       expected root:akuru 640" >&2; failed=1
+  fi
 fi
 
 exit "${failed}"

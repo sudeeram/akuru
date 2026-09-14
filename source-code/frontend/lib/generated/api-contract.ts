@@ -171,6 +171,7 @@ export interface ApiOperations {
   "GET /api/v1/media/admin/sources": { request: unknown; response: Array<Schemas["MediaSourceResponse"]> };
   "POST /api/v1/media/admin/{media_id}/review": { request: Schemas["MediaReview"]; response: Schemas["MediaResponse"] };
   "GET /api/v1/media/{media_id}/content": { request: unknown; response: unknown };
+  "GET /api/v1/operations/admin/status": { request: unknown; response: unknown };
   "POST /api/v1/plans": { request: Schemas["PlanGenerateRequest"]; response: Schemas["StudyPlanResponse"] };
   "POST /api/v1/plans/items/{item_id}/complete": { request: unknown; response: Schemas["StudyPlanResponse"] };
   "GET /api/v1/plans/students/{student_id}": { request: unknown; response: Schemas["StudyPlanResponse"] };

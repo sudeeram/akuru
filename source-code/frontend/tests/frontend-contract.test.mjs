@@ -249,3 +249,13 @@ test('admin evaluation gates require reviewed corpora and passing releases', () 
   assert.match(evaluation, /evaluations\/admin\/runs/);
   assert.match(evaluation, /Activate automatic feedback/);
 });
+
+test('admin operations exposes alerts, usage and audit without secrets', () => {
+  const operations = readFileSync(new URL('../features/operations-admin.tsx', import.meta.url), 'utf8');
+  assert.match(page, /Security & operations|Operations/);
+  assert.match(admin, /OperationsAdmin/);
+  assert.match(operations, /operations\/admin\/status/);
+  assert.match(operations, /Provider tokens/);
+  assert.match(operations, /Recent security and content audit/);
+  assert.doesNotMatch(operations, /OPENAI_API_KEY|DATABASE_PASSWORD/);
+});

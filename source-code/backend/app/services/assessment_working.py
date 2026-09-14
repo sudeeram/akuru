@@ -2,6 +2,7 @@ import hashlib
 import uuid
 from pathlib import PurePath
 
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
@@ -14,6 +15,7 @@ from app.services.document_extraction import extract_document
 from app.services.document_processing_types import ProcessingFailure
 from app.services.documents import validate_file
 from app.storage import ObjectStorage
+from app.malware import scan
 
 
 def response(row: AssessmentWorkingFile, settings: Settings) -> WorkingFileResponse:
@@ -34,6 +36,13 @@ def upload(db: Session, storage: ObjectStorage, settings: Settings, principal: P
     if len(content) > settings.assessment_working_max_bytes:
         raise DomainError("working_too_large", f"Working must be {settings.assessment_working_max_bytes // (1024 * 1024)} MB or smaller.", 413)
     normalized = validate_file(filename, content_type, content)
+    scan(content, settings)
+    profile = db.get(StudentProfile, principal.user.id)
+    family_students = select(StudentProfile.student_id).where(StudentProfile.parent_id == profile.parent_id)
+    used = db.scalar(select(func.coalesce(func.sum(AssessmentWorkingFile.byte_size), 0)).where(
+        AssessmentWorkingFile.student_id.in_(family_students))) if profile else 0
+    if int(used or 0) + len(content) > settings.family_working_storage_bytes:
+        raise DomainError("family_storage_quota", "This family's private working-file storage quota has been reached.", 409)
     file_id = uuid.uuid4(); extension = PurePath(filename).suffix.lower()
     object_key = f"student-working/{principal.user.id}/{assessment.id}/{question.id}/{file_id}{extension}"
     try:

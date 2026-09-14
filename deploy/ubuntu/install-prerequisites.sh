@@ -42,13 +42,17 @@ apt-get install -y --no-install-recommends \
   postgresql-16-pgvector \
   redis-server \
   nginx \
+  ufw \
   certbot \
   python3-certbot-nginx \
   poppler-utils \
   tesseract-ocr \
   tesseract-ocr-eng \
   tesseract-ocr-fra \
-  libmagic1
+  libmagic1 \
+  age \
+  clamav \
+  clamav-freshclam
 
 install -d -m 0755 /etc/apt/keyrings
 node_key="/etc/apt/keyrings/nodesource.gpg"
@@ -77,6 +81,10 @@ install -d -o "${APP_USER}" -g "${APP_USER}" -m 0750 "${DATA_ROOT}/backups"
 systemctl enable --now postgresql
 systemctl enable --now redis-server
 systemctl enable --now nginx
+
+ufw allow OpenSSH
+ufw allow 'Nginx Full'
+ufw --force enable
 
 # Redis must remain a local infrastructure service on a single-host deployment.
 redis_bind="$(redis-cli CONFIG GET bind | tail -n 1)"

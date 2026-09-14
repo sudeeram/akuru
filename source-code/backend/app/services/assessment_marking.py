@@ -13,7 +13,7 @@ from app.errors import DomainError
 from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit, User
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
-from app.services import evaluations, mastery, weaknesses
+from app.services import evaluations, mastery, usage_limits, weaknesses
 
 
 SCHEMA_VERSION = "assessment-result-v1"
@@ -146,6 +146,8 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
     if assessment.status not in {"submitted", "expired"}:
         raise DomainError("assessment_submission_required", "Submit the assessment before AKURU marks it.", 409)
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment.id).order_by(AssessmentQuestion.sequence)).all()
+    usage_limits.reserve_assessment(db, settings, assessment, request_key, len(questions) * 2)
+    used_tokens = 0
     answers = {row.question_id: row for row in db.scalars(select(AssessmentAnswer).where(AssessmentAnswer.assessment_id == assessment.id)).all()}
     prompt = get_prompt("assessment")
     for question in questions:
@@ -170,7 +172,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         material = json.dumps({"answer": answer.answer_text if answer else "", "file": answer.file_id if answer else None,
             "question": question.prompt, "rubric": question.rubric, "sources": sources}, sort_keys=True)
         input_hash = hashlib.sha256(material.encode()).hexdigest()
-        metadata = {"assessment_id": str(assessment.id), "question_id": str(question.id), "subject_id": assessment.subject_id}
+        metadata = {"learner_ref": usage_limits.pseudonymous_student_id(settings, assessment.student_id), "subject_id": assessment.subject_id}
         try:
             instructions = f"{prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
             first = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
@@ -180,6 +182,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             second = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
                 prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting, first.output.model_dump()),
                 output_type=AssessmentPassTwo, metadata=metadata))
+            used_tokens += (first.usage.total_tokens or 0) + (second.usage.total_tokens or 0)
         except AIProviderError as exc:
             raise DomainError(exc.code, str(exc), 503) from exc
         awarded = _validate(second.output.decisions, points, question.marks)
@@ -217,4 +220,5 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         db.add(row); db.flush()
         mastery.record_result(db, row, commit=False)
         weaknesses.record_result(db, row, commit=False)
+    usage_limits.record_tokens(db, assessment, request_key, used_tokens)
     db.commit()

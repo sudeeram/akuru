@@ -317,17 +317,19 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Operate safely for children and family data on OCI.
 
-- [ ] Put FastAPI and workers behind HTTPS and a hardened reverse proxy.
-- [ ] Put OpenAI, database and storage credentials in OCI Vault.
-- [ ] Add rate limits, quotas, AI budgets and per-family usage controls.
-- [ ] Minimize student data sent to providers and use pseudonymous identifiers where appropriate.
-- [ ] Define retention and deletion for answers, working and generated content.
-- [ ] Add encrypted backups and restoration drills.
-- [ ] Add audit review, job monitoring, alerts and cost monitoring.
-- [ ] Review provider data controls before public deployment.
-- [ ] Test broken object authorization, prompt injection, malicious files and answer-key leakage.
+- [x] Put FastAPI and workers behind HTTPS and a hardened reverse proxy.
+- [x] Protect OpenAI, database and storage credentials in `/etc/akuru/akuru.env` as `root:akuru` mode `0640` (the project owner selected protected dotenv secrets instead of OCI Vault).
+- [x] Add rate limits, quotas, AI budgets and per-family usage controls.
+- [x] Minimize student data sent to providers and use pseudonymous identifiers where appropriate.
+- [x] Define retention and deletion for answers, working and generated content.
+- [x] Add encrypted backups and restoration drills.
+- [x] Add audit review, job monitoring, alerts and cost monitoring.
+- [x] Review provider data controls before public deployment.
+- [x] Test broken object authorization, prompt injection, malicious files and answer-key leakage.
 
 **Done when:** Secrets are absent from repositories, images, browser bundles and logs; every private endpoint has authorization tests; backup and incident procedures are verified.
+
+**Completed:** The Ubuntu/OCI deployment now includes loopback-only systemd services, Nginx TLS and security headers, host-firewall/private-port verification, distributed API throttling, family AI/storage budgets, provider pseudonyms, production-required malware scanning, retention and child-artifact deletion, encrypted PostgreSQL and local-document backups, an Admin operations dashboard, audit/usage/latency alerts, provider-control and incident runbooks, and structural authentication/CSRF coverage for every private API. The owner-selected root-protected dotenv deployment replaces the roadmap's OCI Vault proposal. Local verification includes 23 frontend tests, 79 backend tests, contracts, types, lint, production build, migration drift, secret scanning, shell syntax, a no-delete retention preview and a live PostgreSQL restore drill at revision `f20c81d45a02`. Real certificate issuance, OCI firewall inspection, age-recipient configuration and an encrypted off-host restoration drill are deployment-day procedures because they require the target OCI host and operator-held decryption identity.
 
 ## Deferred beyond Phase 1
 

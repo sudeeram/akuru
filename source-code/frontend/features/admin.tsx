@@ -45,6 +45,7 @@ import {
 import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';
+import { OperationsAdmin } from './operations-admin';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -368,6 +369,7 @@ export function AdminWorkspace(p: Props) {
             'assessment-audit': 'Assessment audit',
             media: 'Visual media',
             evaluations: 'Evaluation & release gates',
+            operations: 'Security & operations',
           }[p.view] || 'Administration'
         }
       >
@@ -587,6 +589,7 @@ export function AdminWorkspace(p: Props) {
         {p.view === 'assessment-audit' && <AssessmentAuditPanel notify={p.notify} />}
         {p.view === 'media' && <MediaAdmin data={p.data} notify={p.notify} />}
         {p.view === 'evaluations' && <EvaluationAdmin data={p.data} notify={p.notify} />}
+        {p.view === 'operations' && <OperationsAdmin />}
         {p.view === 'blueprints' && (
           <>
             <form className="panel stack" onSubmit={(event) => {

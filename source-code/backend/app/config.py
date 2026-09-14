@@ -26,9 +26,21 @@ class Settings(BaseSettings):
     login_attempt_limit: int = Field(default=8, ge=3, le=50)
     login_window_minutes: int = Field(default=15, ge=1, le=60)
     login_lock_minutes: int = Field(default=15, ge=1, le=1440)
+    api_rate_limit_per_minute: int = Field(default=120, ge=10, le=10_000)
+    auth_rate_limit_per_minute: int = Field(default=60, ge=3, le=1_000)
+    family_ai_requests_per_day: int = Field(default=100, ge=1, le=100_000)
+    family_ai_tokens_per_day: int = Field(default=500_000, ge=1_000, le=100_000_000)
+    family_working_storage_bytes: int = Field(default=100 * 1024 * 1024, ge=1024 * 1024, le=10 * 1024 * 1024 * 1024)
+    assessment_answer_retention_days: int = Field(default=730, ge=30, le=3650)
+    working_file_retention_days: int = Field(default=90, ge=1, le=730)
+    rejected_media_retention_days: int = Field(default=30, ge=1, le=365)
+    audit_retention_days: int = Field(default=2190, ge=365, le=3650)
+    operations_token: SecretStr | None = Field(default=None, repr=False)
     storage_backend: str = "local"
     local_storage_path: str = "/data/akuru/documents"
     max_document_bytes: int = Field(default=50 * 1024 * 1024, ge=1024, le=250 * 1024 * 1024)
+    malware_scan_command: str = ""
+    malware_scan_timeout_seconds: int = Field(default=30, ge=5, le=300)
     oci_object_namespace: str | None = None
     oci_object_bucket: str | None = None
     redis_url: str = Field(default="redis://127.0.0.1:6379/0", repr=False)
@@ -77,6 +89,17 @@ class Settings(BaseSettings):
             raise ValueError("AKURU_OPENAI_API_KEY is required when AKURU_EMBEDDING_PROVIDER=openai")
         if self.openai_image_size not in {"1024x1024", "1024x1536", "1536x1024"}:
             raise ValueError("AKURU_OPENAI_IMAGE_SIZE is not supported")
+        if self.environment == "production":
+            if not self.cookie_secure:
+                raise ValueError("AKURU_COOKIE_SECURE must be true in production")
+            if any(origin.startswith("http://") for origin in self.cors_origins):
+                raise ValueError("Production CORS origins must use HTTPS")
+            if any(host in {"*", "localhost", "127.0.0.1"} for host in self.allowed_hosts):
+                raise ValueError("Production allowed hosts must contain only public hostnames")
+            if not self.operations_token:
+                raise ValueError("AKURU_OPERATIONS_TOKEN is required in production")
+            if not self.malware_scan_command:
+                raise ValueError("AKURU_MALWARE_SCAN_COMMAND is required in production")
         return self
 
     def openai_account_key(self, alias: str) -> str | None:

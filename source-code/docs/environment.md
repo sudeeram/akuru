@@ -1,6 +1,6 @@
 # Environment variables
 
-Copy `backend/.env.example` to `backend/.env` for local development. The real file is ignored by Git. Never put credentials in frontend variables, committed files, screenshots, logs or support messages.
+Copy `backend/.env.example` to `backend/.env` for local development. Production systemd reads `/etc/akuru/akuru.env`, owned by `root:akuru` with mode `0640`, following the project owner's choice of protected dotenv secrets instead of OCI Vault. Never put credentials in frontend variables, committed files, screenshots, logs or support messages.
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
@@ -13,6 +13,16 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_CORS_ORIGINS` | Yes | JSON list of browser origins allowed to call FastAPI. |
 | `AKURU_ALLOWED_HOSTS` | Yes | JSON list of accepted HTTP host names. |
 | `AKURU_COOKIE_SECURE` | Yes | Use `true` behind production HTTPS and `false` for local HTTP. |
+| `AKURU_OPERATIONS_TOKEN` | Production | Random secret used to key pseudonymous learner references and operational controls. |
+| `AKURU_API_RATE_LIMIT_PER_MINUTE` | No | Distributed per-IP/path API ceiling in production. |
+| `AKURU_AUTH_RATE_LIMIT_PER_MINUTE` | No | Lower ceiling for authentication endpoints. |
+| `AKURU_FAMILY_AI_REQUESTS_PER_DAY` | No | Rolling per-family assessment request budget. |
+| `AKURU_FAMILY_AI_TOKENS_PER_DAY` | No | Rolling per-family provider-token budget. |
+| `AKURU_FAMILY_WORKING_STORAGE_BYTES` | No | Total retained private working-file bytes for one family. |
+| `AKURU_ASSESSMENT_ANSWER_RETENTION_DAYS` | No | Age at which answer and result evidence is redacted. |
+| `AKURU_WORKING_FILE_RETENTION_DAYS` | No | Age at which private handwritten-working objects are deleted. |
+| `AKURU_REJECTED_MEDIA_RETENTION_DAYS` | No | Age at which rejected/pending generated media is deleted. |
+| `AKURU_AUDIT_RETENTION_DAYS` | No | Security/content audit retention period. |
 | `AKURU_SESSION_HOURS` | No | Session lifetime from 1 to 168 hours; default `12`. |
 | `AKURU_LOGIN_ATTEMPT_LIMIT` | No | Failed logins allowed in the throttle window; default `8`. |
 | `AKURU_LOGIN_WINDOW_MINUTES` | No | Login throttle window; default `15`. |
@@ -20,6 +30,8 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_STORAGE_BACKEND` | Yes | `local` for development or `oci` for private OCI Object Storage. |
 | `AKURU_LOCAL_STORAGE_PATH` | Local | Absolute private filesystem root; default `/data/akuru/documents`. |
 | `AKURU_MAX_DOCUMENT_BYTES` | No | Maximum original document size; default 52,428,800 bytes (50 MB). |
+| `AKURU_MALWARE_SCAN_COMMAND` | Production | Malware scanner executable; production requires `clamscan`. |
+| `AKURU_MALWARE_SCAN_TIMEOUT_SECONDS` | No | Fail-closed scanner timeout; default `30`. |
 | `AKURU_REDIS_URL` | Yes | Private Redis connection used to transport document job IDs. |
 | `AKURU_DOCUMENT_QUEUE_NAME` | No | Redis list name for document jobs; default `akuru:documents`. |
 | `AKURU_EMBEDDING_PROVIDER` | No | `local` for deterministic development retrieval or `openai` for production semantic retrieval. |
@@ -46,7 +58,7 @@ Copy `backend/.env.example` to `backend/.env` for local development. The real fi
 | `AKURU_AI_MAX_IMAGE_BYTES` | No | Maximum decoded image bytes in one request; default `20971520`. |
 | `AKURU_AI_MAX_OUTPUT_TOKENS` | No | Responses API output ceiling; default `4000`. |
 
-Protect the production dotenv file with operating-system permissions so only the AKURU backend service account can read it. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production.
+Protect the production dotenv file as `root:akuru` mode `0640`. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production.
 
 Example account pool:
 

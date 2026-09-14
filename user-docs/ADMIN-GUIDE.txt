@@ -124,3 +124,8 @@ EVALUATION AND RELEASE GATES
 Use Evaluation gates before enabling automatic assessment feedback for any subject. Create a corpus from licensed source material and independently reviewed expected results. Include cases for inventory, OCR, equations, diagrams, unit mapping, marking and method marks, feedback/grounding, and repeatability. Review every expected value before approving the corpus.
 
 Run each candidate model and prompt version against the approved corpus. AKURU displays every metric and blocks a release if one is below its threshold. Activate automatic feedback only for a passing run. A later model or prompt change will automatically return that subject to review-required behavior until its matching regression passes.
+SECURITY AND OPERATIONS
+
+Use the Operations page to review failed document jobs, provider failures, AI token usage, latency alerts and recent administrative audit events. Investigate alerts before publishing content or enabling automatic feedback. Never paste OpenAI keys, database passwords, student answers or private files into support messages.
+
+Authorized deletion requests are performed by an operator with the backend retention command. Preview first with `python -m app.retention --student-id CHILD_UUID`; apply only after verifying the requesting guardian and recording the request, using `--apply`.

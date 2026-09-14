@@ -69,3 +69,6 @@ unit covered in your current or earlier terms. Enlarge an image when helpful
 and follow the official source citation shown under it. The textbook, question
 and marking scheme remain the authority; a generated illustration is only a
 supporting explanation reviewed by your Admin.
+PRIVACY
+
+AKURU sends only the answer and approved subject context needed for AI feedback. It uses a pseudonymous learner reference rather than your name when calling the provider. Ask your parent or administrator if you want to understand how long answers and uploaded working are kept.

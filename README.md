@@ -171,7 +171,7 @@ Review generated migrations before committing them. Back up production PostgreSQ
 
 The recommended first deployment is an Ubuntu LTS Oracle Cloud instance with PostgreSQL kept on a private interface, Nginx or another reverse proxy terminating HTTPS, and the application running as an unprivileged service account. Oracle Linux is also viable, but the package names and service commands will differ.
 
-For Ubuntu, use the repository's [installation playbook](deploy/ubuntu/README.md). It provides a repeatable prerequisite installer and verification script for Ubuntu 24.04 LTS, including PostgreSQL, Redis, Node.js, Python, Nginx, TLS tooling, Poppler and Tesseract.
+For Ubuntu, use the repository's [installation playbook](deploy/ubuntu/README.md). It provides repeatable prerequisite and service installers, hardened Nginx/TLS configuration, systemd isolation, Redis/PostgreSQL checks, privacy retention, encrypted backups and verification for Ubuntu 24.04 LTS.
 
 ### 1. Prepare the server
 
@@ -207,7 +207,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 ```
 
-Create `/opt/akuru/source-code/backend/.env` with permissions limited to the service account:
+Create `/etc/akuru/akuru.env` outside the checkout, owned by `root:akuru` with mode `0640`:
 
 ```dotenv
 AKURU_ENVIRONMENT=production
@@ -219,6 +219,7 @@ AKURU_DATABASE_PASSWORD='use-a-generated-secret'
 AKURU_CORS_ORIGINS='["https://akuru.example.com"]'
 AKURU_ALLOWED_HOSTS='["akuru.example.com"]'
 AKURU_COOKIE_SECURE=true
+AKURU_OPERATIONS_TOKEN='use-a-generated-random-secret'
 ```
 
 Apply migrations and create the first Admin:

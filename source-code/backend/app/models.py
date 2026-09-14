@@ -1153,3 +1153,19 @@ class EvaluationRelease(Base):
         CheckConstraint("confidence_threshold BETWEEN 0 AND 1", name="ck_evaluation_release_confidence"),
         UniqueConstraint("subject_id", "workflow", name="uq_evaluation_release_subject_workflow"),
     )
+
+
+class FamilyUsageEvent(Base):
+    __tablename__ = "family_usage_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    family_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(24), index=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+    operation_id: Mapped[str] = mapped_column(String(80), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("kind IN ('ai_request','ai_token')", name="ck_family_usage_kind"),
+        CheckConstraint("quantity >= 0", name="ck_family_usage_quantity"),
+        UniqueConstraint("family_id", "kind", "operation_id", name="uq_family_usage_operation"),
+    )

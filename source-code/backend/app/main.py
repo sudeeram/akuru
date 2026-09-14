@@ -12,8 +12,10 @@ from app.database import get_db
 from app.api.v1.router import api_router
 from app.errors import ErrorResponse, error_content, install_error_handlers
 from app.security import Principal, get_principal
+from app.rate_limit import RequestRateLimiter
 
 settings = get_settings()
+rate_limiter = RequestRateLimiter(settings)
 app = FastAPI(
     title="AKURU API",
     version="0.2.0",
@@ -31,8 +33,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-CSRF-Token", "X-Filename"],
 )
 install_error_handlers(app)
 app.include_router(api_router)
@@ -40,6 +42,9 @@ app.include_router(api_router)
 
 @app.middleware("http")
 async def request_security(request: Request, call_next):
+    allowed, remaining, limit = rate_limiter.check(request)
+    if not allowed:
+        return rate_limiter.rejection()
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
         if origin and origin not in settings.cors_origins:
@@ -61,6 +66,10 @@ async def request_security(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains" if settings.environment == "production" else "max-age=0"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+    response.headers["X-RateLimit-Limit"] = str(limit)
+    response.headers["X-RateLimit-Remaining"] = str(remaining)
     return response
 
 

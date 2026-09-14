@@ -35,6 +35,7 @@ The PostgreSQL-backed implementation covers authentication, secure sessions, fam
 - [Step 17: Role-specific experiences](backend/docs/step-17-role-experiences.md)
 - [Step 18: Diagrams and optional media](backend/docs/step-18-educational-media.md)
 - [Step 19: Evaluation and release gates](backend/docs/step-19-evaluation-release-gates.md)
+- [Step 20: Production security, privacy and operations](backend/docs/step-20-production-security-operations.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

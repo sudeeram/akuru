@@ -1,0 +1,21 @@
+[Unit]
+Description=AKURU document worker
+After=akuru-api.service
+
+[Service]
+User=akuru
+Group=akuru
+WorkingDirectory=/opt/akuru/source-code/backend
+EnvironmentFile=/etc/akuru/akuru.env
+ExecStart=/opt/akuru/source-code/backend/.venv/bin/python -m app.workers.document_worker
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/akuru
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -158,6 +158,8 @@ Educational media is recorded separately from official evidence. Controlled SVG 
 
 Evaluation release gates bind automatic assessment feedback to an Admin-approved, subject-specific corpus and a passing run for the exact model and prompt version in use. Missing, failing, stale or low-confidence releases fail closed to human review. See [Step 19 evaluation and release gates](step-19-evaluation-release-gates.md).
 
+Production runs behind a loopback-only systemd/Nginx boundary with TLS, dual-layer rate limiting, production configuration validation, malware scanning, per-family AI/storage quotas, pseudonymous provider references, automated retention, encrypted backups, and Admin operational monitoring. Secrets use the owner-selected root-protected `/etc/akuru/akuru.env` deployment rather than OCI Vault. See [Step 20 production security and operations](step-20-production-security-operations.md).
+
 ## API and migration strategy
 
 Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.

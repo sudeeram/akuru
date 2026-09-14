@@ -1,0 +1,15 @@
+[Unit]
+Description=Create encrypted AKURU PostgreSQL backup
+
+[Service]
+Type=oneshot
+User=akuru
+Group=akuru
+EnvironmentFile=/etc/akuru/akuru.env
+ExecStart=/opt/akuru/deploy/ubuntu/encrypted-backup.sh
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/akuru
+ReadWritePaths=/data/akuru/backups

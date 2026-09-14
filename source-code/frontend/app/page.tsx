@@ -22,6 +22,7 @@ import {
   ScanSearch,
   Images,
   FlaskConical,
+  Activity,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,6 +73,7 @@ const adminNav = [
   ['assessment-audit', 'Assessment audit', ScanSearch],
   ['media', 'Visual media', Images],
   ['evaluations', 'Evaluation gates', FlaskConical],
+  ['operations', 'Operations', Activity],
 ] as const;
 export default function Portal() {
   const [data, setData] = useState<State | null>(null),

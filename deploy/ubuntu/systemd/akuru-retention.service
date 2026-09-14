@@ -1,0 +1,15 @@
+[Unit]
+Description=Apply AKURU privacy retention policy
+
+[Service]
+Type=oneshot
+User=akuru
+Group=akuru
+WorkingDirectory=/opt/akuru/source-code/backend
+EnvironmentFile=/etc/akuru/akuru.env
+ExecStart=/opt/akuru/source-code/backend/.venv/bin/python -m app.retention --apply
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/data/akuru

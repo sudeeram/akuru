@@ -19,6 +19,7 @@ from app.schemas.documents import (
 from app.security import Principal, utcnow
 from app.services.document_processing import enqueue_safely, job_response
 from app.storage.base import ObjectStorage, StoredObject
+from app.malware import scan
 
 
 settings = get_settings()
@@ -115,6 +116,7 @@ def upload_document(
     source_url: str | None,
 ) -> DocumentUploadResponse:
     normalized_mime = validate_file(filename, content_type, content)
+    scan(content, settings)
     title = title.strip()
     if not title:
         raise DomainError("title_required", "Document title is required.", 422)

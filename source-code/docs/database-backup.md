@@ -34,7 +34,7 @@ The PostgreSQL account must be allowed to create and drop databases for the dril
 
 ## Operating policy
 
-- Encrypt backup storage and restrict it to the operators who can access production student data.
+- Production uses `deploy/ubuntu/encrypted-backup.sh`: `pg_dump` output is encrypted immediately with an age public recipient. Keep the private age identity off the server and perform monthly isolated restoration drills.
 - Keep at least one copy outside the application server and apply retention rules appropriate for family data.
 - Run a restore drill after schema changes and on a regular schedule.
 - A successful `pg_dump` is incomplete evidence; the restore drill must also pass.

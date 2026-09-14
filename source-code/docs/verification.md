@@ -57,6 +57,14 @@ Run the local quality gate from `source-code/` with `npm run verify`. Run `npm r
 - `npm run verify` passed with 22 frontend tests and 73 backend tests, plus generated-contract checking, type checking, linting and a production build. Alembic reported no model/schema drift at revision `e19a72c34b91`.
 - Synthetic fixtures validate the gate mechanics only. Production educational quality requires Admin-approved, licensed corpora for all eight Phase 1 subjects before automatic releases are activated.
 
+## Step 20 production-security verification
+
+- Route introspection verifies every private `/api/v1` endpoint has an authenticated principal and every mutation except login has CSRF validation. Existing PostgreSQL integration tests exercise cross-family object isolation, private source/working/media access and pre-submission answer-key withholding.
+- Focused tests cover secure production configuration, local/distributed rate-limit behavior, keyed learner pseudonyms, prompt-injection boundaries, family usage ledgers and fail-closed malware rejection. CI rejects tracked dotenv files, OpenAI-shaped keys and frontend credential access.
+- `npm run verify` passed with 23 frontend tests and 79 backend tests, API contract checking, types, lint and the production build. Alembic found no model/schema drift at `f20c81d45a02`; all deployment scripts pass `bash -n`.
+- The retention command completed a dry run without mutation. A live PostgreSQL custom-format backup restored at revision `f20c81d45a02` with 55 public tables and the isolated database was removed.
+- TLS issuance, OCI firewall inspection, age-recipient setup and a full encrypted database/document restoration are explicitly required on the target server; private decryption material is intentionally absent from this repository and development computer.
+
 ## Automated checks
 
 - `npm test`: 13 integration tests passed against the actual local API handler with isolated temporary storage. Covers authentication, student isolation, independent grades/enrolments, answer-key withholding, marking/review permissions, review audit history, file access and approval, assignments, private drafts, study plans, exam restrictions/deadlines/idempotent submission, request methods, origin/host checks and logout.
