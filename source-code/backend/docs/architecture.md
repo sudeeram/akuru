@@ -1,6 +1,8 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 1–9 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: Steps 0–15 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, assessment, mastery and recommendation services, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+
+The implementation baseline and module rules are documented in [Step 0 foundation protection](step-00-foundation-protection.md) and [Step 1 backend module boundaries](step-01-module-boundaries.md).
 
 ## Implemented boundaries
 

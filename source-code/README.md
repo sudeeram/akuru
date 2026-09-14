@@ -14,6 +14,8 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Backend architecture](backend/docs/architecture.md)
 - [Environment variables](docs/environment.md)
 - [Database backup and restore](docs/database-backup.md)
+- [Step 0: Foundation protection](backend/docs/step-00-foundation-protection.md)
+- [Step 1: Backend module boundaries](backend/docs/step-01-module-boundaries.md)
 - [Step 2: Private document storage](backend/docs/step-02-document-storage.md)
 - [Step 3: Asynchronous document processing](backend/docs/step-03-document-processing.md)
 - [Step 4: Deterministic PDF/image extraction](backend/docs/step-04-document-extraction.md)

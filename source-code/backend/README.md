@@ -15,6 +15,8 @@ python3 -m venv .venv
 
 The private `.env` file contains the local connection settings and is ignored by Git. Commit `.env.example`, never `.env`. The settings code uses SQLAlchemy's structured URL builder, so special characters in passwords are handled safely.
 
+The safeguards for clean-checkout verification, configuration and recovery are documented in [Step 0 foundation protection](docs/step-00-foundation-protection.md). The router, schema, service, repository and permission responsibilities are documented in [Step 1 module boundaries](docs/step-01-module-boundaries.md).
+
 ## Run and test
 
 From `source-code`:
