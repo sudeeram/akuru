@@ -13,7 +13,7 @@ from app.errors import DomainError
 from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit, User
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
-from app.services import mastery, weaknesses
+from app.services import evaluations, mastery, weaknesses
 
 
 SCHEMA_VERSION = "assessment-result-v1"
@@ -195,6 +195,11 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             review.append("Subjective English response requires review below 0.90 confidence.")
         if selected_policy.subjective and not all(deterministic.get("rubricCoverage", {}).values()):
             review.append(f"The approved {selected_policy.name.title()} rubric does not explicitly cover every required dimension.")
+        automatic_allowed, gate_reason = evaluations.automatic_feedback_allowed(
+            db, assessment.subject_id, confidence, second.model, prompt.version
+        )
+        if not automatic_allowed:
+            review.append(gate_reason)
         version = (db.scalar(select(func.max(AssessmentResult.version_number)).where(AssessmentResult.question_id == question.id)) or 0) + 1
         row = AssessmentResult(assessment_id=assessment.id, question_id=question.id, version_number=version,
             schema_version=SCHEMA_VERSION, status="needs_review" if review else "published",

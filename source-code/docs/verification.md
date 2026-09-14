@@ -50,6 +50,13 @@
 
 Run the local quality gate from `source-code/` with `npm run verify`. Run `npm run database:restore-drill` separately when validating backup recoverability.
 
+## Step 19 evaluation-gate verification
+
+- Synthetic tests cover all twelve evaluation metrics, complete-category corpus approval, Admin-only mutations, same-subject release binding, and rejection of a passing run from another subject.
+- Assessment integration verifies that automatic publication requires the exact evaluated model and prompt version. Missing, failed, stale or low-confidence releases fail closed to `needs_review`.
+- `npm run verify` passed with 22 frontend tests and 73 backend tests, plus generated-contract checking, type checking, linting and a production build. Alembic reported no model/schema drift at revision `e19a72c34b91`.
+- Synthetic fixtures validate the gate mechanics only. Production educational quality requires Admin-approved, licensed corpora for all eight Phase 1 subjects before automatic releases are activated.
+
 ## Automated checks
 
 - `npm test`: 13 integration tests passed against the actual local API handler with isolated temporary storage. Covers authentication, student isolation, independent grades/enrolments, answer-key withholding, marking/review permissions, review audit history, file access and approval, assignments, private drafts, study plans, exam restrictions/deadlines/idempotent submission, request methods, origin/host checks and logout.
@@ -76,7 +83,7 @@ The preview retains synthetic QA records for inspection. No real textbooks or ex
 
 ## Limits of these checks
 
-API integration tests invoke the request handler directly; browser checks exercise actual HTTP in the running app. Browser print/PDF output, real scanned-paper extraction, external AI services, generated media, production databases, internet deployment and a full cross-browser/accessibility audit have not been verified. The README describes the demo content and remaining backend integrations.
+API integration tests invoke the request handler directly; browser checks exercise actual HTTP in the running app. Step 18 tests verify deterministic SVG/plot generation, private media storage and authorization, simulated image-provider output, review publication and provenance. They do not make paid external AI calls. Browser print/PDF output, real scanned-paper extraction, production databases, internet deployment and a full cross-browser/accessibility audit have not been verified. The README describes the remaining deployment work.
 # Historical verification
 
 The checks below describe the earlier four-subject demo before the Admin/iGCSE revision. Current role and curriculum requirements are in [architecture.md](architecture.md); current integration tests are in `../frontend/tests/api.test.mjs`.

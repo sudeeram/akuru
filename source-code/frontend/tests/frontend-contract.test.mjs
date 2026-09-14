@@ -227,3 +227,25 @@ test('role-specific experiences expose evidence, trends, review tasks and audit 
   assert.match(diagram, /Enlarge diagram/);
   assert.match(student, /<Equation key={equation}/);
 });
+
+test('visual media is source-grounded, private until reviewed, and learner scoped', () => {
+  const admin = readFileSync(new URL('../features/media-admin.tsx', import.meta.url), 'utf8');
+  const gallery = readFileSync(new URL('../features/media-gallery.tsx', import.meta.url), 'utf8');
+  assert.match(admin, /media\/admin\/deterministic/);
+  assert.match(admin, /media\/admin\/illustrations/);
+  assert.match(admin, /Publish illustration/);
+  assert.match(admin, /sourceManifest/);
+  assert.match(gallery, /studentId=/);
+  assert.match(gallery, /Supporting visual\. Official source evidence/);
+  assert.doesNotMatch(gallery, /item\.prompt/);
+});
+
+test('admin evaluation gates require reviewed corpora and passing releases', () => {
+  const evaluation = readFileSync(new URL('../features/evaluation-admin.tsx', import.meta.url), 'utf8');
+  assert.match(page, /Evaluation gates/);
+  assert.match(admin, /EvaluationAdmin/);
+  assert.match(evaluation, /missingApprovedSubjects/);
+  assert.match(evaluation, /evaluations\/admin\/corpora/);
+  assert.match(evaluation, /evaluations\/admin\/runs/);
+  assert.match(evaluation, /Activate automatic feedback/);
+});

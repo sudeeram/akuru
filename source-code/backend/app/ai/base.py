@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 OutputT = TypeVar("OutputT", bound=BaseModel)
 AI_PURPOSES = frozenset({
-    "textbook_extraction", "paper_extraction", "unit_mapping", "assessment", "tutoring"
+    "textbook_extraction", "paper_extraction", "unit_mapping", "assessment", "tutoring", "illustration"
 })
 
 

@@ -154,6 +154,10 @@ Step 13 selects a versioned policy for Maths, Science, ICT, English or French an
 
 Study plans aggregate each student's assessed history and covered units. Versioned plans prioritize weak, declining, low-confidence and recurring evidence, balance assigned subjects, retain completed history, and cite approved sources. Do not mix siblings' reviews or infer mastery from another child's data. See [Step 16 adaptive study planner](step-16-adaptive-study-planner.md). AI tutor and media services can explain material only after eligibility/source authorization; they cannot change enrolments, publish documents or expand coverage.
 
+Educational media is recorded separately from official evidence. Controlled SVG and plotting code creates exam-critical circuits, forces, geometry and graphs from bounded parameters. OpenAI conceptual images use approved same-subject retrieval evidence, private object storage, generation provenance, and mandatory Admin review before learner publication. Learner delivery rechecks subject enrolment and cumulative coverage and redacts private generation inputs. See [Step 18 educational media](step-18-educational-media.md). Video remains an optional later pipeline after explanation and storyboard approval.
+
+Evaluation release gates bind automatic assessment feedback to an Admin-approved, subject-specific corpus and a passing run for the exact model and prompt version in use. Missing, failing, stale or low-confidence releases fail closed to human review. See [Step 19 evaluation and release gates](step-19-evaluation-release-gates.md).
+
 ## API and migration strategy
 
 Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.

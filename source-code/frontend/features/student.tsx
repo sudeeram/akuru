@@ -2,6 +2,7 @@
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { Equation, LearningImage } from './learning-media';
+import { MediaGallery } from './media-gallery';
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -198,6 +199,7 @@ export function Subjects(p: FeatureProps) {
           </p>
         )}
       </section>
+      <MediaGallery studentId={p.child.id} subjectId={active.id} />
     </>
   );
 }

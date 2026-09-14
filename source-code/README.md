@@ -2,7 +2,7 @@
 
 AKURU uses one repository with a React/Vite frontend in `frontend/` and a FastAPI/PostgreSQL backend in `backend/`. The browser calls same-origin `/api/v1/*` routes. During development, Vite proxies those requests to FastAPI on `127.0.0.1:8000`.
 
-The PostgreSQL-backed implementation currently covers authentication, secure sessions, forced first-login password changes, family-scoped portal state, Admin account management, private document uploads, and asynchronous document preflight processing. Coverage, questions, practice, assessments, and reviews still need their full FastAPI implementations.
+The PostgreSQL-backed implementation covers authentication, secure sessions, family-scoped accounts, private document processing, reviewed curriculum content, cumulative coverage, official assessments, source-grounded marking, mastery, recommendations, adaptive study plans, role-specific review experiences, and reviewed educational media.
 
 ## Documentation
 
@@ -32,6 +32,9 @@ The PostgreSQL-backed implementation currently covers authentication, secure ses
 - [Step 14: Unit mastery and confidence](backend/docs/step-14-unit-mastery.md)
 - [Step 15: Weakness diagnosis and recommendations](backend/docs/step-15-weakness-diagnosis.md)
 - [Step 16: Adaptive study planner](backend/docs/step-16-adaptive-study-planner.md)
+- [Step 17: Role-specific experiences](backend/docs/step-17-role-experiences.md)
+- [Step 18: Diagrams and optional media](backend/docs/step-18-educational-media.md)
+- [Step 19: Evaluation and release gates](backend/docs/step-19-evaluation-release-gates.md)
 - [User guides](../user-docs/README.txt)
 
 ## Run locally

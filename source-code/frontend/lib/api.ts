@@ -368,6 +368,14 @@ export type ImprovementRecommendation = {
   sourcePage: number; sourceUrl: string; questionId?: string | null;
   reviewStatus: 'approved' | 'pending_review' | 'rejected'; reviewReason: string; createdAt: string;
 };
+export type EducationalMedia = {
+  id: string; subjectId: string; unitId: string; sourceChunkId: string; kind: string; title: string;
+  altText: string; prompt: string; promptVersion: string; parameters: Record<string, unknown>;
+  sourceManifest: { documentTitle?: string; unitCode?: string; page?: number }[]; provider: string;
+  model: string; responseId?: string | null; contentType: string; status: string; reviewNotes: string;
+  createdAt: string; reviewedAt?: string | null; contentUrl: string;
+};
+export type MediaSource = { id: string; subjectId: string; unitCode: string; unitTitle: string; documentTitle: string; page: number; excerpt: string };
 export type Assignment = {
   id: string;
   studentId: string;

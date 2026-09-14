@@ -10,7 +10,8 @@ A local-first family learning portal with parent and three child accounts. Share
 - Responsive keyboard-accessible UI; local browser and API tests.
 
 ## Integration boundaries
-No AI keys, paid calls, real OCR, autonomous marking, semantic search or video service in this frontend milestone. Tutor examples are curated, diagrams are exact SVG, and import review is manual. Future Python/PostgreSQL backend replaces the local API through the same client boundary. This local API is bound to loopback and not an internet deployment.
+
+The statements above describe the historical local frontend prototype. The current portal uses the FastAPI/PostgreSQL API. OpenAI credentials and provider calls remain exclusively in the backend; the browser can request workflows but never receives a key. Current visual support includes deterministic SVG/plots and Admin-reviewed conceptual images. Video remains an optional future service.
 # Historical scope — superseded
 
 This document describes the original demo. Current roles, folders and curriculum constraints are defined in [architecture.md](architecture.md) and [frontend architecture](../frontend/docs/architecture.md). Parent-managed courses/uploads and the combined Science demo no longer define current behavior.

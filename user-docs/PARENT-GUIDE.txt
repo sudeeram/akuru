@@ -52,3 +52,10 @@ reason and select Publish reviewed result. AKURU retains the previous result
 and recalculates mastery. If a newer result exists, refresh before reviewing it.
 If saving fails, retry the unchanged form; it will not publish duplicate versions.
 Recommendation approval and decline remain separate tasks below the summaries.
+
+STEP 18: VISUAL EXPLANATIONS
+Students see only Admin-published visuals connected to their assigned subjects
+and covered units. Each visual cites its official textbook source. Conceptual
+images are generated privately and reviewed by an Admin before students can
+see them. They are supporting explanations and do not replace exam evidence.
+Video is not enabled in Phase 1.

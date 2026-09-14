@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, ImprovementRecommendation, StudyPlan, StudyPlanItem, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -944,6 +944,16 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
         return AIResult(output=request.output_type.model_validate(output), provider="fake", model="fake-assessor-v1",
             response_id=f"response-{len(marking_calls)}", usage=AIUsage(), latency_ms=1, attempt_count=1)
     monkeypatch.setattr(assessment_marking, "_generate", fake_marking)
+    evaluation_corpus = EvaluationCorpus(subject_id="biology", version_number=1, name="Reviewed biology corpus",
+        cases=[], status="approved", content_hash="a" * 64, created_by=admin.id, approved_by=admin.id, approved_at=datetime.now(timezone.utc))
+    session.add(evaluation_corpus); session.flush()
+    evaluation_run = EvaluationRun(corpus_id=evaluation_corpus.id, subject_id="biology", candidate_model="fake-assessor-v1",
+        prompt_version="2.0.0", observations_hash="b" * 64, metrics={}, thresholds={}, passed=True,
+        failure_reasons=[], created_by=admin.id)
+    session.add(evaluation_run); session.flush()
+    session.add(EvaluationRelease(subject_id="biology", workflow="assessment_feedback", mode="automatic",
+        run_id=evaluation_run.id, confidence_threshold=.85, activated_by=admin.id))
+    session.commit()
     assessed = client.post(f"/api/v1/assessments/{exam['id']}/evaluate", headers=student_csrf,
         json={"idempotencyKey": "evaluate-exam-0001"})
     assert assessed.status_code == 200, assessed.text
@@ -1062,6 +1072,52 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert any(item["status"] == "completed" for plan in history.json()["plans"] for item in plan["items"])
     assert session.query(StudyPlan).filter_by(student_id=student_user.id).count() == 3
     assert session.query(StudyPlanItem).filter_by(student_id=student_user.id).count() == 3
+    # Step 18: media always starts from approved, same-subject indexed evidence.
+    source_chunk = session.query(RetrievalChunk).filter_by(subject_id="biology").first()
+    admin_login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    admin_csrf = {"X-CSRF-Token": admin_login["csrfToken"]}
+    deterministic = client.post("/api/v1/media/admin/deterministic", headers=admin_csrf, json={
+        "kind":"plot_svg","subjectId":"biology","sourceChunkId":str(source_chunk.id),"title":"Diffusion graph",
+        "altText":"A plotted line showing particle diffusion increasing over time.","parameters":{"points":[[0,0],[1,2],[2,3]]}})
+    assert deterministic.status_code == 201, deterministic.text
+    assert deterministic.json()["status"] == "published" and deterministic.json()["provider"] == "akuru"
+    class FakeImageRouter:
+        def __init__(self,*_args,**_kwargs): pass
+        def generate(self,_prompt,_operation_id):
+            return SimpleNamespace(content=b"\x89PNG\r\n\x1a\nconcept",content_type="image/png",provider="openai",
+                model="fake-image-v1",response_id="image-response")
+    monkeypatch.setattr("app.services.media.ImageAccountRouter",FakeImageRouter)
+    illustration = client.post("/api/v1/media/admin/illustrations", headers=admin_csrf, json={
+        "subjectId":"biology","sourceChunkId":str(source_chunk.id),"title":"Cell membrane concept",
+        "altText":"A conceptual view of particles crossing a cell membrane.",
+        "prompt":"Illustrate particles moving across a cell membrane without adding answer labels."})
+    assert illustration.status_code == 201, illustration.text
+    assert illustration.json()["status"] == "pending_review"
+    assert session.get(EducationalMedia,uuid.UUID(illustration.json()["id"])).source_manifest[0]["contentHash"] == source_chunk.content_hash
+    student_login = client.post("/api/v1/auth/login", json={"username": student_user.username, "password":"assessment student password"}).json()
+    media_scope=f"?studentId={student_user.id}&subjectId=biology"
+    visible=client.get("/api/v1/media"+media_scope)
+    assert visible.status_code == 200 and [row["id"] for row in visible.json()["media"]] == [deterministic.json()["id"]]
+    assert visible.json()["media"][0]["prompt"] == "" and visible.json()["media"][0]["parameters"] == {}
+    assert client.get(f"/api/v1/media/{illustration.json()['id']}/content?studentId={student_user.id}").status_code == 404
+    admin_login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    admin_csrf={"X-CSRF-Token":admin_login["csrfToken"]}
+    published=client.post(f"/api/v1/media/admin/{illustration.json()['id']}/review",headers=admin_csrf,
+        json={"decision":"published","notes":"Compared with the approved cell membrane section."})
+    assert published.status_code == 200 and published.json()["status"] == "published"
+    assert session.query(AuditEvent).filter_by(action="media.review",target_id=illustration.json()["id"]).one()
+    student_login=client.post("/api/v1/auth/login",json={"username":student_user.username,"password":"assessment student password"}).json()
+    assert client.get(f"/api/v1/media/{illustration.json()['id']}/content?studentId={student_user.id}").content.startswith(b"\x89PNG")
+    assert len(client.get("/api/v1/media"+media_scope).json()["media"]) == 2
+    assert client.post("/api/v1/media/admin/deterministic",headers={"X-CSRF-Token":student_login["csrfToken"]},json={
+        "kind":"forces_svg","subjectId":"biology","sourceChunkId":str(source_chunk.id),"title":"Forces",
+        "altText":"Two labelled forces act on an object.","parameters":{}}).status_code == 403
+    admin_login=client.post("/api/v1/auth/login",json={"username":username,"password":password}).json()
+    assert client.post("/api/v1/media/admin/deterministic",headers={"X-CSRF-Token":admin_login["csrfToken"]},json={
+        "kind":"forces_svg","subjectId":"physics","sourceChunkId":str(source_chunk.id),"title":"Forces",
+        "altText":"Two labelled forces act on an object.","parameters":{}}).status_code == 409
+    parent_login=client.post("/api/v1/auth/login",json={"username":parent_user.username,"password":"assessment parent password"}).json()
+    assert client.get(f"/api/v1/media/{illustration.json()['id']}/content?studentId={student_user.id}").status_code == 200
     unrelated_parent = User(username=f"unrelated-parent-{uuid.uuid4().hex}", display_name="Unrelated Parent",
         role="parent", password_hash=hash_password("unrelated parent password"), must_change_password=False)
     session.add(unrelated_parent); session.commit()
@@ -1071,6 +1127,8 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert client.get(f"/api/v1/mastery/students/{student_user.id}").status_code == 403
     assert client.get(f"/api/v1/recommendations?studentId={student_user.id}").status_code == 403
     assert client.get(f"/api/v1/plans/students/{student_user.id}").status_code == 403
+    assert client.get("/api/v1/media"+media_scope).status_code == 403
+    assert client.get(f"/api/v1/media/{illustration.json()['id']}/content?studentId={student_user.id}").status_code == 404
 
     # Step 17: the new state path and review endpoints preserve family boundaries.
     assert client.get("/api/v1/state").json()["attempts"] == []
@@ -1123,3 +1181,44 @@ def test_official_paper_scheme_and_examiner_review_publication(auth_client, monk
     assert corrected.status_code == 200, corrected.text
     assert corrected.json()["awardedMarks"] == 0 and corrected.json()["version"] == new_result["version"] + 1
     assert session.query(AuditEvent).filter_by(action="assessment.review", target_id=corrected.json()["id"]).one().actor_id == uuid.UUID(admin_login["user"]["id"])
+
+
+@pytest.mark.integration
+def test_admin_evaluation_corpus_regression_and_release_gate(auth_client) -> None:
+    client, username, password = auth_client
+    assert client.get("/api/v1/evaluations/admin").status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    cases = [
+        {"caseId": "inventory", "category": "inventory", "expected": {"questionIds": ["Q1"]}},
+        {"caseId": "ocr", "category": "ocr", "expected": {"text": "source text"}},
+        {"caseId": "equation", "category": "equation", "expected": {"equation": "x^2"}},
+        {"caseId": "diagram", "category": "diagram", "expected": {"preserved": True}},
+        {"caseId": "mapping", "category": "mapping", "expected": {"unitIds": ["u1"], "crossSubjectRejected": True}},
+        {"caseId": "marking", "category": "marking", "expected": {"marks": 2, "methodPoints": ["M1"]}},
+        {"caseId": "feedback", "category": "feedback", "expected": {"smallErrors": ["unit"], "improvedAnswerRequired": True, "sourceIds": ["s1"]}},
+        {"caseId": "repeat", "category": "repeatability", "expected": {"stableDecisions": ["M1"]}},
+    ]
+    created = client.post("/api/v1/evaluations/admin/corpora", headers=headers, json={"subjectId": "maths", "name": "Maths reviewed v1", "cases": cases})
+    assert created.status_code == 201, created.text
+    corpus_id = created.json()["id"]
+    approved = client.post(f"/api/v1/evaluations/admin/corpora/{corpus_id}/review", headers=headers, json={"decision": "approved"})
+    assert approved.status_code == 200 and approved.json()["status"] == "approved"
+    outputs = {
+        "inventory": {"questionIds": ["Q1"]}, "ocr": {"text": "source text"}, "equation": {"equation": "x^2"},
+        "diagram": {"preserved": True}, "mapping": {"unitIds": ["u1"], "crossSubjectRejected": True},
+        "marking": {"marks": 2, "methodPoints": ["M1"]},
+        "feedback": {"smallErrors": ["unit"], "improvedAnswer": "Use the correct unit.", "sourceIds": ["s1"]},
+        "repeat": {"stableDecisions": ["M1"]},
+    }
+    run = client.post("/api/v1/evaluations/admin/runs", headers=headers, json={"corpusId": corpus_id, "candidateModel": "test-model", "promptVersion": "assessment-test-v1", "observations": [{"caseId": key, "output": value} for key, value in outputs.items()]})
+    assert run.status_code == 201, run.text
+    assert run.json()["passed"] is True and set(run.json()["metrics"]) == set(run.json()["thresholds"])
+    blocked = client.post("/api/v1/evaluations/admin/releases", headers=headers, json={"subjectId": "physics", "workflow": "assessment_feedback", "mode": "automatic", "runId": run.json()["id"]})
+    assert blocked.status_code == 409
+    released = client.post("/api/v1/evaluations/admin/releases", headers=headers, json={"subjectId": "maths", "workflow": "assessment_feedback", "mode": "automatic", "runId": run.json()["id"], "confidenceThreshold": .85})
+    assert released.status_code == 200 and released.json()["mode"] == "automatic"
+    dashboard = client.get("/api/v1/evaluations/admin").json()
+    assert "maths" not in dashboard["missingApprovedSubjects"]
+    assert dashboard["runs"][0]["passed"] is True
+    assert client.post("/api/v1/evaluations/admin/corpora", json={"subjectId": "maths", "name": "Denied", "cases": cases}).status_code == 403

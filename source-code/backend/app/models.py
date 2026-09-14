@@ -1068,3 +1068,88 @@ class StudyPlanItem(Base):
         UniqueConstraint("plan_id", "sequence", name="uq_study_plan_item_sequence"),
         UniqueConstraint("plan_id", "recommendation_id", name="uq_study_plan_item_recommendation"),
     )
+
+
+class EducationalMedia(Base):
+    __tablename__ = "educational_media"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    source_chunk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("retrieval_chunks.id", ondelete="RESTRICT"), index=True)
+    kind: Mapped[str] = mapped_column(String(28), index=True)
+    title: Mapped[str] = mapped_column(String(180))
+    alt_text: Mapped[str] = mapped_column(String(1000))
+    prompt: Mapped[str] = mapped_column(Text)
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    parameters: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    source_manifest: Mapped[list] = mapped_column(JSON)
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    response_id: Mapped[str | None] = mapped_column(String(180))
+    object_key: Mapped[str] = mapped_column(String(500), unique=True)
+    content_type: Mapped[str] = mapped_column(String(80))
+    checksum: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(20), index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    review_notes: Mapped[str] = mapped_column(Text, default="", server_default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("kind IN ('circuit_svg','forces_svg','geometry_svg','plot_svg','conceptual_image')", name="ck_educational_media_kind"),
+        CheckConstraint("status IN ('pending_review','published','rejected')", name="ck_educational_media_status"),
+    )
+
+
+class EvaluationCorpus(Base):
+    __tablename__ = "evaluation_corpora"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    name: Mapped[str] = mapped_column(String(180))
+    cases: Mapped[list] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft", index=True)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    approved_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_evaluation_corpus_version"),
+        CheckConstraint("status IN ('draft','approved','retired')", name="ck_evaluation_corpus_status"),
+        UniqueConstraint("subject_id", "version_number", name="uq_evaluation_corpus_subject_version"),
+    )
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_runs"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    corpus_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_corpora.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    candidate_model: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str] = mapped_column(String(80))
+    observations_hash: Mapped[str] = mapped_column(String(64))
+    metrics: Mapped[dict] = mapped_column(JSON)
+    thresholds: Mapped[dict] = mapped_column(JSON)
+    passed: Mapped[bool] = mapped_column(Boolean, index=True)
+    failure_reasons: Mapped[list] = mapped_column(JSON)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
+class EvaluationRelease(Base):
+    __tablename__ = "evaluation_releases"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    workflow: Mapped[str] = mapped_column(String(32))
+    mode: Mapped[str] = mapped_column(String(20), default="review_required", server_default="review_required")
+    run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("evaluation_runs.id", ondelete="RESTRICT"))
+    confidence_threshold: Mapped[float] = mapped_column(Float, default=0.85, server_default="0.85")
+    activated_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    activated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("workflow IN ('assessment_feedback','content_publication')", name="ck_evaluation_release_workflow"),
+        CheckConstraint("mode IN ('review_required','automatic')", name="ck_evaluation_release_mode"),
+        CheckConstraint("confidence_threshold BETWEEN 0 AND 1", name="ck_evaluation_release_confidence"),
+        UniqueConstraint("subject_id", "workflow", name="uq_evaluation_release_subject_workflow"),
+    )

@@ -285,29 +285,33 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Improve explanations visually without weakening accuracy.
 
-- [ ] Generate controlled SVG for circuits, forces and geometry where practical.
-- [ ] Use plotting code for graphs and numerical visuals.
-- [ ] Add an OpenAI image provider for conceptual illustrations.
-- [ ] Store prompts, source links, model versions and assets privately.
-- [ ] Require review before publishing generated educational images.
-- [ ] Later: approved explanation → storyboard → narration → video → review → publication.
+- [x] Generate controlled SVG for circuits, forces and geometry where practical.
+- [x] Use plotting code for graphs and numerical visuals.
+- [x] Add an OpenAI image provider for conceptual illustrations.
+- [x] Store prompts, source links, model versions and assets privately.
+- [x] Require review before publishing generated educational images.
+- [x] Later: approved explanation → storyboard → narration → video → review → publication. (The reviewed pipeline is documented as an optional post-Phase-1 boundary; Step 18 deliberately adds no video dependency.)
 
 **Done when:** Exam-critical visuals are deterministic or reviewed, generated media never replaces official source evidence, and video remains optional.
+
+**Completed:** Admins can create source-grounded deterministic SVGs and plots or request conceptual OpenAI illustrations. Conceptual images remain private until an Admin publishes them; learner delivery enforces family, subject and cumulative-unit scope and shows the official source citation. Prompts, generator/model details, response identifiers, checksums, review records and private object keys remain server-side. The optional video pipeline is specified for later implementation. Verified by the API contract check, 21 frontend tests, 71 backend tests, type checking, lint, production build and Alembic drift check.
 
 ## Step 19 — Add evaluation and release gates
 
 **Goal:** Prove quality before enabling automatic publication or marking.
 
-- [ ] Create an Admin-approved evaluation corpus for every Phase 1 subject.
-- [ ] Measure question inventory recall, OCR, equation and diagram preservation.
-- [ ] Measure mapping precision and cross-subject rejection.
-- [ ] Compare marks and method marks with reviewed expected results.
-- [ ] Test small-error detection, improved answers and grounding.
-- [ ] Test repeatability across model and prompt versions.
-- [ ] Set confidence thresholds for automatic feedback versus review.
-- [ ] Run regressions before model or prompt changes.
+- [x] Create an Admin-approved evaluation corpus for every Phase 1 subject.
+- [x] Measure question inventory recall, OCR, equation and diagram preservation.
+- [x] Measure mapping precision and cross-subject rejection.
+- [x] Compare marks and method marks with reviewed expected results.
+- [x] Test small-error detection, improved answers and grounding.
+- [x] Test repeatability across model and prompt versions.
+- [x] Set confidence thresholds for automatic feedback versus review.
+- [x] Run regressions before model or prompt changes.
 
 **Done when:** Each enabled subject meets documented thresholds and failed evaluation blocks its automatic workflow.
+
+**Completed:** Admins can version and approve a complete corpus for each Phase 1 subject, run exact model/prompt candidates, inspect twelve quality metrics, and activate automatic feedback only from a passing same-subject run. Runtime checks reject missing, failed, retired, model-mismatched, prompt-mismatched and low-confidence releases by routing results to review. Production corpora must be populated from licensed material and independently reviewed expected results before any subject is enabled. Verified by the API contract check, 22 frontend tests, 73 backend tests, type checking, lint, production build and Alembic drift check.
 
 ## Step 20 — Production security, privacy and operations
 

@@ -43,6 +43,8 @@ import {
   reassessAssessment,
 } from '@/lib/api';
 import { ResultReview } from './result-review';
+import { MediaAdmin } from './media-admin';
+import { EvaluationAdmin } from './evaluation-admin';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -364,6 +366,8 @@ export function AdminWorkspace(p: Props) {
             blueprints: 'Mock paper blueprints',
             'ai-accounts': 'OpenAI account routing',
             'assessment-audit': 'Assessment audit',
+            media: 'Visual media',
+            evaluations: 'Evaluation & release gates',
           }[p.view] || 'Administration'
         }
       >
@@ -581,6 +585,8 @@ export function AdminWorkspace(p: Props) {
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
         {p.view === 'assessment-audit' && <AssessmentAuditPanel notify={p.notify} />}
+        {p.view === 'media' && <MediaAdmin data={p.data} notify={p.notify} />}
+        {p.view === 'evaluations' && <EvaluationAdmin data={p.data} notify={p.notify} />}
         {p.view === 'blueprints' && (
           <>
             <form className="panel stack" onSubmit={(event) => {

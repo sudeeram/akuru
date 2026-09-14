@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     ai_provider: str = "disabled"
     openai_api_key: SecretStr | None = Field(default=None, repr=False)
     openai_model: str | None = None
+    openai_image_model: str = "gpt-image-1"
+    openai_image_size: str = "1024x1024"
     openai_account_keys: dict[str, SecretStr] = Field(default_factory=dict, repr=False)
     ai_timeout_seconds: float = Field(default=45, ge=5, le=180)
     ai_max_retries: int = Field(default=2, ge=0, le=3)
@@ -73,6 +75,8 @@ class Settings(BaseSettings):
             raise ValueError("AKURU_EMBEDDING_DIMENSIONS must remain 256 for the current database schema")
         if self.embedding_provider == "openai" and not self.openai_api_key:
             raise ValueError("AKURU_OPENAI_API_KEY is required when AKURU_EMBEDDING_PROVIDER=openai")
+        if self.openai_image_size not in {"1024x1024", "1024x1536", "1536x1024"}:
+            raise ValueError("AKURU_OPENAI_IMAGE_SIZE is not supported")
         return self
 
     def openai_account_key(self, alias: str) -> str | None:

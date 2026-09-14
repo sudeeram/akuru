@@ -20,6 +20,8 @@ import {
   Palette,
   KeyRound,
   ScanSearch,
+  Images,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +70,8 @@ const adminNav = [
   ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
   ['assessment-audit', 'Assessment audit', ScanSearch],
+  ['media', 'Visual media', Images],
+  ['evaluations', 'Evaluation gates', FlaskConical],
 ] as const;
 export default function Portal() {
   const [data, setData] = useState<State | null>(null),

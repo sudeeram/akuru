@@ -62,3 +62,10 @@ linked textbook evidence. No score means more assessed evidence is needed.
 Use Enlarge diagram to inspect images; Escape closes the enlarged view.
 Common equations are formatted mathematically; unusual notation retains its
 original source so you can compare it with the original question.
+
+STEP 18: VISUAL EXPLANATIONS
+Approved visual explanations appear inside My subjects when they relate to a
+unit covered in your current or earlier terms. Enlarge an image when helpful
+and follow the official source citation shown under it. The textbook, question
+and marking scheme remain the authority; a generated illustration is only a
+supporting explanation reviewed by your Admin.

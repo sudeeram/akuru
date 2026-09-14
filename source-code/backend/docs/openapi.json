@@ -1152,6 +1152,120 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "CorpusCreate": {
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationCase"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Cases",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 180,
+            "minLength": 3,
+            "title": "Name",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "name",
+          "cases"
+        ],
+        "title": "CorpusCreate",
+        "type": "object"
+      },
+      "CorpusResponse": {
+        "properties": {
+          "approvedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approvedat"
+          },
+          "cases": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Cases",
+            "type": "array"
+          },
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "versionNumber": {
+            "title": "Versionnumber",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "subjectId",
+          "versionNumber",
+          "name",
+          "cases",
+          "status",
+          "contentHash",
+          "createdAt",
+          "approvedAt"
+        ],
+        "title": "CorpusResponse",
+        "type": "object"
+      },
+      "CorpusReview": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "approved",
+              "retired"
+            ],
+            "title": "Decision",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "CorpusReview",
+        "type": "object"
+      },
       "CourseResponse": {
         "properties": {
           "id": {
@@ -1396,6 +1510,55 @@
           "periods"
         ],
         "title": "CurriculumPlanResponse",
+        "type": "object"
+      },
+      "DeterministicMediaCreate": {
+        "properties": {
+          "altText": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "circuit_svg",
+              "forces_svg",
+              "geometry_svg",
+              "plot_svg"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "sourceChunkId": {
+            "format": "uuid",
+            "title": "Sourcechunkid",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 180,
+            "minLength": 2,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "subjectId",
+          "sourceChunkId",
+          "title",
+          "altText"
+        ],
+        "title": "DeterministicMediaCreate",
         "type": "object"
       },
       "DocumentExtractionResponse": {
@@ -1770,6 +1933,215 @@
         "title": "ErrorResponse",
         "type": "object"
       },
+      "EvaluationCase": {
+        "properties": {
+          "caseId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9._-]+$",
+            "title": "Caseid",
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "inventory",
+              "ocr",
+              "equation",
+              "diagram",
+              "mapping",
+              "marking",
+              "feedback",
+              "repeatability"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "expected": {
+            "additionalProperties": true,
+            "title": "Expected",
+            "type": "object"
+          },
+          "input": {
+            "additionalProperties": true,
+            "title": "Input",
+            "type": "object"
+          }
+        },
+        "required": [
+          "caseId",
+          "category",
+          "expected"
+        ],
+        "title": "EvaluationCase",
+        "type": "object"
+      },
+      "EvaluationDashboard": {
+        "properties": {
+          "corpora": {
+            "items": {
+              "$ref": "#/components/schemas/CorpusResponse"
+            },
+            "title": "Corpora",
+            "type": "array"
+          },
+          "missingApprovedSubjects": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missingapprovedsubjects",
+            "type": "array"
+          },
+          "releases": {
+            "items": {
+              "$ref": "#/components/schemas/ReleaseResponse"
+            },
+            "title": "Releases",
+            "type": "array"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationRunResponse"
+            },
+            "title": "Runs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "corpora",
+          "runs",
+          "releases",
+          "missingApprovedSubjects"
+        ],
+        "title": "EvaluationDashboard",
+        "type": "object"
+      },
+      "EvaluationObservation": {
+        "properties": {
+          "caseId": {
+            "title": "Caseid",
+            "type": "string"
+          },
+          "output": {
+            "additionalProperties": true,
+            "title": "Output",
+            "type": "object"
+          }
+        },
+        "required": [
+          "caseId",
+          "output"
+        ],
+        "title": "EvaluationObservation",
+        "type": "object"
+      },
+      "EvaluationRunCreate": {
+        "properties": {
+          "candidateModel": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Candidatemodel",
+            "type": "string"
+          },
+          "corpusId": {
+            "format": "uuid",
+            "title": "Corpusid",
+            "type": "string"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/EvaluationObservation"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Observations",
+            "type": "array"
+          },
+          "promptVersion": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Promptversion",
+            "type": "string"
+          }
+        },
+        "required": [
+          "corpusId",
+          "candidateModel",
+          "promptVersion",
+          "observations"
+        ],
+        "title": "EvaluationRunCreate",
+        "type": "object"
+      },
+      "EvaluationRunResponse": {
+        "properties": {
+          "candidateModel": {
+            "title": "Candidatemodel",
+            "type": "string"
+          },
+          "corpusId": {
+            "format": "uuid",
+            "title": "Corpusid",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "failureReasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Failurereasons",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Metrics",
+            "type": "object"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "promptVersion": {
+            "title": "Promptversion",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "thresholds": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Thresholds",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "corpusId",
+          "subjectId",
+          "candidateModel",
+          "promptVersion",
+          "metrics",
+          "thresholds",
+          "passed",
+          "failureReasons",
+          "createdAt"
+        ],
+        "title": "EvaluationRunResponse",
+        "type": "object"
+      },
       "EvidenceResponse": {
         "properties": {
           "boundingBox": {
@@ -2066,6 +2438,46 @@
           "total"
         ],
         "title": "HintInteractionResponse",
+        "type": "object"
+      },
+      "IllustrationCreate": {
+        "properties": {
+          "altText": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "prompt": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "sourceChunkId": {
+            "format": "uuid",
+            "title": "Sourcechunkid",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 180,
+            "minLength": 2,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "sourceChunkId",
+          "title",
+          "altText",
+          "prompt"
+        ],
+        "title": "IllustrationCreate",
         "type": "object"
       },
       "LoginRequest": {
@@ -2380,6 +2792,222 @@
           "units"
         ],
         "title": "MasteryResponse",
+        "type": "object"
+      },
+      "MediaListResponse": {
+        "properties": {
+          "media": {
+            "items": {
+              "$ref": "#/components/schemas/MediaResponse"
+            },
+            "title": "Media",
+            "type": "array"
+          }
+        },
+        "required": [
+          "media"
+        ],
+        "title": "MediaListResponse",
+        "type": "object"
+      },
+      "MediaResponse": {
+        "properties": {
+          "altText": {
+            "title": "Alttext",
+            "type": "string"
+          },
+          "contentType": {
+            "title": "Contenttype",
+            "type": "string"
+          },
+          "contentUrl": {
+            "title": "Contenturl",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "promptVersion": {
+            "title": "Promptversion",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "responseId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responseid"
+          },
+          "reviewNotes": {
+            "title": "Reviewnotes",
+            "type": "string"
+          },
+          "reviewedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewedat"
+          },
+          "sourceChunkId": {
+            "format": "uuid",
+            "title": "Sourcechunkid",
+            "type": "string"
+          },
+          "sourceManifest": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sourcemanifest",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "unitId": {
+            "format": "uuid",
+            "title": "Unitid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subjectId",
+          "unitId",
+          "sourceChunkId",
+          "kind",
+          "title",
+          "altText",
+          "prompt",
+          "promptVersion",
+          "parameters",
+          "sourceManifest",
+          "provider",
+          "model",
+          "responseId",
+          "contentType",
+          "status",
+          "reviewNotes",
+          "createdAt",
+          "reviewedAt",
+          "contentUrl"
+        ],
+        "title": "MediaResponse",
+        "type": "object"
+      },
+      "MediaReview": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "published",
+              "rejected"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "notes": {
+            "maxLength": 2000,
+            "minLength": 3,
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "notes"
+        ],
+        "title": "MediaReview",
+        "type": "object"
+      },
+      "MediaSourceResponse": {
+        "properties": {
+          "documentTitle": {
+            "title": "Documenttitle",
+            "type": "string"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "unitCode": {
+            "title": "Unitcode",
+            "type": "string"
+          },
+          "unitTitle": {
+            "title": "Unittitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subjectId",
+          "unitCode",
+          "unitTitle",
+          "documentTitle",
+          "page",
+          "excerpt"
+        ],
+        "title": "MediaSourceResponse",
         "type": "object"
       },
       "OfficialMaterialReview": {
@@ -3395,6 +4023,103 @@
           "embeddingModel"
         ],
         "title": "ReindexResponse",
+        "type": "object"
+      },
+      "ReleaseResponse": {
+        "properties": {
+          "activatedAt": {
+            "format": "date-time",
+            "title": "Activatedat",
+            "type": "string"
+          },
+          "confidenceThreshold": {
+            "title": "Confidencethreshold",
+            "type": "number"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "runId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runid"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "workflow": {
+            "title": "Workflow",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "workflow",
+          "mode",
+          "runId",
+          "confidenceThreshold",
+          "activatedAt"
+        ],
+        "title": "ReleaseResponse",
+        "type": "object"
+      },
+      "ReleaseUpdate": {
+        "properties": {
+          "confidenceThreshold": {
+            "default": 0.85,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidencethreshold",
+            "type": "number"
+          },
+          "mode": {
+            "enum": [
+              "review_required",
+              "automatic"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "runId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Runid"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "workflow": {
+            "enum": [
+              "assessment_feedback",
+              "content_publication"
+            ],
+            "title": "Workflow",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "workflow",
+          "mode"
+        ],
+        "title": "ReleaseUpdate",
         "type": "object"
       },
       "RetrievalRequest": {
@@ -8857,6 +9582,465 @@
         ]
       }
     },
+    "/api/v1/evaluations/admin": {
+      "get": {
+        "operationId": "admin_dashboard_api_v1_evaluations_admin_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationDashboard"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Admin Dashboard",
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/admin/corpora": {
+      "post": {
+        "operationId": "create_corpus_api_v1_evaluations_admin_corpora_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorpusCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Corpus",
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/admin/corpora/{corpus_id}/review": {
+      "post": {
+        "operationId": "review_corpus_api_v1_evaluations_admin_corpora__corpus_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "corpus_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Corpus Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorpusReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review Corpus",
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/admin/releases": {
+      "post": {
+        "operationId": "update_release_api_v1_evaluations_admin_releases_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Release",
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
+    "/api/v1/evaluations/admin/runs": {
+      "post": {
+        "operationId": "run_evaluation_api_v1_evaluations_admin_runs_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationRunCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvaluationRunResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Run Evaluation",
+        "tags": [
+          "evaluations"
+        ]
+      }
+    },
     "/api/v1/mastery/students/{student_id}": {
       "get": {
         "operationId": "student_mastery_api_v1_mastery_students__student_id__get",
@@ -8949,6 +10133,579 @@
         "summary": "Student Mastery",
         "tags": [
           "mastery"
+        ]
+      }
+    },
+    "/api/v1/media": {
+      "get": {
+        "operationId": "list_rows_api_v1_media_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "studentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Studentid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subjectId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Subjectid"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Rows",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/media/admin/deterministic": {
+      "post": {
+        "operationId": "create_deterministic_api_v1_media_admin_deterministic_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeterministicMediaCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Deterministic",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/media/admin/illustrations": {
+      "post": {
+        "operationId": "create_illustration_api_v1_media_admin_illustrations_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IllustrationCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Illustration",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/media/admin/sources": {
+      "get": {
+        "operationId": "source_options_api_v1_media_admin_sources_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "subjectId",
+            "required": true,
+            "schema": {
+              "title": "Subjectid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MediaSourceResponse"
+                  },
+                  "title": "Response Source Options Api V1 Media Admin Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Source Options",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/media/admin/{media_id}/review": {
+      "post": {
+        "operationId": "review_api_v1_media_admin__media_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Media Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MediaReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review",
+        "tags": [
+          "media"
+        ]
+      }
+    },
+    "/api/v1/media/{media_id}/content": {
+      "get": {
+        "operationId": "get_content_api_v1_media__media_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Media Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "studentId",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Studentid"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get Content",
+        "tags": [
+          "media"
         ]
       }
     },
