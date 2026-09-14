@@ -4,6 +4,7 @@ import test from 'node:test';
 
 const api = readFileSync(new URL('../lib/api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
+const tutorSessions = readFileSync(new URL('../features/tutor-sessions.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(
   new URL('../features/admin.tsx', import.meta.url),
   'utf8',
@@ -276,4 +277,15 @@ test('role-scoped tutor profiles use curated AKURU heroes and immutable API vers
   assert.match(tutorProfiles, /getTutorAdminPresets/);
   assert.doesNotMatch(tutorProfiles, /providerVoice|provider_voice|generated avatar/i);
   assert.doesNotMatch(tutorProfiles, />\{item\.id\}</);
+});
+
+test('student tutor room retains transcripts and supports explicit tutor and unit switches', () => {
+  assert.match(page, /Tutor room/);
+  assert.match(tutorSessions, /getTutorSessionOptions/);
+  assert.match(tutorSessions, /switchTutorProfile/);
+  assert.match(tutorSessions, /switchTutorUnit/);
+  assert.match(tutorSessions, /CONTINUOUS HANDOVER/);
+  assert.match(tutorSessions, /profileVersion/);
+  assert.match(api, /requestKey/);
+  assert.doesNotMatch(tutorSessions, /MediaRecorder|audioBlob|raw audio/i);
 });

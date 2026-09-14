@@ -133,6 +133,8 @@ At exam start, persist an immutable snapshot of student enrolment, coverage vers
 
 Full past papers, marking schemes and examiner reports remain Admin-only in the current portal; exposing full-syllabus files could bypass term filtering or reveal answers. Parents and students can read approved enrolled-subject textbooks/reference materials and eligible question content. Approved textbooks may contain units outside the current term; term filtering applies to assessed question selection. The production tutor should restrict retrieved passages to the active question/lesson's units where appropriate.
 
+Tutor practice sessions are scoped to one authenticated Student, one enrolled subject and one cumulatively eligible unit. Ordered transcript turns retain the immutable tutor-profile version used for each turn. Tutor and eligible-unit switches are recorded as events; a server-owned compact handover carries recent context while the same session, transcript and authorized source links remain intact. No raw tutor audio is stored.
+
 ## Data model and referential rules
 
 | Entity | Required relationships |

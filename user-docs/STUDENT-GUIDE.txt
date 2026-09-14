@@ -76,4 +76,6 @@ MY TUTORS
 
 Open My tutors to build your tutor team. You can create more than one tutor, choose a child-safe AKURU hero, select how the tutor should explain things, and give the tutor your own name. Editing or renaming a tutor keeps earlier versions safely in AKURU. Removing a tutor hides it from your list.
 
-Tutor profiles prepare the tutor's appearance and teaching style. Text lessons and voice conversations will become available in later Tutor steps.
+Open Tutor room to begin a practice conversation in one of your covered units. You can change to another tutor or move to another covered unit in the same subject without losing the transcript. Each message is retained with the tutor profile version used at that time. Tutor help is disabled during mock and official assessments.
+
+AKURU currently stores typed messages and text transcripts of voice turns. It does not store raw voice recordings. AI-generated tutor replies and live voice capture are added in later Tutor steps.

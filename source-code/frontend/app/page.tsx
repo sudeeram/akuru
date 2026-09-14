@@ -24,6 +24,7 @@ import {
   FlaskConical,
   Activity,
   Bot,
+  MessageCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,11 +47,13 @@ import { Reviews, Assignments } from '@/features/parent';
 import { AdminWorkspace, FamilyCourses, FamilyLibrary } from '@/features/admin';
 import { usePortalTools } from '@/features/use-portal-tools';
 import { TutorProfiles } from '@/features/tutor-profiles';
+import { TutorSessions } from '@/features/tutor-sessions';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
   ['subjects', 'My subjects', BookOpen],
   ['tutors', 'My tutors', Bot],
+  ['tutor-room', 'Tutor room', MessageCircle],
   ['practice', 'Practice', ClipboardCheck],
   ['exams', 'Mock exams', Clock3],
   ['progress', 'My progress', TrendingUp],
@@ -405,6 +408,8 @@ export default function Portal() {
           <Subjects {...props} />
         ) : view === 'tutors' ? (
           <TutorProfiles data={data} notify={notify} />
+        ) : view === 'tutor-room' && !parent ? (
+          <TutorSessions notify={notify} />
         ) : view === 'practice' && !parent ? (
           <Practice {...props} />
         ) : view === 'exams' && !parent ? (

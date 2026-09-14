@@ -17,7 +17,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorProfile, TutorProfileVersion, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorProfile, TutorProfileVersion, TutorSession, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -28,7 +28,7 @@ from app.services import assessment_marking
 from app.services import assessment_working
 from app.services import weaknesses
 from app.services import assessments
-from app.config import Settings
+from app.config import Settings, get_settings
 from app.schemas.question_mappings import AIUnitSuggestionOutput
 from app.ai.base import AIResult, AIUsage
 from app.storage.factory import get_storage
@@ -277,6 +277,107 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
     })
     assert response.status_code == 204
     assert client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
+
+
+@pytest.mark.integration
+def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_client) -> None:
+    client, admin_username, _ = auth_client
+    session: Session = next(app.dependency_overrides[get_db]())
+    admin = session.query(User).filter_by(username=admin_username).one()
+    parent = User(username=f"session-parent-{uuid.uuid4().hex}", display_name="Session Parent", role="parent",
+                  password_hash=hash_password("session parent password"), must_change_password=False)
+    student = User(username=f"session-student-{uuid.uuid4().hex}", display_name="Session Student", role="student",
+                   password_hash=hash_password("session student password"), must_change_password=False)
+    outsider = User(username=f"session-outsider-{uuid.uuid4().hex}", display_name="Other Student", role="student",
+                    password_hash=hash_password("other student password"), must_change_password=False)
+    session.add_all([parent, student, outsider]); session.flush()
+    session.add_all([StudentProfile(student_id=student.id, parent_id=parent.id), StudentProfile(student_id=outsider.id, parent_id=parent.id),
+                     StudentProgression(student_id=student.id, course_id="igcse", grade=10, term=1, is_current=True),
+                     StudentSubject(student_id=student.id, subject_id="biology")]); session.flush()
+    document = Document(kind="textbook", course_id="igcse", subject_id="biology", title="Tutor Biology",
+        original_filename="tutor.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex * 2, review_state="published", uploaded_by=admin.id, edition="2026", size_bytes=1)
+    session.add(document); session.flush()
+    document_version = DocumentVersion(document_id=document.id, version_number=1, original_filename="tutor.pdf",
+        object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf", sha256=uuid.uuid4().hex * 2,
+        size_bytes=1, status="completed", uploaded_by=admin.id)
+    session.add(document_version); session.flush()
+    content = TextbookContentVersion(document_id=document.id, source_document_version_id=document_version.id,
+        version_number=1, course_id="igcse", subject_id="biology", edition="2026", status="published",
+        created_by=admin.id, published_by=admin.id)
+    session.add(content); session.flush()
+    units = [TextbookUnit(textbook_id=document.id, course_id="igcse", subject_id="biology", unit_code=code,
+                          title=title, sequence=index, content_version_id=content.id)
+             for index, (code, title) in enumerate((("B1", "Cells"), ("B2", "Transport")), 1)]
+    session.add_all(units); session.flush()
+    plan = CurriculumPlan(course_id="igcse", subject_id="biology", textbook_content_version_id=content.id,
+        version_number=1, status="published", created_by=admin.id, published_by=admin.id)
+    session.add(plan); session.flush()
+    session.add_all([CurriculumPlanUnit(plan_id=plan.id, grade=10, term=1, unit_id=unit.id) for unit in units])
+    profiles = []
+    for index, (name, avatar) in enumerate((("Nova", "akuru-nova"), ("Atlas", "akuru-atlas")), 1):
+        profile = TutorProfile(public_ref=f"tutor_{uuid.uuid4().hex}", student_id=student.id, current_version_number=1)
+        session.add(profile); session.flush()
+        version = TutorProfileVersion(profile_id=profile.id, version_number=1, name=name,
+            presentation="neutral" if index == 1 else "masculine", avatar_code=avatar,
+            voice_code="bright-companion" if index == 1 else "clear-coach", tone="encouraging",
+            friendliness="high", enthusiasm="medium", speed="medium", communication_character="balanced",
+            explanation_depth="standard", teaching_style="guided", created_by=student.id)
+        session.add(version); session.flush(); profiles.append((profile, version))
+    session.commit()
+    app.dependency_overrides[get_settings] = lambda: Settings(database_password="test", tutor_text_enabled=True, tutor_voice_enabled=True)
+
+    login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    options = client.get("/api/v1/tutoring/session-options")
+    assert options.status_code == 200
+    assert [unit["code"] for unit in options.json()["subjects"][0]["units"]] == ["B1", "B2"]
+    start_payload = {"subjectId": "biology", "unitId": str(units[0].id), "profileRef": profiles[0][0].public_ref, "requestKey": "start-session-001"}
+    started = client.post("/api/v1/tutoring/sessions", headers=headers, json=start_payload)
+    assert started.status_code == 201, started.text
+    started_again = client.post("/api/v1/tutoring/sessions", headers=headers, json=start_payload)
+    assert started_again.json()["sessionRef"] == started.json()["sessionRef"]
+    session_ref = started.json()["sessionRef"]
+    turn_payload = {"content": "Why do cells need membranes?", "modality": "voice", "requestKey": "voice-turn-001"}
+    first_turn = client.post(f"/api/v1/tutoring/sessions/{session_ref}/turns", headers=headers, json=turn_payload)
+    assert first_turn.status_code == 200 and len(first_turn.json()["turns"]) == 1
+    replay = client.post(f"/api/v1/tutoring/sessions/{session_ref}/turns", headers=headers, json=turn_payload)
+    assert len(replay.json()["turns"]) == 1
+    switched = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=headers,
+        json={"profileRef": profiles[1][0].public_ref, "requestKey": "profile-switch-001"})
+    assert switched.status_code == 200
+    assert switched.json()["currentTutor"]["name"] == "Atlas"
+    assert switched.json()["turns"][0]["profileRef"] == profiles[0][0].public_ref
+    assert switched.json()["profileEvents"][0]["handoverSummary"]["recentContext"][0]["summary"] == turn_payload["content"]
+    switch_replay = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=headers,
+        json={"profileRef": profiles[1][0].public_ref, "requestKey": "profile-switch-001"})
+    assert len(switch_replay.json()["profileEvents"]) == 1
+    competing_switch = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=headers,
+        json={"profileRef": profiles[0][0].public_ref, "requestKey": "profile-switch-002"})
+    assert competing_switch.status_code == 200
+    assert competing_switch.json()["currentTutor"]["name"] == "Nova"
+    assert len(competing_switch.json()["profileEvents"]) == 2
+    moved = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[1].id), "requestKey": "unit-switch-001"})
+    assert moved.status_code == 200 and moved.json()["activeUnit"]["code"] == "B2"
+    assert len(moved.json()["turns"]) == 1 and len(moved.json()["unitEvents"]) == 1
+    assert "audio" not in moved.text.lower()
+    assert session.query(TutorTurn).filter_by(session_id=session.query(TutorSession).filter_by(public_ref=session_ref).one().id).one().profile_version_id == profiles[0][1].id
+    assert session.query(TutorSessionProfileEvent).count() == 2
+    assert session.query(TutorSessionUnitEvent).count() == 1
+
+    outsider_login = client.post("/api/v1/auth/login", json={"username": outsider.username, "password": "other student password"}).json()
+    assert client.get(f"/api/v1/tutoring/sessions/{session_ref}").status_code == 404
+    outsider_headers = {"X-CSRF-Token": outsider_login["csrfToken"]}
+    assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-profile", headers=outsider_headers,
+        json={"profileRef": profiles[1][0].public_ref, "requestKey": "foreign-switch-001"}).status_code == 404
+
+    login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    ended = client.post(f"/api/v1/tutoring/sessions/{session_ref}/end", headers=headers, json={"requestKey": "end-session-001"})
+    assert ended.status_code == 200 and ended.json()["status"] == "ended"
+    assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/end", headers=headers,
+        json={"requestKey": "end-session-001"}).json()["status"] == "ended"
 
 
 @pytest.mark.integration

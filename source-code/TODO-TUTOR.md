@@ -48,17 +48,21 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Preserve one coherent learning conversation when a student changes tutors.
 
-- [ ] Add `tutor_sessions`, `tutor_turns`, `tutor_turn_sources` and `tutor_session_profile_events` tables.
-- [ ] Start each session inside one enrolled subject and one currently eligible unit.
-- [ ] Allow an explicit move to another eligible unit within the same subject and record the transition.
-- [ ] Allow switching between the student's tutor profiles without ending the session.
-- [ ] Generate a compact backend-owned handover summary for the newly selected tutor.
-- [ ] Preserve the subject, active unit, transcript, authorized citations and current practice state across a switch.
-- [ ] Store the selected immutable tutor-profile version on every switch event and applicable turn.
-- [ ] Store text and voice transcripts by default; never store raw audio.
-- [ ] Add idempotent turn creation and switch requests.
-- [ ] Build the Student conversation shell, transcript view and in-session tutor switcher.
-- [ ] Test concurrent switches, retries, session ownership and cross-family isolation.
+- [x] Add `tutor_sessions`, `tutor_turns`, `tutor_turn_sources` and `tutor_session_profile_events` tables.
+- [x] Start each session inside one enrolled subject and one currently eligible unit.
+- [x] Allow an explicit move to another eligible unit within the same subject and record the transition.
+- [x] Allow switching between the student's tutor profiles without ending the session.
+- [x] Generate a compact backend-owned handover summary for the newly selected tutor.
+- [x] Preserve the subject, active unit, transcript, authorized citations and current practice state across a switch.
+- [x] Store the selected immutable tutor-profile version on every switch event and applicable turn.
+- [x] Store text and voice transcripts by default; never store raw audio.
+- [x] Add idempotent turn creation and switch requests.
+- [x] Build the Student conversation shell, transcript view and in-session tutor switcher.
+- [x] Test concurrent switches, retries, session ownership and cross-family isolation.
+
+**Completed:** Students can start a practice-only tutor session in a cumulatively covered unit, retain an ordered text or voice transcript, change tutors, and move between eligible units in the same subject. Every turn and switch points to an immutable tutor-profile version. Profile changes create a compact backend-owned handover while retaining subject, unit, practice state and authorized source relationships. PostgreSQL row locks and request-key uniqueness serialize competing mutations and make retries idempotent. The Student Tutor room and implementation details are documented in [Tutor Step 2 backend](backend/docs/tutor-step-02-sessions.md) and [Tutor Step 2 frontend](frontend/docs/tutor-step-02-sessions.md).
+
+**Validation:** Migration `c14d7a2f9e01` applies cleanly and Alembic reports no drift. `npm run verify` passes with 25 frontend and 86 backend tests, the generated OpenAPI contract, TypeScript, lint and the production frontend build. Tests cover covered-unit eligibility, immutable turn attribution, retained handover context, repeated and competing switches, request retries, ownership isolation and the absence of raw-audio storage.
 
 **Done when:** Switching tutors changes the persona on subsequent turns without losing or leaking learning context, and every retained turn can be traced to the tutor profile used.
 

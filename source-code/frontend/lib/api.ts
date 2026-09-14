@@ -144,6 +144,16 @@ export type TutorProfileDraft = {
 };
 export type TutorProfile = TutorProfileDraft & { profileRef: string; version: number; active: boolean };
 export type TutorAdminPresets = { avatars: TutorAvatar[]; voices: TutorVoice[] };
+export type TutorSessionUnit = { id: string; code: string; title: string };
+export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; createdAt: string };
+export type TutorSession = {
+  sessionRef: string; subjectId: string; activeUnit: TutorSessionUnit; currentTutor: TutorProfile;
+  mode: 'practice'; status: 'active' | 'ended'; startedAt: string; endedAt?: string | null;
+  turns: TutorTurn[];
+  profileEvents: { fromProfileRef: string; fromProfileVersion: number; toProfileRef: string; toProfileVersion: number; handoverSummary: Record<string, unknown>; createdAt: string }[];
+  unitEvents: { fromUnit: TutorSessionUnit; toUnit: TutorSessionUnit; createdAt: string }[];
+};
+export type TutorSessionOptions = { subjects: { id: string; name: string; units: TutorSessionUnit[] }[]; profiles: TutorProfile[] };
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -206,6 +216,13 @@ export const getTutorAdminPresets = () => request('tutoring/admin/presets') as P
 export const updateTutorPreset = (kind: 'avatars' | 'voices', code: string, enabled: boolean, sortOrder: number) => request(
   `tutoring/admin/${kind}/${code}`, { method: 'POST', body: { enabled, sortOrder } },
 ) as Promise<TutorAdminPresets>;
+export const getTutorSessionOptions = () => request('tutoring/session-options') as Promise<TutorSessionOptions>;
+export const getTutorSessions = () => request('tutoring/sessions') as Promise<{ sessions: TutorSession[] }>;
+export const startTutorSession = (subjectId: string, unitId: string, profileRef: string, requestKey: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, unitId, profileRef, requestKey } }) as Promise<TutorSession>;
+export const addTutorTurn = (sessionRef: string, content: string, modality: 'text' | 'voice', requestKey: string) => request(`tutoring/sessions/${sessionRef}/turns`, { method: 'POST', body: { content, modality, requestKey } }) as Promise<TutorSession>;
+export const switchTutorProfile = (sessionRef: string, profileRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-profile`, { method: 'POST', body: { profileRef, requestKey } }) as Promise<TutorSession>;
+export const switchTutorUnit = (sessionRef: string, unitId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { unitId, requestKey } }) as Promise<TutorSession>;
+export const endTutorSession = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/end`, { method: 'POST', body: { requestKey } }) as Promise<TutorSession>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {

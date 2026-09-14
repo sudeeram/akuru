@@ -2066,3 +2066,21 @@ small {
 }
 
 pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; }
+
+.tutor-session-start { max-width: 720px; }
+.tutor-room-header { display: grid; grid-template-columns: auto 1fr minmax(230px, .7fr); gap: 22px; align-items: center; }
+.tutor-room-header img { object-fit: contain; border-radius: 24px; background: linear-gradient(145deg, #eefcff, #fff1f5); }
+.tutor-room-controls { display: grid; gap: 12px; }
+.tutor-room-controls label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
+.tutor-turn-list { display: grid; gap: 12px; max-height: 430px; overflow-y: auto; padding: 3px; }
+.tutor-turn { width: min(78%, 680px); padding: 14px 17px; border-radius: 18px; background: #f4f7fb; }
+.tutor-turn.student { justify-self: end; background: #e9fbff; border-bottom-right-radius: 5px; }
+.tutor-turn.assistant { border-bottom-left-radius: 5px; }
+.tutor-turn p { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tutor-turn small { color: var(--muted, #6b7280); }
+.tutor-composer { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+@media (max-width: 760px) {
+  .tutor-room-header { grid-template-columns: auto 1fr; }
+  .tutor-room-controls { grid-column: 1 / -1; }
+  .tutor-turn { width: 92%; }
+}

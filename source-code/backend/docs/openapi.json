@@ -4792,6 +4792,21 @@
         "title": "TutorCapabilitiesResponse",
         "type": "object"
       },
+      "TutorEndSessionRequest": {
+        "properties": {
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestKey"
+        ],
+        "title": "TutorEndSessionRequest",
+        "type": "object"
+      },
       "TutorOptionsResponse": {
         "properties": {
           "avatars": {
@@ -4882,6 +4897,46 @@
           "sortOrder"
         ],
         "title": "TutorPresetUpdate",
+        "type": "object"
+      },
+      "TutorProfileEventResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "fromProfileRef": {
+            "title": "Fromprofileref",
+            "type": "string"
+          },
+          "fromProfileVersion": {
+            "title": "Fromprofileversion",
+            "type": "integer"
+          },
+          "handoverSummary": {
+            "additionalProperties": true,
+            "title": "Handoversummary",
+            "type": "object"
+          },
+          "toProfileRef": {
+            "title": "Toprofileref",
+            "type": "string"
+          },
+          "toProfileVersion": {
+            "title": "Toprofileversion",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fromProfileRef",
+          "fromProfileVersion",
+          "toProfileRef",
+          "toProfileVersion",
+          "handoverSummary",
+          "createdAt"
+        ],
+        "title": "TutorProfileEventResponse",
         "type": "object"
       },
       "TutorProfileInput": {
@@ -5135,6 +5190,349 @@
           "active"
         ],
         "title": "TutorProfileResponse",
+        "type": "object"
+      },
+      "TutorSessionListResponse": {
+        "properties": {
+          "sessions": {
+            "items": {
+              "$ref": "#/components/schemas/TutorSessionResponse"
+            },
+            "title": "Sessions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessions"
+        ],
+        "title": "TutorSessionListResponse",
+        "type": "object"
+      },
+      "TutorSessionOptionsResponse": {
+        "properties": {
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/TutorProfileResponse"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "subjects": {
+            "items": {
+              "$ref": "#/components/schemas/TutorSessionSubjectOption"
+            },
+            "title": "Subjects",
+            "type": "array"
+          }
+        },
+        "required": [
+          "subjects",
+          "profiles"
+        ],
+        "title": "TutorSessionOptionsResponse",
+        "type": "object"
+      },
+      "TutorSessionResponse": {
+        "properties": {
+          "activeUnit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          },
+          "currentTutor": {
+            "$ref": "#/components/schemas/TutorProfileResponse"
+          },
+          "endedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Endedat"
+          },
+          "mode": {
+            "const": "practice",
+            "title": "Mode",
+            "type": "string"
+          },
+          "profileEvents": {
+            "items": {
+              "$ref": "#/components/schemas/TutorProfileEventResponse"
+            },
+            "title": "Profileevents",
+            "type": "array"
+          },
+          "sessionRef": {
+            "title": "Sessionref",
+            "type": "string"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "title": "Startedat",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "ended"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/TutorTurnResponse"
+            },
+            "title": "Turns",
+            "type": "array"
+          },
+          "unitEvents": {
+            "items": {
+              "$ref": "#/components/schemas/TutorUnitEventResponse"
+            },
+            "title": "Unitevents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessionRef",
+          "subjectId",
+          "activeUnit",
+          "currentTutor",
+          "mode",
+          "status",
+          "startedAt"
+        ],
+        "title": "TutorSessionResponse",
+        "type": "object"
+      },
+      "TutorSessionStartRequest": {
+        "properties": {
+          "profileRef": {
+            "maxLength": 48,
+            "minLength": 8,
+            "title": "Profileref",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 32,
+            "minLength": 2,
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "unitId": {
+            "maxLength": 40,
+            "minLength": 32,
+            "title": "Unitid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "unitId",
+          "profileRef",
+          "requestKey"
+        ],
+        "title": "TutorSessionStartRequest",
+        "type": "object"
+      },
+      "TutorSessionSubjectOption": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "units": {
+            "items": {
+              "$ref": "#/components/schemas/PlanUnitResponse"
+            },
+            "title": "Units",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "units"
+        ],
+        "title": "TutorSessionSubjectOption",
+        "type": "object"
+      },
+      "TutorSwitchProfileRequest": {
+        "properties": {
+          "profileRef": {
+            "maxLength": 48,
+            "minLength": 8,
+            "title": "Profileref",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profileRef",
+          "requestKey"
+        ],
+        "title": "TutorSwitchProfileRequest",
+        "type": "object"
+      },
+      "TutorSwitchUnitRequest": {
+        "properties": {
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          },
+          "unitId": {
+            "maxLength": 40,
+            "minLength": 32,
+            "title": "Unitid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "unitId",
+          "requestKey"
+        ],
+        "title": "TutorSwitchUnitRequest",
+        "type": "object"
+      },
+      "TutorTurnCreateRequest": {
+        "properties": {
+          "content": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "modality": {
+            "default": "text",
+            "enum": [
+              "text",
+              "voice"
+            ],
+            "title": "Modality",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content",
+          "requestKey"
+        ],
+        "title": "TutorTurnCreateRequest",
+        "type": "object"
+      },
+      "TutorTurnResponse": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "modality": {
+            "enum": [
+              "text",
+              "voice"
+            ],
+            "title": "Modality",
+            "type": "string"
+          },
+          "profileRef": {
+            "title": "Profileref",
+            "type": "string"
+          },
+          "profileVersion": {
+            "title": "Profileversion",
+            "type": "integer"
+          },
+          "role": {
+            "enum": [
+              "student",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "sources": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "turnRef": {
+            "title": "Turnref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnRef",
+          "role",
+          "modality",
+          "content",
+          "sequence",
+          "profileRef",
+          "profileVersion",
+          "createdAt"
+        ],
+        "title": "TutorTurnResponse",
+        "type": "object"
+      },
+      "TutorUnitEventResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "fromUnit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          },
+          "toUnit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          }
+        },
+        "required": [
+          "fromUnit",
+          "toUnit",
+          "createdAt"
+        ],
+        "title": "TutorUnitEventResponse",
         "type": "object"
       },
       "TutorVoiceResponse": {
@@ -13316,6 +13714,731 @@
           }
         },
         "summary": "Update Profile",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/session-options": {
+      "get": {
+        "operationId": "session_options_api_v1_tutoring_session_options_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Session Options",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions": {
+      "get": {
+        "operationId": "sessions_api_v1_tutoring_sessions_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Sessions",
+        "tags": [
+          "tutoring"
+        ]
+      },
+      "post": {
+        "operationId": "start_session_api_v1_tutoring_sessions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorSessionStartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Start Session",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}": {
+      "get": {
+        "operationId": "get_session_api_v1_tutoring_sessions__session_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get Session",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/end": {
+      "post": {
+        "operationId": "end_session_api_v1_tutoring_sessions__session_ref__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorEndSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "End Session",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/switch-profile": {
+      "post": {
+        "operationId": "switch_profile_api_v1_tutoring_sessions__session_ref__switch_profile_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorSwitchProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Switch Profile",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/switch-unit": {
+      "post": {
+        "operationId": "switch_unit_api_v1_tutoring_sessions__session_ref__switch_unit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorSwitchUnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Switch Unit",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/turns": {
+      "post": {
+        "operationId": "add_turn_api_v1_tutoring_sessions__session_ref__turns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorTurnCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Add Turn",
         "tags": [
           "tutoring"
         ]

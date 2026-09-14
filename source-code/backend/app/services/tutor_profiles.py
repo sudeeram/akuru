@@ -96,8 +96,7 @@ def _version(db: Session, profile: TutorProfile) -> TutorProfileVersion:
     return row
 
 
-def _profile_response(db: Session, profile: TutorProfile) -> TutorProfileResponse:
-    row = _version(db, profile)
+def profile_version_response(profile: TutorProfile, row: TutorProfileVersion) -> TutorProfileResponse:
     return TutorProfileResponse(
         profileRef=profile.public_ref,
         version=row.version_number,
@@ -114,6 +113,10 @@ def _profile_response(db: Session, profile: TutorProfile) -> TutorProfileRespons
         explanationDepth=row.explanation_depth,
         teachingStyle=row.teaching_style,
     )
+
+
+def _profile_response(db: Session, profile: TutorProfile) -> TutorProfileResponse:
+    return profile_version_response(profile, _version(db, profile))
 
 
 def _validate_presets(db: Session, payload: TutorProfileInput) -> None:
