@@ -43,6 +43,7 @@ class TutorTurnResponse(BaseModel):
     profileRef: str
     profileVersion: int
     sources: list[str] = Field(default_factory=list)
+    structured: dict = Field(default_factory=dict)
     createdAt: datetime
 
 

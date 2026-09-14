@@ -242,6 +242,12 @@ class TutorTurn(Base):
     role: Mapped[str] = mapped_column(String(16))
     modality: Mapped[str] = mapped_column(String(12), default="text", server_default="text")
     content: Mapped[str] = mapped_column(Text)
+    response_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    operation_id: Mapped[uuid.UUID | None] = mapped_column(index=True)
+    provider: Mapped[str | None] = mapped_column(String(40))
+    model: Mapped[str | None] = mapped_column(String(120))
+    prompt_name: Mapped[str | None] = mapped_column(String(80))
+    prompt_version: Mapped[str | None] = mapped_column(String(40))
     request_key: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (

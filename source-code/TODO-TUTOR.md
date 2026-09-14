@@ -130,16 +130,20 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Deliver safe, source-grounded tutoring through the existing ordered OpenAI provider layer.
 
-- [ ] Add versioned Tutor API routers, schemas, service and repository boundaries.
-- [ ] Add versioned prompts for explanation, questions, guided practice, Socratic practice, revision, exam technique and French conversation.
-- [ ] Define structured output for response content, citations, follow-up choices, tool results and proposed non-authoritative signals.
-- [ ] Add strictly scoped tools for learner context, next-unit recommendation, approved source search, authorized source opening, mastery summary, study-plan context, guided practice and deterministic media.
-- [ ] Derive student identity and scope from the authenticated session rather than tool arguments supplied by the model.
-- [ ] Route complete turns through the ordered OpenAI account router with bounded retries, usage recording and one logical operation ID.
-- [ ] Treat source documents and student messages as untrusted content that cannot modify system or tool rules.
-- [ ] Validate every provider response and citation before persisting or returning it.
-- [ ] Add fake-provider tests for tool authorization, prompt injection, malformed output, failover and insufficient evidence.
-- [ ] Complete the Student text conversation UI with citations, visual content, error recovery and accessible keyboard interaction.
+- [x] Add versioned Tutor API routers, schemas, service and repository boundaries.
+- [x] Add versioned prompts for explanation, questions, guided practice, Socratic practice, revision, exam technique and French conversation.
+- [x] Define structured output for response content, citations, follow-up choices, tool results and proposed non-authoritative signals.
+- [x] Add strictly scoped tools for learner context, next-unit recommendation, approved source search, authorized source opening, mastery summary, study-plan context, guided practice and deterministic media.
+- [x] Derive student identity and scope from the authenticated session rather than tool arguments supplied by the model.
+- [x] Route complete turns through the ordered OpenAI account router with bounded retries, usage recording and one logical operation ID.
+- [x] Treat source documents and student messages as untrusted content that cannot modify system or tool rules.
+- [x] Validate every provider response and citation before persisting or returning it.
+- [x] Add fake-provider tests for tool authorization, prompt injection, malformed output, failover and insufficient evidence.
+- [x] Complete the Student text conversation UI with citations, visual content, error recovery and accessible keyboard interaction.
+
+**Completed:** The versioned structured Tutor endpoint runs seven teaching modes through server-controlled learner, retrieval, recommendation, practice-availability and approved-media tools. Authenticated session scope fixes the Student, subject and unit. Untrusted messages and evidence stay outside system instructions; structured output, citations and signal evidence are validated before an idempotent exchange is stored with operation/provider/model/prompt provenance. Missing subject evidence activates a deterministic evidence gate. The Tutor room now renders grounded citations, approved visuals, follow-up choices, mode selection and retry-safe keyboard submission. See [Tutor Step 6 backend](backend/docs/tutor-step-06-structured-text-agent.md) and [Tutor Step 6 frontend](frontend/docs/tutor-step-06-structured-text-agent.md).
+
+**Validation:** `npm run verify` passes with 28 frontend and 94 backend tests, migration drift checking, generated OpenAPI, TypeScript, lint and the production build. Coverage includes all versioned modes, malformed schema rejection, prompt-injection containment, authenticated scope, invented citation rejection, idempotent replay, provider provenance/usage, existing ordered-account failover tests and evidence-insufficient behavior.
 
 **Done when:** A student can hold a grounded text conversation, receive personalised but evidence-backed help, and cannot use the tutor to broaden curriculum or bypass authorization.
 

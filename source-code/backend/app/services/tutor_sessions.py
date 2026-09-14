@@ -113,6 +113,7 @@ def response(db: Session, row: TutorSession) -> TutorSessionResponse:
             sequence=turn.sequence, profileRef=turn_profile.public_ref,
             profileVersion=turn_version.version_number,
             sources=["authorized-source" for _ in range(source_count)], createdAt=turn.created_at,
+            structured=turn.response_data,
         ))
     profile_events = []
     for event in db.scalars(select(TutorSessionProfileEvent).where(TutorSessionProfileEvent.session_id == row.id).order_by(TutorSessionProfileEvent.created_at, TutorSessionProfileEvent.id)).all():

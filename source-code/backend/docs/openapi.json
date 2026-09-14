@@ -5416,6 +5416,134 @@
         "title": "TutorAdminPresetsResponse",
         "type": "object"
       },
+      "TutorAgentTurnRequest": {
+        "properties": {
+          "message": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          },
+          "teachingMode": {
+            "default": "explanation",
+            "enum": [
+              "explanation",
+              "questions",
+              "guided_practice",
+              "socratic_practice",
+              "revision",
+              "exam_technique",
+              "french_conversation"
+            ],
+            "title": "Teachingmode",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "requestKey"
+        ],
+        "title": "TutorAgentTurnRequest",
+        "type": "object"
+      },
+      "TutorAgentTurnResponse": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/TutorCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "followUpChoices": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Followupchoices",
+            "type": "array"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "operationRef": {
+            "title": "Operationref",
+            "type": "string"
+          },
+          "promptName": {
+            "title": "Promptname",
+            "type": "string"
+          },
+          "promptVersion": {
+            "title": "Promptversion",
+            "type": "string"
+          },
+          "proposedSignals": {
+            "items": {
+              "$ref": "#/components/schemas/TutorSignalProposal"
+            },
+            "title": "Proposedsignals",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "teachingMode": {
+            "enum": [
+              "explanation",
+              "questions",
+              "guided_practice",
+              "socratic_practice",
+              "revision",
+              "exam_technique",
+              "french_conversation"
+            ],
+            "title": "Teachingmode",
+            "type": "string"
+          },
+          "toolResults": {
+            "items": {
+              "$ref": "#/components/schemas/TutorToolResult"
+            },
+            "title": "Toolresults",
+            "type": "array"
+          },
+          "turnRef": {
+            "title": "Turnref",
+            "type": "string"
+          },
+          "visuals": {
+            "items": {
+              "$ref": "#/components/schemas/TutorVisual"
+            },
+            "title": "Visuals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "operationRef",
+          "turnRef",
+          "content",
+          "teachingMode",
+          "provider",
+          "model",
+          "promptName",
+          "promptVersion"
+        ],
+        "title": "TutorAgentTurnResponse",
+        "type": "object"
+      },
       "TutorAvatarResponse": {
         "properties": {
           "code": {
@@ -6253,6 +6381,49 @@
         "title": "TutorSessionSubjectOption",
         "type": "object"
       },
+      "TutorSignalProposal": {
+        "properties": {
+          "category": {
+            "enum": [
+              "engagement",
+              "confidence",
+              "misconception",
+              "practice_need"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "confidence": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "observation": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Observation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "observation",
+          "evidenceRefs",
+          "confidence"
+        ],
+        "title": "TutorSignalProposal",
+        "type": "object"
+      },
       "TutorSourceSearchRequest": {
         "properties": {
           "limit": {
@@ -6366,6 +6537,51 @@
         "title": "TutorSwitchUnitRequest",
         "type": "object"
       },
+      "TutorToolResult": {
+        "properties": {
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "name": {
+            "enum": [
+              "learner_context",
+              "next_unit",
+              "approved_source_search",
+              "authorized_source_opening",
+              "mastery_summary",
+              "study_plan_context",
+              "guided_practice",
+              "deterministic_media"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "evidence_insufficient",
+              "unavailable"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "status",
+          "summary"
+        ],
+        "title": "TutorToolResult",
+        "type": "object"
+      },
       "TutorTurnCreateRequest": {
         "properties": {
           "content": {
@@ -6443,6 +6659,11 @@
             "title": "Sources",
             "type": "array"
           },
+          "structured": {
+            "additionalProperties": true,
+            "title": "Structured",
+            "type": "object"
+          },
           "turnRef": {
             "title": "Turnref",
             "type": "string"
@@ -6481,6 +6702,36 @@
           "createdAt"
         ],
         "title": "TutorUnitEventResponse",
+        "type": "object"
+      },
+      "TutorVisual": {
+        "properties": {
+          "altText": {
+            "title": "Alttext",
+            "type": "string"
+          },
+          "contentUrl": {
+            "title": "Contenturl",
+            "type": "string"
+          },
+          "sourceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sourcerefs",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "altText",
+          "contentUrl"
+        ],
+        "title": "TutorVisual",
         "type": "object"
       },
       "TutorVoiceResponse": {
@@ -14976,6 +15227,110 @@
         ]
       }
     },
+    "/api/v1/tutoring/sessions/{session_ref}/agent-turns": {
+      "post": {
+        "operationId": "agent_turn_api_v1_tutoring_sessions__session_ref__agent_turns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorAgentTurnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorAgentTurnResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Agent Turn",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
     "/api/v1/tutoring/sessions/{session_ref}/end": {
       "post": {
         "operationId": "end_session_api_v1_tutoring_sessions__session_ref__end_post",
@@ -15179,6 +15534,92 @@
           }
         },
         "summary": "Learner Context",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/media/{media_id}": {
+      "get": {
+        "operationId": "tutor_media_api_v1_tutoring_sessions__session_ref__media__media_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "media_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Media Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Tutor Media",
         "tags": [
           "tutoring"
         ]

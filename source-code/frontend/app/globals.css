@@ -2085,6 +2085,13 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .source-nearby { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: #f7f8fc; }
 .source-nearby p { margin: 0; }
 .source-nearby span { font-weight: 700; color: #087f8c; }
+.tutor-mode { display: grid; gap: 6px; max-width: 320px; font-size: 12px; font-weight: 700; }
+.agent-evidence { padding: 14px; border: 1px solid #dce8ee; border-radius: 14px; background: #fbfeff; }
+.agent-evidence figure { margin: 0; max-width: 520px; }
+.agent-evidence figure img { width: 100%; height: auto; border-radius: 12px; }
+.agent-evidence figcaption { margin-top: 5px; color: var(--muted, #6b7280); font-size: 13px; }
+.follow-up-choices { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.follow-up-choices button { padding: 7px 10px; border: 1px solid #bcd9df; border-radius: 999px; background: white; cursor: pointer; }
 @media (max-width: 760px) {
   .tutor-room-header { grid-template-columns: auto 1fr; }
   .tutor-room-controls { grid-column: 1 / -1; }

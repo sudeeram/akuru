@@ -145,7 +145,7 @@ export type TutorProfileDraft = {
 export type TutorProfile = TutorProfileDraft & { profileRef: string; version: number; active: boolean };
 export type TutorAdminPresets = { avatars: TutorAvatar[]; voices: TutorVoice[] };
 export type TutorSessionUnit = { id: string; code: string; title: string };
-export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; createdAt: string };
+export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; structured: Partial<TutorAgentReply>; createdAt: string };
 export type TutorSession = {
   sessionRef: string; subjectId: string; activeUnit: TutorSessionUnit; currentTutor: TutorProfile;
   mode: 'practice'; status: 'active' | 'ended'; startedAt: string; endedAt?: string | null;
@@ -169,6 +169,15 @@ export type TutorCitation = {
 };
 export type TutorSourceSearch = { status: 'exact' | 'evidence_insufficient'; message: string; query: string; citations: TutorCitation[] };
 export type TutorCitationContext = { citation: TutorCitation; nearbyPassages: TutorCitation[]; groundingInstruction: string };
+export type TutorAgentReply = {
+  operationRef: string; turnRef: string; content: string;
+  teachingMode: 'explanation' | 'questions' | 'guided_practice' | 'socratic_practice' | 'revision' | 'exam_technique' | 'french_conversation';
+  citations: TutorCitation[]; followUpChoices: string[];
+  toolResults: { name: string; status: 'ready' | 'evidence_insufficient' | 'unavailable'; summary: string; evidenceRefs: string[] }[];
+  visuals: { title: string; altText: string; contentUrl: string; sourceRefs: string[] }[];
+  proposedSignals: { category: string; observation: string; evidenceRefs: string[]; confidence: number }[];
+  provider: string; model: string; promptName: string; promptVersion: string;
+};
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -241,6 +250,7 @@ export const endTutorSession = (sessionRef: string, requestKey: string) => reque
 export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-unit`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextUnitResult>;
 export const searchTutorSources = (sessionRef: string, query: string, textbookEdition?: string) => request(`tutoring/sessions/${sessionRef}/sources/search`, { method: 'POST', body: { query, textbookEdition, limit: 5 } }) as Promise<TutorSourceSearch>;
 export const getTutorCitationContext = (sessionRef: string, citationRef: string) => request(`tutoring/sessions/${sessionRef}/sources/${citationRef}/context`) as Promise<TutorCitationContext>;
+export const addTutorAgentTurn = (sessionRef: string, message: string, teachingMode: TutorAgentReply['teachingMode'], requestKey: string) => request(`tutoring/sessions/${sessionRef}/agent-turns`, { method: 'POST', body: { message, teachingMode, requestKey } }) as Promise<TutorAgentReply>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {

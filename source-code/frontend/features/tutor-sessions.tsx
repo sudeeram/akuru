@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Heading } from '@/features/shared';
 import {
-  addTutorTurn, endTutorSession, errorMessage, getTutorOptions, getTutorSessionOptions,
+  addTutorAgentTurn, endTutorSession, errorMessage, getTutorOptions, getTutorSessionOptions,
   getTutorCitationContext, getTutorSessions, getNextTutorUnit, searchTutorSources, startTutorSession,
   switchTutorProfile, switchTutorUnit, type NextUnitResult, type TutorCitationContext,
-  type TutorOptions, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
+  type TutorAgentReply, type TutorOptions, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
 } from '@/lib/api';
 
 const key = () => crypto.randomUUID();
@@ -22,6 +22,8 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const [session, setSession] = useState<TutorSession | null>(null);
   const [subject, setSubject] = useState(''), [unit, setUnit] = useState(''), [profile, setProfile] = useState('');
   const [message, setMessage] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [teachingMode, setTeachingMode] = useState<TutorAgentReply['teachingMode']>('explanation');
+  const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
   const [nextUnit, setNextUnit] = useState<NextUnitResult | null>(null);
   const [sourceQuery, setSourceQuery] = useState(''), [sources, setSources] = useState<TutorSourceSearch | null>(null);
   const [expandedSource, setExpandedSource] = useState<TutorCitationContext | null>(null);
@@ -31,6 +33,8 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
       setOptions(choices); setProfileOptions(profiles);
       const active = sessions.sessions.find((item) => item.status === 'active') || null;
       setSession(active);
+      const retained = active ? [...active.turns].reverse().find((item) => item.role === 'assistant' && item.structured?.operationRef) : undefined;
+      setAgentReply(retained?.structured as TutorAgentReply || null);
       setSubject((current) => current || choices.subjects[0]?.id || '');
       setProfile((current) => current || choices.profiles[0]?.profileRef || '');
       setError('');
@@ -42,7 +46,7 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const avatar = profileOptions?.avatars.find((item) => item.code === session?.currentTutor.avatarCode);
   const act = async (operation: () => Promise<TutorSession>, confirmation?: string) => {
     setBusy(true); setError('');
-    try { const result = await operation(); setSession(result.status === 'active' ? result : null); setNextUnit(null); setSources(null); setExpandedSource(null); if (confirmation) notify(confirmation); }
+    try { const result = await operation(); setSession(result.status === 'active' ? result : null); setNextUnit(null); setSources(null); setExpandedSource(null); setAgentReply(null); if (confirmation) notify(confirmation); }
     catch (cause) { setError(errorMessage(cause)); }
     finally { setBusy(false); }
   };
@@ -84,11 +88,13 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
     <section className="panel stack tutor-transcript" aria-label="Tutor transcript">
       <div className="panel-heading"><div><span className="pill"><ArrowRightLeft size={13} /> CONTINUOUS HANDOVER</span><h2>Conversation</h2></div></div>
       {!session.turns.length ? <Empty title="Ask your first question">AKURU will retain this message with the tutor version that received it.</Empty> : <div className="tutor-turn-list">{session.turns.map((turn) => <article key={turn.turnRef} className={`tutor-turn ${turn.role}`}><strong>{turn.role === 'student' ? 'You' : session.currentTutor.name}</strong><p>{turn.content}</p><small>{turn.modality === 'voice' ? 'Voice transcript' : 'Text'} · tutor version {turn.profileVersion}</small></article>)}</div>}
-      <form className="tutor-composer" onSubmit={(event) => { event.preventDefault(); const content = message.trim(); if (!content) return; void act(async () => { const result = await addTutorTurn(session.sessionRef, content, 'text', key()); setMessage(''); return result; }); }}>
+      {agentReply && <aside className="agent-evidence stack" aria-label="Evidence used by tutor">{agentReply.citations.map((citation) => <a className="citation-link" key={citation.citationRef} href={citation.assetUrl} target="_blank" rel="noreferrer"><BookMarked size={14} />{citation.textbookTitle} · {citation.pageReference}</a>)}{agentReply.visuals.map((visual) => <figure key={visual.contentUrl}><Image unoptimized width={640} height={400} src={visual.contentUrl} alt={visual.altText} /><figcaption>{visual.title}</figcaption></figure>)}{!!agentReply.followUpChoices.length && <div className="follow-up-choices"><strong>Continue with:</strong>{agentReply.followUpChoices.map((choice) => <button type="button" key={choice} onClick={() => setMessage(choice)}>{choice}</button>)}</div>}</aside>}
+      <label className="tutor-mode"><span>Teaching approach</span><select value={teachingMode} disabled={busy} onChange={(event) => setTeachingMode(event.target.value as TutorAgentReply['teachingMode'])}><option value="explanation">Explanation</option><option value="questions">Questions</option><option value="guided_practice">Guided practice</option><option value="socratic_practice">Socratic practice</option><option value="revision">Revision</option><option value="exam_technique">Exam technique</option><option value="french_conversation">French conversation</option></select></label>
+      <form className="tutor-composer" onSubmit={async (event) => { event.preventDefault(); const content = message.trim(); if (!content) return; setBusy(true); setError(''); try { const reply = await addTutorAgentTurn(session.sessionRef, content, teachingMode, key()); setAgentReply(reply); setMessage(''); const refreshed = await getTutorSessions(); setSession(refreshed.sessions.find((item) => item.sessionRef === session.sessionRef) || session); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>
         <Input aria-label="Message your tutor" placeholder="Ask about this unit…" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={8000} />
         <Button className="primary" type="submit" disabled={busy || !message.trim()}><Send size={16} />Send</Button>
       </form>
-      <small>Step 2 securely stores your conversation. AKURU-generated teaching replies are connected in Tutor Step 6.</small>
+      <small>AKURU uses only your eligible unit, verified learner context and approved sources. Proposed tutor observations do not change mastery or your study plan.</small>
     </section>
   </div>;
 }

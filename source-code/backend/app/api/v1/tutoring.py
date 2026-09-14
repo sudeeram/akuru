@@ -24,9 +24,10 @@ from app.schemas.tutor_sessions import (
 from app.schemas.tutor_context import LearnerContextRequest, LearnerContextResponse
 from app.schemas.tutor_recommendations import NextUnitRequest, NextUnitResponse
 from app.schemas.tutor_sources import TutorCitation, TutorCitationContextResponse, TutorSourceSearchRequest, TutorSourceSearchResponse
+from app.schemas.tutor_agent import TutorAgentTurnRequest, TutorAgentTurnResponse
 from app.security import Principal
 from app.services.assessment_access import tutor_capabilities
-from app.services import tutor_context, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
+from app.services import tutor_agent, tutor_context, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_storage
 
@@ -113,6 +114,27 @@ def next_unit(
     return tutor_recommendations.recommend(
         db, settings, principal, session_ref, payload.subjectId, payload.requestKey
     )
+
+
+@router.post("/sessions/{session_ref}/agent-turns", response_model=TutorAgentTurnResponse)
+def agent_turn(
+    session_ref: str, payload: TutorAgentTurnRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_agent.complete_turn(db, settings, principal, session_ref, payload)
+
+
+@router.get("/sessions/{session_ref}/media/{media_id}")
+def tutor_media(
+    session_ref: str, media_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)],
+) -> Response:
+    stored = tutor_agent.open_media(db, settings, principal, storage, session_ref, media_id)
+    return Response(content=stored.content, media_type=stored.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/sessions/{session_ref}/sources/search", response_model=TutorSourceSearchResponse)

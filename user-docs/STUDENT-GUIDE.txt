@@ -78,7 +78,9 @@ Open My tutors to build your tutor team. You can create more than one tutor, cho
 
 Open Tutor room to begin a practice conversation in one of your covered units. You can change to another tutor or move to another covered unit in the same subject without losing the transcript. Each message is retained with the tutor profile version used at that time. Tutor help is disabled during mock and official assessments.
 
-AKURU currently stores typed messages and text transcripts of voice turns. It does not store raw voice recordings. AI-generated tutor replies and live voice capture are added in later Tutor steps.
+AKURU stores typed messages, structured text Tutor replies and text transcripts of voice turns. It does not store raw voice recordings. Live voice capture is added in a later Tutor step.
+
+For a text conversation, choose the teaching approach that matches what you want: an explanation, questions, guided or Socratic practice, revision, exam technique, or French conversation. Type your message and press Enter or choose Send. AKURU can show the approved textbook citation, an approved visual and suggested follow-up questions with its reply. If a request fails, your typed message remains so you can retry it. AKURU will say when it lacks approved evidence instead of inventing a textbook answer.
 
 In Tutor room, choose Find next unit when you want evidence-based advice about what to improve. AKURU compares only your covered units using assessed results, mastery confidence and trends, recurring assessed mistakes, reviewed recommendations, your current study plan and current-term assessment preparation. It shows the reason and activity before anything changes. Choose Move to this unit if you want to follow the advice; AKURU will never move you automatically.
 

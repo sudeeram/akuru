@@ -309,3 +309,17 @@ test('tutor textbook sources expose exact authorized citations and nearby contex
   assert.match(tutorSessions, /Show nearby context/);
   assert.match(tutorSessions, /only when it finds an authorized passage/);
 });
+
+test('structured text tutor supports teaching modes, evidence and recoverable keyboard input', () => {
+  assert.match(api, /addTutorAgentTurn/);
+  assert.match(api, /agent-turns/);
+  assert.match(api, /TutorAgentReply/);
+  assert.match(tutorSessions, /Teaching approach/);
+  assert.match(tutorSessions, /Socratic practice/);
+  assert.match(tutorSessions, /French conversation/);
+  assert.match(tutorSessions, /Evidence used by tutor/);
+  assert.match(tutorSessions, /followUpChoices/);
+  assert.match(tutorSessions, /setMessage\(''\)/);
+  assert.match(tutorSessions, /<form className="tutor-composer" onSubmit=/);
+  assert.match(tutorSessions, /Proposed tutor observations do not change mastery/);
+});
