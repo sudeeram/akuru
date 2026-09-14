@@ -12,7 +12,7 @@ class LearnerContextRequest(BaseModel):
 
 class ContextEvidence(BaseModel):
     ref: str
-    kind: Literal["mastery_event", "assessment_result", "mistake", "study_plan_item"]
+    kind: Literal["mastery_event", "assessment_result", "mistake", "reviewed_recommendation", "study_plan_item"]
     observedAt: datetime
     summary: str
 
@@ -52,6 +52,15 @@ class ContextPlanItem(BaseModel):
     scheduledFor: datetime
 
 
+class ContextReviewedRecommendation(BaseModel):
+    evidenceRef: str
+    title: str
+    activityType: str
+    reason: str
+    action: str
+    successCondition: str
+
+
 class ContextUnit(BaseModel):
     unit: PlanUnitResponse
     active: bool
@@ -65,6 +74,7 @@ class ContextUnit(BaseModel):
     statements: list[ContextStatement] = Field(default_factory=list)
     attempts: list[ContextAttempt] = Field(default_factory=list)
     mistakes: list[ContextMistakePattern] = Field(default_factory=list)
+    reviewedRecommendations: list[ContextReviewedRecommendation] = Field(default_factory=list)
     studyPlan: list[ContextPlanItem] = Field(default_factory=list)
 
 
@@ -75,6 +85,7 @@ class ProviderLearnerContext(BaseModel):
     contextVersion: str
     learningSignals: list[dict]
     recurringMistakes: list[dict]
+    reviewedRecommendations: list[dict]
     plannedActivities: list[dict]
 
 

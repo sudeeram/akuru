@@ -1206,6 +1206,7 @@
               "mastery_event",
               "assessment_result",
               "mistake",
+              "reviewed_recommendation",
               "study_plan_item"
             ],
             "title": "Kind",
@@ -1313,6 +1314,44 @@
         "title": "ContextPlanItem",
         "type": "object"
       },
+      "ContextReviewedRecommendation": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "activityType": {
+            "title": "Activitytype",
+            "type": "string"
+          },
+          "evidenceRef": {
+            "title": "Evidenceref",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "successCondition": {
+            "title": "Successcondition",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidenceRef",
+          "title",
+          "activityType",
+          "reason",
+          "action",
+          "successCondition"
+        ],
+        "title": "ContextReviewedRecommendation",
+        "type": "object"
+      },
       "ContextStatement": {
         "properties": {
           "cautious": {
@@ -1406,6 +1445,13 @@
               "$ref": "#/components/schemas/ContextMistakePattern"
             },
             "title": "Mistakes",
+            "type": "array"
+          },
+          "reviewedRecommendations": {
+            "items": {
+              "$ref": "#/components/schemas/ContextReviewedRecommendation"
+            },
+            "title": "Reviewedrecommendations",
             "type": "array"
           },
           "signals": {
@@ -3382,6 +3428,145 @@
         "title": "MediaSourceResponse",
         "type": "object"
       },
+      "NextUnitRecommendation": {
+        "properties": {
+          "activity": {
+            "$ref": "#/components/schemas/RecommendationActivity"
+          },
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "moveAction": {
+            "additionalProperties": true,
+            "title": "Moveaction",
+            "type": "object"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "requiresStudentAction": {
+            "default": true,
+            "title": "Requiresstudentaction",
+            "type": "boolean"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          }
+        },
+        "required": [
+          "unit",
+          "reason",
+          "evidenceRefs",
+          "activity",
+          "moveAction"
+        ],
+        "title": "NextUnitRecommendation",
+        "type": "object"
+      },
+      "NextUnitRequest": {
+        "properties": {
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 32,
+            "minLength": 2,
+            "title": "Subjectid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "requestKey"
+        ],
+        "title": "NextUnitRequest",
+        "type": "object"
+      },
+      "NextUnitResponse": {
+        "properties": {
+          "algorithmVersion": {
+            "title": "Algorithmversion",
+            "type": "string"
+          },
+          "contextOperationRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contextoperationref"
+          },
+          "contextVersion": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contextversion"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "ranking": {
+            "items": {
+              "$ref": "#/components/schemas/RankedUnit"
+            },
+            "title": "Ranking",
+            "type": "array"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NextUnitRecommendation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "status": {
+            "enum": [
+              "ready",
+              "no_evidence",
+              "no_eligible_units"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tutorBrief": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TutorRecommendationBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "algorithmVersion"
+        ],
+        "title": "NextUnitResponse",
+        "type": "object"
+      },
       "OfficialMaterialReview": {
         "properties": {
           "completenessConfirmed": {
@@ -4048,6 +4233,14 @@
             "title": "Recurringmistakes",
             "type": "array"
           },
+          "reviewedRecommendations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Reviewedrecommendations",
+            "type": "array"
+          },
           "subjectId": {
             "title": "Subjectid",
             "type": "string"
@@ -4060,6 +4253,7 @@
           "contextVersion",
           "learningSignals",
           "recurringMistakes",
+          "reviewedRecommendations",
           "plannedActivities"
         ],
         "title": "ProviderLearnerContext",
@@ -4232,6 +4426,103 @@
           "message"
         ],
         "title": "QuestionPoolDiagnosticResponse",
+        "type": "object"
+      },
+      "RankedUnit": {
+        "properties": {
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "factors": {
+            "items": {
+              "$ref": "#/components/schemas/RankingFactor"
+            },
+            "title": "Factors",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          },
+          "unit": {
+            "$ref": "#/components/schemas/PlanUnitResponse"
+          }
+        },
+        "required": [
+          "unit",
+          "score",
+          "factors",
+          "evidenceRefs"
+        ],
+        "title": "RankedUnit",
+        "type": "object"
+      },
+      "RankingFactor": {
+        "properties": {
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "factor": {
+            "title": "Factor",
+            "type": "string"
+          },
+          "points": {
+            "title": "Points",
+            "type": "number"
+          }
+        },
+        "required": [
+          "factor",
+          "points",
+          "explanation"
+        ],
+        "title": "RankingFactor",
+        "type": "object"
+      },
+      "RecommendationActivity": {
+        "properties": {
+          "instruction": {
+            "title": "Instruction",
+            "type": "string"
+          },
+          "successCondition": {
+            "title": "Successcondition",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "review",
+              "targeted_practice",
+              "spaced_retry",
+              "unit_check"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "instruction",
+          "successCondition"
+        ],
+        "title": "RecommendationActivity",
         "type": "object"
       },
       "RecommendationListResponse": {
@@ -5617,6 +5908,37 @@
           "active"
         ],
         "title": "TutorProfileResponse",
+        "type": "object"
+      },
+      "TutorRecommendationBrief": {
+        "properties": {
+          "evidenceRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "fixedReason": {
+            "title": "Fixedreason",
+            "type": "string"
+          },
+          "fixedUnitId": {
+            "title": "Fixedunitid",
+            "type": "string"
+          },
+          "instruction": {
+            "title": "Instruction",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instruction",
+          "fixedUnitId",
+          "fixedReason",
+          "evidenceRefs"
+        ],
+        "title": "TutorRecommendationBrief",
         "type": "object"
       },
       "TutorSessionListResponse": {
@@ -14658,6 +14980,110 @@
           }
         },
         "summary": "Learner Context",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/next-unit": {
+      "post": {
+        "operationId": "next_unit_api_v1_tutoring_sessions__session_ref__next_unit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextUnitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NextUnitResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Next Unit",
         "tags": [
           "tutoring"
         ]

@@ -15,7 +15,7 @@ Each eligible unit includes:
 - validated mastery score, confidence, dimensions and trend;
 - recent assessed attempts and concise missing-marking-point rationales;
 - mistake taxonomy grouped by explicit topic, with seven-day, thirty-day and lifetime counts;
-- approved current study-plan activities;
+- approved reviewed recommendations and current study-plan activities;
 - structured statements with signal, cautiousness and the exact evidence references supporting them.
 
 Classification is deterministic. Scores of at least 7/10 are strong and scores of at most 4/10 are weak when evidence is not provisional and has adequate quantity and variety. Trends at or above `0.35` are improving and at or below `-0.35` are declining. Missing, provisional, low-confidence, low-variety, or single-event mastery produces cautious low-confidence or insufficient-evidence language.
@@ -24,4 +24,4 @@ Classification is deterministic. Scores of at least 7/10 are strong and scores o
 
 `providerContext` contains a one-way pseudonymous learner reference, subject, active unit code, evidence-backed statements, recurring counts and approved activities. It excludes username, display name, parent details, account identifiers and answer text.
 
-Every operation is stored in `tutor_learner_context_logs` with its public operation reference, algorithm-derived context version, session scope, evidence references and immutable JSON snapshot. Retrying the same request key returns that exact snapshot. The context version is a SHA-256 digest over the algorithm version, scope and sorted evidence references, making a tutor statement reproducible from authorized records.
+Every operation is stored in `tutor_learner_context_logs` with its public operation reference, algorithm-derived context version, session scope, evidence references and immutable JSON snapshot. Retrying the same request key returns that exact snapshot. The context version is a SHA-256 digest over the algorithm version, calendar date, scope and sorted evidence references. Including the date ensures seven-day and thirty-day windows receive a new version when time changes their meaning.

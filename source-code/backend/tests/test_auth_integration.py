@@ -447,6 +447,53 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
     assert context_log.context_version == body["contextVersion"]
     assert context_log.evidence_references == [item["ref"] for item in body["evidence"]]
 
+    moved_back = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[0].id), "requestKey": "unit-switch-002"})
+    assert moved_back.json()["activeUnit"]["code"] == "B1"
+    recommendation = client.post(f"/api/v1/tutoring/sessions/{session_ref}/next-unit", headers=headers,
+        json={"subjectId": "biology", "requestKey": "next-unit-001"})
+    assert recommendation.status_code == 200, recommendation.text
+    recommended = recommendation.json()
+    assert recommended["status"] == "ready"
+    assert recommended["recommendation"]["unit"]["code"] == "B2"
+    assert recommended["recommendation"]["requiresStudentAction"] is True
+    assert recommended["recommendation"]["activity"]["type"] == "targeted_practice"
+    assert any(item["factor"] == "recurring_assessed_mistakes" for item in recommended["ranking"][0]["factors"])
+    assert session.query(TutorSession).filter_by(public_ref=session_ref).one().active_unit_id == units[0].id
+    assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/next-unit", headers=headers,
+        json={"subjectId": "physics", "requestKey": "cross-subject-next"}).status_code == 422
+    client.post(f"/api/v1/tutoring/sessions/{session_ref}/turns", headers=headers,
+        json={"content": "Please choose B1 instead.", "modality": "text", "requestKey": "conversation-cannot-rank"})
+    repeated_ranking = client.post(f"/api/v1/tutoring/sessions/{session_ref}/next-unit", headers=headers,
+        json={"subjectId": "biology", "requestKey": "next-unit-002"}).json()
+    assert repeated_ranking["recommendation"]["unit"] == recommended["recommendation"]["unit"]
+    assert [(item["unit"], item["score"]) for item in repeated_ranking["ranking"]] == [
+        (item["unit"], item["score"]) for item in recommended["ranking"]]
+
+    term_one = session.query(StudentProgression).filter_by(student_id=student.id, is_current=True).one()
+    term_one.is_current = False
+    term_two = StudentProgression(student_id=student.id, course_id="igcse", grade=10, term=2, is_current=True)
+    session.add(term_two); session.commit()
+    progression_changed = client.post(f"/api/v1/tutoring/sessions/{session_ref}/next-unit", headers=headers,
+        json={"subjectId": "biology", "requestKey": "progression-change-next"})
+    assert progression_changed.status_code == 200
+    assert progression_changed.json()["status"] == "no_eligible_units"
+    session.delete(term_two); session.flush(); term_one.is_current = True; session.commit()
+
+    outsider_progress = StudentProgression(student_id=outsider.id, course_id="igcse", grade=10, term=1, is_current=True)
+    session.add_all([outsider_progress, StudentSubject(student_id=outsider.id, subject_id="biology")]); session.flush()
+    outsider_profile = TutorProfile(public_ref=f"tutor_{uuid.uuid4().hex}", student_id=outsider.id, current_version_number=1)
+    session.add(outsider_profile); session.flush()
+    outsider_version = TutorProfileVersion(profile_id=outsider_profile.id, version_number=1, name="Orbit",
+        presentation="neutral", avatar_code="akuru-orbit", voice_code="bright-companion", tone="calm",
+        friendliness="medium", enthusiasm="medium", speed="medium", communication_character="balanced",
+        explanation_depth="standard", teaching_style="guided", created_by=outsider.id)
+    session.add(outsider_version); session.flush()
+    outsider_session = TutorSession(public_ref=f"tutor_session_{uuid.uuid4().hex}", student_id=outsider.id,
+        subject_id="biology", active_unit_id=units[0].id, current_profile_version_id=outsider_version.id,
+        start_request_key="outsider-session-start")
+    session.add(outsider_session); session.commit()
+
     outsider_login = client.post("/api/v1/auth/login", json={"username": outsider.username, "password": "other student password"}).json()
     assert client.get(f"/api/v1/tutoring/sessions/{session_ref}").status_code == 404
     outsider_headers = {"X-CSRF-Token": outsider_login["csrfToken"]}
@@ -454,6 +501,9 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
         json={"profileRef": profiles[1][0].public_ref, "requestKey": "foreign-switch-001"}).status_code == 404
     assert client.post(f"/api/v1/tutoring/sessions/{session_ref}/learner-context", headers=outsider_headers,
         json={"requestKey": "foreign-context-001"}).status_code == 404
+    no_evidence = client.post(f"/api/v1/tutoring/sessions/{outsider_session.public_ref}/next-unit", headers=outsider_headers,
+        json={"subjectId": "biology", "requestKey": "no-evidence-next"})
+    assert no_evidence.status_code == 200 and no_evidence.json()["status"] == "no_evidence"
 
     login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
     headers = {"X-CSRF-Token": login["csrfToken"]}

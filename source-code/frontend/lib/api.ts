@@ -154,6 +154,13 @@ export type TutorSession = {
   unitEvents: { fromUnit: TutorSessionUnit; toUnit: TutorSessionUnit; createdAt: string }[];
 };
 export type TutorSessionOptions = { subjects: { id: string; name: string; units: TutorSessionUnit[] }[]; profiles: TutorProfile[] };
+export type NextUnitResult = {
+  status: 'ready' | 'no_evidence' | 'no_eligible_units'; message: string; algorithmVersion: string;
+  recommendation?: { unit: TutorSessionUnit; reason: string; evidenceRefs: string[];
+    activity: { type: string; title: string; instruction: string; successCondition: string };
+    requiresStudentAction: boolean; moveAction: Record<string, unknown> } | null;
+  ranking: { unit: TutorSessionUnit; score: number }[];
+};
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -223,6 +230,7 @@ export const addTutorTurn = (sessionRef: string, content: string, modality: 'tex
 export const switchTutorProfile = (sessionRef: string, profileRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-profile`, { method: 'POST', body: { profileRef, requestKey } }) as Promise<TutorSession>;
 export const switchTutorUnit = (sessionRef: string, unitId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { unitId, requestKey } }) as Promise<TutorSession>;
 export const endTutorSession = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/end`, { method: 'POST', body: { requestKey } }) as Promise<TutorSession>;
+export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-unit`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextUnitResult>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {

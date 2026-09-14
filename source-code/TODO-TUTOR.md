@@ -91,14 +91,18 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Answer “What should I improve next?” using explainable AKURU evidence.
 
-- [ ] Build a deterministic ranking service for covered units using mastery, confidence, trend, recurring assessed mistakes, scheduled assessments and reviewed recommendations.
-- [ ] Return the recommended unit, reason, evidence and a suitable next activity.
-- [ ] Keep results inside current enrolment and cumulative Grade + Term coverage.
-- [ ] Exclude conversational tutor signals from automatic ranking and study-plan changes.
-- [ ] Let the tutor explain the ranked result conversationally without changing it.
-- [ ] Require explicit student action before moving the active session to the recommended unit.
-- [ ] Add no-evidence and no-eligible-unit responses.
-- [ ] Test repeatability, tie-breaking, progression changes and cross-subject rejection.
+- [x] Build a deterministic ranking service for covered units using mastery, confidence, trend, recurring assessed mistakes, scheduled assessments and reviewed recommendations.
+- [x] Return the recommended unit, reason, evidence and a suitable next activity.
+- [x] Keep results inside current enrolment and cumulative Grade + Term coverage.
+- [x] Exclude conversational tutor signals from automatic ranking and study-plan changes.
+- [x] Let the tutor explain the ranked result conversationally without changing it.
+- [x] Require explicit student action before moving the active session to the recommended unit.
+- [x] Add no-evidence and no-eligible-unit responses.
+- [x] Test repeatability, tie-breaking, progression changes and cross-subject rejection.
+
+**Completed:** Algorithm `next-unit-v1` ranks cumulatively covered units from verified mastery gaps, confidence, trends, assessed recurring mistakes, reviewed recommendations, current study-plan items and published current-term assessment blueprints. Every factor exposes its fixed points, explanation and evidence references. The API returns a suitable activity and a constrained tutor explanation brief. Tutor turns and persona settings are excluded. The Student Tutor room displays the advice and requires a separate **Move to this unit** action. See [Tutor Step 4 backend](backend/docs/tutor-step-04-next-unit.md) and [Tutor Step 4 frontend](frontend/docs/tutor-step-04-next-unit.md).
+
+**Validation:** `npm run verify` passes with 26 frontend and 91 backend tests, the generated OpenAPI contract, TypeScript, lint and the production frontend build. Tests cover fixed factor scoring, stable tie-breaking, repeated results, conversation exclusion, progression changes, cross-subject rejection, no-evidence behavior and confirmation before a session unit changes. No database migration was required.
 
 **Done when:** The same authoritative evidence produces the same recommendation, its reason is visible, and tutor conversation alone cannot alter it.
 

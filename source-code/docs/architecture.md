@@ -137,6 +137,8 @@ Tutor practice sessions are scoped to one authenticated Student, one enrolled su
 
 Tutor learner context is read-only and rebuilt from published assessment evidence, verified mastery events, mistake diagnoses and approved active study-plan items. Every personalised statement carries evidence references and a cautiousness marker. Uncovered units and mastery values without qualifying published result events are excluded from claims. Provider-facing context uses a pseudonymous learner reference and excludes account and family identity data. Each context operation stores a versioned evidence manifest and immutable response snapshot for replay and audit.
 
+Next-unit guidance is deterministic and cannot consume conversation text or tutor persona settings. It ranks only cumulatively covered units from the grounded context plus published current-term assessment blueprints. The response exposes every score factor and evidence reference. A language model may explain the fixed result but cannot select or alter it. Recommendations are advisory; moving the tutor session to the unit requires a separate explicit Student request and does not automatically change the study plan.
+
 ## Data model and referential rules
 
 | Entity | Required relationships |

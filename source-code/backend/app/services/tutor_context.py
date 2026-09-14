@@ -15,8 +15,9 @@ from app.models import (
 )
 from app.schemas.curriculum_plans import PlanUnitResponse
 from app.schemas.tutor_context import (
-    ContextAttempt, ContextEvidence, ContextMistakePattern, ContextPlanItem, ContextStatement,
-    ContextUnit, LearnerContextResponse, ProviderLearnerContext,
+    ContextAttempt, ContextEvidence, ContextMistakePattern, ContextPlanItem,
+    ContextReviewedRecommendation, ContextStatement, ContextUnit, LearnerContextResponse,
+    ProviderLearnerContext,
 )
 from app.security import Principal
 from app.services import curriculum_plans, tutor_sessions
@@ -158,6 +159,24 @@ def _plan_items(db: Session, student_id: uuid.UUID, subject_id: str, unit_id: uu
     return items, evidence
 
 
+def _reviewed_recommendations(db: Session, student_id: uuid.UUID, subject_id: str, unit_id: uuid.UUID):
+    rows = db.scalars(select(ImprovementRecommendation).where(
+        ImprovementRecommendation.student_id == student_id,
+        ImprovementRecommendation.subject_id == subject_id,
+        ImprovementRecommendation.unit_id == unit_id,
+        ImprovementRecommendation.review_status == "approved",
+    ).order_by(ImprovementRecommendation.created_at, ImprovementRecommendation.id)).all()
+    items, evidence = [], []
+    for row in rows:
+        ref = _reference("recommendation", row.id)
+        items.append(ContextReviewedRecommendation(evidenceRef=ref, title=row.title,
+            activityType=row.activity_type, reason=row.reason, action=row.action,
+            successCondition=row.success_condition))
+        evidence.append(ContextEvidence(ref=ref, kind="reviewed_recommendation", observedAt=row.created_at,
+            summary=f"Reviewed {row.activity_type.replace('_', ' ')} recommendation: {row.title}."))
+    return items, evidence
+
+
 def _build(db: Session, student_id: uuid.UUID, session: TutorSession, operation_ref: str, generated_at: datetime):
     coverage = curriculum_plans.student_coverage(db, student_id, session.subject_id)
     if coverage.status != "ready":
@@ -177,6 +196,7 @@ def _build(db: Session, student_id: uuid.UUID, session: TutorSession, operation_
                 observedAt=event.created_at, summary=f"Mastery changed to {float(event.new_score):.1f}/10 from a published assessment result."))
         attempts, attempt_evidence = _attempts(db, student_id, session.subject_id, unit_id)
         mistakes, mistake_evidence = _mistakes(db, student_id, session.subject_id, unit_id, generated_at)
+        recommendations, recommendation_evidence = _reviewed_recommendations(db, student_id, session.subject_id, unit_id)
         plans, plan_evidence = _plan_items(db, student_id, session.subject_id, unit_id)
         for pattern in mistakes:
             statements.append(pattern.statement)
@@ -192,11 +212,12 @@ def _build(db: Session, student_id: uuid.UUID, session: TutorSession, operation_
             confidence=mastery.confidence if mastery and events else None, trend=float(mastery.trend) if mastery and events else None,
             evidenceCount=len(events), varietyCount=mastery.variety_count if mastery and events else 0,
             dimensions=dimensions, signals=list(dict.fromkeys(statements_signals)), statements=statements,
-            attempts=attempts, mistakes=mistakes, studyPlan=plans))
-        all_evidence.extend(attempt_evidence + mistake_evidence + plan_evidence)
+            attempts=attempts, mistakes=mistakes, reviewedRecommendations=recommendations, studyPlan=plans))
+        all_evidence.extend(attempt_evidence + mistake_evidence + recommendation_evidence + plan_evidence)
     evidence_by_ref = {item.ref: item for item in all_evidence}
     all_evidence = [evidence_by_ref[key] for key in sorted(evidence_by_ref)]
-    digest_input = "|".join([CONTEXT_ALGORITHM, session.subject_id, str(session.active_unit_id)] + [item.ref for item in all_evidence])
+    digest_input = "|".join([CONTEXT_ALGORITHM, generated_at.date().isoformat(), session.subject_id,
+                             str(session.active_unit_id)] + [item.ref for item in all_evidence])
     context_version = hashlib.sha256(digest_input.encode()).hexdigest()
     active_unit = next(item.unit for item in units if item.active)
     provider = ProviderLearnerContext(
@@ -209,6 +230,9 @@ def _build(db: Session, student_id: uuid.UUID, session: TutorSession, operation_
                             "last7Days": pattern.last7Days, "last30Days": pattern.last30Days,
                             "evidenceRefs": pattern.evidenceRefs}
                            for unit in units for pattern in unit.mistakes],
+        reviewedRecommendations=[{"unitCode": unit.unit.code, "title": item.title,
+                                  "activityType": item.activityType, "evidenceRef": item.evidenceRef}
+                                 for unit in units for item in unit.reviewedRecommendations],
         plannedActivities=[{"unitCode": unit.unit.code, "title": item.title,
                             "activityType": item.activityType, "evidenceRef": item.evidenceRef}
                            for unit in units for item in unit.studyPlan],

@@ -289,3 +289,11 @@ test('student tutor room retains transcripts and supports explicit tutor and uni
   assert.match(api, /requestKey/);
   assert.doesNotMatch(tutorSessions, /MediaRecorder|audioBlob|raw audio/i);
 });
+
+test('next-unit advice is evidence based and requires an explicit student move', () => {
+  assert.match(api, /getNextTutorUnit/);
+  assert.match(tutorSessions, /What should I improve next/);
+  assert.match(tutorSessions, /Find next unit/);
+  assert.match(tutorSessions, /Move to this unit/);
+  assert.match(tutorSessions, /switchTutorUnit/);
+});
