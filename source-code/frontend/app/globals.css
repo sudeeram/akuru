@@ -2079,6 +2079,12 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .tutor-turn p { margin: 6px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .tutor-turn small { color: var(--muted, #6b7280); }
 .tutor-composer { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.tutor-citation blockquote { margin: 0; padding: 14px 18px; border-left: 4px solid #20b8c9; background: #f3fbfd; border-radius: 0 12px 12px 0; }
+.citation-link { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 8px 14px; border: 1px solid #d3dbe7; border-radius: 10px; color: inherit; font-size: 14px; font-weight: 700; text-decoration: none; }
+.citation-link:hover { border-color: #20b8c9; background: #f3fbfd; }
+.source-nearby { display: grid; gap: 8px; padding: 14px; border-radius: 12px; background: #f7f8fc; }
+.source-nearby p { margin: 0; }
+.source-nearby span { font-weight: 700; color: #087f8c; }
 @media (max-width: 760px) {
   .tutor-room-header { grid-template-columns: auto 1fr; }
   .tutor-room-controls { grid-column: 1 / -1; }

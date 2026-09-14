@@ -297,3 +297,15 @@ test('next-unit advice is evidence based and requires an explicit student move',
   assert.match(tutorSessions, /Move to this unit/);
   assert.match(tutorSessions, /switchTutorUnit/);
 });
+
+test('tutor textbook sources expose exact authorized citations and nearby context', () => {
+  assert.match(api, /searchTutorSources/);
+  assert.match(api, /getTutorCitationContext/);
+  assert.match(api, /pdfPageIndex/);
+  assert.match(api, /printedPageLabel/);
+  assert.match(tutorSessions, /APPROVED TEXTBOOK/);
+  assert.match(tutorSessions, /pageReference/);
+  assert.match(tutorSessions, /Open cited page or crop/);
+  assert.match(tutorSessions, /Show nearby context/);
+  assert.match(tutorSessions, /only when it finds an authorized passage/);
+});

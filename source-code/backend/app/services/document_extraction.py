@@ -273,6 +273,8 @@ def extract_document(
             review_count += sum(1 for block in blocks if block["needsReview"])
             pages.append({
                 "pageNumber": page_number,
+                "printedPageLabel": ((page.get_label() or "").strip() or None)
+                if mime_type == "application/pdf" else None,
                 "widthPoints": float(page.rect.width),
                 "heightPoints": float(page.rect.height),
                 "render": rendered,

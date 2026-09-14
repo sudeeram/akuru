@@ -68,6 +68,7 @@ class Settings(BaseSettings):
     tutor_text_enabled: bool = False
     tutor_voice_enabled: bool = False
     tutor_tools_enabled: bool = False
+    tutor_retrieval_min_score: float = Field(default=0.45, ge=0, le=1)
     assessment_confidence_threshold: float = Field(default=0.75, ge=0, le=1)
     assessment_context_chunks: int = Field(default=12, ge=1, le=30)
     assessment_working_max_bytes: int = Field(default=5 * 1024 * 1024, ge=1024, le=25 * 1024 * 1024)

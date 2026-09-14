@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -23,9 +23,12 @@ from app.schemas.tutor_sessions import (
 )
 from app.schemas.tutor_context import LearnerContextRequest, LearnerContextResponse
 from app.schemas.tutor_recommendations import NextUnitRequest, NextUnitResponse
+from app.schemas.tutor_sources import TutorCitation, TutorCitationContextResponse, TutorSourceSearchRequest, TutorSourceSearchResponse
 from app.security import Principal
 from app.services.assessment_access import tutor_capabilities
-from app.services import tutor_context, tutor_profiles, tutor_recommendations, tutor_sessions
+from app.services import tutor_context, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
+from app.storage.base import ObjectStorage
+from app.storage.factory import get_storage
 
 
 router = APIRouter(prefix="/tutoring", tags=["tutoring"])
@@ -110,6 +113,48 @@ def next_unit(
     return tutor_recommendations.recommend(
         db, settings, principal, session_ref, payload.subjectId, payload.requestKey
     )
+
+
+@router.post("/sessions/{session_ref}/sources/search", response_model=TutorSourceSearchResponse)
+def search_sources(
+    session_ref: str, payload: TutorSourceSearchRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_sources.search(db, settings, principal, session_ref, payload.query,
+                                payload.textbookEdition, payload.limit)
+
+
+@router.get("/sessions/{session_ref}/sources/{citation_ref}", response_model=TutorCitation)
+def citation(
+    session_ref: str, citation_ref: str,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+):
+    return tutor_sources.get_citation(db, settings, principal, session_ref, citation_ref)
+
+
+@router.get("/sessions/{session_ref}/sources/{citation_ref}/context", response_model=TutorCitationContextResponse)
+def citation_context(
+    session_ref: str, citation_ref: str,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+    radius: Annotated[int, Query(ge=1, le=4)] = 2,
+):
+    return tutor_sources.nearby_context(db, settings, principal, session_ref, citation_ref, radius)
+
+
+@router.get("/sessions/{session_ref}/sources/{citation_ref}/asset")
+def citation_asset(
+    session_ref: str, citation_ref: str,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)],
+) -> Response:
+    stored = tutor_sources.open_asset(db, settings, principal, storage, session_ref, citation_ref)
+    return Response(content=stored.content, media_type=stored.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 
 @router.post("/sessions/{session_ref}/switch-profile", response_model=TutorSessionResponse)

@@ -119,6 +119,8 @@ export interface Schemas {
   "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
   "TutorAvatarResponse": { "code": string; "name": string; "description": string; "imagePath": string; "presentation": "masculine" | "feminine" | "neutral"; "enabled"?: boolean | null; "sortOrder"?: number | null; };
   "TutorCapabilitiesResponse": { "textEnabled": boolean; "voiceEnabled": boolean; "toolsEnabled": boolean; "blockedReason"?: string | null; };
+  "TutorCitation": { "citationRef": string; "documentVersion": number; "textbookTitle": string; "textbookEdition": string; "unitId": string; "unitCode": string; "unitTitle": string; "contentKind": string; "passage": string; "pdfPageIndex": number; "pdfPageNumber": number; "printedPageLabel"?: string | null; "pageReference": string; "boundingBox": { [key: string]: unknown; }; "confidence": number; "assetRef": string; "sourceUrl": string; "assetUrl": string; };
+  "TutorCitationContextResponse": { "citation": Schemas["TutorCitation"]; "nearbyPassages": Array<Schemas["TutorCitation"]>; "groundingInstruction": string; };
   "TutorEndSessionRequest": { "requestKey": string; };
   "TutorOptionsResponse": { "presentations": Array<string>; "tones": Array<string>; "levels": Array<string>; "communicationCharacters": Array<string>; "explanationDepths": Array<string>; "teachingStyles": Array<string>; "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
   "TutorPresetUpdate": { "enabled": boolean; "sortOrder": number; };
@@ -132,6 +134,8 @@ export interface Schemas {
   "TutorSessionResponse": { "sessionRef": string; "subjectId": string; "activeUnit": Schemas["PlanUnitResponse"]; "currentTutor": Schemas["TutorProfileResponse"]; "mode": "practice"; "status": "active" | "ended"; "startedAt": string; "endedAt"?: string | null; "turns"?: Array<Schemas["TutorTurnResponse"]>; "profileEvents"?: Array<Schemas["TutorProfileEventResponse"]>; "unitEvents"?: Array<Schemas["TutorUnitEventResponse"]>; };
   "TutorSessionStartRequest": { "subjectId": string; "unitId": string; "profileRef": string; "requestKey": string; };
   "TutorSessionSubjectOption": { "id": string; "name": string; "units": Array<Schemas["PlanUnitResponse"]>; };
+  "TutorSourceSearchRequest": { "query": string; "textbookEdition"?: string | null; "limit"?: number; };
+  "TutorSourceSearchResponse": { "status": "exact" | "evidence_insufficient"; "message": string; "query": string; "citations"?: Array<Schemas["TutorCitation"]>; };
   "TutorSwitchProfileRequest": { "profileRef": string; "requestKey": string; };
   "TutorSwitchUnitRequest": { "unitId": string; "requestKey": string; };
   "TutorTurnCreateRequest": { "content": string; "modality"?: "text" | "voice"; "requestKey": string; };
@@ -240,6 +244,10 @@ export interface ApiOperations {
   "POST /api/v1/tutoring/sessions/{session_ref}/end": { request: Schemas["TutorEndSessionRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/learner-context": { request: Schemas["LearnerContextRequest"]; response: Schemas["LearnerContextResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/next-unit": { request: Schemas["NextUnitRequest"]; response: Schemas["NextUnitResponse"] };
+  "POST /api/v1/tutoring/sessions/{session_ref}/sources/search": { request: Schemas["TutorSourceSearchRequest"]; response: Schemas["TutorSourceSearchResponse"] };
+  "GET /api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}": { request: unknown; response: Schemas["TutorCitation"] };
+  "GET /api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}/asset": { request: unknown; response: unknown };
+  "GET /api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}/context": { request: unknown; response: Schemas["TutorCitationContextResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-profile": { request: Schemas["TutorSwitchProfileRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-unit": { request: Schemas["TutorSwitchUnitRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/turns": { request: Schemas["TutorTurnCreateRequest"]; response: Schemas["TutorSessionResponse"] };

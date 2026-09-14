@@ -5510,6 +5510,136 @@
         "title": "TutorCapabilitiesResponse",
         "type": "object"
       },
+      "TutorCitation": {
+        "properties": {
+          "assetRef": {
+            "title": "Assetref",
+            "type": "string"
+          },
+          "assetUrl": {
+            "title": "Asseturl",
+            "type": "string"
+          },
+          "boundingBox": {
+            "additionalProperties": true,
+            "title": "Boundingbox",
+            "type": "object"
+          },
+          "citationRef": {
+            "title": "Citationref",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "contentKind": {
+            "title": "Contentkind",
+            "type": "string"
+          },
+          "documentVersion": {
+            "title": "Documentversion",
+            "type": "integer"
+          },
+          "pageReference": {
+            "title": "Pagereference",
+            "type": "string"
+          },
+          "passage": {
+            "title": "Passage",
+            "type": "string"
+          },
+          "pdfPageIndex": {
+            "title": "Pdfpageindex",
+            "type": "integer"
+          },
+          "pdfPageNumber": {
+            "title": "Pdfpagenumber",
+            "type": "integer"
+          },
+          "printedPageLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpagelabel"
+          },
+          "sourceUrl": {
+            "title": "Sourceurl",
+            "type": "string"
+          },
+          "textbookEdition": {
+            "title": "Textbookedition",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "unitCode": {
+            "title": "Unitcode",
+            "type": "string"
+          },
+          "unitId": {
+            "title": "Unitid",
+            "type": "string"
+          },
+          "unitTitle": {
+            "title": "Unittitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "citationRef",
+          "documentVersion",
+          "textbookTitle",
+          "textbookEdition",
+          "unitId",
+          "unitCode",
+          "unitTitle",
+          "contentKind",
+          "passage",
+          "pdfPageIndex",
+          "pdfPageNumber",
+          "pageReference",
+          "boundingBox",
+          "confidence",
+          "assetRef",
+          "sourceUrl",
+          "assetUrl"
+        ],
+        "title": "TutorCitation",
+        "type": "object"
+      },
+      "TutorCitationContextResponse": {
+        "properties": {
+          "citation": {
+            "$ref": "#/components/schemas/TutorCitation"
+          },
+          "groundingInstruction": {
+            "title": "Groundinginstruction",
+            "type": "string"
+          },
+          "nearbyPassages": {
+            "items": {
+              "$ref": "#/components/schemas/TutorCitation"
+            },
+            "title": "Nearbypassages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "citation",
+          "nearbyPassages",
+          "groundingInstruction"
+        ],
+        "title": "TutorCitationContextResponse",
+        "type": "object"
+      },
       "TutorEndSessionRequest": {
         "properties": {
           "requestKey": {
@@ -6121,6 +6251,75 @@
           "units"
         ],
         "title": "TutorSessionSubjectOption",
+        "type": "object"
+      },
+      "TutorSourceSearchRequest": {
+        "properties": {
+          "limit": {
+            "default": 5,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 2,
+            "title": "Query",
+            "type": "string"
+          },
+          "textbookEdition": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Textbookedition"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "TutorSourceSearchRequest",
+        "type": "object"
+      },
+      "TutorSourceSearchResponse": {
+        "properties": {
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/TutorCitation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "exact",
+              "evidence_insufficient"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "message",
+          "query"
+        ],
+        "title": "TutorSourceSearchResponse",
         "type": "object"
       },
       "TutorSwitchProfileRequest": {
@@ -15084,6 +15283,381 @@
           }
         },
         "summary": "Next Unit",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/sources/search": {
+      "post": {
+        "operationId": "search_sources_api_v1_tutoring_sessions__session_ref__sources_search_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TutorSourceSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSourceSearchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Search Sources",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}": {
+      "get": {
+        "operationId": "citation_api_v1_tutoring_sessions__session_ref__sources__citation_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "citation_ref",
+            "required": true,
+            "schema": {
+              "title": "Citation Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorCitation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Citation",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}/asset": {
+      "get": {
+        "operationId": "citation_asset_api_v1_tutoring_sessions__session_ref__sources__citation_ref__asset_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "citation_ref",
+            "required": true,
+            "schema": {
+              "title": "Citation Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Citation Asset",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}/context": {
+      "get": {
+        "operationId": "citation_context_api_v1_tutoring_sessions__session_ref__sources__citation_ref__context_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "citation_ref",
+            "required": true,
+            "schema": {
+              "title": "Citation Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "radius",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "maximum": 4,
+              "minimum": 1,
+              "title": "Radius",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorCitationContextResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Citation Context",
         "tags": [
           "tutoring"
         ]

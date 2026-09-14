@@ -110,15 +110,19 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Let tutors teach from the correct approved textbook and reference exact pages.
 
-- [ ] Extend approved retrieval for tutor queries using course, subject, textbook edition, unit, publication and student-eligibility filters before vector ranking.
-- [ ] Return document version, displayed textbook title, edition, PDF page, printed page label, bounding box, passage, confidence and authorized asset reference.
-- [ ] Resolve printed-page labels separately from physical PDF page indexes.
-- [ ] Require an exact retrieval result before the tutor mentions a page number.
-- [ ] Link each citation to an authorized page or crop and preserve existing private-file access checks.
-- [ ] Let the student ask for a fuller explanation grounded in the cited passage and nearby approved context.
-- [ ] Return an evidence-insufficient response rather than inventing a page, edition or quotation.
-- [ ] Add subject fixtures for equations, diagrams, tables and differently numbered front matter.
-- [ ] Evaluate citation precision, unit isolation and edition correctness.
+- [x] Extend approved retrieval for tutor queries using course, subject, textbook edition, unit, publication and student-eligibility filters before vector ranking.
+- [x] Return document version, displayed textbook title, edition, PDF page, printed page label, bounding box, passage, confidence and authorized asset reference.
+- [x] Resolve printed-page labels separately from physical PDF page indexes.
+- [x] Require an exact retrieval result before the tutor mentions a page number.
+- [x] Link each citation to an authorized page or crop and preserve existing private-file access checks.
+- [x] Let the student ask for a fuller explanation grounded in the cited passage and nearby approved context.
+- [x] Return an evidence-insufficient response rather than inventing a page, edition or quotation.
+- [x] Add subject fixtures for equations, diagrams, tables and differently numbered front matter.
+- [x] Evaluate citation precision, unit isolation and edition correctness.
+
+**Completed:** Tutor source search filters the current Student session to its eligible active unit and exact published iGCSE textbook content/document version before pgvector ranking. Results include separate PDF and printed-page locations, approved block type, bounding box, passage, score and opaque private asset link. Opening a citation or nearby passage repeats authorization and exact-version checks; changing units invalidates the former citation. The Tutor room provides exact source search, page/crop opening and nearby approved context. See [Tutor Step 5 backend](backend/docs/tutor-step-05-exact-retrieval.md) and [Tutor Step 5 frontend](frontend/docs/tutor-step-05-exact-retrieval.md).
+
+**Validation:** `npm run verify` passes with 27 frontend and 92 backend tests, migration drift checking, generated OpenAPI, TypeScript, lint and the production build. Fixtures cover equations, diagrams, tables, Roman-numbered front matter, printed page 101 on PDF page 2, wrong-edition failure, unit isolation, confidence failure and private authorized assets.
 
 **Done when:** A statement such as “refer to page 101” always opens the correct authorized edition and supporting content, and invented or cross-edition page references fail validation.
 

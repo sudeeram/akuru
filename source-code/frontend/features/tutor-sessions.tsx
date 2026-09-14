@@ -3,14 +3,15 @@
 /* eslint-disable react/react-compiler */
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRightLeft, Compass, MessageCircle, Send, Square } from 'lucide-react';
+import { ArrowRightLeft, BookMarked, Compass, ExternalLink, MessageCircle, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Heading } from '@/features/shared';
 import {
   addTutorTurn, endTutorSession, errorMessage, getTutorOptions, getTutorSessionOptions,
-  getTutorSessions, getNextTutorUnit, startTutorSession, switchTutorProfile, switchTutorUnit,
-  type NextUnitResult, type TutorOptions, type TutorSession, type TutorSessionOptions,
+  getTutorCitationContext, getTutorSessions, getNextTutorUnit, searchTutorSources, startTutorSession,
+  switchTutorProfile, switchTutorUnit, type NextUnitResult, type TutorCitationContext,
+  type TutorOptions, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
 } from '@/lib/api';
 
 const key = () => crypto.randomUUID();
@@ -22,6 +23,8 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const [subject, setSubject] = useState(''), [unit, setUnit] = useState(''), [profile, setProfile] = useState('');
   const [message, setMessage] = useState(''), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   const [nextUnit, setNextUnit] = useState<NextUnitResult | null>(null);
+  const [sourceQuery, setSourceQuery] = useState(''), [sources, setSources] = useState<TutorSourceSearch | null>(null);
+  const [expandedSource, setExpandedSource] = useState<TutorCitationContext | null>(null);
   const load = useCallback(async () => {
     try {
       const [choices, profiles, sessions] = await Promise.all([getTutorSessionOptions(), getTutorOptions(), getTutorSessions()]);
@@ -39,7 +42,7 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const avatar = profileOptions?.avatars.find((item) => item.code === session?.currentTutor.avatarCode);
   const act = async (operation: () => Promise<TutorSession>, confirmation?: string) => {
     setBusy(true); setError('');
-    try { const result = await operation(); setSession(result.status === 'active' ? result : null); setNextUnit(null); if (confirmation) notify(confirmation); }
+    try { const result = await operation(); setSession(result.status === 'active' ? result : null); setNextUnit(null); setSources(null); setExpandedSource(null); if (confirmation) notify(confirmation); }
     catch (cause) { setError(errorMessage(cause)); }
     finally { setBusy(false); }
   };
@@ -67,6 +70,16 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
     <section className="panel stack tutor-next-unit">
       <div className="panel-heading"><div><span className="pill"><Compass size={13} /> EVIDENCE-BASED</span><h2>What should I improve next?</h2></div><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { setNextUnit(await getNextTutorUnit(session.sessionRef, session.subjectId, key())); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}><Compass size={15} />Find next unit</Button></div>
       {nextUnit && (nextUnit.status !== 'ready' || !nextUnit.recommendation ? <p>{nextUnit.message}</p> : <article className="card stack"><div><span className="pill">PRIORITY UNIT</span><h3>{nextUnit.recommendation.unit.code} · {nextUnit.recommendation.unit.title}</h3></div><p>{nextUnit.recommendation.reason}</p><div><strong>{nextUnit.recommendation.activity.title}</strong><p>{nextUnit.recommendation.activity.instruction}</p><small>Success: {nextUnit.recommendation.activity.successCondition}</small></div><Button className="primary" disabled={busy || nextUnit.recommendation.unit.id === session.activeUnit.id} onClick={() => void act(() => switchTutorUnit(session.sessionRef, nextUnit.recommendation!.unit.id, key()), 'Moved to the recommended unit.')}><ArrowRightLeft size={15} />{nextUnit.recommendation.unit.id === session.activeUnit.id ? 'Already studying this unit' : 'Move to this unit'}</Button></article>)}
+    </section>
+    <section className="panel stack tutor-sources">
+      <div className="panel-heading"><div><span className="pill"><BookMarked size={13} /> APPROVED TEXTBOOK</span><h2>Find an exact explanation</h2></div></div>
+      <form className="tutor-composer" onSubmit={async (event) => { event.preventDefault(); if (!sourceQuery.trim()) return; setBusy(true); setError(''); setExpandedSource(null); try { setSources(await searchTutorSources(session.sessionRef, sourceQuery.trim())); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>
+        <Input aria-label="Search the approved textbook" placeholder="What would you like explained?" value={sourceQuery} onChange={(event) => setSourceQuery(event.target.value)} maxLength={2000} />
+        <Button className="primary" type="submit" disabled={busy || sourceQuery.trim().length < 2}><BookMarked size={15} />Find source</Button>
+      </form>
+      {sources && sources.status !== 'exact' && <p>{sources.message}</p>}
+      {sources?.citations.map((citation) => <article className="card stack tutor-citation" key={citation.citationRef}><div className="panel-heading"><div><span className="pill">{citation.contentKind.toUpperCase()}</span><h3>{citation.textbookTitle} · {citation.pageReference}</h3><small>{citation.textbookEdition} · document version {citation.documentVersion} · confidence {Math.round(citation.confidence * 100)}%</small></div></div><blockquote>{citation.passage}</blockquote><div className="button-row"><a className="citation-link" href={citation.assetUrl} target="_blank" rel="noreferrer"><ExternalLink size={14} />Open cited page or crop</a><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setExpandedSource(await getTutorCitationContext(session.sessionRef, citation.citationRef)); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Show nearby context</Button></div>{expandedSource?.citation.citationRef === citation.citationRef && <div className="source-nearby"><strong>Nearby approved passages</strong>{expandedSource.nearbyPassages.map((item) => <p key={item.citationRef}><span>{item.pageReference}:</span> {item.passage}</p>)}</div>}</article>)}
+      <small>AKURU names a page only when it finds an authorized passage in your current unit and published textbook edition.</small>
     </section>
     <section className="panel stack tutor-transcript" aria-label="Tutor transcript">
       <div className="panel-heading"><div><span className="pill"><ArrowRightLeft size={13} /> CONTINUOUS HANDOVER</span><h2>Conversation</h2></div></div>

@@ -310,6 +310,49 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
                           title=title, sequence=index, content_version_id=content.id)
              for index, (code, title) in enumerate((("B1", "Cells"), ("B2", "Transport")), 1)]
     session.add_all(units); session.flush()
+    storage = app.dependency_overrides[get_storage]()
+    page_assets = []
+    for page_number in (1, 2, 3):
+        object_key = f"test/citations/page-{page_number}-{uuid.uuid4().hex}.png"
+        payload = f"authorized textbook page {page_number}".encode()
+        storage.put(object_key, payload, "image/png")
+        asset = DocumentAsset(document_version_id=document_version.id, asset_kind="page_render",
+            object_key=object_key, mime_type="image/png", sha256=uuid.uuid4().hex * 2,
+            size_bytes=len(payload), page_number=page_number, asset_metadata={})
+        session.add(asset); session.flush(); page_assets.append(asset)
+    pages = [
+        DocumentPage(document_version_id=document_version.id, page_number=1, printed_page_label="i",
+            width_points=595, height_points=842, render_asset_id=page_assets[0].id,
+            native_text="Contents", extraction_method="native_pdf", confidence=1, page_metadata={}),
+        DocumentPage(document_version_id=document_version.id, page_number=2, printed_page_label="101",
+            width_points=595, height_points=842, render_asset_id=page_assets[1].id,
+            native_text="Cells", extraction_method="native_pdf", confidence=1, page_metadata={}),
+        DocumentPage(document_version_id=document_version.id, page_number=3, printed_page_label="102",
+            width_points=595, height_points=842, render_asset_id=page_assets[2].id,
+            native_text="Transport", extraction_method="native_pdf", confidence=1, page_metadata={}),
+    ]
+    session.add_all(pages); session.flush()
+    source_rows = [
+        (units[0], pages[1], "equation", "Magnification = image size / actual size.", {"x0": 60, "y0": 100, "x1": 390, "y1": 135}),
+        (units[0], pages[1], "paragraph", "Cell membranes control which substances enter and leave a cell.", {"x0": 60, "y0": 145, "x1": 490, "y1": 190}),
+        (units[1], pages[2], "table", "The table compares diffusion, osmosis and active transport.", {"x0": 60, "y0": 100, "x1": 500, "y1": 260}),
+        (units[1], pages[2], "diagram", "The diagram shows particles moving down a concentration gradient.", {"x0": 60, "y0": 280, "x1": 500, "y1": 520}),
+    ]
+    vectors = embed_texts(Settings(database_password="test"), [row[3] for row in source_rows])
+    for ordinal, ((unit_row, page_row, kind, passage, bbox), vector) in enumerate(zip(source_rows, vectors)):
+        block = DocumentBlock(document_version_id=document_version.id, page_id=page_row.id,
+            sequence_number=ordinal + 1 if page_row.id == pages[1].id else ordinal - 1,
+            block_kind=kind, text=passage, latex=passage if kind == "equation" else None,
+            bounding_box=bbox, extraction_method="native_pdf", confidence=.99,
+            needs_review=False, block_metadata={})
+        session.add(block); session.flush()
+        session.add(RetrievalChunk(document_id=document.id, document_version_id=document_version.id,
+            textbook_content_version_id=content.id, unit_id=unit_row.id, course_id="igcse",
+            subject_id="biology", source_type="textbook_section", source_item_id=block.id,
+            source_ordinal=ordinal, content=passage, page_number=page_row.page_number,
+            bounding_box=bbox, source_asset_id=page_row.render_asset_id,
+            content_hash=uuid.uuid4().hex * 2, embedding_model="hash-embedding-v1",
+            embedding_version=1, embedding=vector, status="active"))
     plan = CurriculumPlan(course_id="igcse", subject_id="biology", textbook_content_version_id=content.id,
         version_number=1, status="published", created_by=admin.id, published_by=admin.id)
     session.add(plan); session.flush()
@@ -325,7 +368,8 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
             explanation_depth="standard", teaching_style="guided", created_by=student.id)
         session.add(version); session.flush(); profiles.append((profile, version))
     session.commit()
-    app.dependency_overrides[get_settings] = lambda: Settings(database_password="test", tutor_text_enabled=True, tutor_voice_enabled=True)
+    app.dependency_overrides[get_settings] = lambda: Settings(database_password="test", tutor_text_enabled=True,
+        tutor_voice_enabled=True, tutor_tools_enabled=True, tutor_retrieval_min_score=0)
 
     login = client.post("/api/v1/auth/login", json={"username": student.username, "password": "session student password"}).json()
     headers = {"X-CSRF-Token": login["csrfToken"]}
@@ -469,6 +513,49 @@ def test_tutor_sessions_retain_versioned_transcript_and_enforce_scope(auth_clien
     assert repeated_ranking["recommendation"]["unit"] == recommended["recommendation"]["unit"]
     assert [(item["unit"], item["score"]) for item in repeated_ranking["ranking"]] == [
         (item["unit"], item["score"]) for item in recommended["ranking"]]
+
+    sources = client.post(f"/api/v1/tutoring/sessions/{session_ref}/sources/search", headers=headers,
+        json={"query": "How do I calculate magnification?", "textbookEdition": "2026", "limit": 5})
+    assert sources.status_code == 200, sources.text
+    citations = sources.json()["citations"]
+    assert sources.json()["status"] == "exact" and {item["unitCode"] for item in citations} == {"B1"}
+    equation = next(item for item in citations if item["contentKind"] == "equation")
+    assert equation["textbookTitle"] == "Tutor Biology" and equation["textbookEdition"] == "2026"
+    assert equation["documentVersion"] == 1 and equation["pdfPageIndex"] == 1
+    assert equation["pdfPageNumber"] == 2 and equation["printedPageLabel"] == "101"
+    assert equation["pageReference"] == "printed page 101 (PDF page 2)"
+    assert equation["boundingBox"] and equation["assetRef"].startswith("asset_")
+    wrong_edition = client.post(f"/api/v1/tutoring/sessions/{session_ref}/sources/search", headers=headers,
+        json={"query": "magnification", "textbookEdition": "2025"})
+    assert wrong_edition.json()["status"] == "evidence_insufficient" and not wrong_edition.json()["citations"]
+    citation = client.get(equation["sourceUrl"])
+    assert citation.status_code == 200 and citation.json()["citationRef"] == equation["citationRef"]
+    nearby = client.get(equation["sourceUrl"] + "/context?radius=2")
+    assert nearby.status_code == 200
+    assert any("membranes" in item["passage"] for item in nearby.json()["nearbyPassages"])
+    assert all(item["unitCode"] == "B1" for item in nearby.json()["nearbyPassages"])
+    asset = client.get(equation["assetUrl"])
+    assert asset.status_code == 200 and asset.content == b"authorized textbook page 2"
+    assert asset.headers["cache-control"] == "private, no-store"
+
+    app.dependency_overrides[get_settings] = lambda: Settings(database_password="test", tutor_text_enabled=True,
+        tutor_voice_enabled=True, tutor_tools_enabled=True, tutor_retrieval_min_score=1)
+    insufficient = client.post(f"/api/v1/tutoring/sessions/{session_ref}/sources/search", headers=headers,
+        json={"query": "unrelated unsupported claim"})
+    assert insufficient.json()["status"] == "evidence_insufficient"
+    assert "Do not mention a textbook page" in insufficient.json()["message"]
+    app.dependency_overrides[get_settings] = lambda: Settings(database_password="test", tutor_text_enabled=True,
+        tutor_voice_enabled=True, tutor_tools_enabled=True, tutor_retrieval_min_score=0)
+
+    moved_to_transport = client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[1].id), "requestKey": "unit-switch-citation"})
+    assert moved_to_transport.status_code == 200
+    assert client.get(equation["sourceUrl"]).status_code == 404
+    transport_sources = client.post(f"/api/v1/tutoring/sessions/{session_ref}/sources/search", headers=headers,
+        json={"query": "compare transport using the table and diagram"}).json()
+    assert {item["contentKind"] for item in transport_sources["citations"]} == {"table", "diagram"}
+    client.post(f"/api/v1/tutoring/sessions/{session_ref}/switch-unit", headers=headers,
+        json={"unitId": str(units[0].id), "requestKey": "unit-switch-citation-back"})
 
     term_one = session.query(StudentProgression).filter_by(student_id=student.id, is_current=True).one()
     term_one.is_current = False

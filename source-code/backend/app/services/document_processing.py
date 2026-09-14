@@ -236,6 +236,7 @@ def persist_extraction(
             ))
         page = DocumentPage(
             document_version_id=version.id, page_number=page_number,
+            printed_page_label=page_data.get("printedPageLabel"),
             width_points=page_data["widthPoints"], height_points=page_data["heightPoints"],
             render_asset_id=render_asset.id, native_text=page_data["nativeText"],
             extraction_method=page_data["method"], confidence=page_data["confidence"],

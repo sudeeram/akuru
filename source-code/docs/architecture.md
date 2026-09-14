@@ -139,6 +139,8 @@ Tutor learner context is read-only and rebuilt from published assessment evidenc
 
 Next-unit guidance is deterministic and cannot consume conversation text or tutor persona settings. It ranks only cumulatively covered units from the grounded context plus published current-term assessment blueprints. The response exposes every score factor and evidence reference. A language model may explain the fixed result but cannot select or alter it. Recommendations are advisory; moving the tutor session to the unit requires a separate explicit Student request and does not automatically change the study plan.
 
+Tutor textbook retrieval applies course, enrolled subject, cumulatively covered active unit, published content version, source document version and optional edition filters before vector ranking. A returned citation carries the displayed title, edition, immutable document version, physical PDF index and page number, separately extracted printed-page label, passage, bounding box and an opaque authorized asset reference. Citation and asset endpoints repeat the Student, session, unit and publication checks. Nearby context is restricted to the same unit and content version. If no result passes the configured confidence threshold, the service returns `evidence_insufficient`; a tutor must not name a page, edition or quotation without an exact result.
+
 ## Data model and referential rules
 
 | Entity | Required relationships |

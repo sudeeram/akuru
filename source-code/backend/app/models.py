@@ -386,6 +386,7 @@ class DocumentPage(Base):
         ForeignKey("document_versions.id", ondelete="CASCADE"), index=True
     )
     page_number: Mapped[int] = mapped_column(Integer)
+    printed_page_label: Mapped[str | None] = mapped_column(String(40))
     width_points: Mapped[float] = mapped_column()
     height_points: Mapped[float] = mapped_column()
     render_asset_id: Mapped[uuid.UUID] = mapped_column(unique=True)

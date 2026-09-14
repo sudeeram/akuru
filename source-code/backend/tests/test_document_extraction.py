@@ -82,6 +82,23 @@ def test_equation_normalization_is_deterministic() -> None:
     assert text_to_latex("x² ≥ 4 × y") == r"x^{2} \\ge  4 \\times  y"
 
 
+def test_pdf_page_labels_preserve_front_matter_and_printed_page_numbers() -> None:
+    document = fitz.open()
+    for text in ("Contents", "Cell structure", "Transport"):
+        page = document.new_page(width=595, height=842)
+        page.insert_text((60, 80), text, fontsize=14)
+    document.set_page_labels([
+        {"startpage": 0, "prefix": "", "style": "r", "firstpagenum": 1},
+        {"startpage": 1, "prefix": "", "style": "D", "firstpagenum": 101},
+    ])
+    content = document.tobytes()
+    document.close()
+
+    result = extract_document(content, "application/pdf", "Biology", 5, 144, 10, "tesseract")
+    assert [page["printedPageLabel"] for page in result["pages"]] == ["i", "101", "102"]
+    assert [page["pageNumber"] for page in result["pages"]] == [1, 2, 3]
+
+
 def test_vector_only_diagram_is_retained_as_review_crop() -> None:
     document = fitz.open()
     page = document.new_page(width=500, height=400)

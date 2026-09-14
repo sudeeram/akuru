@@ -161,6 +161,14 @@ export type NextUnitResult = {
     requiresStudentAction: boolean; moveAction: Record<string, unknown> } | null;
   ranking: { unit: TutorSessionUnit; score: number }[];
 };
+export type TutorCitation = {
+  citationRef: string; documentVersion: number; textbookTitle: string; textbookEdition: string;
+  unitId: string; unitCode: string; unitTitle: string; contentKind: string; passage: string;
+  pdfPageIndex: number; pdfPageNumber: number; printedPageLabel?: string | null; pageReference: string;
+  boundingBox: Record<string, unknown>; confidence: number; assetRef: string; sourceUrl: string; assetUrl: string;
+};
+export type TutorSourceSearch = { status: 'exact' | 'evidence_insufficient'; message: string; query: string; citations: TutorCitation[] };
+export type TutorCitationContext = { citation: TutorCitation; nearbyPassages: TutorCitation[]; groundingInstruction: string };
 type ApiResult<P extends string> = P extends 'state'
   ? State
   : P extends 'admin/ui-features'
@@ -231,6 +239,8 @@ export const switchTutorProfile = (sessionRef: string, profileRef: string, reque
 export const switchTutorUnit = (sessionRef: string, unitId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { unitId, requestKey } }) as Promise<TutorSession>;
 export const endTutorSession = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/end`, { method: 'POST', body: { requestKey } }) as Promise<TutorSession>;
 export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-unit`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextUnitResult>;
+export const searchTutorSources = (sessionRef: string, query: string, textbookEdition?: string) => request(`tutoring/sessions/${sessionRef}/sources/search`, { method: 'POST', body: { query, textbookEdition, limit: 5 } }) as Promise<TutorSourceSearch>;
+export const getTutorCitationContext = (sessionRef: string, citationRef: string) => request(`tutoring/sessions/${sessionRef}/sources/${citationRef}/context`) as Promise<TutorCitationContext>;
 export async function uploadLearningDocument(
   file: File,
   metadata: {
