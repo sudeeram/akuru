@@ -11,7 +11,7 @@ jobs:
   deployment-playbook:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Validate Ubuntu playbook shell syntax
         run: bash -n deploy/ubuntu/install-prerequisites.sh deploy/ubuntu/verify-prerequisites.sh deploy/ubuntu/install-services.sh deploy/ubuntu/encrypted-backup.sh deploy/ubuntu/security-check.sh
       - name: Reject committed secrets and frontend credential references
@@ -23,8 +23,8 @@ jobs:
       run:
         working-directory: source-code
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:16
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_DB: akuru
           POSTGRES_USER: postgres
@@ -66,10 +66,10 @@ jobs:
       AKURU_ALLOWED_HOSTS: '["localhost","testserver"]'
       AKURU_COOKIE_SECURE: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install document extraction system tools
         run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-fra
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
