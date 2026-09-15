@@ -25,6 +25,7 @@ import {
   Activity,
   Bot,
   MessageCircle,
+  Gauge,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,6 +49,7 @@ import { AdminWorkspace, FamilyCourses, FamilyLibrary } from '@/features/admin';
 import { usePortalTools } from '@/features/use-portal-tools';
 import { TutorProfiles } from '@/features/tutor-profiles';
 import { TutorSessions } from '@/features/tutor-sessions';
+import { TutorHistory } from '@/features/tutor-history';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
@@ -63,6 +65,7 @@ const parentNav = [
   ['today', 'Family overview', LayoutDashboard],
   ['students', 'Children & courses', Users],
   ['tutors', 'Tutors', Bot],
+  ['tutor-history', 'Tutor history', ShieldCheck],
   ['library', 'Content library', Library],
   ['reviews', 'Assessment reviews', ClipboardCheck],
   ['assignments', 'Assignments', CalendarDays],
@@ -78,6 +81,8 @@ const adminNav = [
   ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
   ['tutor-presets', 'Tutor presets', Bot],
+  ['tutor-quotas', 'Tutor allowances', Gauge],
+  ['tutor-history', 'Tutor history & safety', ShieldCheck],
   ['assessment-audit', 'Assessment audit', ScanSearch],
   ['media', 'Visual media', Images],
   ['evaluations', 'Evaluation gates', FlaskConical],
@@ -408,6 +413,8 @@ export default function Portal() {
           <Subjects {...props} />
         ) : view === 'tutors' ? (
           <TutorProfiles data={data} notify={notify} />
+        ) : view === 'tutor-history' && parent ? (
+          <TutorHistory notify={notify} />
         ) : view === 'tutor-room' && !parent ? (
           <TutorSessions notify={notify} />
         ) : view === 'practice' && !parent ? (

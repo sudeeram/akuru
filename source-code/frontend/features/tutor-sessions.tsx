@@ -2,18 +2,20 @@
 /* State effects synchronise API-loaded defaults with the session form. */
 /* eslint-disable react/react-compiler */
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowRightLeft, BookMarked, Compass, ExternalLink, MessageCircle, Send, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Heading } from '@/features/shared';
 import { TutorSignals } from '@/features/tutor-signals';
+import { TutorVoice } from '@/features/tutor-voice';
+import { Equation, LearningImage } from '@/features/learning-media';
 import {
-  addTutorAgentTurn, endTutorSession, errorMessage, getTutorOptions, getTutorSessionOptions,
+  addTutorAgentTurn, endTutorSession, errorMessage, getTutorOptions, getTutorQuota, getTutorSessionOptions,
   getTutorCitationContext, getTutorPractice, getTutorPracticeHint, getTutorSessions, getNextTutorUnit,
   saveTutorPracticeAnswer, searchTutorSources, startTutorPractice, startTutorSession, submitTutorPractice,
   switchTutorProfile, switchTutorUnit, type NextUnitResult, type TutorCitationContext,
-  type TutorAgentReply, type TutorOptions, type TutorPractice, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
+  type TutorAgentReply, type TutorOptions, type TutorPractice, type TutorQuota, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
 } from '@/lib/api';
 
 const key = () => crypto.randomUUID();
@@ -29,10 +31,13 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const [practice, setPractice] = useState<TutorPractice | null>(null), [practiceAnswer, setPracticeAnswer] = useState('');
   const [nextUnit, setNextUnit] = useState<NextUnitResult | null>(null);
   const [sourceQuery, setSourceQuery] = useState(''), [sources, setSources] = useState<TutorSourceSearch | null>(null);
+  const [quota, setQuota] = useState<TutorQuota | null>(null);
   const [expandedSource, setExpandedSource] = useState<TutorCitationContext | null>(null);
+  const textInput = useRef<HTMLInputElement | null>(null);
   const load = useCallback(async () => {
     try {
-      const [choices, profiles, sessions] = await Promise.all([getTutorSessionOptions(), getTutorOptions(), getTutorSessions()]);
+      const [choices, profiles, sessions, allowance] = await Promise.all([getTutorSessionOptions(), getTutorOptions(), getTutorSessions(), getTutorQuota()]);
+      setQuota(allowance);
       setOptions(choices); setProfileOptions(profiles);
       const active = sessions.sessions.find((item) => item.status === 'active') || null;
       setSession(active);
@@ -54,9 +59,15 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
     catch (cause) { setError(errorMessage(cause)); }
     finally { setBusy(false); }
   };
+  const refreshVoiceTranscript = useCallback(async () => {
+    const [sessions, allowance] = await Promise.all([getTutorSessions(), getTutorQuota()]);
+    setSession((current) => sessions.sessions.find((item) => item.sessionRef === current?.sessionRef) || current);
+    setQuota(allowance);
+  }, []);
   if (!options) return <section className="panel">Loading AKURU Tutor…</section>;
   if (!session) return <div className="stack"><Heading eyebrow="STUDENT · PRACTICE" title="Start a tutor session">Choose one covered unit and one of your tutors. Tutor help is available during practice only.</Heading>
     {error && <div className="error" role="alert">{error}</div>}
+    {quota && <QuotaSummary quota={quota} />}
     {!options.profiles.length ? <Empty title="Create a tutor first">Go to My tutors and build an AKURU tutor profile.</Empty> : !options.subjects.length ? <Empty title="No covered units available">Ask your parent or administrator to check your enrolment and curriculum coverage.</Empty> : <form className="panel stack tutor-session-start" onSubmit={(event) => { event.preventDefault(); void act(() => startTutorSession(subject, unit, profile, key()), 'Tutor session started.'); }}>
       <label className="stack"><span>Subject</span><select value={subject} onChange={(event) => setSubject(event.target.value)}>{options.subjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
       <label className="stack"><span>Covered unit</span><select value={unit} onChange={(event) => setUnit(event.target.value)}>{subjectChoice?.units.map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}</select></label>
@@ -67,6 +78,7 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
   const units = options.subjects.find((item) => item.id === session.subjectId)?.units || [];
   return <div className="stack"><Heading eyebrow="STUDENT · TUTOR ROOM" title={`${session.currentTutor.name} is helping you`} action={<Button variant="outline" disabled={busy} onClick={() => void act(() => endTutorSession(session.sessionRef, key()), 'Tutor session ended.')}><Square size={14} />End session</Button>}>Your transcript stays together when you change tutors or move to another covered unit.</Heading>
     {error && <div className="error" role="alert">{error}</div>}
+    {quota && <QuotaSummary quota={quota} />}
     <section className="panel tutor-room-header">
       {avatar && <Image width={105} height={105} src={avatar.imagePath} alt={`${session.currentTutor.name} avatar`} />}
       <div><span className="pill">{session.subjectId.toUpperCase()}</span><h2>{session.activeUnit.code} · {session.activeUnit.title}</h2><p>Practice session · Tutor profile version {session.currentTutor.version}</p></div>
@@ -94,17 +106,47 @@ export function TutorSessions({ notify }: { notify: (message: string) => void })
       {practice && <article className="card stack"><div><span className="eyebrow">{practice.unitCode} · QUESTION {practice.question.number} · {practice.question.marks} MARKS</span><h3>{practice.question.prompt}</h3>{practice.question.sharedStem && <p>{practice.question.sharedStem}</p>}</div>{practice.assetUrls.map((url, index) => <Image unoptimized width={640} height={400} src={url} alt={`Question diagram ${index + 1}`} key={url} />)}{practice.status === 'active' ? <><label className="stack"><span>Your answer</span><textarea rows={5} value={practiceAnswer} onChange={(event) => setPracticeAnswer(event.target.value)} /></label>{practice.latestHint && <p className="source-note"><strong>Hint {practice.hintCount}:</strong> {practice.latestHint}</p>}<div className="button-row"><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setPractice(await getTutorPracticeHint(session.sessionRef, key())); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Get next hint</Button><Button variant="outline" disabled={busy} onClick={async () => { setBusy(true); try { setPractice(await saveTutorPracticeAnswer(session.sessionRef, practiceAnswer, key())); notify('Practice answer saved.'); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Save answer</Button><Button className="primary" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { await saveTutorPracticeAnswer(session.sessionRef, practiceAnswer, key()); setPractice(await submitTutorPractice(session.sessionRef, key())); notify('Practice submitted and assessed.'); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>Submit for assessment</Button></div><small>You can switch tutors without losing this question. Submit it before moving to another unit.</small></> : practice.question.result ? <div className="practice-feedback stack"><div className="spread"><h3>Authoritative AKURU assessment</h3><strong>{practice.question.result.awardedMarks}/{practice.question.result.maxMarks}</strong></div><h4>How each mark was decided</h4>{practice.question.result.markingDecisions.map((decision) => <p className="source-note" key={decision.pointId}><strong>{decision.awarded ? 'Awarded' : 'Not awarded'}:</strong> {decision.rationale}<br /><small>Your evidence: {decision.studentEvidence}</small></p>)}{!!practice.question.result.smallMistakes.length && <p><strong>Small improvements:</strong> {practice.question.result.smallMistakes.join(' ')}</p>}<p><strong>Improved answer:</strong> {practice.question.result.improvedAnswer}</p><p><strong>Explanation:</strong> {practice.question.result.teachingExplanation}</p></div> : <p>Assessment feedback is awaiting the permitted review workflow.</p>}</article>}
       {!practice && <p>Start a question selected deterministically from this covered unit.</p>}
     </section>
+    <TutorVoice sessionRef={session.sessionRef} subjectId={session.subjectId}
+      profileIdentity={`${session.currentTutor.profileRef}:${session.currentTutor.version}`}
+      disabled={!quota || !quota.enabled || quota.voiceMinutes.remaining <= 0}
+      notify={notify} onTranscript={refreshVoiceTranscript}
+      focusText={() => textInput.current?.focus()} />
     <section className="panel stack tutor-transcript" aria-label="Tutor transcript">
       <div className="panel-heading"><div><span className="pill"><ArrowRightLeft size={13} /> CONTINUOUS HANDOVER</span><h2>Conversation</h2></div></div>
       {!session.turns.length ? <Empty title="Ask your first question">AKURU will retain this message with the tutor version that received it.</Empty> : <div className="tutor-turn-list">{session.turns.map((turn) => <article key={turn.turnRef} className={`tutor-turn ${turn.role}`}><strong>{turn.role === 'student' ? 'You' : session.currentTutor.name}</strong><p>{turn.content}</p><small>{turn.modality === 'voice' ? 'Voice transcript' : 'Text'} · tutor version {turn.profileVersion}</small></article>)}</div>}
-      {agentReply && <aside className="agent-evidence stack" aria-label="Evidence used by tutor">{agentReply.citations.map((citation) => <a className="citation-link" key={citation.citationRef} href={citation.assetUrl} target="_blank" rel="noreferrer"><BookMarked size={14} />{citation.textbookTitle} · {citation.pageReference}</a>)}{agentReply.visuals.map((visual) => <figure key={visual.contentUrl}><Image unoptimized width={640} height={400} src={visual.contentUrl} alt={visual.altText} /><figcaption>{visual.title}</figcaption></figure>)}{!!agentReply.followUpChoices.length && <div className="follow-up-choices"><strong>Continue with:</strong>{agentReply.followUpChoices.map((choice) => <button type="button" key={choice} onClick={() => setMessage(choice)}>{choice}</button>)}</div>}</aside>}
+      {agentReply && <aside className="agent-evidence stack" aria-label="Evidence used by tutor and visual aids">{agentReply.citations.map((citation) => <a className="citation-link" key={citation.citationRef} href={citation.assetUrl} target="_blank" rel="noreferrer"><BookMarked size={14} />{citation.textbookTitle} · {citation.pageReference}</a>)}{agentReply.visuals.map((visual) => <TutorVisualAid visual={visual} key={`${visual.visualType}:${visual.contentUrl || visual.title}`} />)}{!!agentReply.followUpChoices.length && <div className="follow-up-choices"><strong>Continue with:</strong>{agentReply.followUpChoices.map((choice) => <button type="button" key={choice} onClick={() => setMessage(choice)}>{choice}</button>)}</div>}</aside>}
       <label className="tutor-mode"><span>Teaching approach</span><select value={teachingMode} disabled={busy} onChange={(event) => setTeachingMode(event.target.value as TutorAgentReply['teachingMode'])}><option value="explanation">Explanation</option><option value="questions">Questions</option><option value="guided_practice">Guided practice</option><option value="socratic_practice">Socratic practice</option><option value="revision">Revision</option><option value="exam_technique">Exam technique</option><option value="french_conversation">French conversation</option></select></label>
-      <form className="tutor-composer" onSubmit={async (event) => { event.preventDefault(); const content = message.trim(); if (!content) return; setBusy(true); setError(''); try { const reply = await addTutorAgentTurn(session.sessionRef, content, teachingMode, key()); setAgentReply(reply); setMessage(''); const refreshed = await getTutorSessions(); setSession(refreshed.sessions.find((item) => item.sessionRef === session.sessionRef) || session); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>
-        <Input aria-label="Message your tutor" placeholder="Ask about this unit…" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={8000} />
+      <form className="tutor-composer" onSubmit={async (event) => { event.preventDefault(); const content = message.trim(); if (!content) return; setBusy(true); setError(''); try { const reply = await addTutorAgentTurn(session.sessionRef, content, teachingMode, key()); setAgentReply(reply); setMessage(''); const [refreshed, allowance] = await Promise.all([getTutorSessions(), getTutorQuota()]); setSession(refreshed.sessions.find((item) => item.sessionRef === session.sessionRef) || session); setQuota(allowance); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>
+        <Input ref={textInput} aria-label="Message your tutor" placeholder="Ask about this unit…" value={message} onChange={(event) => setMessage(event.target.value)} maxLength={8000} />
         <Button className="primary" type="submit" disabled={busy || !message.trim()}><Send size={16} />Send</Button>
       </form>
       <small>AKURU uses only your eligible unit, verified learner context and approved sources. Proposed tutor observations do not change mastery or your study plan.</small>
     </section>
     <TutorSignals refreshKey={agentReply?.turnRef} />
   </div>;
+}
+
+function QuotaSummary({ quota }: { quota: TutorQuota }) {
+  return <section className={`panel quota-summary quota-${quota.state}`} aria-label="Tutor allowance">
+    <div><span className="pill">{quota.state.toUpperCase()}</span><strong>{quota.requests.remaining} tutor requests remaining</strong></div>
+    <p>{quota.textTokens.remaining.toLocaleString()} text tokens · {quota.voiceMinutes.remaining} voice minutes remaining</p>
+    <small>{quota.fallbackMessage} Renews {new Date(quota.renewsAt).toLocaleDateString()}.</small>
+  </section>;
+}
+
+function TutorVisualAid({ visual }: { visual: TutorAgentReply['visuals'][number] }) {
+  const official = visual.visualType === 'official_source';
+  return <article className={`tutor-visual tutor-visual-${visual.visualType}`} aria-label={`${official ? 'Official source visual' : 'Explanatory visual'}: ${visual.title}`}>
+    <header><span className="pill">{official ? 'OFFICIAL SOURCE' : 'EXPLANATORY AID'}</span><h3>{visual.title}</h3></header>
+    {visual.equation ? <Equation value={visual.equation} /> : visual.contentUrl ? <LearningImage src={visual.contentUrl} description={visual.altText} title={visual.title} /> : null}
+    <p className="visual-fallback"><strong>Text alternative:</strong> {visual.readableFallback}</p>
+    <small>{visual.sourceLabel}. {official ? 'Use this as source evidence.' : 'This supports understanding and does not replace the official source.'}</small>
+    <details><summary>Asset provenance</summary><dl>{Object.entries(visual.provenance).filter(([, value]) => value !== null && value !== '').map(([name, value]) => <div key={name}><dt>{name}</dt><dd>{formatProvenance(value)}</dd></div>)}</dl></details>
+  </article>;
+}
+
+function formatProvenance(value: unknown) {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return value.toString();
+  return JSON.stringify(value);
 }

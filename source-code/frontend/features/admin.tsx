@@ -47,6 +47,8 @@ import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';
 import { OperationsAdmin } from './operations-admin';
 import { TutorPresetAdmin } from './tutor-profiles';
+import { TutorQuotaAdmin } from './tutor-quotas';
+import { TutorHistory } from './tutor-history';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -368,6 +370,8 @@ export function AdminWorkspace(p: Props) {
             blueprints: 'Mock paper blueprints',
             'ai-accounts': 'OpenAI account routing',
             'tutor-presets': 'Tutor presets',
+            'tutor-quotas': 'Tutor allowances',
+            'tutor-history': 'Tutor history and safety',
             'assessment-audit': 'Assessment audit',
             media: 'Visual media',
             evaluations: 'Evaluation & release gates',
@@ -589,6 +593,8 @@ export function AdminWorkspace(p: Props) {
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
         {p.view === 'tutor-presets' && <TutorPresetAdmin notify={p.notify} />}
+        {p.view === 'tutor-quotas' && <TutorQuotaAdmin notify={p.notify} />}
+        {p.view === 'tutor-history' && <TutorHistory admin notify={p.notify} />}
         {p.view === 'assessment-audit' && <AssessmentAuditPanel notify={p.notify} />}
         {p.view === 'media' && <MediaAdmin data={p.data} notify={p.notify} />}
         {p.view === 'evaluations' && <EvaluationAdmin data={p.data} notify={p.notify} />}

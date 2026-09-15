@@ -93,6 +93,7 @@ At minimum, set the real database password and public hostname, and verify these
 
 ```dotenv
 AKURU_ENVIRONMENT=production
+AKURU_TUTOR_RELEASE_GATES_REQUIRED=true
 AKURU_DATABASE_HOST=127.0.0.1
 AKURU_DATABASE_PORT=5432
 AKURU_DATABASE_NAME=akuru

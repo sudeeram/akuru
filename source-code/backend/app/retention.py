@@ -9,14 +9,30 @@ from sqlalchemy import delete, func, select, update
 
 from app.config import get_settings
 from app.database import SessionLocal
-from app.models import Assessment, AssessmentAnswer, AssessmentResult, AssessmentWorkingFile, AuditEvent, EducationalMedia
+from app.models import (
+    Assessment,
+    AssessmentAnswer,
+    AssessmentResult,
+    AssessmentWorkingFile,
+    AuditEvent,
+    EducationalMedia,
+    TutorSession,
+    TutorTurn,
+)
 from app.storage import get_storage
 
 
 def purge(*, student_id: uuid.UUID | None = None, dry_run: bool = True) -> dict[str, int]:
     settings, storage = get_settings(), get_storage()
     now = datetime.now(timezone.utc)
-    counts = {"workingFiles": 0, "answersRedacted": 0, "resultsRedacted": 0, "mediaDeleted": 0, "auditDeleted": 0}
+    counts = {
+        "workingFiles": 0,
+        "answersRedacted": 0,
+        "resultsRedacted": 0,
+        "tutorTurnsRedacted": 0,
+        "mediaDeleted": 0,
+        "auditDeleted": 0,
+    }
     with SessionLocal() as db:
         working_query = select(AssessmentWorkingFile)
         if student_id:
@@ -32,6 +48,16 @@ def purge(*, student_id: uuid.UUID | None = None, dry_run: bool = True) -> dict[
         answer_rows = db.scalars(select(AssessmentAnswer).where(AssessmentAnswer.assessment_id.in_(assessment_ids))).all()
         result_rows = db.scalars(select(AssessmentResult).where(AssessmentResult.assessment_id.in_(assessment_ids))).all()
         counts["answersRedacted"], counts["resultsRedacted"] = len(answer_rows), len(result_rows)
+        tutor_turns = []
+        if student_id:
+            tutor_session_ids = select(TutorSession.id).where(TutorSession.student_id == student_id)
+            tutor_turns = db.scalars(
+                select(TutorTurn).where(
+                    TutorTurn.session_id.in_(tutor_session_ids),
+                    TutorTurn.purged_at.is_(None),
+                )
+            ).all()
+            counts["tutorTurnsRedacted"] = len(tutor_turns)
         media = db.scalars(select(EducationalMedia).where(EducationalMedia.status.in_(("pending_review", "rejected")), EducationalMedia.created_at < now - timedelta(days=settings.rejected_media_retention_days))).all()
         counts["mediaDeleted"] = len(media)
         if student_id is None:
@@ -48,6 +74,10 @@ def purge(*, student_id: uuid.UUID | None = None, dry_run: bool = True) -> dict[
             row.strengths, row.small_mistakes, row.conceptual_mistakes = [], [], []
             row.improved_answer, row.teaching_explanation = "", ""
             row.unit_evidence, row.recommendations = [], []
+        for row in tutor_turns:
+            row.content = "[Transcript content removed following a child-data deletion request.]"
+            row.response_data = {}
+            row.purged_at = now
         for row in media:
             storage.delete(row.object_key); db.delete(row)
         if student_id is None:

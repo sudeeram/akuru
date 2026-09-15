@@ -39,3 +39,4 @@ The PostgreSQL account must be allowed to create and drop databases for the dril
 - Run a restore drill after schema changes and on a regular schedule.
 - A successful `pg_dump` is incomplete evidence; the restore drill must also pass.
 - Never commit `.dump` files or copy production data into developer machines.
+- Tutor transcripts are included in PostgreSQL backups. Keep every backup encrypted; after an Admin purge or child-data deletion, the removed content remains recoverable only until the backup retention window expires.

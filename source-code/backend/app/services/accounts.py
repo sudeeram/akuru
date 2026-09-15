@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import AuditEvent, StudentProfile, User
+from app.models import AuditEvent, StudentAIQuota, StudentProfile, User
 from app.repositories.catalog import CatalogRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
@@ -77,6 +77,12 @@ def create_account(db: Session, principal: Principal, payload: CreateAccountRequ
     db.flush()
     if payload.role == "student":
         db.add(StudentProfile(student_id=user.id, parent_id=parent.id))
+        db.flush()
+        quota = StudentAIQuota(student_id=user.id, updated_by=principal.user.id)
+        db.add(quota); db.flush()
+        db.add(AuditEvent(actor_id=principal.user.id, action="student_ai_quota.created",
+            target_type="student_ai_quota", target_id=quota.public_ref,
+            event_data={"reason": "Initial allowance created with the student account."}))
         StudentRepository(db).replace_enrolment(user.id, progression, subject_ids)
     db.add(AuditEvent(
         actor_id=principal.user.id,

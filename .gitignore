@@ -1,2 +1,5 @@
 .DS_Store
 **/.DS_Store
+# Local deployment credentials
+deploy/server/*.key
+deploy/server/*.key.pub

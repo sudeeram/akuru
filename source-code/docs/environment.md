@@ -60,6 +60,9 @@ Copy `backend/.env.example` to `backend/.env` for local development. Production 
 | `AKURU_TUTOR_TEXT_ENABLED` | No | Release flag for text tutoring; defaults to `false`. |
 | `AKURU_TUTOR_VOICE_ENABLED` | No | Release flag for realtime voice; defaults to `false`. |
 | `AKURU_TUTOR_TOOLS_ENABLED` | No | Release flag for Tutor tool calls; defaults to `false`. |
+| `AKURU_TUTOR_RELEASE_GATES_REQUIRED` | Production | Requires passing, staged database release gates for Tutor text, voice and individual tools. Must be `true` in production. |
+| `AKURU_TUTOR_REALTIME_MODEL` | No | OpenAI Realtime model used for voice; defaults to `gpt-realtime`. |
+| `AKURU_TUTOR_REALTIME_CONNECTION_SECONDS` | No | Maximum voice seconds reserved for one connection, from 60 to 3,600; defaults to 600. Unused seconds are returned when the connection closes. |
 
 Protect the production dotenv file as `root:akuru` mode `0640`. Keep PostgreSQL and Redis private to the server network. Use separate database users and secrets for development, CI and production.
 

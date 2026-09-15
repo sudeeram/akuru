@@ -5,6 +5,7 @@ import test from 'node:test';
 const api = readFileSync(new URL('../lib/api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
 const tutorSessions = readFileSync(new URL('../features/tutor-sessions.tsx', import.meta.url), 'utf8');
+const learningMedia = readFileSync(new URL('../features/learning-media.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(
   new URL('../features/admin.tsx', import.meta.url),
   'utf8',
@@ -35,6 +36,8 @@ const tutorProfiles = readFileSync(
   'utf8',
 );
 const tutorSignals = readFileSync(new URL('../features/tutor-signals.tsx', import.meta.url), 'utf8');
+const tutorHistory = readFileSync(new URL('../features/tutor-history.tsx', import.meta.url), 'utf8');
+const tutorVoice = readFileSync(new URL('../features/tutor-voice.tsx', import.meta.url), 'utf8');
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -254,6 +257,15 @@ test('admin evaluation gates require reviewed corpora and passing releases', () 
   assert.match(evaluation, /evaluations\/admin\/corpora/);
   assert.match(evaluation, /evaluations\/admin\/runs/);
   assert.match(evaluation, /Activate automatic feedback/);
+  assert.match(evaluation, /Tutor subjects awaiting approval/);
+  assert.match(evaluation, /Production-like staging/);
+  assert.match(evaluation, /Admin testing/);
+  assert.match(evaluation, /Parent pilot/);
+  assert.match(evaluation, /Eligible students/);
+  assert.match(evaluation, /Tutor feature kill switch applied/);
+  assert.match(evaluation, /prompt-injection-rejected/);
+  assert.match(evaluation, /no-cross-student-context/);
+  assert.match(evaluation, /french-voice/);
 });
 
 test('admin operations exposes alerts, usage and audit without secrets', () => {
@@ -339,4 +351,66 @@ test('guided tutor practice uses authoritative assessment feedback and bounded o
   assert.match(tutorSignals, /NON-AUTHORITATIVE/);
   assert.match(tutorSignals, /does not change mastery or study plans/);
   assert.match(parent, /TutorSignals studentId=\{child\.id\}/);
+});
+
+test('per-child tutor allowances are visible and Admin controlled without UUIDs or provider secrets', () => {
+  const quotas = readFileSync(new URL('../features/tutor-quotas.tsx', import.meta.url), 'utf8');
+  assert.match(api, /getTutorQuota/);
+  assert.match(api, /updateTutorAdminQuota/);
+  assert.match(tutorSessions, /tutor requests remaining/);
+  assert.match(quotas, /Per-child tutor allowance/);
+  assert.match(quotas, /Audit reason/);
+  assert.match(quotas, /Voice minutes/);
+  assert.doesNotMatch(quotas, /credentialAlias|provider secret|OpenAI key/i);
+  assert.doesNotMatch(quotas, /\.id\b/);
+});
+
+test('tutor history gives parents summaries and Admins audited retention controls', () => {
+  assert.match(page, /Tutor history/);
+  assert.match(page, /<TutorHistory notify=\{notify\}/);
+  assert.match(admin, /<TutorHistory admin notify=\{p\.notify\}/);
+  assert.match(api, /tutoring\/history\/summaries/);
+  assert.match(api, /tutoring\/history\/safety-events/);
+  assert.match(api, /support-access/);
+  assert.match(api, /purge-preview/);
+  assert.match(tutorHistory, /Educational summaries protect the child/);
+  assert.match(tutorHistory, /without repeating the child’s message/);
+  assert.match(tutorHistory, /Audited support transcript/);
+  assert.match(tutorHistory, /Confirm PURGE TRANSCRIPTS/);
+  assert.doesNotMatch(tutorHistory, /studentId|parentId|sourceTurnId/);
+});
+
+test('realtime voice uses ephemeral WebRTC credentials, captions, recovery and accessible controls', () => {
+  assert.match(api, /createRealtimeCredential/);
+  assert.match(api, /saveRealtimeTranscriptTurn/);
+  assert.match(tutorSessions, /<TutorVoice/);
+  assert.match(tutorVoice, /new RTCPeerConnection/);
+  assert.match(tutorVoice, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(tutorVoice, /api\.openai\.com\/v1\/realtime\/calls/);
+  assert.match(tutorVoice, /input_audio_transcription\.completed/);
+  assert.match(tutorVoice, /output_audio_transcript\.delta/);
+  assert.match(tutorVoice, /response\.cancel/);
+  assert.match(tutorVoice, />Pause</);
+  assert.match(tutorVoice, /'Unmute' : 'Mute'/);
+  assert.match(tutorVoice, />Repeat</);
+  assert.match(tutorVoice, />Slower</);
+  assert.match(tutorVoice, /Use text instead/);
+  assert.match(tutorVoice, /french_conversation/);
+  assert.match(tutorVoice, /french_vocabulary/);
+  assert.match(tutorVoice, /french_pronunciation/);
+  assert.match(tutorVoice, /start\(credential\.connectionRef\)/);
+  assert.doesNotMatch(tutorVoice, /MediaRecorder|Blob|indexedDB|localStorage/);
+});
+
+test('tutor visuals distinguish evidence from explanations and remain accessible', () => {
+  assert.match(tutorSessions, /OFFICIAL SOURCE/);
+  assert.match(tutorSessions, /EXPLANATORY AID/);
+  assert.match(tutorSessions, /Text alternative:/);
+  assert.match(tutorSessions, /does not replace the official source/);
+  assert.match(tutorSessions, /<Equation value=\{visual\.equation\}/);
+  assert.match(tutorSessions, /<LearningImage/);
+  assert.match(tutorSessions, /Asset provenance/);
+  assert.match(learningMedia, /Enlarge diagram/);
+  assert.match(learningMedia, /Dialog open=\{open\}/);
+  assert.match(learningMedia, /Open original size in a new tab/);
 });

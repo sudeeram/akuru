@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     tutor_text_enabled: bool = False
     tutor_voice_enabled: bool = False
     tutor_tools_enabled: bool = False
+    tutor_release_gates_required: bool = False
+    tutor_realtime_model: str = "gpt-realtime"
+    tutor_realtime_connection_seconds: int = Field(default=600, ge=60, le=3600)
     tutor_retrieval_min_score: float = Field(default=0.45, ge=0, le=1)
     assessment_confidence_threshold: float = Field(default=0.75, ge=0, le=1)
     assessment_context_chunks: int = Field(default=12, ge=1, le=30)
@@ -94,6 +97,8 @@ class Settings(BaseSettings):
         if self.openai_image_size not in {"1024x1024", "1024x1536", "1536x1024"}:
             raise ValueError("AKURU_OPENAI_IMAGE_SIZE is not supported")
         if self.environment == "production":
+            if not self.tutor_release_gates_required:
+                raise ValueError("AKURU_TUTOR_RELEASE_GATES_REQUIRED must be true in production")
             if not self.cookie_secure:
                 raise ValueError("AKURU_COOKIE_SECURE must be true in production")
             if any(origin.startswith("http://") for origin in self.cors_origins):

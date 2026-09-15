@@ -245,6 +245,8 @@ def _build(db: Session, student_id: uuid.UUID, session: TutorSession, operation_
 def build_and_log(db: Session, settings: Settings, principal: Principal, session_ref: str, request_key: str):
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session = tutor_sessions._owned_session(db, principal.user.id, session_ref, lock=True)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
+                         session.subject_id, "tutor_learner_context")
     if session.status != "active":
         raise DomainError("tutor_session_ended", "This tutor session has ended.", 409)
     existing = db.scalar(select(TutorLearnerContextLog).where(

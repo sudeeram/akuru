@@ -68,6 +68,8 @@ def require_tutor_access(
     settings: Settings,
     student_id: uuid.UUID,
     capability: TutorCapability,
+    subject_id: str | None = None,
+    workflow: str | None = None,
 ) -> None:
     """Authorize a tutor capability and block all help during a live formal attempt."""
     if not tutor_feature_enabled(settings, capability):
@@ -82,6 +84,12 @@ def require_tutor_access(
             "AKURU Tutor is unavailable while a formal assessment is active.",
             403,
         )
+    if settings.tutor_release_gates_required and subject_id:
+        from app.services.evaluations import tutor_feature_allowed
+        release_workflow = workflow or f"tutor_{capability.value}"
+        allowed, reason = tutor_feature_allowed(db, subject_id, release_workflow)
+        if not allowed:
+            raise DomainError("tutor_release_blocked", reason, 403)
 
 
 def tutor_capabilities(db: Session, settings: Settings, student_id: uuid.UUID) -> dict:

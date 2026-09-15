@@ -27,14 +27,111 @@ from app.schemas.tutor_sources import TutorCitation, TutorCitationContextRespons
 from app.schemas.tutor_agent import TutorAgentTurnRequest, TutorAgentTurnResponse
 from app.schemas.tutor_practice import (TutorPracticeAction, TutorPracticeAnswer, TutorPracticeResponse,
                                         TutorPracticeStart, TutorSignalListResponse)
+from app.schemas.tutor_quotas import (AdminQuotaListResponse, AdminQuotaUpdate, QuotaAuditResponse,
+                                      StudentQuotaResponse)
+from app.schemas.tutor_history import (PurgePreviewResponse, PurgeRequest, PurgeResultResponse,
+    SafetyEventListResponse, SafetyEventResponse, SafetyReviewRequest, SupportAccessRequest,
+    SupportTranscriptResponse, TutorSummaryListResponse)
+from app.schemas.tutor_realtime import (
+    RealtimeConnectionStateRequest,
+    RealtimeConnectionStateResponse,
+    RealtimeCredentialRequest,
+    RealtimeCredentialResponse,
+    RealtimeTranscriptTurnRequest,
+    RealtimeTranscriptTurnResponse,
+)
 from app.security import Principal
 from app.services.assessment_access import tutor_capabilities
-from app.services import tutor_agent, tutor_context, tutor_practice, tutor_profiles, tutor_recommendations, tutor_sessions, tutor_sources
+from app.services import tutor_agent, tutor_context, tutor_history, tutor_practice, tutor_profiles, tutor_quotas, tutor_realtime, tutor_recommendations, tutor_sessions, tutor_sources
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_storage
 
 
 router = APIRouter(prefix="/tutoring", tags=["tutoring"])
+
+
+@router.post("/sessions/{session_ref}/realtime-credential", response_model=RealtimeCredentialResponse)
+def realtime_credential(session_ref: str, payload: RealtimeCredentialRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    return tutor_realtime.create_credential(db, settings, principal, session_ref, payload)
+
+
+@router.post("/realtime/{connection_ref}/state", response_model=RealtimeConnectionStateResponse)
+def realtime_state(connection_ref: str, payload: RealtimeConnectionStateRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    return tutor_realtime.update_state(db, settings, principal, connection_ref, payload.state, payload.failureCode)
+
+
+@router.post("/realtime/{connection_ref}/turns", response_model=RealtimeTranscriptTurnResponse)
+def realtime_transcript_turn(connection_ref: str, payload: RealtimeTranscriptTurnRequest,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    return tutor_realtime.save_turn(db, settings, principal, connection_ref, payload)
+
+
+@router.get("/history/summaries", response_model=TutorSummaryListResponse)
+def history_summaries(principal: Annotated[Principal, Depends(require_roles("parent", "admin"))], db: Annotated[Session, Depends(get_db)]):
+    return tutor_history.summaries(db, principal)
+
+
+@router.get("/history/safety-events", response_model=SafetyEventListResponse)
+def history_safety(principal: Annotated[Principal, Depends(require_roles("parent", "admin"))], db: Annotated[Session, Depends(get_db)]):
+    return tutor_history.safety_events(db, principal)
+
+
+@router.post("/admin/safety-events/{event_ref}/review", response_model=SafetyEventResponse)
+def review_safety(event_ref: str, payload: SafetyReviewRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return tutor_history.review_safety(db, principal, event_ref, payload.status, payload.note)
+
+
+@router.post("/admin/transcripts/{session_ref}/support-access", response_model=SupportTranscriptResponse)
+def support_access(session_ref: str, payload: SupportAccessRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return tutor_history.support_transcript(db, principal, session_ref, payload.reason)
+
+
+@router.get("/admin/transcripts/purge-preview", response_model=PurgePreviewResponse)
+def transcript_purge_preview(principal: Annotated[Principal, Depends(require_roles("admin"))], db: Annotated[Session, Depends(get_db)], olderThanDays: Annotated[int, Query(ge=1, le=3650)] = 365):
+    return tutor_history.purge_preview(db, olderThanDays)
+
+
+@router.post("/admin/transcripts/purge", response_model=PurgeResultResponse)
+def transcript_purge(payload: PurgeRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return tutor_history.purge(db, principal, payload.olderThanDays, payload.reason)
+
+
+@router.get("/quota", response_model=StudentQuotaResponse)
+def quota_status(
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return tutor_quotas.student_status(db, principal)
+
+
+@router.get("/admin/quotas", response_model=AdminQuotaListResponse)
+def admin_quotas(
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return tutor_quotas.list_admin(db)
+
+
+@router.post("/admin/quotas/{student_ref}", response_model=StudentQuotaResponse)
+def update_admin_quota(
+    student_ref: str, payload: AdminQuotaUpdate,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return tutor_quotas.update_admin(db, principal, student_ref, payload)
+
+
+@router.get("/admin/quotas/{student_ref}/audit", response_model=QuotaAuditResponse)
+def admin_quota_audit(
+    student_ref: str, _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return tutor_quotas.audit_history(db, student_ref)
 
 
 @router.get("/capabilities", response_model=TutorCapabilitiesResponse)
@@ -136,7 +233,8 @@ def tutor_media(
 ) -> Response:
     stored = tutor_agent.open_media(db, settings, principal, storage, session_ref, media_id)
     return Response(content=stored.content, media_type=stored.content_type,
-                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+                             "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"})
 
 
 @router.get("/sessions/{session_ref}/practice", response_model=TutorPracticeResponse | None)

@@ -1,4 +1,4 @@
-from app.services.evaluations import THRESHOLDS, _score
+from app.services.evaluations import THRESHOLDS, TUTOR_THRESHOLDS, _score
 
 
 def test_evaluation_metrics_cover_step_19_quality_dimensions():
@@ -12,3 +12,15 @@ def test_evaluation_metrics_cover_step_19_quality_dimensions():
     feedback = _score("feedback", {"smallErrors": ["unit"], "sourceIds": ["s1"], "improvedAnswerRequired": True}, {"smallErrors": ["unit"], "sourceIds": ["s1"], "improvedAnswer": "Improved"})
     assert feedback == {"small_error_recall": 1, "improved_answer_quality": 1, "grounding": 1}
     assert set(THRESHOLDS) == {"inventory_recall", "ocr_similarity", "equation_preservation", "diagram_preservation", "mapping_precision", "cross_subject_rejection", "mark_exactness", "method_mark_exactness", "small_error_recall", "improved_answer_quality", "grounding", "repeatability"}
+
+
+def test_tutor_metrics_require_every_reviewed_check():
+    scored = _score("tutor_security", {"requiredChecks": ["injection", "sibling", "formal"]},
+                    {"passedChecks": ["injection", "formal"]})
+    assert scored == {"tutor_security_isolation": 2 / 3}
+    assert set(TUTOR_THRESHOLDS) == {
+        "tutor_factual_accuracy", "tutor_mathematical_accuracy", "tutor_source_grounding",
+        "tutor_personalisation_accuracy", "tutor_recommendation_accuracy", "tutor_persona_suitability",
+        "tutor_security_isolation", "tutor_handover_accuracy", "tutor_voice_quality",
+        "tutor_preset_safety", "tutor_operational_readiness",
+    }

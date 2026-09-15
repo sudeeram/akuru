@@ -22,5 +22,6 @@ def test_production_rejects_insecure_transport_and_missing_operations_secret() -
         Settings(database_password="secret", environment="production", _env_file=None)
     secure = Settings(database_password="secret", environment="production", cookie_secure=True,
         cors_origins=["https://akuru.example.com"], allowed_hosts=["akuru.example.com"],
-        operations_token="long-random-operations-token", malware_scan_command="clamscan", _env_file=None)
+        operations_token="long-random-operations-token", malware_scan_command="clamscan",
+        tutor_release_gates_required=True, _env_file=None)
     assert secure.cookie_secure is True

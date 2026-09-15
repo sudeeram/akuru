@@ -1,3 +1,4 @@
+import math
 import uuid
 from datetime import datetime, timezone
 
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.errors import DomainError
 from app.models import (
-    AuditEvent, Subject, TextbookUnit, TutorProfile, TutorProfileVersion, TutorSession,
+    AuditEvent, Subject, TextbookUnit, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSession,
     TutorPractice, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, TutorTurnSource,
 )
 from app.schemas.curriculum_plans import PlanUnitResponse
@@ -17,7 +18,7 @@ from app.schemas.tutor_sessions import (
     TutorSessionSubjectOption, TutorTurnResponse, TutorUnitEventResponse,
 )
 from app.security import Principal
-from app.services import curriculum_plans, tutor_profiles
+from app.services import curriculum_plans, tutor_history, tutor_profiles, tutor_quotas
 from app.services.assessment_access import TutorCapability, require_tutor_access
 
 
@@ -141,7 +142,8 @@ def list_sessions(db: Session, student_id: uuid.UUID):
 
 
 def start(db: Session, settings: Settings, principal: Principal, payload) -> TutorSessionResponse:
-    require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+                         payload.subjectId, "tutor_text")
     existing = db.scalar(select(TutorSession).where(
         TutorSession.student_id == principal.user.id, TutorSession.start_request_key == payload.requestKey,
     ))
@@ -172,13 +174,16 @@ def add_turn(db: Session, settings: Settings, principal: Principal, session_ref:
     capability = TutorCapability.VOICE if payload.modality == "voice" else TutorCapability.TEXT
     require_tutor_access(db, settings, principal.user.id, capability)
     row = _owned_session(db, principal.user.id, session_ref, lock=True); _require_active(row)
+    require_tutor_access(db, settings, principal.user.id, capability, row.subject_id,
+                         "tutor_voice" if capability == TutorCapability.VOICE else "tutor_text")
     replay = db.scalar(select(TutorTurn).where(TutorTurn.session_id == row.id, TutorTurn.request_key == payload.requestKey))
     if replay:
         return response(db, row)
     sequence = (db.scalar(select(func.max(TutorTurn.sequence)).where(TutorTurn.session_id == row.id)) or 0) + 1
-    db.add(TutorTurn(public_ref=f"tutor_turn_{uuid.uuid4().hex}", session_id=row.id,
+    turn = TutorTurn(public_ref=f"tutor_turn_{uuid.uuid4().hex}", session_id=row.id,
                      profile_version_id=row.current_profile_version_id, sequence=sequence, role="student",
-                     modality=payload.modality, content=payload.content.strip(), request_key=payload.requestKey))
+                     modality=payload.modality, content=payload.content.strip(), request_key=payload.requestKey)
+    db.add(turn); db.flush(); tutor_history.detect_safety(db, row, turn)
     db.commit(); db.refresh(row)
     return response(db, row)
 
@@ -189,6 +194,23 @@ def _handover(db: Session, row: TutorSession) -> dict:
     recent = [{"role": item.role, "summary": " ".join(item.content.split())[:240]} for item in reversed(turns)]
     return {"subjectId": row.subject_id, "unit": {"code": unit.unit_code, "title": unit.title},
             "practiceState": "active", "retainedTurnCount": len(turns), "recentContext": recent}
+
+
+def _end_realtime_connections(db: Session, row: TutorSession, ended_at: datetime) -> None:
+    for connection in db.scalars(select(TutorRealtimeConnection).where(
+        TutorRealtimeConnection.session_id == row.id,
+        TutorRealtimeConnection.status.in_(("connecting", "connected")),
+    ).with_for_update()).all():
+        started = connection.connected_at or connection.started_at
+        if started.tzinfo is None:
+            started = started.replace(tzinfo=timezone.utc)
+        billed = 0 if connection.connected_at is None else min(
+            connection.reserved_seconds,
+            max(1, math.ceil((ended_at - started).total_seconds())),
+        )
+        tutor_quotas.settle_voice(db, connection.student_id, connection.operation_id,
+                                  connection.reserved_seconds, billed)
+        connection.status = "ended"; connection.billed_seconds = billed; connection.ended_at = ended_at
 
 
 def switch_profile(db: Session, settings: Settings, principal: Principal, session_ref: str, payload) -> TutorSessionResponse:
@@ -203,6 +225,7 @@ def switch_profile(db: Session, settings: Settings, principal: Principal, sessio
     event = TutorSessionProfileEvent(session_id=row.id, from_profile_version_id=row.current_profile_version_id,
         to_profile_version_id=version.id, request_key=payload.requestKey, handover_summary=_handover(db, row))
     db.add(event); row.current_profile_version_id = version.id
+    _end_realtime_connections(db, row, datetime.now(timezone.utc))
     db.commit(); db.refresh(row)
     return response(db, row)
 
@@ -222,6 +245,7 @@ def switch_unit(db: Session, settings: Settings, principal: Principal, session_r
         raise DomainError("tutor_unit_already_selected", "That unit is already active.", 409)
     db.add(TutorSessionUnitEvent(session_id=row.id, from_unit_id=row.active_unit_id, to_unit_id=unit.id, request_key=payload.requestKey))
     row.active_unit_id = unit.id
+    _end_realtime_connections(db, row, datetime.now(timezone.utc))
     db.commit(); db.refresh(row)
     return response(db, row)
 
@@ -234,6 +258,8 @@ def end(db: Session, settings: Settings, principal: Principal, session_ref: str,
             return response(db, row)
         raise DomainError("tutor_session_ended", "This tutor session has ended.", 409)
     row.status = "ended"; row.ended_at = datetime.now(timezone.utc); row.end_request_key = payload.requestKey
+    _end_realtime_connections(db, row, row.ended_at)
+    tutor_history.create_summary(db, row)
     db.add(AuditEvent(actor_id=principal.user.id, action="tutor_session.ended", target_type="tutor_session", target_id=row.public_ref, event_data={"subjectId": row.subject_id}))
     db.commit(); db.refresh(row)
     return response(db, row)

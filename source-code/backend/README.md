@@ -57,7 +57,7 @@ Use at least 12 characters. The password is stored only as an Argon2 hash.
 - `/health` is intentionally public and reveals only a constant liveness value. `/ready`, `/api/v1/catalog`, and future functional routes require a valid session.
 - Untrusted browser origins, hosts, and oversized ordinary JSON requests are rejected. Security headers are added to responses.
 
-Before public deployment, set `AKURU_ENVIRONMENT=production`, `AKURU_COOKIE_SECURE=true`, and replace allowed hosts/origins with the real HTTPS host. Terminate TLS at the reverse proxy, prevent direct public access to PostgreSQL, and configure the proxy to overwrite forwarded-client headers. Production API documentation is disabled automatically.
+Before public deployment, set `AKURU_ENVIRONMENT=production`, `AKURU_COOKIE_SECURE=true`, and `AKURU_TUTOR_RELEASE_GATES_REQUIRED=true`, then replace allowed hosts/origins with the real HTTPS host. Terminate TLS at the reverse proxy, prevent direct public access to PostgreSQL, and configure the proxy to overwrite forwarded-client headers. Production API documentation is disabled automatically. Complete the staged Tutor releases and run `.venv/bin/python -m app.tutor_release_check` before enabling public traffic.
 
 ## Database changes
 

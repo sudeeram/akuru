@@ -49,7 +49,7 @@ export function Equation({ value }: { value: string }) {
   return <figure className="equation">{rendered}<figcaption className="small">Equation source: {value}</figcaption></figure>;
 }
 
-export function LearningImage({ src, description }: { src: string; description: string }) {
+export function LearningImage({ src, description, title = 'Learning diagram' }: { src: string; description: string; title?: string }) {
   const [open,setOpen]=useState(false);
   const [failed,setFailed]=useState(false);
   const [retry,setRetry]=useState(0);
@@ -57,6 +57,6 @@ export function LearningImage({ src, description }: { src: string; description: 
     <Image key={retry} src={src} unoptimized width={800} height={600} className="assessment-asset" alt={description} onError={() => setFailed(true)} />
     <figcaption className="small">{description}</figcaption>
     {failed ? <div role="alert">Diagram could not load. <Button variant="outline" onClick={() => {setFailed(false);setRetry(retry+1);}}>Retry image</Button></div> : <Button variant="outline" onClick={() => setOpen(true)}>Enlarge diagram</Button>}
-    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="wide-dialog"><DialogHeader><DialogTitle>Question diagram</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader><div style={{overflow:'auto',maxHeight:'70vh'}}><Image src={src} unoptimized width={1600} height={1200} style={{maxWidth:'none',width:'100%',height:'auto'}} alt={description} /></div><a href={src} target="_blank" rel="noreferrer">Open original size in a new tab</a></DialogContent></Dialog>
+    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="wide-dialog"><DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader><section className="learning-image-zoom" aria-label="Scrollable enlarged diagram"><Image src={src} unoptimized width={1600} height={1200} style={{maxWidth:'none',width:'100%',height:'auto'}} alt={description} /></section><a href={src} target="_blank" rel="noreferrer">Open original size in a new tab</a></DialogContent></Dialog>
   </figure>;
 }

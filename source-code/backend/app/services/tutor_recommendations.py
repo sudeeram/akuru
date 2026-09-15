@@ -12,6 +12,7 @@ from app.schemas.tutor_recommendations import (
 )
 from app.security import Principal
 from app.services import curriculum_plans, tutor_context, tutor_sessions
+from app.services.assessment_access import TutorCapability, require_tutor_access
 
 
 ALGORITHM_VERSION = "next-unit-v1"
@@ -96,6 +97,8 @@ def recommend(db: Session, settings: Settings, principal: Principal, session_ref
     if subject_id != session.subject_id:
         raise DomainError("tutor_recommendation_subject_mismatch",
                           "Recommendations must stay inside the active tutor subject.", 422)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
+                         session.subject_id, "tutor_next_unit")
     coverage = curriculum_plans.student_coverage(db, principal.user.id, subject_id)
     if coverage.status != "ready" or not coverage.coveredUnits:
         return NextUnitResponse(status="no_eligible_units",

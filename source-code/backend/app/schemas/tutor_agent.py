@@ -49,7 +49,13 @@ class TutorToolResult(BaseModel):
 class TutorVisual(BaseModel):
     title: str
     altText: str
-    contentUrl: str
+    visualType: Literal["official_source", "explanatory"]
+    kind: str
+    contentUrl: str | None = None
+    readableFallback: str
+    equation: str | None = None
+    sourceLabel: str
+    provenance: dict
     sourceRefs: list[str] = Field(default_factory=list)
 
 

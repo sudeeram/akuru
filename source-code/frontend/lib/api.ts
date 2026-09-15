@@ -144,6 +144,16 @@ export type TutorProfileDraft = {
 };
 export type TutorProfile = TutorProfileDraft & { profileRef: string; version: number; active: boolean };
 export type TutorAdminPresets = { avatars: TutorAvatar[]; voices: TutorVoice[] };
+export type TutorQuotaAmount = { allowance: number; used: number; remaining: number };
+export type TutorQuota = {
+  studentRef: string; studentName: string; enabled: boolean;
+  state: 'available' | 'warning' | 'exhausted' | 'disabled' | 'renewed'; periodDays: number;
+  periodStartsAt: string; renewsAt: string; requests: TutorQuotaAmount;
+  textTokens: TutorQuotaAmount; voiceMinutes: TutorQuotaAmount; fallbackMessage: string;
+};
+export type TutorQuotaAudit = { studentRef: string; events: { action: string; reason: string; changes: Record<string, unknown>; createdAt: string }[] };
+export type TutorHistorySummary = { summaryRef: string; sessionRef: string; studentName: string; subjectId: string; unitsCovered: { code: string; title: string }[]; activities: string[]; strengths: string[]; difficulties: string[]; suggestedNextSteps: string[]; usage: { aiRequests?: number; textTokens?: number; voiceTurns?: number }; createdAt: string };
+export type TutorSafetyEvent = { eventRef: string; studentName: string; category: string; severity: string; action: string; notificationStatus: string; reviewStatus: string; createdAt: string };
 export type TutorSessionUnit = { id: string; code: string; title: string };
 export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; structured: Partial<TutorAgentReply>; createdAt: string };
 export type TutorSession = {
@@ -174,7 +184,9 @@ export type TutorAgentReply = {
   teachingMode: 'explanation' | 'questions' | 'guided_practice' | 'socratic_practice' | 'revision' | 'exam_technique' | 'french_conversation';
   citations: TutorCitation[]; followUpChoices: string[];
   toolResults: { name: string; status: 'ready' | 'evidence_insufficient' | 'unavailable'; summary: string; evidenceRefs: string[] }[];
-  visuals: { title: string; altText: string; contentUrl: string; sourceRefs: string[] }[];
+  visuals: { title: string; altText: string; visualType: 'official_source' | 'explanatory'; kind: string;
+    contentUrl?: string | null; readableFallback: string; equation?: string | null; sourceLabel: string;
+    provenance: Record<string, unknown>; sourceRefs: string[] }[];
   proposedSignals: { category: string; observation: string; evidenceRefs: string[]; confidence: number }[];
   provider: string; model: string; promptName: string; promptVersion: string;
 };
@@ -250,6 +262,30 @@ export const getTutorAdminPresets = () => request('tutoring/admin/presets') as P
 export const updateTutorPreset = (kind: 'avatars' | 'voices', code: string, enabled: boolean, sortOrder: number) => request(
   `tutoring/admin/${kind}/${code}`, { method: 'POST', body: { enabled, sortOrder } },
 ) as Promise<TutorAdminPresets>;
+export const getTutorQuota = () => request('tutoring/quota') as Promise<TutorQuota>;
+export const getTutorAdminQuotas = () => request('tutoring/admin/quotas') as Promise<{ quotas: TutorQuota[] }>;
+export const updateTutorAdminQuota = (studentRef: string, body: { periodDays: number; requestAllowance: number; textTokenAllowance: number; voiceMinuteAllowance: number; enabled: boolean; reason: string }) => request(
+  `tutoring/admin/quotas/${studentRef}`, { method: 'POST', body },
+) as Promise<TutorQuota>;
+export const getTutorQuotaAudit = (studentRef: string) => request(`tutoring/admin/quotas/${studentRef}/audit`) as Promise<TutorQuotaAudit>;
+export const getTutorHistorySummaries = () => request('tutoring/history/summaries') as Promise<{ summaries: TutorHistorySummary[] }>;
+export const getTutorSafetyEvents = () => request('tutoring/history/safety-events') as Promise<{ events: TutorSafetyEvent[] }>;
+export const reviewTutorSafetyEvent = (eventRef: string, status: 'reviewed' | 'resolved', note: string) => request(`tutoring/admin/safety-events/${eventRef}/review`, { method: 'POST', body: { status, note } });
+export const getTutorSupportTranscript = (sessionRef: string, reason: string) => request(`tutoring/admin/transcripts/${sessionRef}/support-access`, { method: 'POST', body: { reason } }) as Promise<{ sessionRef: string; studentName: string; turns: { turnRef: string; role: string; modality: string; content: string; purged: boolean; createdAt: string }[] }>;
+export const previewTutorTranscriptPurge = (days: number) => request(`tutoring/admin/transcripts/purge-preview?olderThanDays=${days}`) as Promise<{ olderThanDays: number; cutoff: string; turnCount: number; sessionCount: number }>;
+export const purgeTutorTranscripts = (olderThanDays: number, reason: string) => request('tutoring/admin/transcripts/purge', { method: 'POST', body: { olderThanDays, reason, confirmation: 'PURGE TRANSCRIPTS' } }) as Promise<{ purgedTurnCount: number }>;
+export type RealtimeCredential = { connectionRef: string; clientSecret: string; expiresAt: string; model: string; voiceReady: boolean; reconnect: boolean };
+export type RealtimeLanguageMode = 'auto' | 'french_conversation' | 'french_vocabulary' | 'french_pronunciation';
+export const createRealtimeCredential = (sessionRef: string, requestKey: string, languageMode: RealtimeLanguageMode, failedConnectionRef?: string) => request(
+  `tutoring/sessions/${sessionRef}/realtime-credential`,
+  { method: 'POST', body: { requestKey, languageMode, failedConnectionRef } },
+) as Promise<RealtimeCredential>;
+export const updateRealtimeState = (connectionRef: string, state: 'connected' | 'ended' | 'failed' | 'cancelled', failureCode?: string) => request(
+  `tutoring/realtime/${connectionRef}/state`, { method: 'POST', body: { state, failureCode } },
+);
+export const saveRealtimeTranscriptTurn = (connectionRef: string, role: 'student' | 'assistant', content: string, requestKey: string) => request(
+  `tutoring/realtime/${connectionRef}/turns`, { method: 'POST', body: { role, content, requestKey } },
+);
 export const getTutorSessionOptions = () => request('tutoring/session-options') as Promise<TutorSessionOptions>;
 export const getTutorSessions = () => request('tutoring/sessions') as Promise<{ sessions: TutorSession[] }>;
 export const startTutorSession = (subjectId: string, unitId: string, profileRef: string, requestKey: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, unitId, profileRef, requestKey } }) as Promise<TutorSession>;

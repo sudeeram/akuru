@@ -85,7 +85,7 @@ flowchart LR
 - Feature flags control release, not authorization. Role, ownership, curriculum and source checks still run when enabled.
 - Provider output cannot authorize a source, assessment, unit or student action.
 - Source material and student messages remain untrusted input and cannot redefine tool permissions.
-- The current global `Permissions-Policy` disables microphone access. Tutor Step 10 must deliberately enable it only for the same-origin voice interface after its voice security tests pass.
+- Tutor Step 10 completed the planned header change: `Permissions-Policy` now permits microphone access for the same-origin voice interface, while camera and geolocation remain disabled.
 
 ## Verification added by this step
 

@@ -193,6 +193,70 @@
         "title": "AccountSummaryResponse",
         "type": "object"
       },
+      "AdminQuotaListResponse": {
+        "properties": {
+          "quotas": {
+            "items": {
+              "$ref": "#/components/schemas/StudentQuotaResponse"
+            },
+            "title": "Quotas",
+            "type": "array"
+          }
+        },
+        "required": [
+          "quotas"
+        ],
+        "title": "AdminQuotaListResponse",
+        "type": "object"
+      },
+      "AdminQuotaUpdate": {
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "periodDays": {
+            "maximum": 366.0,
+            "minimum": 1.0,
+            "title": "Perioddays",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 300,
+            "minLength": 3,
+            "title": "Reason",
+            "type": "string"
+          },
+          "requestAllowance": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Requestallowance",
+            "type": "integer"
+          },
+          "textTokenAllowance": {
+            "maximum": 1000000000.0,
+            "minimum": 0.0,
+            "title": "Texttokenallowance",
+            "type": "integer"
+          },
+          "voiceMinuteAllowance": {
+            "maximum": 1000000.0,
+            "minimum": 0.0,
+            "title": "Voiceminuteallowance",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "periodDays",
+          "requestAllowance",
+          "textTokenAllowance",
+          "voiceMinuteAllowance",
+          "reason"
+        ],
+        "title": "AdminQuotaUpdate",
+        "type": "object"
+      },
       "AnswerSave": {
         "properties": {
           "answer": {
@@ -1522,6 +1586,15 @@
           "subjectId": {
             "title": "Subjectid",
             "type": "string"
+          },
+          "workflow": {
+            "default": "assessment",
+            "enum": [
+              "assessment",
+              "tutor"
+            ],
+            "title": "Workflow",
+            "type": "string"
           }
         },
         "required": [
@@ -1583,11 +1656,16 @@
           "versionNumber": {
             "title": "Versionnumber",
             "type": "integer"
+          },
+          "workflow": {
+            "title": "Workflow",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "subjectId",
+          "workflow",
           "versionNumber",
           "name",
           "cases",
@@ -2301,7 +2379,18 @@
               "mapping",
               "marking",
               "feedback",
-              "repeatability"
+              "repeatability",
+              "tutor_factual",
+              "tutor_mathematical",
+              "tutor_grounding",
+              "tutor_personalisation",
+              "tutor_recommendation",
+              "tutor_persona",
+              "tutor_security",
+              "tutor_handover",
+              "tutor_voice",
+              "tutor_preset_safety",
+              "tutor_operations"
             ],
             "title": "Category",
             "type": "string"
@@ -2341,6 +2430,13 @@
             "title": "Missingapprovedsubjects",
             "type": "array"
           },
+          "missingApprovedTutorSubjects": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missingapprovedtutorsubjects",
+            "type": "array"
+          },
           "releases": {
             "items": {
               "$ref": "#/components/schemas/ReleaseResponse"
@@ -2360,7 +2456,8 @@
           "corpora",
           "runs",
           "releases",
-          "missingApprovedSubjects"
+          "missingApprovedSubjects",
+          "missingApprovedTutorSubjects"
         ],
         "title": "EvaluationDashboard",
         "type": "object"
@@ -2395,6 +2492,26 @@
           "corpusId": {
             "format": "uuid",
             "title": "Corpusid",
+            "type": "string"
+          },
+          "environment": {
+            "default": "ci",
+            "enum": [
+              "ci",
+              "staging"
+            ],
+            "title": "Environment",
+            "type": "string"
+          },
+          "modality": {
+            "default": "assessment",
+            "enum": [
+              "assessment",
+              "text",
+              "voice",
+              "tools"
+            ],
+            "title": "Modality",
             "type": "string"
           },
           "observations": {
@@ -2438,6 +2555,10 @@
             "title": "Createdat",
             "type": "string"
           },
+          "environment": {
+            "title": "Environment",
+            "type": "string"
+          },
           "failureReasons": {
             "items": {
               "type": "string"
@@ -2457,6 +2578,10 @@
             "title": "Metrics",
             "type": "object"
           },
+          "modality": {
+            "title": "Modality",
+            "type": "string"
+          },
           "passed": {
             "title": "Passed",
             "type": "boolean"
@@ -2475,12 +2600,19 @@
             },
             "title": "Thresholds",
             "type": "object"
+          },
+          "workflow": {
+            "title": "Workflow",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "corpusId",
           "subjectId",
+          "workflow",
+          "modality",
+          "environment",
           "candidateModel",
           "promptVersion",
           "metrics",
@@ -4328,6 +4460,97 @@
         "title": "PublishTextbookRequest",
         "type": "object"
       },
+      "PurgePreviewResponse": {
+        "properties": {
+          "cutoff": {
+            "format": "date-time",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "olderThanDays": {
+            "title": "Olderthandays",
+            "type": "integer"
+          },
+          "sessionCount": {
+            "title": "Sessioncount",
+            "type": "integer"
+          },
+          "turnCount": {
+            "title": "Turncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "olderThanDays",
+          "cutoff",
+          "turnCount",
+          "sessionCount"
+        ],
+        "title": "PurgePreviewResponse",
+        "type": "object"
+      },
+      "PurgeRequest": {
+        "properties": {
+          "confirmation": {
+            "const": "PURGE TRANSCRIPTS",
+            "title": "Confirmation",
+            "type": "string"
+          },
+          "olderThanDays": {
+            "maximum": 3650.0,
+            "minimum": 1.0,
+            "title": "Olderthandays",
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "olderThanDays",
+          "reason",
+          "confirmation"
+        ],
+        "title": "PurgeRequest",
+        "type": "object"
+      },
+      "PurgeResultResponse": {
+        "properties": {
+          "cutoff": {
+            "format": "date-time",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "olderThanDays": {
+            "title": "Olderthandays",
+            "type": "integer"
+          },
+          "purgedTurnCount": {
+            "title": "Purgedturncount",
+            "type": "integer"
+          },
+          "sessionCount": {
+            "title": "Sessioncount",
+            "type": "integer"
+          },
+          "turnCount": {
+            "title": "Turncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "olderThanDays",
+          "cutoff",
+          "turnCount",
+          "sessionCount",
+          "purgedTurnCount"
+        ],
+        "title": "PurgeResultResponse",
+        "type": "object"
+      },
       "QuestionMappingResponse": {
         "properties": {
           "mappings": {
@@ -4428,6 +4651,80 @@
         "title": "QuestionPoolDiagnosticResponse",
         "type": "object"
       },
+      "QuotaAmount": {
+        "properties": {
+          "allowance": {
+            "title": "Allowance",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          },
+          "used": {
+            "title": "Used",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "allowance",
+          "used",
+          "remaining"
+        ],
+        "title": "QuotaAmount",
+        "type": "object"
+      },
+      "QuotaAuditItem": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "changes": {
+            "additionalProperties": true,
+            "title": "Changes",
+            "type": "object"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "reason",
+          "changes",
+          "createdAt"
+        ],
+        "title": "QuotaAuditItem",
+        "type": "object"
+      },
+      "QuotaAuditResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/QuotaAuditItem"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "studentRef": {
+            "title": "Studentref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "studentRef",
+          "events"
+        ],
+        "title": "QuotaAuditResponse",
+        "type": "object"
+      },
       "RankedUnit": {
         "properties": {
           "evidenceRefs": {
@@ -4489,6 +4786,215 @@
           "explanation"
         ],
         "title": "RankingFactor",
+        "type": "object"
+      },
+      "RealtimeConnectionStateRequest": {
+        "properties": {
+          "failureCode": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failurecode"
+          },
+          "state": {
+            "enum": [
+              "connected",
+              "ended",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "RealtimeConnectionStateRequest",
+        "type": "object"
+      },
+      "RealtimeConnectionStateResponse": {
+        "properties": {
+          "billedSeconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Billedseconds"
+          },
+          "connectionRef": {
+            "title": "Connectionref",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "connecting",
+              "connected",
+              "ended",
+              "failed",
+              "cancelled"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "connectionRef",
+          "state"
+        ],
+        "title": "RealtimeConnectionStateResponse",
+        "type": "object"
+      },
+      "RealtimeCredentialRequest": {
+        "properties": {
+          "failedConnectionRef": {
+            "anyOf": [
+              {
+                "maxLength": 56,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failedconnectionref"
+          },
+          "languageMode": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "french_conversation",
+              "french_vocabulary",
+              "french_pronunciation"
+            ],
+            "title": "Languagemode",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestKey"
+        ],
+        "title": "RealtimeCredentialRequest",
+        "type": "object"
+      },
+      "RealtimeCredentialResponse": {
+        "properties": {
+          "clientSecret": {
+            "title": "Clientsecret",
+            "type": "string"
+          },
+          "connectionRef": {
+            "title": "Connectionref",
+            "type": "string"
+          },
+          "expiresAt": {
+            "format": "date-time",
+            "title": "Expiresat",
+            "type": "string"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "reconnect": {
+            "title": "Reconnect",
+            "type": "boolean"
+          },
+          "voiceReady": {
+            "default": true,
+            "title": "Voiceready",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "connectionRef",
+          "clientSecret",
+          "expiresAt",
+          "model",
+          "reconnect"
+        ],
+        "title": "RealtimeCredentialResponse",
+        "type": "object"
+      },
+      "RealtimeTranscriptTurnRequest": {
+        "properties": {
+          "content": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Content",
+            "type": "string"
+          },
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "student",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content",
+          "requestKey"
+        ],
+        "title": "RealtimeTranscriptTurnRequest",
+        "type": "object"
+      },
+      "RealtimeTranscriptTurnResponse": {
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "student",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "turnRef": {
+            "title": "Turnref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "turnRef",
+          "role",
+          "content",
+          "createdAt"
+        ],
+        "title": "RealtimeTranscriptTurnResponse",
         "type": "object"
       },
       "RecommendationActivity": {
@@ -4750,6 +5256,10 @@
             "title": "Activatedat",
             "type": "string"
           },
+          "audience": {
+            "title": "Audience",
+            "type": "string"
+          },
           "confidenceThreshold": {
             "title": "Confidencethreshold",
             "type": "number"
@@ -4785,6 +5295,7 @@
           "mode",
           "runId",
           "confidenceThreshold",
+          "audience",
           "activatedAt"
         ],
         "title": "ReleaseResponse",
@@ -4792,6 +5303,16 @@
       },
       "ReleaseUpdate": {
         "properties": {
+          "audience": {
+            "default": "students",
+            "enum": [
+              "admin_testing",
+              "parent_pilot",
+              "students"
+            ],
+            "title": "Audience",
+            "type": "string"
+          },
           "confidenceThreshold": {
             "default": 0.85,
             "maximum": 1.0,
@@ -4826,7 +5347,15 @@
           "workflow": {
             "enum": [
               "assessment_feedback",
-              "content_publication"
+              "content_publication",
+              "tutor_text",
+              "tutor_voice",
+              "tutor_tools",
+              "tutor_learner_context",
+              "tutor_next_unit",
+              "tutor_sources",
+              "tutor_practice",
+              "tutor_visuals"
             ],
             "title": "Workflow",
             "type": "string"
@@ -4897,6 +5426,101 @@
           "evidence"
         ],
         "title": "RetrievalResponse",
+        "type": "object"
+      },
+      "SafetyEventListResponse": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/SafetyEventResponse"
+            },
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "SafetyEventListResponse",
+        "type": "object"
+      },
+      "SafetyEventResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "eventRef": {
+            "title": "Eventref",
+            "type": "string"
+          },
+          "notificationStatus": {
+            "title": "Notificationstatus",
+            "type": "string"
+          },
+          "reviewStatus": {
+            "title": "Reviewstatus",
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ],
+            "title": "Severity",
+            "type": "string"
+          },
+          "studentName": {
+            "title": "Studentname",
+            "type": "string"
+          }
+        },
+        "required": [
+          "eventRef",
+          "studentName",
+          "category",
+          "severity",
+          "action",
+          "notificationStatus",
+          "reviewStatus",
+          "createdAt"
+        ],
+        "title": "SafetyEventResponse",
+        "type": "object"
+      },
+      "SafetyReviewRequest": {
+        "properties": {
+          "note": {
+            "maxLength": 500,
+            "minLength": 3,
+            "title": "Note",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "reviewed",
+              "resolved"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "note"
+        ],
+        "title": "SafetyReviewRequest",
         "type": "object"
       },
       "SaveOfficialMaterialReview": {
@@ -5037,6 +5661,75 @@
           "blockId"
         ],
         "title": "SourceLocation",
+        "type": "object"
+      },
+      "StudentQuotaResponse": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "fallbackMessage": {
+            "title": "Fallbackmessage",
+            "type": "string"
+          },
+          "periodDays": {
+            "title": "Perioddays",
+            "type": "integer"
+          },
+          "periodStartsAt": {
+            "format": "date-time",
+            "title": "Periodstartsat",
+            "type": "string"
+          },
+          "renewsAt": {
+            "format": "date-time",
+            "title": "Renewsat",
+            "type": "string"
+          },
+          "requests": {
+            "$ref": "#/components/schemas/QuotaAmount"
+          },
+          "state": {
+            "enum": [
+              "available",
+              "warning",
+              "exhausted",
+              "disabled",
+              "renewed"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "studentName": {
+            "title": "Studentname",
+            "type": "string"
+          },
+          "studentRef": {
+            "title": "Studentref",
+            "type": "string"
+          },
+          "textTokens": {
+            "$ref": "#/components/schemas/QuotaAmount"
+          },
+          "voiceMinutes": {
+            "$ref": "#/components/schemas/QuotaAmount"
+          }
+        },
+        "required": [
+          "studentRef",
+          "studentName",
+          "enabled",
+          "state",
+          "periodDays",
+          "periodStartsAt",
+          "renewsAt",
+          "requests",
+          "textTokens",
+          "voiceMinutes",
+          "fallbackMessage"
+        ],
+        "title": "StudentQuotaResponse",
         "type": "object"
       },
       "StudentResponse": {
@@ -5255,6 +5948,48 @@
           "idempotencyKey"
         ],
         "title": "SubmissionRequest",
+        "type": "object"
+      },
+      "SupportAccessRequest": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "SupportAccessRequest",
+        "type": "object"
+      },
+      "SupportTranscriptResponse": {
+        "properties": {
+          "sessionRef": {
+            "title": "Sessionref",
+            "type": "string"
+          },
+          "studentName": {
+            "title": "Studentname",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sessionRef",
+          "studentName",
+          "turns"
+        ],
+        "title": "SupportTranscriptResponse",
         "type": "object"
       },
       "TextbookReviewResponse": {
@@ -6711,6 +7446,103 @@
         "title": "TutorSourceSearchResponse",
         "type": "object"
       },
+      "TutorSummaryListResponse": {
+        "properties": {
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/TutorSummaryResponse"
+            },
+            "title": "Summaries",
+            "type": "array"
+          }
+        },
+        "required": [
+          "summaries"
+        ],
+        "title": "TutorSummaryListResponse",
+        "type": "object"
+      },
+      "TutorSummaryResponse": {
+        "properties": {
+          "activities": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Activities",
+            "type": "array"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "difficulties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Difficulties",
+            "type": "array"
+          },
+          "sessionRef": {
+            "title": "Sessionref",
+            "type": "string"
+          },
+          "strengths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Strengths",
+            "type": "array"
+          },
+          "studentName": {
+            "title": "Studentname",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "suggestedNextSteps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestednextsteps",
+            "type": "array"
+          },
+          "summaryRef": {
+            "title": "Summaryref",
+            "type": "string"
+          },
+          "unitsCovered": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Unitscovered",
+            "type": "array"
+          },
+          "usage": {
+            "additionalProperties": true,
+            "title": "Usage",
+            "type": "object"
+          }
+        },
+        "required": [
+          "summaryRef",
+          "sessionRef",
+          "studentName",
+          "subjectId",
+          "unitsCovered",
+          "activities",
+          "strengths",
+          "difficulties",
+          "suggestedNextSteps",
+          "usage",
+          "createdAt"
+        ],
+        "title": "TutorSummaryResponse",
+        "type": "object"
+      },
       "TutorSwitchProfileRequest": {
         "properties": {
           "profileRef": {
@@ -6929,7 +7761,42 @@
             "type": "string"
           },
           "contentUrl": {
-            "title": "Contenturl",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contenturl"
+          },
+          "equation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Equation"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": true,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "readableFallback": {
+            "title": "Readablefallback",
+            "type": "string"
+          },
+          "sourceLabel": {
+            "title": "Sourcelabel",
             "type": "string"
           },
           "sourceRefs": {
@@ -6942,12 +7809,24 @@
           "title": {
             "title": "Title",
             "type": "string"
+          },
+          "visualType": {
+            "enum": [
+              "official_source",
+              "explanatory"
+            ],
+            "title": "Visualtype",
+            "type": "string"
           }
         },
         "required": [
           "title",
           "altText",
-          "contentUrl"
+          "visualType",
+          "kind",
+          "readableFallback",
+          "sourceLabel",
+          "provenance"
         ],
         "title": "TutorVisual",
         "type": "object"
@@ -14543,6 +15422,641 @@
         ]
       }
     },
+    "/api/v1/tutoring/admin/quotas": {
+      "get": {
+        "operationId": "admin_quotas_api_v1_tutoring_admin_quotas_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminQuotaListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Admin Quotas",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/quotas/{student_ref}": {
+      "post": {
+        "operationId": "update_admin_quota_api_v1_tutoring_admin_quotas__student_ref__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_ref",
+            "required": true,
+            "schema": {
+              "title": "Student Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminQuotaUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentQuotaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Admin Quota",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/quotas/{student_ref}/audit": {
+      "get": {
+        "operationId": "admin_quota_audit_api_v1_tutoring_admin_quotas__student_ref__audit_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "student_ref",
+            "required": true,
+            "schema": {
+              "title": "Student Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuotaAuditResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Admin Quota Audit",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/safety-events/{event_ref}/review": {
+      "post": {
+        "operationId": "review_safety_api_v1_tutoring_admin_safety_events__event_ref__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_ref",
+            "required": true,
+            "schema": {
+              "title": "Event Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SafetyReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyEventResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review Safety",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/transcripts/purge": {
+      "post": {
+        "operationId": "transcript_purge_api_v1_tutoring_admin_transcripts_purge_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurgeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurgeResultResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Transcript Purge",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/transcripts/purge-preview": {
+      "get": {
+        "operationId": "transcript_purge_preview_api_v1_tutoring_admin_transcripts_purge_preview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "olderThanDays",
+            "required": false,
+            "schema": {
+              "default": 365,
+              "maximum": 3650,
+              "minimum": 1,
+              "title": "Olderthandays",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurgePreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Transcript Purge Preview",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/admin/transcripts/{session_ref}/support-access": {
+      "post": {
+        "operationId": "support_access_api_v1_tutoring_admin_transcripts__session_ref__support_access_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupportAccessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupportTranscriptResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Support Access",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
     "/api/v1/tutoring/admin/voices/{code}": {
       "post": {
         "operationId": "update_voice_api_v1_tutoring_admin_voices__code__post",
@@ -14711,6 +16225,144 @@
           }
         },
         "summary": "Capabilities",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/history/safety-events": {
+      "get": {
+        "operationId": "history_safety_api_v1_tutoring_history_safety_events_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SafetyEventListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "History Safety",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/history/summaries": {
+      "get": {
+        "operationId": "history_summaries_api_v1_tutoring_history_summaries_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TutorSummaryListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "History Summaries",
         "tags": [
           "tutoring"
         ]
@@ -15131,6 +16783,283 @@
           }
         },
         "summary": "Update Profile",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/quota": {
+      "get": {
+        "operationId": "quota_status_api_v1_tutoring_quota_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentQuotaResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Quota Status",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/realtime/{connection_ref}/state": {
+      "post": {
+        "operationId": "realtime_state_api_v1_tutoring_realtime__connection_ref__state_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_ref",
+            "required": true,
+            "schema": {
+              "title": "Connection Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RealtimeConnectionStateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeConnectionStateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Realtime State",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/realtime/{connection_ref}/turns": {
+      "post": {
+        "operationId": "realtime_transcript_turn_api_v1_tutoring_realtime__connection_ref__turns_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "connection_ref",
+            "required": true,
+            "schema": {
+              "title": "Connection Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RealtimeTranscriptTurnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeTranscriptTurnResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Realtime Transcript Turn",
         "tags": [
           "tutoring"
         ]
@@ -16442,6 +18371,110 @@
           }
         },
         "summary": "Submit Practice",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/realtime-credential": {
+      "post": {
+        "operationId": "realtime_credential_api_v1_tutoring_sessions__session_ref__realtime_credential_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RealtimeCredentialRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeCredentialResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Realtime Credential",
         "tags": [
           "tutoring"
         ]

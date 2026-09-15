@@ -171,16 +171,16 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Control text and voice cost separately for every child.
 
-- [ ] Add `student_ai_quotas` and append-only `student_ai_usage` with configurable accounting periods.
-- [ ] Define per-child allowances for requests, text tokens and voice minutes.
-- [ ] Let Admin create, increase, reduce and disable a child's allowance with an audit reason.
-- [ ] Keep provider account budgets separate from student-facing quota calculations.
-- [ ] Reserve and settle usage atomically so simultaneous sessions cannot exceed the allowance.
-- [ ] Handle failed, cancelled and account-failover operations without double charging.
-- [ ] Expose remaining allowance to the student in understandable units.
-- [ ] Add Admin per-child quota and usage screens without showing provider secrets or internal UUIDs.
-- [ ] Add warning, exhausted and renewed-period states with text fallback rules where applicable.
-- [ ] Test sibling independence, concurrent debits, Admin authorization, adjustments and audit history.
+- [x] Add `student_ai_quotas` and append-only `student_ai_usage` with configurable accounting periods.
+- [x] Define per-child allowances for requests, text tokens and voice minutes.
+- [x] Let Admin create, increase, reduce and disable a child's allowance with an audit reason.
+- [x] Keep provider account budgets separate from student-facing quota calculations.
+- [x] Reserve and settle usage atomically so simultaneous sessions cannot exceed the allowance.
+- [x] Handle failed, cancelled and account-failover operations without double charging.
+- [x] Expose remaining allowance to the student in understandable units.
+- [x] Add Admin per-child quota and usage screens without showing provider secrets or internal UUIDs.
+- [x] Add warning, exhausted and renewed-period states with text fallback rules where applicable.
+- [x] Test sibling independence, concurrent debits, Admin authorization, adjustments and audit history.
 
 **Done when:** Each child can use tutoring only within their configured allowance, Admin can safely change it, and account switching never duplicates usage charges.
 
@@ -188,17 +188,17 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Retain useful learning history while giving parents visibility and Admins controlled cleanup.
 
-- [ ] Retain text and voice transcripts by default without automatic expiry.
-- [ ] Generate structured educational summaries containing units covered, activities, demonstrated strengths, difficulties and suggested next steps.
-- [ ] Make summaries and allowed usage data visible only to the linked parent and authorized Admin.
-- [ ] Define and implement the detailed full-transcript visibility policy for Students, Parents and Admin support access.
-- [ ] Add `tutor_safety_events` with severity, source turn, action, notification and review status.
-- [ ] Notify the linked parent when a safety event occurs without exposing harmful content unnecessarily.
-- [ ] Add Admin safety-event review and audited support access.
-- [ ] Build an Admin dry-run preview and explicit purge operation for transcripts older than a selected number of days.
-- [ ] Preserve required security/audit events and aggregate usage while deleting selected transcript content.
-- [ ] Integrate transcript data with encrypted backups, child-data deletion and incident procedures.
-- [ ] Test parent-child isolation, notification idempotency, purge boundaries, backup/restore and audit provenance.
+- [x] Retain text and voice transcripts by default without automatic expiry.
+- [x] Generate structured educational summaries containing units covered, activities, demonstrated strengths, difficulties and suggested next steps.
+- [x] Make summaries and allowed usage data visible only to the linked parent and authorized Admin.
+- [x] Define and implement the detailed full-transcript visibility policy for Students, Parents and Admin support access.
+- [x] Add `tutor_safety_events` with severity, source turn, action, notification and review status.
+- [x] Notify the linked parent when a safety event occurs without exposing harmful content unnecessarily.
+- [x] Add Admin safety-event review and audited support access.
+- [x] Build an Admin dry-run preview and explicit purge operation for transcripts older than a selected number of days.
+- [x] Preserve required security/audit events and aggregate usage while deleting selected transcript content.
+- [x] Integrate transcript data with encrypted backups, child-data deletion and incident procedures.
+- [x] Test parent-child isolation, notification idempotency, purge boundaries, backup/restore and audit provenance.
 
 **Done when:** Parents receive useful summaries and safety notifications, transcripts remain until an authorized purge, and deletion cannot cross family or audit boundaries.
 
@@ -206,18 +206,18 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Enable natural spoken practice without exposing long-lived credentials or storing raw audio.
 
-- [ ] Add an authenticated endpoint that creates short-lived OpenAI Realtime session credentials for an owned Tutor session.
-- [ ] Select one healthy configured OpenAI account for each realtime connection without exposing its permanent key.
-- [ ] Build browser WebRTC audio and data-channel integration with live captions.
-- [ ] Add start, pause, mute, interrupt, repeat, slower, text fallback and end controls.
-- [ ] Apply the selected voice, speed and bounded persona settings.
-- [ ] Reconnect through the next healthy account using the saved transcript and server-generated context when a connection fails.
-- [ ] Rebuild realtime instructions and handover context when a student switches tutors.
-- [ ] Debit per-child voice minutes accurately across connection, reconnect and cancellation events.
-- [ ] Store the transcript and provider metadata but no raw audio.
-- [ ] Provide French voice conversation, vocabulary and pronunciation practice in the initial French voice release.
-- [ ] Enforce voice only during practice and reject it during every formal assessment from the backend.
-- [ ] Test captions, interruption, network recovery, account failover, tutor switching, quota exhaustion and formal-assessment denial.
+- [x] Add an authenticated endpoint that creates short-lived OpenAI Realtime session credentials for an owned Tutor session.
+- [x] Select one healthy configured OpenAI account for each realtime connection without exposing its permanent key.
+- [x] Build browser WebRTC audio and data-channel integration with live captions.
+- [x] Add start, pause, mute, interrupt, repeat, slower, text fallback and end controls.
+- [x] Apply the selected voice, speed and bounded persona settings.
+- [x] Reconnect through the next healthy account using the saved transcript and server-generated context when a connection fails.
+- [x] Rebuild realtime instructions and handover context when a student switches tutors.
+- [x] Debit per-child voice minutes accurately across connection, reconnect and cancellation events.
+- [x] Store the transcript and provider metadata but no raw audio.
+- [x] Provide French voice conversation, vocabulary and pronunciation practice in the initial French voice release.
+- [x] Enforce voice only during practice and reject it during every formal assessment from the backend.
+- [x] Test captions, interruption, network recovery, account failover, tutor switching, quota exhaustion and formal-assessment denial.
 
 **Done when:** A student can safely converse by voice within their individual allowance, French supports voice, switching tutors preserves context and no raw audio or permanent credential reaches AKURU storage or the browser.
 
@@ -225,13 +225,13 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Let tutors use existing approved visual capabilities when they improve understanding.
 
-- [ ] Expose deterministic equations, plots, geometry, circuits and force diagrams through bounded tutor tools.
-- [ ] Deliver approved source images and reviewed conceptual illustrations through authorized media endpoints.
-- [ ] Keep official source visuals distinct from explanatory media.
-- [ ] Preserve source, prompt, generator, review and asset provenance already required by Step 18.
-- [ ] Add alt text, keyboard operation, zoom and readable equation fallbacks.
-- [ ] Prevent the tutor from generating or presenting unreviewed assessment-critical diagrams.
-- [ ] Test subject/unit authorization, asset access, citation linking and accessibility.
+- [x] Expose deterministic equations, plots, geometry, circuits and force diagrams through bounded tutor tools.
+- [x] Deliver approved source images and reviewed conceptual illustrations through authorized media endpoints.
+- [x] Keep official source visuals distinct from explanatory media.
+- [x] Preserve source, prompt, generator, review and asset provenance already required by Step 18.
+- [x] Add alt text, keyboard operation, zoom and readable equation fallbacks.
+- [x] Prevent the tutor from generating or presenting unreviewed assessment-critical diagrams.
+- [x] Test subject/unit authorization, asset access, citation linking and accessibility.
 
 **Done when:** Visual explanations are accurate, accessible and authorized, and they never replace or contradict official evidence.
 
@@ -239,20 +239,22 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Goal:** Prove tutoring quality, personalisation, safety and operational behavior before student release.
 
-- [ ] Build Admin-reviewed evaluation cases across all enabled iGCSE subjects and representative mastery levels.
-- [ ] Measure factual, mathematical and source-grounding accuracy.
-- [ ] Verify exact textbook edition/page citations and rejection of invented references.
-- [ ] Verify personalised claims, recurring-error counts, confidence language and next-unit recommendations against database evidence.
-- [ ] Evaluate every available persona combination for age suitability and academic consistency.
-- [ ] Test prompt injection, cross-subject retrieval, sibling isolation, unsupported-unit requests and formal-assessment leakage.
-- [ ] Evaluate tutor switching, handover accuracy and absence of cross-student context.
-- [ ] Evaluate French voice, captions, interruption, latency, reconnect and quota behavior.
-- [ ] Review every published avatar and voice preset for child safety and AKURU brand suitability.
-- [ ] Add separate release gates and kill switches for text, voice and individual tutor tools.
-- [ ] Run security, privacy, accessibility, cost and retention tests in CI and the production-like staging environment.
-- [ ] Release first to Admin testing, then a parent-visible pilot, then eligible students.
+- [x] Build Admin-reviewed evaluation cases across all enabled iGCSE subjects and representative mastery levels.
+- [x] Measure factual, mathematical and source-grounding accuracy.
+- [x] Verify exact textbook edition/page citations and rejection of invented references.
+- [x] Verify personalised claims, recurring-error counts, confidence language and next-unit recommendations against database evidence.
+- [x] Evaluate every available persona combination for age suitability and academic consistency.
+- [x] Test prompt injection, cross-subject retrieval, sibling isolation, unsupported-unit requests and formal-assessment leakage.
+- [x] Evaluate tutor switching, handover accuracy and absence of cross-student context.
+- [x] Evaluate French voice, captions, interruption, latency, reconnect and quota behavior.
+- [x] Review every published avatar and voice preset for child safety and AKURU brand suitability.
+- [x] Add separate release gates and kill switches for text, voice and individual tutor tools.
+- [x] Run security, privacy, accessibility, cost and retention tests in CI and the production-like staging environment.
+- [x] Release first to Admin testing, then a parent-visible pilot, then eligible students.
 
 **Done when:** Every enabled subject and modality meets documented thresholds, any failed gate blocks that feature, and rollback controls have been demonstrated.
+
+Implementation is complete. Tutor capabilities remain disabled for production students until Admin-reviewed subject corpora, passing production-like staging runs and the ordered release stages have been completed with real evaluation evidence.
 
 ## Deferred beyond the first Tutor release
 

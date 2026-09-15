@@ -2090,12 +2090,27 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .agent-evidence figure { margin: 0; max-width: 520px; }
 .agent-evidence figure img { width: 100%; height: auto; border-radius: 12px; }
 .agent-evidence figcaption { margin-top: 5px; color: var(--muted, #6b7280); font-size: 13px; }
+.tutor-visual { display: grid; gap: 10px; max-width: 720px; padding: 16px; border: 1px solid #dce8ee; border-radius: 14px; background: #fff; }
+.tutor-visual-official_source { border-left: 5px solid #2563eb; }
+.tutor-visual-explanatory { border-left: 5px solid #14b8a6; }
+.tutor-visual header h3 { margin: 7px 0 0; }
+.tutor-visual .learning-image { margin: 0; }
+.visual-fallback { padding: 10px 12px; border-radius: 10px; background: #f5f7fb; }
+.tutor-visual details summary { min-height: 40px; display: flex; align-items: center; cursor: pointer; font-weight: 700; }
+.tutor-visual dl { margin: 4px 0 0; font-size: 12px; }
+.tutor-visual dl div { display: grid; grid-template-columns: minmax(100px, .35fr) 1fr; gap: 8px; padding: 5px 0; border-top: 1px solid #edf0f4; }
+.tutor-visual dt { font-weight: 700; }
+.tutor-visual dd { margin: 0; overflow-wrap: anywhere; }
+.learning-image-zoom { overflow: auto; max-height: 70vh; border: 2px solid transparent; }
+.learning-image-zoom:focus { border-color: #2563eb; outline: 2px solid #bfdbfe; }
 .follow-up-choices { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .follow-up-choices button { padding: 7px 10px; border: 1px solid #bcd9df; border-radius: 999px; background: white; cursor: pointer; }
 .tutor-guided-practice textarea { width: 100%; resize: vertical; }
 .tutor-guided-practice img { max-width: 640px; width: 100%; height: auto; border-radius: 12px; }
 .practice-feedback { padding-top: 10px; border-top: 1px solid #e4e9f0; }
 .tutor-observations { margin-top: 18px; }
+.tutor-voice { border-color: rgba(20, 184, 166, .35); }
+.voice-caption { min-height: 4rem; padding: 1rem; border-radius: 1rem; background: linear-gradient(135deg, rgba(8, 47, 73, .96), rgba(15, 118, 110, .92)); color: #ecfeff; font-size: 1.05rem; line-height: 1.55; }
 @media (max-width: 760px) {
   .tutor-room-header { grid-template-columns: auto 1fr; }
   .tutor-room-controls { grid-column: 1 / -1; }

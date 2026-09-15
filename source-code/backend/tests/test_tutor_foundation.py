@@ -102,6 +102,20 @@ def test_disabled_tutor_feature_fails_before_provider_or_session_work() -> None:
     assert caught.value.status_code == 403
 
 
+def test_required_database_release_gate_fails_closed(monkeypatch) -> None:
+    observed = {}
+    def blocked(_db, subject_id, workflow):
+        observed.update(subject=subject_id, workflow=workflow)
+        return False, "staging evaluation is missing"
+    monkeypatch.setattr("app.services.evaluations.tutor_feature_allowed", blocked)
+    settings = _settings(tutor_text_enabled=True, tutor_release_gates_required=True)
+    with pytest.raises(DomainError) as caught:
+        require_tutor_access(_db(), settings, uuid.uuid4(), TutorCapability.TEXT,
+                             "maths", "tutor_text")
+    assert caught.value.code == "tutor_release_blocked"
+    assert observed == {"subject": "maths", "workflow": "tutor_text"}
+
+
 def test_every_text_tutor_mode_has_a_versioned_injection_resistant_prompt() -> None:
     assert set(TUTOR_PROMPTS) == {
         "explanation", "questions", "guided_practice", "socratic_practice",

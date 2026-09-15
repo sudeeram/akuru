@@ -27,8 +27,9 @@ def _chunk_id(citation_ref: str) -> uuid.UUID:
 
 
 def _session(db: Session, settings: Settings, principal: Principal, session_ref: str) -> TutorSession:
-    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS)
     row = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
+                         row.subject_id, "tutor_sources")
     if row.status != "active":
         raise DomainError("tutor_session_ended", "This tutor session has ended.", 409)
     coverage = curriculum_plans.student_coverage(db, principal.user.id, row.subject_id)

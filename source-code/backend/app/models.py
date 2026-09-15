@@ -91,6 +91,47 @@ class StudentProfile(TimestampMixin, Base):
     parent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
 
 
+class StudentAIQuota(TimestampMixin, Base):
+    __tablename__ = "student_ai_quotas"
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("student_profiles.student_id", ondelete="CASCADE"), primary_key=True
+    )
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"quota_{uuid.uuid4().hex}")
+    period_days: Mapped[int] = mapped_column(Integer, default=30, server_default="30")
+    period_anchor: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    request_allowance: Mapped[int] = mapped_column(Integer, default=100, server_default="100")
+    text_token_allowance: Mapped[int] = mapped_column(Integer, default=200000, server_default="200000")
+    voice_seconds_allowance: Mapped[int] = mapped_column(Integer, default=3600, server_default="3600")
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    __table_args__ = (
+        CheckConstraint("period_days BETWEEN 1 AND 366", name="ck_student_ai_quota_period_days"),
+        CheckConstraint("request_allowance >= 0", name="ck_student_ai_quota_requests"),
+        CheckConstraint("text_token_allowance >= 0", name="ck_student_ai_quota_text_tokens"),
+        CheckConstraint("voice_seconds_allowance >= 0", name="ck_student_ai_quota_voice_seconds"),
+    )
+
+
+class StudentAIUsage(Base):
+    __tablename__ = "student_ai_usage"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True
+    )
+    operation_id: Mapped[str] = mapped_column(String(100), index=True)
+    dimension: Mapped[str] = mapped_column(String(24), index=True)
+    event_type: Mapped[str] = mapped_column(String(20), index=True)
+    quantity: Mapped[int] = mapped_column(Integer)
+    reason: Mapped[str | None] = mapped_column(String(300))
+    event_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("dimension IN ('request','text_token','voice_second')", name="ck_student_ai_usage_dimension"),
+        CheckConstraint("event_type IN ('reserve','settle','release','adjustment')", name="ck_student_ai_usage_event_type"),
+        UniqueConstraint("student_id", "operation_id", "dimension", "event_type", name="uq_student_ai_usage_operation_event"),
+    )
+
+
 class Course(Base):
     __tablename__ = "courses"
     id: Mapped[str] = mapped_column(String(32), primary_key=True)
@@ -250,12 +291,83 @@ class TutorTurn(Base):
     prompt_version: Mapped[str | None] = mapped_column(String(40))
     request_key: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    purged_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
         CheckConstraint("sequence > 0", name="ck_tutor_turn_sequence"),
         CheckConstraint("role IN ('student','assistant')", name="ck_tutor_turn_role"),
         CheckConstraint("modality IN ('text','voice')", name="ck_tutor_turn_modality"),
         UniqueConstraint("session_id", "sequence", name="uq_tutor_turn_sequence"),
         UniqueConstraint("session_id", "request_key", name="uq_tutor_turn_request"),
+    )
+
+
+class TutorSessionSummary(Base):
+    __tablename__ = "tutor_session_summaries"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), unique=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    units_covered: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    activities: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    strengths: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    difficulties: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    next_steps: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    usage_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TutorRealtimeConnection(Base):
+    __tablename__ = "tutor_realtime_connections"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    profile_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_profile_versions.id", ondelete="RESTRICT"))
+    account_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ai_provider_accounts.id", ondelete="RESTRICT"), index=True)
+    operation_id: Mapped[str] = mapped_column(String(100), unique=True)
+    provider_session_id: Mapped[str | None] = mapped_column(String(120), index=True)
+    model: Mapped[str] = mapped_column(String(120))
+    voice: Mapped[str] = mapped_column(String(40))
+    language_mode: Mapped[str] = mapped_column(String(32))
+    reserved_seconds: Mapped[int] = mapped_column(Integer)
+    billed_seconds: Mapped[int | None] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20), default="connecting", server_default="connecting")
+    failure_code: Mapped[str | None] = mapped_column(String(80))
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("reserved_seconds > 0", name="ck_tutor_realtime_reserved_seconds"),
+        CheckConstraint("billed_seconds IS NULL OR billed_seconds >= 0", name="ck_tutor_realtime_billed_seconds"),
+        CheckConstraint("status IN ('connecting','connected','ended','failed','cancelled')", name="ck_tutor_realtime_status"),
+        CheckConstraint("language_mode IN ('auto','french_conversation','french_vocabulary','french_pronunciation')", name="ck_tutor_realtime_language_mode"),
+    )
+
+
+class TutorSafetyEvent(Base):
+    __tablename__ = "tutor_safety_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    parent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    source_turn_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_turns.id", ondelete="CASCADE"))
+    category: Mapped[str] = mapped_column(String(32))
+    severity: Mapped[str] = mapped_column(String(16))
+    action: Mapped[str] = mapped_column(String(80))
+    notification_status: Mapped[str] = mapped_column(String(20), default="notified", server_default="notified")
+    notified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    review_note: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("severity IN ('low','medium','high','critical')", name="ck_tutor_safety_severity"),
+        CheckConstraint("notification_status IN ('pending','notified')", name="ck_tutor_safety_notification"),
+        CheckConstraint("review_status IN ('pending','reviewed','resolved')", name="ck_tutor_safety_review"),
+        UniqueConstraint("source_turn_id", "category", name="uq_tutor_safety_turn_category"),
     )
 
 
@@ -1331,6 +1443,7 @@ class EvaluationCorpus(Base):
     __tablename__ = "evaluation_corpora"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    workflow: Mapped[str] = mapped_column(String(32), default="assessment", server_default="assessment", index=True)
     version_number: Mapped[int] = mapped_column(Integer)
     name: Mapped[str] = mapped_column(String(180))
     cases: Mapped[list] = mapped_column(JSON)
@@ -1343,7 +1456,8 @@ class EvaluationCorpus(Base):
     __table_args__ = (
         CheckConstraint("version_number > 0", name="ck_evaluation_corpus_version"),
         CheckConstraint("status IN ('draft','approved','retired')", name="ck_evaluation_corpus_status"),
-        UniqueConstraint("subject_id", "version_number", name="uq_evaluation_corpus_subject_version"),
+        CheckConstraint("workflow IN ('assessment','tutor')", name="ck_evaluation_corpus_workflow"),
+        UniqueConstraint("subject_id", "workflow", "version_number", name="uq_evaluation_corpus_subject_workflow_version"),
     )
 
 
@@ -1352,6 +1466,9 @@ class EvaluationRun(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     corpus_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evaluation_corpora.id", ondelete="RESTRICT"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    workflow: Mapped[str] = mapped_column(String(32), default="assessment", server_default="assessment", index=True)
+    modality: Mapped[str] = mapped_column(String(16), default="assessment", server_default="assessment", index=True)
+    environment: Mapped[str] = mapped_column(String(16), default="ci", server_default="ci", index=True)
     candidate_model: Mapped[str] = mapped_column(String(120))
     prompt_version: Mapped[str] = mapped_column(String(80))
     observations_hash: Mapped[str] = mapped_column(String(64))
@@ -1361,6 +1478,11 @@ class EvaluationRun(Base):
     failure_reasons: Mapped[list] = mapped_column(JSON)
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("workflow IN ('assessment','tutor')", name="ck_evaluation_run_workflow"),
+        CheckConstraint("modality IN ('assessment','text','voice','tools')", name="ck_evaluation_run_modality"),
+        CheckConstraint("environment IN ('ci','staging')", name="ck_evaluation_run_environment"),
+    )
 
 
 class EvaluationRelease(Base):
@@ -1371,11 +1493,13 @@ class EvaluationRelease(Base):
     mode: Mapped[str] = mapped_column(String(20), default="review_required", server_default="review_required")
     run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("evaluation_runs.id", ondelete="RESTRICT"))
     confidence_threshold: Mapped[float] = mapped_column(Float, default=0.85, server_default="0.85")
+    audience: Mapped[str] = mapped_column(String(20), default="students", server_default="students")
     activated_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     activated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
-        CheckConstraint("workflow IN ('assessment_feedback','content_publication')", name="ck_evaluation_release_workflow"),
+        CheckConstraint("workflow IN ('assessment_feedback','content_publication','tutor_text','tutor_voice','tutor_tools','tutor_learner_context','tutor_next_unit','tutor_sources','tutor_practice','tutor_visuals')", name="ck_evaluation_release_workflow"),
         CheckConstraint("mode IN ('review_required','automatic')", name="ck_evaluation_release_mode"),
+        CheckConstraint("audience IN ('admin_testing','parent_pilot','students')", name="ck_evaluation_release_audience"),
         CheckConstraint("confidence_threshold BETWEEN 0 AND 1", name="ck_evaluation_release_confidence"),
         UniqueConstraint("subject_id", "workflow", name="uq_evaluation_release_subject_workflow"),
     )

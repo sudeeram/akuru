@@ -4,6 +4,7 @@ import pytest
 from app.ai.image_provider import OpenAIImageProvider
 from app.errors import DomainError
 from app.services.media import _svg
+from app.services.tutor_agent import _visual_requested
 
 def test_controlled_svg_escapes_text_and_validates_geometry_and_plot():
     svg=_svg("forces_svg",{"left":8,"right":12},"Forces <script>","Two & opposite forces").decode()
@@ -20,3 +21,9 @@ def test_openai_image_provider_decodes_private_png():
     provider=OpenAIImageProvider("secret","image-model","1024x1024",10,client=SimpleNamespace(images=images))
     result=provider.generate("Grounded educational diagram")
     assert result.content == content and result.content_type == "image/png" and result.response_id == "image-response"
+
+
+def test_tutor_visual_tool_is_bounded_to_explicit_visual_requests():
+    assert _visual_requested("Can you show me a circuit diagram?")
+    assert _visual_requested("Plot this graph and explain the equation")
+    assert not _visual_requested("Explain cell membranes in words")
