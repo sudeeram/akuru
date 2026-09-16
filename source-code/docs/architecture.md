@@ -1,6 +1,6 @@
 # AKURU overall architecture
 
-Status: authoritative Phase 1 domain specification, with the frontend connected to a FastAPI/PostgreSQL identity, account and enrolment foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
+Status: authoritative Phase 1 domain specification, with the frontend connected to a FastAPI/PostgreSQL identity, account and enrolment foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. The textbook-topic update is tracked in [its implementation roadmap](../todo/TODO-TEXTBOOK-TOPICS.md). Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
 
 ## Repository boundaries
 
@@ -78,15 +78,19 @@ A student has one active course, one current grade, one current term and one or 
 
 PostgreSQL stores the current enrolment and progression history. Each practice session, official paper and mock now captures the accumulated scope in an immutable assessment snapshot. Advancement is an Admin action; no automatic promotion is assumed.
 
-## Textbooks, units and coverage
+## Textbooks, section groups, topics and coverage
 
-A textbook belongs to one course and one subject, with an edition/version identity in the production schema. A unit belongs to exactly one textbook. Its subject and course are inherited from that textbook. Unit codes are unique within a textbook, not globally.
+The next content schema uses **Textbook → Section Group → Topic → Textbook Part**. This section is authoritative over older unit-only descriptions that remain as implementation history elsewhere in this document. The production database currently contains no educational content, so this hierarchy will replace the unused unit-only content model without converting learning records. Identity, authentication, family, enrolment, provider, quota, audit and operational records remain intact.
 
-Admin assigns every approved unit to the Grade + Term where it is first taught inside a versioned curriculum plan. A draft may be edited; publication makes the version immutable and supersedes the prior publication for that subject. Phase 1 uses the current published iGCSE plan shared by enrolled students. A future school-specific plan can add explicit student plan assignment without changing historical assessment snapshots.
+A textbook belongs to one course and one subject and has an edition, optional publisher, publication state and a `group_label` of `unit` or `module`. `section_group` is the canonical backend entity. The selected label changes user-facing wording only; it never changes authorization, retrieval, coverage or assessment rules. A section group belongs to exactly one textbook and contains ordered topics. A topic is the smallest curriculum, question-mapping, retrieval, mastery, recommendation and study-planning entity.
 
-Coverage is defined per Grade + Term, and student eligibility is cumulative across the student's saved progression list. For example, Grade 10 Term2 includes the union of Grade 10 Term1 and Grade 10 Term2 coverage. Grade 11 includes Grade 10 only when those Grade 10 periods exist in that student's progression. Every reached period requires an explicit assignment and missing coverage fails closed. An empty union means no eligible questions. There is no fallback to the entire syllabus.
+One or more uploaded textbook parts may support a topic. A PDF uploaded for Chemistry Topic 11 is a part of the selected logical Chemistry textbook; it must not create another textbook. Each relationship retains document version, role, sequence, physical PDF pages, editable printed-page labels and review state. Only reviewed, published topic content may produce active retrieval chunks, citations or downstream mappings. Every returned chunk retains textbook, group, topic, source document version, physical page, printed page and bounding-box provenance.
 
-Each past paper must associate with one approved textbook that provides its mapping vocabulary. Each question may map to multiple units within that textbook. Future versions may support curated equivalences across editions, but must never equate units solely by number or title.
+Admin assigns every published topic to the Grade + Term where it is first taught inside a versioned curriculum plan. A draft starts from the latest publication so Admin can append topics as teaching progresses. Publication makes the version immutable and supersedes the prior publication. Removing or moving previously published coverage requires an explicit impact confirmation. Each topic has one introduction period within a plan version.
+
+Student eligibility is cumulative across the student's saved progression list. Grade 10 Term 2 contains topics introduced in Grade 10 Terms 1 and 2. Grade 11 contains earlier Grade 10 topics only when those periods exist in the student's progression. Every reached period requires explicit published coverage; missing coverage fails closed and an empty union provides no eligible questions. Existing assessments retain their immutable curriculum-plan and topic-set snapshots when a new plan is published.
+
+Past-paper questions map to one or more published topics from the paper's approved same-subject textbook edition. A question spanning several topics is eligible only when every required topic is covered. Cross-subject and cross-edition mappings are invalid. Unit or Module mastery is an explainable aggregation of its topic mastery; authoritative evidence remains attached to the topic and source assessment.
 
 ## Document ingestion and publishing
 

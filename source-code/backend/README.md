@@ -61,6 +61,14 @@ Before public deployment, set `AKURU_ENVIRONMENT=production`, `AKURU_COOKIE_SECU
 
 ## Database changes
 
+Before applying the clean Textbook → Unit/Module → Topic migration, prove that no migration-sensitive educational content exists:
+
+```bash
+.venv/bin/python -m app.content_migration_audit --require-empty
+```
+
+The command is read-only, prints counts by domain and exits with status `2` if any document, textbook, curriculum, official material, mapping, assessment, mastery, study-plan, Tutor-learning or evaluation-content record exists. It intentionally preserves and does not count identity, authentication, family/enrolment, catalogue, provider, quota, audit and operational records. Run it again immediately before the production migration and retain the report with release evidence.
+
 Edit SQLAlchemy models, generate a reviewed migration, and apply it:
 
 ```bash

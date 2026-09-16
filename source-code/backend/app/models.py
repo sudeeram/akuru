@@ -257,7 +257,8 @@ class TutorSession(Base):
     public_ref: Mapped[str] = mapped_column(String(48), unique=True, index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    active_unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"))
+    active_unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"))
+    active_topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     current_profile_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_profile_versions.id", ondelete="RESTRICT"))
     mode: Mapped[str] = mapped_column(String(16), default="practice", server_default="practice")
     status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
@@ -386,7 +387,8 @@ class TutorPractice(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="RESTRICT"), unique=True)
     question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="RESTRICT"), unique=True)
     status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
@@ -408,7 +410,8 @@ class TutorSignal(Base):
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
     turn_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_turns.id", ondelete="CASCADE"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     category: Mapped[str] = mapped_column(String(32))
     observation: Mapped[str] = mapped_column(Text)
     evidence_references: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
@@ -447,6 +450,17 @@ class TutorSessionUnitEvent(Base):
     __table_args__ = (UniqueConstraint("session_id", "request_key", name="uq_tutor_unit_switch_request"),)
 
 
+class TutorSessionTopicEvent(Base):
+    __tablename__ = "tutor_session_topic_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    from_topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"))
+    to_topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"))
+    request_key: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (UniqueConstraint("session_id", "request_key", name="uq_tutor_topic_switch_request"),)
+
+
 class TutorLearnerContextLog(Base):
     __tablename__ = "tutor_learner_context_logs"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -454,7 +468,8 @@ class TutorLearnerContextLog(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    active_unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"))
+    active_unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"))
+    active_topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     request_key: Mapped[str] = mapped_column(String(100))
     context_version: Mapped[str] = mapped_column(String(64), index=True)
     evidence_references: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
@@ -485,6 +500,7 @@ class Document(TimestampMixin, Base):
     source_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     size_bytes: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     removed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    upload_request_key: Mapped[str | None] = mapped_column(String(100), unique=True)
     __table_args__ = (
         CheckConstraint("kind IN ('textbook','reference','past_paper','mark_scheme','examiner_report')", name="ck_documents_kind"),
         CheckConstraint("review_state IN ('pending','reviewed','published','rejected')", name="ck_documents_review_state"),
@@ -553,6 +569,7 @@ class DocumentPage(Base):
     width_points: Mapped[float] = mapped_column()
     height_points: Mapped[float] = mapped_column()
     render_asset_id: Mapped[uuid.UUID] = mapped_column(unique=True)
+    original_render_asset_id: Mapped[uuid.UUID | None] = mapped_column(unique=True)
     native_text: Mapped[str] = mapped_column(Text, default="", server_default="")
     extraction_method: Mapped[str] = mapped_column(String(24))
     confidence: Mapped[float] = mapped_column()
@@ -568,6 +585,11 @@ class DocumentPage(Base):
             ["document_assets.id", "document_assets.document_version_id"],
             ondelete="RESTRICT",
             name="fk_document_page_render_asset_version",
+        ),
+        ForeignKeyConstraint(
+            ["original_render_asset_id", "document_version_id"],
+            ["document_assets.id", "document_assets.document_version_id"],
+            ondelete="RESTRICT", name="fk_document_page_original_asset_version",
         ),
         UniqueConstraint("id", "document_version_id", name="uq_document_page_version"),
         UniqueConstraint("document_version_id", "page_number", name="uq_document_page_number"),
@@ -799,6 +821,141 @@ class TextbookContentVersion(Base):
     )
 
 
+class Textbook(TimestampMixin, Base):
+    """Logical textbook edition; uploaded PDFs are attached to its topics."""
+    __tablename__ = "textbooks"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"book_{uuid.uuid4().hex}")
+    course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    title: Mapped[str] = mapped_column(String(240))
+    edition: Mapped[str] = mapped_column(String(80))
+    publisher: Mapped[str] = mapped_column(String(160), default="", server_default="")
+    group_label: Mapped[str] = mapped_column(String(12))
+    status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft", index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("group_label IN ('unit','module')", name="ck_textbook_group_label"),
+        CheckConstraint("status IN ('draft','published','archived')", name="ck_textbook_status"),
+        UniqueConstraint("course_id", "subject_id", "title", "edition", name="uq_textbook_edition"),
+        UniqueConstraint("id", "course_id", "subject_id", name="uq_textbook_scope"),
+    )
+
+
+class TextbookGroup(TimestampMixin, Base):
+    __tablename__ = "textbook_groups"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"group_{uuid.uuid4().hex}")
+    textbook_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbooks.id", ondelete="CASCADE"), index=True)
+    code: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(240))
+    summary: Mapped[str] = mapped_column(Text, default="", server_default="")
+    sequence: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft")
+    __table_args__ = (
+        CheckConstraint("sequence > 0", name="ck_textbook_group_sequence"),
+        CheckConstraint("status IN ('draft','published','archived')", name="ck_textbook_group_status"),
+        UniqueConstraint("textbook_id", "code", name="uq_textbook_group_code"),
+        UniqueConstraint("textbook_id", "sequence", name="uq_textbook_group_sequence"),
+        UniqueConstraint("id", "textbook_id", name="uq_textbook_group_scope"),
+    )
+
+
+class TextbookTopic(TimestampMixin, Base):
+    __tablename__ = "textbook_topics"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"topic_{uuid.uuid4().hex}")
+    textbook_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    group_id: Mapped[uuid.UUID] = mapped_column(index=True)
+    course_id: Mapped[str] = mapped_column(String(32), index=True)
+    subject_id: Mapped[str] = mapped_column(String(32), index=True)
+    code: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(240))
+    sequence: Mapped[int] = mapped_column(Integer)
+    syllabus_ref: Mapped[str] = mapped_column(String(120), default="", server_default="")
+    description: Mapped[str] = mapped_column(Text, default="", server_default="")
+    status: Mapped[str] = mapped_column(String(16), default="draft", server_default="draft", index=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("sequence > 0", name="ck_textbook_topic_sequence"),
+        CheckConstraint("status IN ('draft','published','archived')", name="ck_textbook_topic_status"),
+        ForeignKeyConstraint(["group_id", "textbook_id"], ["textbook_groups.id", "textbook_groups.textbook_id"],
+                             ondelete="CASCADE", name="fk_textbook_topic_group_scope"),
+        ForeignKeyConstraint(["textbook_id", "course_id", "subject_id"],
+                             ["textbooks.id", "textbooks.course_id", "textbooks.subject_id"],
+                             ondelete="CASCADE", name="fk_textbook_topic_book_scope"),
+        UniqueConstraint("textbook_id", "code", name="uq_textbook_topic_code"),
+        UniqueConstraint("group_id", "sequence", name="uq_textbook_topic_sequence"),
+        UniqueConstraint("id", "course_id", "subject_id", name="uq_textbook_topic_scope"),
+    )
+
+
+class TextbookTopicDocument(Base):
+    __tablename__ = "textbook_topic_documents"
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="CASCADE"), primary_key=True)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"), primary_key=True)
+    document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"), index=True)
+    role: Mapped[str] = mapped_column(String(24), default="primary", server_default="primary")
+    sequence: Mapped[int] = mapped_column(Integer)
+    printed_start_page: Mapped[str | None] = mapped_column(String(24))
+    printed_end_page: Mapped[str | None] = mapped_column(String(24))
+    review_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending", index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("role IN ('primary','supporting','reference')", name="ck_topic_document_role"),
+        CheckConstraint("sequence > 0", name="ck_topic_document_sequence"),
+        CheckConstraint("review_status IN ('pending','processing','needs_review','ready','published','failed','superseded')",
+                        name="ck_topic_document_review_status"),
+        UniqueConstraint("topic_id", "sequence", name="uq_topic_document_sequence"),
+    )
+
+
+class TextbookStructureVersion(Base):
+    __tablename__ = "textbook_structure_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    textbook_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbooks.id", ondelete="RESTRICT"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    published_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_textbook_structure_version"),
+        UniqueConstraint("textbook_id", "version_number", name="uq_textbook_structure_version"),
+    )
+
+
+class TextbookTopicContentVersion(Base):
+    __tablename__ = "textbook_topic_content_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"topicver_{uuid.uuid4().hex}")
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(16), default="published", server_default="published", index=True)
+    source_manifest: Mapped[list] = mapped_column(JSON)
+    extraction_manifest: Mapped[dict] = mapped_column(JSON)
+    published_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("version_number > 0", name="ck_topic_content_version_number"),
+        CheckConstraint("status IN ('published','superseded')", name="ck_topic_content_version_status"),
+        UniqueConstraint("topic_id", "version_number", name="uq_topic_content_version"),
+    )
+
+
+class TextbookTopicContentSource(Base):
+    __tablename__ = "textbook_topic_content_sources"
+    content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topic_content_versions.id", ondelete="CASCADE"), primary_key=True)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"), primary_key=True)
+    role: Mapped[str] = mapped_column(String(24))
+    extraction_version: Mapped[str] = mapped_column(String(80))
+    __table_args__ = (CheckConstraint("role IN ('primary','supporting','reference')", name="ck_topic_content_source_role"),)
+
+
 class TextbookUnitVersion(Base):
     __tablename__ = "textbook_unit_versions"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -846,7 +1003,9 @@ class CurriculumPlan(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"))
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    textbook_content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"))
+    textbook_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"))
+    textbook_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbooks.id", ondelete="RESTRICT"), index=True)
+    based_on_plan_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("curriculum_plans.id", ondelete="RESTRICT"), index=True)
     version_number: Mapped[int] = mapped_column(Integer)
     status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
@@ -873,6 +1032,19 @@ class CurriculumPlanUnit(Base):
     )
 
 
+class CurriculumPlanTopic(Base):
+    __tablename__ = "curriculum_plan_topics"
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("curriculum_plans.id", ondelete="CASCADE"), primary_key=True)
+    grade: Mapped[int] = mapped_column(Integer, primary_key=True)
+    term: Mapped[int] = mapped_column(Integer, primary_key=True)
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), primary_key=True)
+    __table_args__ = (
+        CheckConstraint("grade IN (10, 11)", name="ck_curriculum_plan_topic_grade"),
+        CheckConstraint("term IN (1, 2, 3)", name="ck_curriculum_plan_topic_term"),
+        UniqueConstraint("plan_id", "topic_id", name="uq_curriculum_plan_topic_introduction"),
+    )
+
+
 class AssessmentCurriculumSnapshot(Base):
     __tablename__ = "assessment_curriculum_snapshots"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -884,6 +1056,7 @@ class AssessmentCurriculumSnapshot(Base):
     grade: Mapped[int] = mapped_column(Integer)
     term: Mapped[int] = mapped_column(Integer)
     covered_unit_ids: Mapped[list] = mapped_column(JSON)
+    covered_topic_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     progression_periods: Mapped[list] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
@@ -904,6 +1077,7 @@ class OfficialMaterialVersion(Base):
     source_paper_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
     source_paper_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="RESTRICT"))
     textbook_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="RESTRICT"))
+    textbook_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbooks.id", ondelete="RESTRICT"), index=True)
     status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
     inventory_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     completeness_confirmed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
@@ -958,6 +1132,27 @@ class OfficialQuestionUnitMapping(Base):
     )
 
 
+class OfficialQuestionTopicMapping(Base):
+    __tablename__ = "official_question_topic_mappings"
+    question_version_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("official_question_versions.id", ondelete="CASCADE"), primary_key=True
+    )
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), primary_key=True)
+    weight: Mapped[int] = mapped_column(Integer)
+    required: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    status: Mapped[str] = mapped_column(String(20), default="draft", server_default="draft")
+    suggestion_method: Mapped[str | None] = mapped_column(String(40))
+    confidence: Mapped[float | None] = mapped_column()
+    rationale: Mapped[str] = mapped_column(Text, default="", server_default="")
+    confirmed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("weight BETWEEN 1 AND 100", name="ck_official_question_topic_weight"),
+        CheckConstraint("status IN ('draft','confirmed')", name="ck_official_question_topic_status"),
+        CheckConstraint("confidence IS NULL OR confidence BETWEEN 0 AND 1", name="ck_official_question_topic_confidence"),
+    )
+
+
 class MarkSchemeEntryVersion(Base):
     __tablename__ = "mark_scheme_entry_versions"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -991,7 +1186,10 @@ class RetrievalChunk(Base):
     document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="CASCADE"), index=True)
     textbook_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_content_versions.id", ondelete="CASCADE"), index=True)
     official_material_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_material_versions.id", ondelete="CASCADE"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="CASCADE"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="CASCADE"), index=True)
+    group_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_groups.id", ondelete="CASCADE"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="CASCADE"), index=True)
+    topic_content_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topic_content_versions.id", ondelete="CASCADE"), index=True)
     course_id: Mapped[str] = mapped_column(ForeignKey("courses.id", ondelete="RESTRICT"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
     source_type: Mapped[str] = mapped_column(String(32), index=True)
@@ -1150,6 +1348,8 @@ class AssessmentQuestion(Base):
     rubric: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     unit_ids: Mapped[list] = mapped_column(JSON)
     unit_weights: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    topic_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    topic_weights: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     skills: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     difficulty: Mapped[str] = mapped_column(String(24), default="mixed", server_default="mixed")
     __table_args__ = (
@@ -1312,12 +1512,72 @@ class UnitMasteryEvent(Base):
     )
 
 
+class TopicMastery(Base):
+    __tablename__ = "topic_mastery"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
+    subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
+    score: Mapped[float] = mapped_column(Numeric(8, 5))
+    display_score: Mapped[float] = mapped_column(Numeric(3, 1))
+    confidence: Mapped[str] = mapped_column(String(12))
+    provisional: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    evidence_count: Mapped[int] = mapped_column(Integer)
+    evidence_weight: Mapped[float] = mapped_column(Numeric(10, 5))
+    variety_count: Mapped[int] = mapped_column(Integer)
+    trend: Mapped[float] = mapped_column(Numeric(8, 5), default=0, server_default="0")
+    last_evidence_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    version_number: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("score BETWEEN 0 AND 10 AND display_score BETWEEN 0 AND 10", name="ck_topic_mastery_score"),
+        CheckConstraint("confidence IN ('low','medium','high')", name="ck_topic_mastery_confidence"),
+        CheckConstraint("evidence_count >= 0 AND evidence_weight >= 0 AND variety_count >= 0 AND version_number > 0",
+                        name="ck_topic_mastery_counts"),
+        UniqueConstraint("student_id", "topic_id", name="uq_topic_mastery_student_topic"),
+    )
+
+
+class TopicMasteryDimension(Base):
+    __tablename__ = "topic_mastery_dimensions"
+    mastery_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("topic_mastery.id", ondelete="CASCADE"), primary_key=True)
+    dimension: Mapped[str] = mapped_column(String(24), primary_key=True)
+    score: Mapped[float] = mapped_column(Numeric(8, 5))
+    evidence_weight: Mapped[float] = mapped_column(Numeric(10, 5))
+    __table_args__ = (
+        CheckConstraint("dimension IN ('knowledge','application','method','accuracy','reasoning','communication','retention')",
+                        name="ck_topic_mastery_dimension_name"),
+        CheckConstraint("score BETWEEN 0 AND 10 AND evidence_weight >= 0", name="ck_topic_mastery_dimension_values"),
+    )
+
+
+class TopicMasteryEvent(Base):
+    __tablename__ = "topic_mastery_events"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    mastery_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("topic_mastery.id", ondelete="RESTRICT"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
+    trigger_result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_results.id", ondelete="RESTRICT"), index=True)
+    previous_score: Mapped[float | None] = mapped_column(Numeric(8, 5))
+    new_score: Mapped[float] = mapped_column(Numeric(8, 5))
+    previous_confidence: Mapped[str | None] = mapped_column(String(12))
+    new_confidence: Mapped[str] = mapped_column(String(12))
+    contribution: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("previous_score IS NULL OR previous_score BETWEEN 0 AND 10", name="ck_topic_mastery_event_previous"),
+        CheckConstraint("new_score BETWEEN 0 AND 10", name="ck_topic_mastery_event_new"),
+        UniqueConstraint("topic_id", "trigger_result_id", name="uq_topic_mastery_event_trigger"),
+    )
+
+
 class WeaknessDiagnosis(Base):
     __tablename__ = "weakness_diagnoses"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     result_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_results.id", ondelete="RESTRICT"), index=True)
     question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="RESTRICT"))
     category: Mapped[str] = mapped_column(String(40), index=True)
@@ -1332,6 +1592,7 @@ class WeaknessDiagnosis(Base):
         CheckConstraint("severity IN ('minor','moderate','major')", name="ck_weakness_diagnosis_severity"),
         CheckConstraint("confidence BETWEEN 0 AND 1 AND occurrence_number > 0", name="ck_weakness_diagnosis_values"),
         UniqueConstraint("result_id", "unit_id", "category", name="uq_weakness_diagnosis_result_unit_category"),
+        UniqueConstraint("result_id", "topic_id", "category", name="uq_weakness_diagnosis_result_topic_category"),
     )
 
 
@@ -1341,7 +1602,8 @@ class ImprovementRecommendation(Base):
     diagnosis_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("weakness_diagnoses.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     source_chunk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("retrieval_chunks.id", ondelete="RESTRICT"))
     activity_question_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_question_versions.id", ondelete="RESTRICT"))
     activity_type: Mapped[str] = mapped_column(String(24))
@@ -1388,7 +1650,8 @@ class StudyPlanItem(Base):
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     recommendation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("improvement_recommendations.id", ondelete="RESTRICT"))
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
-    unit_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    unit_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_units.id", ondelete="RESTRICT"), index=True)
+    topic_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     sequence: Mapped[int] = mapped_column(Integer)
     activity_type: Mapped[str] = mapped_column(String(24))
     title: Mapped[str] = mapped_column(String(180))

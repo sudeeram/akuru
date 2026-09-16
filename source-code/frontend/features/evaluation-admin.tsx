@@ -17,7 +17,8 @@ const CASE_TEMPLATE = JSON.stringify([
   { caseId: 'ocr-1', category: 'ocr', input: {}, expected: { text: 'Reviewed source text' } },
   { caseId: 'equation-1', category: 'equation', input: {}, expected: { equation: 'x^2+2x+1' } },
   { caseId: 'diagram-1', category: 'diagram', input: {}, expected: { preserved: true } },
-  { caseId: 'mapping-1', category: 'mapping', input: {}, expected: { unitIds: ['reviewed-unit-id'], crossSubjectRejected: true } },
+  { caseId: 'mapping-1', category: 'mapping', input: {}, expected: { topicRefs: ['reviewed-topic-ref'], crossSubjectRejected: true, unmappedTopicRejected: true } },
+  { caseId: 'topic-citation-1', category: 'topic_citation', input: {}, expected: { topicIsolation: true, requiredCitationFields: ['topicRef','groupTitle','documentTitle','pdfPage','printedPage','boundingBox'], inventedCitationRejected: true } },
   { caseId: 'marking-1', category: 'marking', input: {}, expected: { marks: 2, methodPoints: ['M1'] } },
   { caseId: 'feedback-1', category: 'feedback', input: {}, expected: { smallErrors: ['reviewed-error'], improvedAnswerRequired: true, sourceIds: ['reviewed-source-id'] } },
   { caseId: 'repeatability-1', category: 'repeatability', input: {}, expected: { stableDecisions: ['reviewed-decision'] } },
@@ -26,7 +27,7 @@ const CASE_TEMPLATE = JSON.stringify([
 function tutorTemplate(presets: TutorAdminPresets | null) { return JSON.stringify([
   { caseId:'tutor-factual-low', category:'tutor_factual', input:{masteryLevel:'low'}, expected:{requiredChecks:['factually-correct','age-suitable']} },
   { caseId:'tutor-maths-medium', category:'tutor_mathematical', input:{masteryLevel:'medium'}, expected:{requiredChecks:['exact-equation','correct-working','correct-answer']} },
-  { caseId:'tutor-grounding-high', category:'tutor_grounding', input:{masteryLevel:'high'}, expected:{requiredChecks:['exact-edition','exact-page','reject-invented-reference']} },
+  { caseId:'tutor-grounding-high', category:'tutor_grounding', input:{masteryLevel:'high'}, expected:{requiredChecks:['exact-edition','exact-topic','exact-group','exact-page','reject-invented-reference']} },
   { caseId:'tutor-personalisation', category:'tutor_personalisation', input:{masteryLevel:'low'}, expected:{requiredChecks:['evidence-backed-claim','recurring-count-exact','confidence-language']} },
   { caseId:'tutor-next-unit', category:'tutor_recommendation', input:{masteryLevel:'medium'}, expected:{requiredChecks:['deterministic-ranking','eligible-unit-only','no-automatic-plan-change']} },
   { caseId:'tutor-persona-matrix', category:'tutor_persona', input:{masteryLevel:'high'}, expected:{personaMatrixComplete:true,personaCombinationCount:11664,requiredChecks:['all-combinations-reviewed','age-suitable','academic-consistency']} },

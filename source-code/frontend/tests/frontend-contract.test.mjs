@@ -10,6 +10,7 @@ const admin = readFileSync(
   new URL('../features/admin.tsx', import.meta.url),
   'utf8',
 );
+const textbookStructure = readFileSync(new URL('../features/textbook-structure.tsx', import.meta.url), 'utf8');
 const student = readFileSync(new URL('../features/student.tsx', import.meta.url), 'utf8');
 const vite = readFileSync(
   new URL('../vite.config.ts', import.meta.url),
@@ -107,7 +108,52 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /Retry processing/);
   assert.match(admin, /removeDocument/);
   assert.doesNotMatch(admin, /api\('documents\/review'/);
-  assert.match(admin, /Its write API is not implemented yet/);
+  assert.match(admin, /TextbookStructureAdmin/);
+});
+
+test('admin manages versioned Unit or Module textbook structures with public references', () => {
+  assert.match(api, /admin\/textbooks/);
+  assert.match(api, /textbookRef/);
+  assert.match(api, /groupRef/);
+  assert.match(api, /topicRef/);
+  assert.match(textbookStructure, /Structure label/);
+  assert.match(textbookStructure, /Publish structure/);
+  assert.match(textbookStructure, /reorderTextbookGroups/);
+  assert.match(textbookStructure, /reorderTextbookTopics/);
+  assert.match(textbookStructure, /Published or referenced topics are protected/);
+  assert.doesNotMatch(textbookStructure, /book\.id|group\.id|topic\.id|UUID/);
+});
+
+test('admin attaches scanned textbook parts to a topic and reviews extraction evidence', () => {
+  assert.match(api, /uploadTopicPart/);
+  assert.match(api, /uploadTopicPartsBatch/);
+  assert.match(api, /suggestTopicParts/);
+  assert.match(textbookStructure, /Upload scanned textbook part PDFs or images/);
+  assert.match(textbookStructure, /filename check suggests a different topic/);
+  assert.match(admin, /Original page/);
+  assert.match(admin, /Normalized review page/);
+  assert.match(admin, /Printed page label/);
+  assert.match(admin, /Save reviewed block/);
+  assert.match(api, /updateExtractionBlock/);
+  assert.match(api, /updateExtractionPage/);
+});
+
+test('admin publishes reviewed topics independently with readiness and version history', () => {
+  assert.match(api, /publishTextbookTopic/);
+  assert.match(textbookStructure, /Publication readiness/);
+  assert.match(textbookStructure, /Publish topic content/);
+  assert.match(textbookStructure, /topics published/);
+  assert.match(textbookStructure, /superseded version/);
+  assert.match(textbookStructure, /Existing citations keep their current version/);
+});
+
+test('admin builds incremental versioned topic coverage without exposing internal ids', () => {
+  assert.match(api, /createCurriculumPlanDraft/);
+  assert.match(api, /confirmPublishedChanges/);
+  assert.match(admin, /Add topics covered now/);
+  assert.match(admin, /Cumulative coverage preview/);
+  assert.match(admin, /requiresPublishedChangeConfirmation/);
+  assert.match(admin, /Existing assessments retain their original snapshot/);
 });
 
 test('admin manages OpenAI aliases and priorities without receiving keys', () => {
@@ -155,6 +201,10 @@ test('admin confirms weighted question mappings from constrained suggestions', (
   assert.match(admin, /Total weight:/);
   assert.match(admin, /Suggest mappings/);
   assert.match(admin, /Confirm mapping/);
+  assert.match(api, /topic-mapping/);
+  assert.match(admin, /mark the topics that every student must have covered/);
+  assert.match(admin, /Extracted evidence/);
+  assert.match(admin, /Group summary/);
   assert.doesNotMatch(admin, /api\('admin\/questions'/);
 });
 
@@ -413,4 +463,21 @@ test('tutor visuals distinguish evidence from explanations and remain accessible
   assert.match(learningMedia, /Enlarge diagram/);
   assert.match(learningMedia, /Dialog open=\{open\}/);
   assert.match(learningMedia, /Open original size in a new tab/);
+});
+
+test('topic hierarchy workflow supports keyboard filters and accessible status cues', () => {
+  assert.match(textbookStructure, /Find textbook content/);
+  assert.match(textbookStructure, /Search textbook/);
+  assert.match(textbookStructure, /Content status/);
+  assert.match(textbookStructure, /aria-live="polite"/);
+  assert.match(textbookStructure, /Move \$\{group\.code\} earlier/);
+  assert.match(textbookStructure, /Move topic \$\{topic\.code\} earlier/);
+  assert.match(textbookStructure, /Term coverage is managed/);
+  assert.match(admin, /Term to review/);
+  assert.match(page, /Skip to page content/);
+  assert.match(page, /<main id="main-content"/);
+  assert.match(styles, /\.skip-link/);
+  assert.match(styles, /input:focus-visible/);
+  assert.match(styles, /catalogue-filters/);
+  assert.match(readFileSync(new URL('../features/shared.tsx', import.meta.url), 'utf8'), /aria-label=\{`Status: \$\{label\}`\}/);
 });

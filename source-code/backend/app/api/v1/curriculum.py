@@ -15,7 +15,7 @@ from app.permissions import require_csrf_roles, require_roles
 from app.security import Principal, get_principal
 from app.services.curriculum import get_catalog
 from app.services.curriculum_plans import (
-    get_plan, publish_plan, question_pool_diagnostic, save_plan, student_coverage,
+    create_next_draft, get_plan, publish_plan, question_pool_diagnostic, save_plan, student_coverage,
 )
 
 
@@ -38,6 +38,11 @@ def read_curriculum_plan(subject_id: str, _principal: Annotated[Principal, Depen
 @router.post("/admin/curriculum-plans/{subject_id}", response_model=CurriculumPlanResponse)
 def write_curriculum_plan(subject_id: str, payload: SavePlanRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
     return save_plan(db, principal, subject_id, payload)
+
+
+@router.post("/admin/curriculum-plans/{subject_id}/draft", response_model=CurriculumPlanResponse)
+def start_curriculum_plan_draft(subject_id: str, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return create_next_draft(db, principal, subject_id)
 
 
 @router.post("/admin/curriculum-plans/{subject_id}/publish", response_model=CurriculumPlanResponse)

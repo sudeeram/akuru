@@ -14,9 +14,15 @@ class TutorCitation(BaseModel):
     documentVersion: int
     textbookTitle: str
     textbookEdition: str
-    unitId: str
-    unitCode: str
-    unitTitle: str
+    unitId: str | None = None
+    unitCode: str | None = None
+    unitTitle: str | None = None
+    topicRef: str | None = None
+    topicCode: str | None = None
+    topicTitle: str | None = None
+    groupLabel: str | None = None
+    groupCode: str | None = None
+    groupTitle: str | None = None
     contentKind: str
     passage: str
     pdfPageIndex: int

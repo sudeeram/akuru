@@ -64,6 +64,9 @@ def _close(db: Session, row: TutorRealtimeConnection, state: str, failure_code: 
 
 def _instructions(db: Session, session: TutorSession, profile: TutorProfileVersion, language_mode: str) -> str:
     unit = db.get(TextbookUnit, session.active_unit_id)
+    from app.models import TextbookGroup, TextbookTopic
+    topic = db.get(TextbookTopic, session.active_topic_id) if session.active_topic_id else None
+    group = db.get(TextbookGroup, topic.group_id) if topic else None
     context = tutor_context._build(
         db,
         session.student_id,
@@ -86,7 +89,9 @@ def _instructions(db: Session, session: TutorSession, profile: TutorProfileVersi
     }.get(language_mode, "Teach the active unit through concise spoken practice.")
     payload = json.dumps({
         "subject": session.subject_id,
-        "unit": {"code": unit.unit_code, "title": unit.title},
+        "unit": {"code": unit.unit_code, "title": unit.title} if unit else None,
+        "topic": {"code": topic.code, "title": topic.title, "groupCode": group.code,
+                  "groupTitle": group.title} if topic else None,
         "learnerContext": context.providerContext.model_dump(mode="json"),
         "savedTranscript": transcript,
         "activity": activity,

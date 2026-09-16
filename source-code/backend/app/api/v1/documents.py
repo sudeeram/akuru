@@ -10,7 +10,7 @@ from app.permissions import require_csrf_roles, require_roles
 from app.queue import DocumentQueue, get_document_queue
 from app.schemas.documents import (
     DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
-    DocumentType, DocumentUploadResponse,
+    DocumentType, DocumentUploadResponse, ExtractionBlockUpdateRequest, ExtractionPageUpdateRequest,
 )
 from app.schemas.textbooks import PublishTextbookRequest, SaveTextbookReviewRequest, TextbookReviewResponse
 from app.schemas.official_materials import OfficialMaterialReview, PublishOfficialMaterialRequest, SaveOfficialMaterialReview
@@ -116,6 +116,22 @@ def document_extraction(
     db: Annotated[Session, Depends(get_db)],
 ) -> DocumentExtractionResponse:
     return documents.extraction_response(db, document_id)
+
+
+@router.post("/{document_id}/extraction/pages/{page_id}", response_model=DocumentExtractionResponse)
+def update_extraction_page(document_id: uuid.UUID, page_id: uuid.UUID, payload: ExtractionPageUpdateRequest,
+                           principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                           db: Annotated[Session, Depends(get_db)]):
+    return documents.update_extraction_page(db, principal, document_id, page_id, payload.printedPageLabel)
+
+
+@router.post("/{document_id}/extraction/blocks/{block_id}", response_model=DocumentExtractionResponse)
+def update_extraction_block(document_id: uuid.UUID, block_id: uuid.UUID, payload: ExtractionBlockUpdateRequest,
+                            principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                            db: Annotated[Session, Depends(get_db)]):
+    return documents.update_extraction_block(db, principal, document_id, block_id, kind=payload.kind,
+                                             text=payload.text, latex=payload.latex,
+                                             sequence_number=payload.sequenceNumber)
 
 
 @router.get("/{document_id}/textbook-review", response_model=TextbookReviewResponse)

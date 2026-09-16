@@ -9,13 +9,14 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.errors import DomainError
 from app.models import (
-    AuditEvent, Subject, TextbookUnit, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSession,
-    TutorPractice, TutorSessionProfileEvent, TutorSessionUnitEvent, TutorTurn, TutorTurnSource,
+    AuditEvent, Subject, TextbookGroup, TextbookTopic, TextbookUnit, TutorProfile, TutorProfileVersion,
+    TutorRealtimeConnection, TutorSession, TutorPractice, TutorSessionProfileEvent, TutorSessionTopicEvent,
+    TutorSessionUnitEvent, TutorTurn, TutorTurnSource,
 )
-from app.schemas.curriculum_plans import PlanUnitResponse
+from app.schemas.curriculum_plans import PlanTopicResponse, PlanUnitResponse
 from app.schemas.tutor_sessions import (
     TutorProfileEventResponse, TutorSessionOptionsResponse, TutorSessionResponse,
-    TutorSessionSubjectOption, TutorTurnResponse, TutorUnitEventResponse,
+    TutorSessionSubjectOption, TutorTopicEventResponse, TutorTurnResponse, TutorUnitEventResponse,
 )
 from app.security import Principal
 from app.services import curriculum_plans, tutor_history, tutor_profiles, tutor_quotas
@@ -57,6 +58,16 @@ def _eligible_unit(db: Session, student_id: uuid.UUID, subject_id: str, unit_id:
         raise DomainError("tutor_unit_not_eligible", "Choose an eligible unit in this subject.", 422)
     return unit
 
+def _eligible_topic(db: Session, student_id: uuid.UUID, subject_id: str, topic_ref: str) -> TextbookTopic:
+    coverage = curriculum_plans.student_coverage(db, student_id, subject_id)
+    if coverage.status != "ready": raise DomainError("tutor_coverage_not_ready", coverage.message, 409)
+    if topic_ref not in {item.topicRef for item in coverage.coveredTopics}:
+        raise DomainError("tutor_topic_not_eligible", "Choose a published topic covered for the current Grade and Term.", 422)
+    topic = db.scalar(select(TextbookTopic).where(TextbookTopic.public_ref == topic_ref,
+        TextbookTopic.subject_id == subject_id, TextbookTopic.status == "published"))
+    if not topic: raise DomainError("tutor_topic_not_eligible", "Choose an eligible topic in this subject.", 422)
+    return topic
+
 
 def options(db: Session, student_id: uuid.UUID) -> TutorSessionOptionsResponse:
     subjects = db.scalars(select(Subject).order_by(Subject.name)).all()
@@ -66,8 +77,9 @@ def options(db: Session, student_id: uuid.UUID) -> TutorSessionOptionsResponse:
             coverage = curriculum_plans.student_coverage(db, student_id, subject.id)
         except DomainError:
             continue
-        if coverage.status == "ready" and coverage.coveredUnits:
-            available.append(TutorSessionSubjectOption(id=subject.id, name=subject.name, units=coverage.coveredUnits))
+        if coverage.status == "ready" and (coverage.coveredTopics or coverage.coveredUnits):
+            available.append(TutorSessionSubjectOption(id=subject.id, name=subject.name,
+                units=coverage.coveredUnits, topics=coverage.coveredTopics))
     return TutorSessionOptionsResponse(
         subjects=available,
         profiles=tutor_profiles.list_for_student(db, student_id).profiles,
@@ -92,6 +104,11 @@ def _require_active(row: TutorSession) -> None:
 def _unit_response(unit: TextbookUnit) -> PlanUnitResponse:
     return PlanUnitResponse(id=str(unit.id), code=unit.unit_code, title=unit.title)
 
+def _topic_response(db: Session, topic: TextbookTopic) -> PlanTopicResponse:
+    group = db.get(TextbookGroup, topic.group_id)
+    return PlanTopicResponse(topicRef=topic.public_ref, code=topic.code, title=topic.title,
+        groupRef=group.public_ref, groupCode=group.code, groupTitle=group.title)
+
 
 def _version_details(db: Session, version_id: uuid.UUID) -> tuple[TutorProfile, TutorProfileVersion]:
     version = db.get(TutorProfileVersion, version_id)
@@ -102,7 +119,8 @@ def _version_details(db: Session, version_id: uuid.UUID) -> tuple[TutorProfile, 
 
 
 def response(db: Session, row: TutorSession) -> TutorSessionResponse:
-    unit = db.get(TextbookUnit, row.active_unit_id)
+    unit = db.get(TextbookUnit, row.active_unit_id) if row.active_unit_id else None
+    topic = db.get(TextbookTopic, row.active_topic_id) if row.active_topic_id else None
     profile, selected_version = _version_details(db, row.current_profile_version_id)
     turns = db.scalars(select(TutorTurn).where(TutorTurn.session_id == row.id).order_by(TutorTurn.sequence)).all()
     turn_responses = []
@@ -128,11 +146,16 @@ def response(db: Session, row: TutorSession) -> TutorSessionResponse:
     unit_events = []
     for event in db.scalars(select(TutorSessionUnitEvent).where(TutorSessionUnitEvent.session_id == row.id).order_by(TutorSessionUnitEvent.created_at, TutorSessionUnitEvent.id)).all():
         unit_events.append(TutorUnitEventResponse(fromUnit=_unit_response(db.get(TextbookUnit, event.from_unit_id)), toUnit=_unit_response(db.get(TextbookUnit, event.to_unit_id)), createdAt=event.created_at))
+    topic_events = [TutorTopicEventResponse(fromTopic=_topic_response(db, db.get(TextbookTopic, event.from_topic_id)),
+        toTopic=_topic_response(db, db.get(TextbookTopic, event.to_topic_id)), createdAt=event.created_at)
+        for event in db.scalars(select(TutorSessionTopicEvent).where(TutorSessionTopicEvent.session_id == row.id).order_by(
+            TutorSessionTopicEvent.created_at, TutorSessionTopicEvent.id)).all()]
     return TutorSessionResponse(
-        sessionRef=row.public_ref, subjectId=row.subject_id, activeUnit=_unit_response(unit),
+        sessionRef=row.public_ref, subjectId=row.subject_id, activeUnit=_unit_response(unit) if unit else None,
+        activeTopic=_topic_response(db, topic) if topic else None,
         currentTutor=tutor_profiles.profile_version_response(profile, selected_version), mode=row.mode, status=row.status,
         startedAt=row.started_at, endedAt=row.ended_at, turns=turn_responses,
-        profileEvents=profile_events, unitEvents=unit_events,
+        profileEvents=profile_events, unitEvents=unit_events, topicEvents=topic_events,
     )
 
 
@@ -153,9 +176,12 @@ def start(db: Session, settings: Settings, principal: Principal, payload) -> Tut
     if active:
         raise DomainError("tutor_session_already_active", "End your current tutor session before starting another.", 409)
     _, version = _owned_profile(db, principal.user.id, payload.profileRef)
-    unit = _eligible_unit(db, principal.user.id, payload.subjectId, payload.unitId)
+    topic = _eligible_topic(db, principal.user.id, payload.subjectId, payload.topicRef) if payload.topicRef else None
+    unit = _eligible_unit(db, principal.user.id, payload.subjectId, payload.unitId) if payload.unitId else None
+    if not topic and not unit: raise DomainError("tutor_context_required", "Choose a covered topic.", 422)
     row = TutorSession(public_ref=f"tutor_session_{uuid.uuid4().hex}", student_id=principal.user.id,
-                       subject_id=payload.subjectId, active_unit_id=unit.id,
+                       subject_id=payload.subjectId, active_unit_id=unit.id if unit else None,
+                       active_topic_id=topic.id if topic else None,
                        current_profile_version_id=version.id, start_request_key=payload.requestKey)
     db.add(row)
     try:
@@ -189,10 +215,13 @@ def add_turn(db: Session, settings: Settings, principal: Principal, session_ref:
 
 
 def _handover(db: Session, row: TutorSession) -> dict:
-    unit = db.get(TextbookUnit, row.active_unit_id)
+    unit = db.get(TextbookUnit, row.active_unit_id) if row.active_unit_id else None
+    topic = db.get(TextbookTopic, row.active_topic_id) if row.active_topic_id else None
     turns = db.scalars(select(TutorTurn).where(TutorTurn.session_id == row.id).order_by(TutorTurn.sequence.desc()).limit(6)).all()
     recent = [{"role": item.role, "summary": " ".join(item.content.split())[:240]} for item in reversed(turns)]
-    return {"subjectId": row.subject_id, "unit": {"code": unit.unit_code, "title": unit.title},
+    return {"subjectId": row.subject_id,
+            "topic": {"code": topic.code, "title": topic.title} if topic else None,
+            "unit": {"code": unit.unit_code, "title": unit.title} if unit else None,
             "practiceState": "active", "retainedTurnCount": len(turns), "recentContext": recent}
 
 
@@ -233,13 +262,23 @@ def switch_profile(db: Session, settings: Settings, principal: Principal, sessio
 def switch_unit(db: Session, settings: Settings, principal: Principal, session_ref: str, payload) -> TutorSessionResponse:
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     row = _owned_session(db, principal.user.id, session_ref, lock=True); _require_active(row)
-    replay = db.scalar(select(TutorSessionUnitEvent).where(TutorSessionUnitEvent.session_id == row.id, TutorSessionUnitEvent.request_key == payload.requestKey))
+    Event = TutorSessionTopicEvent if payload.topicRef else TutorSessionUnitEvent
+    replay = db.scalar(select(Event).where(Event.session_id == row.id, Event.request_key == payload.requestKey))
     if replay:
         return response(db, row)
     active_practice = db.scalar(select(TutorPractice).where(
         TutorPractice.session_id == row.id, TutorPractice.status == "active"))
     if active_practice:
         raise DomainError("tutor_practice_active", "Submit the active guided-practice question before moving units.", 409)
+    if payload.topicRef:
+        topic = _eligible_topic(db, principal.user.id, row.subject_id, payload.topicRef)
+        if topic.id == row.active_topic_id: raise DomainError("tutor_topic_already_selected", "That topic is already active.", 409)
+        if not row.active_topic_id: raise DomainError("tutor_topic_transition_required", "Start a new topic-based Tutor session.", 409)
+        db.add(TutorSessionTopicEvent(session_id=row.id, from_topic_id=row.active_topic_id,
+            to_topic_id=topic.id, request_key=payload.requestKey))
+        row.active_topic_id = topic.id
+        _end_realtime_connections(db, row, datetime.now(timezone.utc)); db.commit(); db.refresh(row)
+        return response(db, row)
     unit = _eligible_unit(db, principal.user.id, row.subject_id, payload.unitId)
     if unit.id == row.active_unit_id:
         raise DomainError("tutor_unit_already_selected", "That unit is already active.", 409)

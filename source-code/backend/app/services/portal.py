@@ -139,9 +139,12 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             "mode": item.mode, "status": item.status, "startedAt": item.startedAt.isoformat(),
             "endsAt": item.endsAt.isoformat(), "questionIds": ids, "answers": answers, "files": files,
             "feedbackVisible": item.feedbackVisible})
-    mastery_rows = ({row["id"]: [unit.model_dump(mode="json") for unit in mastery.list_mastery(
-        db, principal, uuid.UUID(row["id"])).units] for row in visible_students}
+    mastery_full = ({row["id"]: mastery.list_mastery(db, principal, uuid.UUID(row["id"])) for row in visible_students}
         if principal.user.role in {"student", "parent"} else {})
+    mastery_rows = {student_id: [unit.model_dump(mode="json") for unit in result.units]
+                    for student_id, result in mastery_full.items()}
+    mastery_groups = {student_id: [group.model_dump(mode="json") for group in result.groups]
+                      for student_id, result in mastery_full.items()}
     recommendation_rows = ({row["id"]: [item.model_dump(mode="json") for item in weaknesses.list_recommendations(
         db, principal, uuid.UUID(row["id"])).recommendations] for row in visible_students}
         if principal.user.role in {"student", "parent"} else {})
@@ -191,5 +194,6 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         "reviews": [],
         "plans": plan_rows,
         "mastery": mastery_rows,
+        "masteryGroups": mastery_groups,
         "recommendations": recommendation_rows,
     }

@@ -99,19 +99,17 @@ export type FeatureProps = {
   setSelected: (id: string) => void;
 };
 export function Status({ status }: { status: string }) {
+  const labels: Record<string, string> = {
+    "needs-review": "Awaiting review", checked: "Answer checked", reviewed: "Parent reviewed",
+    approved: "Approved", pending: "Awaiting review", active: "In progress", submitted: "Submitted",
+    draft: "Draft", published: "Published", archived: "Archived", processing: "Processing", failed: "Needs attention",
+  };
+  const label = labels[status] || status.replaceAll('_', ' ');
+  const symbol = status === 'approved' || status === 'published' || status === 'checked' ? '✓' :
+    status === 'failed' ? '!' : status === 'processing' ? '…' : '•';
   return (
-    <span className={`status ${status}`}>
-      {(
-        {
-          "needs-review": "Awaiting review",
-          checked: "Answer checked",
-          reviewed: "Parent reviewed",
-          approved: "Approved",
-          pending: "Awaiting review",
-          active: "In progress",
-          submitted: "Submitted",
-        } as Record<string, string>
-      )[status] || status}
+    <span className={`status ${status}`} aria-label={`Status: ${label}`}>
+      <span aria-hidden="true">{symbol}</span> {label}
     </span>
   );
 }

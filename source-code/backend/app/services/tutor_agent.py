@@ -13,7 +13,7 @@ from app.ai.prompts import get_tutor_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookUnit, TutorProfileVersion, TutorTurn
+from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TextbookUnit, TutorProfileVersion, TutorTurn
 from app.repositories import tutor_agent as repository
 from app.schemas.tutor_agent import (
     TutorAgentTurnRequest, TutorAgentTurnResponse, TutorProviderOutput, TutorToolResult, TutorVisual,
@@ -124,7 +124,7 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
         f"agent-context-{operation_id.hex}")
     source_result = tutor_sources.search(db, settings, principal, session.public_ref,
         payload.message, None, 5)
-    active = next(item for item in context.units if item.active)
+    active = next(item for item in (context.topics if session.active_topic_id else context.units) if item.active)
     evidence_refs = [ref for statement in active.statements for ref in statement.evidenceRefs]
     try:
         practice = tutor_practice.current(db, settings, principal, session.public_ref)
@@ -206,7 +206,9 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
-    unit = db.get(TextbookUnit, session.active_unit_id)
+    unit = db.get(TextbookUnit, session.active_unit_id) if session.active_unit_id else None
+    topic = db.get(TextbookTopic, session.active_topic_id) if session.active_topic_id else None
+    group = db.get(TextbookGroup, topic.group_id) if topic else None
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)
     operation_id = uuid.uuid4()
     context, citations, recommendation, tool_results, visuals, practice = _tools(
@@ -226,7 +228,9 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     prompt = get_tutor_prompt(payload.teachingMode)
     task_data = {
         "scope": {"course": "iGCSE", "subject": session.subject_id,
-                  "activeUnit": {"code": unit.unit_code, "title": unit.title}},
+                  **({"activeUnit": {"code": unit.unit_code, "title": unit.title}} if unit else {}),
+                  **({"activeTopic": {"code": topic.code, "title": topic.title,
+                      "groupCode": group.code, "groupTitle": group.title}} if topic else {})},
         "tutorProfile": {"name": profile.name, "tone": profile.tone, "friendliness": profile.friendliness,
                          "enthusiasm": profile.enthusiasm, "speed": profile.speed,
                          "communicationCharacter": profile.communication_character,
@@ -244,7 +248,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         instructions=prompt.instructions, task=json.dumps(task_data, ensure_ascii=False),
         output_type=TutorProviderOutput,
         metadata={"session_ref": session.public_ref, "subject": session.subject_id,
-                  "unit": unit.unit_code, "mode": payload.teachingMode})
+                  "unit": unit.unit_code if unit else None, "topic": topic.code if topic else None,
+                  "mode": payload.teachingMode})
     result = _invoke(db, settings, principal, request, operation_id, generator)
     if settings.tutor_release_gates_required:
         from app.services.evaluations import tutor_feature_allowed

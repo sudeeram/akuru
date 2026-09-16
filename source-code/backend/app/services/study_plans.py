@@ -5,7 +5,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (AssessmentBlueprint, Document, ImprovementRecommendation, RetrievalChunk, StudentProfile,
-    StudentProgression, StudentSubject, StudyPlan, StudyPlanItem, TextbookUnit, UnitMastery, WeaknessDiagnosis)
+    StudentProgression, StudentSubject, StudyPlan, StudyPlanItem, Textbook, TextbookGroup, TextbookTopic,
+    TextbookUnit, TopicMastery, UnitMastery, WeaknessDiagnosis)
 from app.schemas.study_plans import PlanHistoryResponse, PlanItemResponse, StudyPlanResponse
 from app.services.curriculum_plans import student_coverage
 
@@ -19,17 +20,26 @@ def authorize(db, principal, student_id):
 
 def _eligible_rows(db, student_id):
     subjects = set(db.scalars(select(StudentSubject.subject_id).where(StudentSubject.student_id == student_id)).all())
-    covered = set()
+    covered, covered_topics = set(), set()
     for subject in subjects:
         scope = student_coverage(db, student_id, subject)
-        if scope.status == "ready": covered |= {uuid.UUID(row.id) for row in scope.coveredUnits}
+        if scope.status == "ready":
+            covered |= {uuid.UUID(row.id) for row in scope.coveredUnits}
+            refs = [row.topicRef for row in scope.coveredTopics]
+            if refs: covered_topics |= set(db.scalars(select(TextbookTopic.id).where(TextbookTopic.public_ref.in_(refs))).all())
     rows = db.execute(select(ImprovementRecommendation, WeaknessDiagnosis, UnitMastery).join(
         WeaknessDiagnosis, WeaknessDiagnosis.id == ImprovementRecommendation.diagnosis_id).outerjoin(
         UnitMastery, (UnitMastery.student_id == ImprovementRecommendation.student_id) &
         (UnitMastery.unit_id == ImprovementRecommendation.unit_id)).where(
         ImprovementRecommendation.student_id == student_id, ImprovementRecommendation.review_status == "approved",
         ImprovementRecommendation.subject_id.in_(subjects), ImprovementRecommendation.unit_id.in_(covered))).all()
-    return rows
+    topic_rows = db.execute(select(ImprovementRecommendation, WeaknessDiagnosis, TopicMastery).join(
+        WeaknessDiagnosis, WeaknessDiagnosis.id == ImprovementRecommendation.diagnosis_id).outerjoin(
+        TopicMastery, (TopicMastery.student_id == ImprovementRecommendation.student_id) &
+        (TopicMastery.topic_id == ImprovementRecommendation.topic_id)).where(
+        ImprovementRecommendation.student_id == student_id, ImprovementRecommendation.review_status == "approved",
+        ImprovementRecommendation.subject_id.in_(subjects), ImprovementRecommendation.topic_id.in_(covered_topics))).all()
+    return rows + topic_rows
 
 def _fingerprint(rows):
     value = "|".join(sorted(f"{r.id}:{d.occurrence_number}:{m.version_number if m else 0}:{r.review_status}" for r,d,m in rows))
@@ -77,7 +87,7 @@ def generate(db, student_id, requested_by=None, force=False):
         if recommendation.subject_id in upcoming: reason += " This subject has a current-term assessment blueprint."
         scheduled=_now()+timedelta(days=3 if recommendation.activity_type == "spaced_retry" else max(0,index-1))
         db.add(StudyPlanItem(plan_id=plan.id,student_id=student_id,recommendation_id=recommendation.id,
-            subject_id=recommendation.subject_id,unit_id=recommendation.unit_id,sequence=index,
+            subject_id=recommendation.subject_id,unit_id=recommendation.unit_id,topic_id=recommendation.topic_id,sequence=index,
             activity_type=recommendation.activity_type,title=recommendation.title,duration_minutes=durations[recommendation.activity_type],
             reason=reason,source_chunk_id=recommendation.source_chunk_id,success_condition=recommendation.success_condition,
             scheduled_for=scheduled,status="planned"))
@@ -87,11 +97,24 @@ def response(db, plan):
     rows=db.execute(select(StudyPlanItem,TextbookUnit,RetrievalChunk,Document).join(TextbookUnit,TextbookUnit.id==StudyPlanItem.unit_id).join(
         RetrievalChunk,RetrievalChunk.id==StudyPlanItem.source_chunk_id).join(Document,Document.id==RetrievalChunk.document_id).where(
         StudyPlanItem.plan_id==plan.id).order_by(StudyPlanItem.sequence)).all()
-    return StudyPlanResponse(id=plan.id,studentId=plan.student_id,version=plan.version_number,updatedAt=plan.created_at,
-        generationReason=plan.generation_reason,items=[PlanItemResponse(id=i.id,subject=i.subject_id,unitId=i.unit_id,
+    items=[PlanItemResponse(id=i.id,subject=i.subject_id,unitId=i.unit_id,
         unitCode=u.unit_code,topic=i.title,activityType=i.activity_type,minutes=i.duration_minutes,reason=i.reason,
         source=f"{d.title} · page {c.page_number}",sourceUrl=f"/api/v1/retrieval/evidence/{c.id}?studentId={i.student_id}",
-        successCondition=i.success_condition,scheduledFor=i.scheduled_for,status=i.status) for i,u,c,d in rows])
+        successCondition=i.success_condition,scheduledFor=i.scheduled_for,status=i.status) for i,u,c,d in rows]
+    topic_rows=db.execute(select(StudyPlanItem,TextbookTopic,TextbookGroup,Textbook,RetrievalChunk,Document).join(
+        TextbookTopic,TextbookTopic.id==StudyPlanItem.topic_id).join(TextbookGroup,TextbookGroup.id==TextbookTopic.group_id
+        ).join(Textbook,Textbook.id==TextbookTopic.textbook_id).join(RetrievalChunk,RetrievalChunk.id==StudyPlanItem.source_chunk_id
+        ).join(Document,Document.id==RetrievalChunk.document_id).where(StudyPlanItem.plan_id==plan.id,
+        StudyPlanItem.topic_id.is_not(None)).order_by(StudyPlanItem.sequence)).all()
+    for i,t,g,b,c,d in topic_rows:
+        items.append(PlanItemResponse(id=i.id,subject=i.subject_id,topic=i.title,topicRef=t.public_ref,
+            topicCode=t.code,topicTitle=t.title,groupLabel=b.group_label,groupCode=g.code,groupTitle=g.title,
+            activityType=i.activity_type,minutes=i.duration_minutes,reason=i.reason,
+            source=f"{d.title} · PDF page {c.page_number}",sourceUrl=f"/api/v1/retrieval/evidence/{c.id}?studentId={i.student_id}",
+            successCondition=i.success_condition,scheduledFor=i.scheduled_for,status=i.status))
+    items.sort(key=lambda item: item.scheduledFor)
+    return StudyPlanResponse(id=plan.id,studentId=plan.student_id,version=plan.version_number,updatedAt=plan.created_at,
+        generationReason=plan.generation_reason,items=items)
 
 def current(db, principal, student_id):
     authorize(db,principal,student_id)

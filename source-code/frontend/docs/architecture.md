@@ -18,6 +18,20 @@ The backend OpenAPI schema generates `lib/generated/api-contract.ts`. Do not edi
 
 The document, textbook-unit, coverage, question, practice, exam, recommendation-review and adaptive-plan screens use PostgreSQL-backed endpoints. The standalone legacy assignment preview remains until its service is implemented.
 
+## Planned textbook, group and topic experience
+
+The next content contract uses **Textbook → Section Group → Topic → Textbook Part**. `section_group` is the backend concept; the frontend must display the textbook's configured `Unit` or `Module` label everywhere. `Topic` remains consistent across books. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/TODO-TEXTBOOK-TOPICS.md) is the delivery backlog for this change.
+
+Admin creates the logical textbook and edition, selects Unit or Module terminology, defines ordered groups and topics, and uploads one or more scanned PDF parts inside a selected topic. Upload, extraction review and topic publication are separate states. The review screen presents original and normalized pages beside OCR blocks, equations, formulae, tables, diagrams, confidence, reading order and printed-page labels. A topic cannot appear ready merely because its worker job completed.
+
+Use the visible nouns **Textbook**, the configured **Unit** or **Module**, **Topic**, and **Textbook part** consistently. Topic content states are **No document**, **Processing**, **Needs review**, **Ready to publish**, **Published**, **Failed** and **Superseded**. Empty states must name the next authorized Admin action; they must not expose UUIDs, object keys, filesystem paths or provider configuration.
+
+Curriculum editing uses a grouped Unit/Module → Topic checklist. A new draft starts from the latest published coverage so Admin can add topics as teaching progresses. The UI distinguishes published coverage, draft additions and removals, previews cumulative eligibility and warns before moving or removing published topics. Internal UUIDs, storage paths and provider details remain hidden.
+
+Student and Parent views show Unit or Module summaries that expand into topics. Topic mastery, weaknesses, study-plan work, Tutor context and exact citations name their parent group. Unpublished or uncovered topics remain inaccessible. Existing assessment sessions continue to show their immutable coverage snapshot after Admin publishes later coverage.
+
+All structure, upload, review and coverage workflows require keyboard access, visible focus, screen-reader labels and status indicators that do not depend on colour. Drag-and-drop may be an enhancement but cannot be the only interaction.
+
 ## Authorization boundary
 
 The UI hides actions according to role for usability. FastAPI remains authoritative. A client-provided role, parent ID, student ID, subject, or progression never grants access. Parent and Student state is filtered by authenticated database identity.

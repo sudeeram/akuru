@@ -87,6 +87,8 @@ class ExtractionPageResponse(BaseModel):
     widthPoints: float
     heightPoints: float
     renderAssetId: str
+    originalRenderAssetId: str | None = None
+    printedPageLabel: str | None = None
     method: str
     confidence: float
     needsReview: bool
@@ -99,3 +101,39 @@ class DocumentExtractionResponse(BaseModel):
     versionId: str
     status: str
     pages: list[ExtractionPageResponse] = Field(default_factory=list)
+
+
+class ExtractionPageUpdateRequest(BaseModel):
+    printedPageLabel: str | None = Field(default=None, max_length=40)
+
+
+class ExtractionBlockUpdateRequest(BaseModel):
+    kind: str
+    text: str = Field(default="", max_length=100_000)
+    latex: str | None = Field(default=None, max_length=20_000)
+    sequenceNumber: int = Field(ge=1, le=10_000)
+
+
+class TopicPartBatchItem(BaseModel):
+    filename: str
+    contentType: str
+    contentBase64: str
+    role: str = "primary"
+    printedStartPage: str | None = None
+    printedEndPage: str | None = None
+    idempotencyKey: str = Field(min_length=8, max_length=100)
+
+
+class TopicPartBatchRequest(BaseModel):
+    items: list[TopicPartBatchItem] = Field(min_length=1, max_length=20)
+
+
+class TopicPartSuggestion(BaseModel):
+    filename: str
+    suggestedTopicRef: str | None
+    suggestedTopicCode: str | None
+    confidence: float
+
+
+class TopicPartSuggestionRequest(BaseModel):
+    filenames: list[str] = Field(min_length=1, max_length=100)

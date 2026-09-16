@@ -1,6 +1,6 @@
 # Step 17 — Role-specific experiences
 
-**Status: Implemented; final verification recorded in TODO.md.**
+**Status: Implemented; final verification recorded in `source-code/todo/TODO.md`.**
 
 Step 17 presents the evidence created by Steps 12–16 in a form each role can act on.
 

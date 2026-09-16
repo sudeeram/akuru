@@ -926,6 +926,7 @@ export function ProgressView(p: FeatureProps) {
   const [chosen, setChosen] = useState<Attempt | null>(null);
   const own = p.data.attempts.filter((a) => a.studentId === p.child.id);
   const unitMastery = p.data.mastery?.[p.child.id] || [];
+  const masteryGroups = p.data.masteryGroups?.[p.child.id] || [];
   const nextSteps = (p.data.recommendations?.[p.child.id] || []).filter((item) => item.reviewStatus === 'approved');
   return (
     <>
@@ -981,6 +982,7 @@ export function ProgressView(p: FeatureProps) {
               </div>
               <Evidence attempts={own.filter((a) => a.subject === s.id)} />
               <div className="stack spaced">
+                {masteryGroups.filter((group) => group.subjectId === s.id).map((group) => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary><strong>{group.groupLabel} {group.groupCode} · {group.groupTitle}</strong> · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.map((topic) => <div className="source-note" key={topic.topicRef}><div className="spread"><strong>Topic {topic.topicCode} · {topic.topicTitle}</strong><strong>{topic.score.toFixed(1)}/10</strong></div><p className="small">{topic.confidence} confidence · {topic.evidenceCount} assessed evidence item{topic.evidenceCount === 1 ? '' : 's'}</p></div>)}</details>)}
                 {unitMastery.filter((unit) => unit.subjectId === s.id).map((unit) => (
                   <div className="source-note" key={unit.unitId}>
                         <div className="spread"><strong>{unit.unitCode} · {unit.unitTitle}</strong><strong>{unit.score.toFixed(1)}/10</strong></div>

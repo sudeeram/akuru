@@ -79,11 +79,13 @@ export function Reviews(p: FeatureProps) {
       <div className="learner-grid">
         {p.data.students.filter(child => student === 'all' || child.id === student).map(child => {
           const units = p.data.mastery?.[child.id] || [];
+          const groups = p.data.masteryGroups?.[child.id] || [];
           const pending = (p.data.recommendations?.[child.id] || []).filter(item => item.reviewStatus === 'pending_review').length;
           const average = units.length ? units.reduce((total, unit) => total + unit.score, 0) / units.length : null;
           return <section className="panel stack" key={child.id}><div className="spread"><h3>{child.name}</h3><strong>{average == null ? 'More evidence needed' : `${average.toFixed(1)}/10 average`}</strong></div>
             <p>{child.grade} · {child.term} · {units.length} measured unit{units.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
             {units.map(unit => <div className="source-note" key={unit.unitId}><div className="spread"><span>{unit.unitCode} · {unit.unitTitle}</span><strong>{unit.score.toFixed(1)}/10</strong></div><p className="small">{unit.trend > 0 ? 'Improving' : unit.trend < 0 ? 'Declining' : 'Steady'} ({unit.trend > 0 ? '+' : ''}{unit.trend.toFixed(1)}) · {unit.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
+            {groups.map(group => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary>{group.groupLabel} {group.groupCode} · {group.groupTitle} · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.filter(topic => topic.score < 7).map(topic => <p className="small" key={topic.topicRef}><strong>Action:</strong> Topic {topic.topicCode} · {topic.topicTitle} needs focused practice ({topic.score.toFixed(1)}/10).</p>)}</details>)}
             {!units.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a unit trend.</p>}
             <TutorSignals studentId={child.id} />
           </section>;

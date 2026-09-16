@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.curriculum_plans import PlanUnitResponse
+from app.schemas.curriculum_plans import PlanTopicResponse, PlanUnitResponse
 
 
 class NextUnitRequest(BaseModel):
@@ -25,14 +25,16 @@ class RankingFactor(BaseModel):
 
 
 class RankedUnit(BaseModel):
-    unit: PlanUnitResponse
+    unit: PlanUnitResponse | None = None
+    topic: PlanTopicResponse | None = None
     score: float
     factors: list[RankingFactor]
     evidenceRefs: list[str]
 
 
 class NextUnitRecommendation(BaseModel):
-    unit: PlanUnitResponse
+    unit: PlanUnitResponse | None = None
+    topic: PlanTopicResponse | None = None
     reason: str
     evidenceRefs: list[str]
     activity: RecommendationActivity
@@ -42,7 +44,8 @@ class NextUnitRecommendation(BaseModel):
 
 class TutorRecommendationBrief(BaseModel):
     instruction: str
-    fixedUnitId: str
+    fixedUnitId: str | None = None
+    fixedTopicRef: str | None = None
     fixedReason: str
     evidenceRefs: list[str]
 

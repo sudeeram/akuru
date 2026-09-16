@@ -10,7 +10,8 @@ from app.errors import DomainError
 from app.models import (
     Document, DocumentBlock, DocumentPage, ExaminerCommentVersion, MarkSchemeEntryVersion,
     OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
-    RetrievalChunk, StudentProfile, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
+    RetrievalChunk, StudentProfile, StudentSubject, Textbook, TextbookContentVersion, TextbookGroup,
+    TextbookTopic, TextbookTopicContentVersion, TextbookUnit, TextbookUnitVersion,
 )
 from app.schemas.retrieval import EvidenceResponse, ReindexResponse, RetrievalResponse
 from app.security import Principal
@@ -18,7 +19,7 @@ from app.services.curriculum_plans import student_coverage
 from app.services.embeddings import embed_texts
 
 
-def authorize_student(db: Session, principal: Principal, student_id: uuid.UUID, subject_id: str) -> set[uuid.UUID]:
+def authorize_student(db: Session, principal: Principal, student_id: uuid.UUID, subject_id: str) -> tuple[set[uuid.UUID], set[uuid.UUID]]:
     profile = db.get(StudentProfile, student_id)
     if not profile:
         raise DomainError("student_not_found", "Student not found.", 404)
@@ -31,7 +32,38 @@ def authorize_student(db: Session, principal: Principal, student_id: uuid.UUID, 
     coverage = student_coverage(db, student_id, subject_id)
     if coverage.status != "ready":
         raise DomainError("retrieval_coverage_not_ready", coverage.message, 409)
-    return {uuid.UUID(unit.id) for unit in coverage.coveredUnits}
+    units = {uuid.UUID(unit.id) for unit in coverage.coveredUnits}
+    topics = set(db.scalars(select(TextbookTopic.id).where(
+        TextbookTopic.public_ref.in_([row.topicRef for row in coverage.coveredTopics]))).all()) if coverage.coveredTopics else set()
+    return units, topics
+
+
+def _topic_evidence(db: Session, settings: Settings, student_id: uuid.UUID, subject_id: str,
+                    query: str, limit: int, topics: set[uuid.UUID]):
+    vector = embed_texts(settings, [query])[0]; distance = RetrievalChunk.embedding.cosine_distance(vector)
+    records = db.execute(select(RetrievalChunk, Document, TextbookTopic, TextbookGroup,
+        Textbook, distance.label("distance")).join(Document, Document.id == RetrievalChunk.document_id
+        ).join(TextbookTopic, TextbookTopic.id == RetrievalChunk.topic_id
+        ).join(TextbookGroup, TextbookGroup.id == RetrievalChunk.group_id
+        ).join(Textbook, Textbook.id == TextbookTopic.textbook_id).where(
+        RetrievalChunk.status == "active", RetrievalChunk.course_id == "igcse",
+        RetrievalChunk.subject_id == subject_id, RetrievalChunk.topic_id.in_(topics),
+        Textbook.status == "published", TextbookTopic.status == "published",
+        exists(select(TextbookTopicContentVersion.id).where(
+            TextbookTopicContentVersion.id == RetrievalChunk.topic_content_version_id,
+            TextbookTopicContentVersion.status == "published")),
+        Document.review_state == "published", Document.removed_at.is_(None)
+    ).order_by(distance).limit(limit)).all()
+    result=[]
+    for chunk, document, topic, group, book, distance_value in records:
+        block=db.get(DocumentBlock, chunk.source_item_id); page=db.get(DocumentPage, block.page_id) if block else None
+        result.append(EvidenceResponse(chunkId=chunk.id, sourceType=chunk.source_type, content=chunk.content,
+            documentId=document.id, documentTitle=document.title, page=chunk.page_number, printedPage=page.printed_page_label if page else None,
+            boundingBox=chunk.bounding_box, sourceAssetId=chunk.source_asset_id,
+            sourceUrl=f"/api/v1/retrieval/evidence/{chunk.id}?studentId={student_id}", topicRef=topic.public_ref,
+            topicCode=topic.code, topicTitle=topic.title, groupLabel=book.group_label, groupCode=group.code,
+            groupTitle=group.title, score=max(0.0,1.0-float(distance_value))))
+    return result
 
 
 def _location(locations: list, ordinal: int) -> tuple[int, dict, uuid.UUID | None]:
@@ -126,6 +158,9 @@ def reindex_document(db: Session, settings: Settings, document_id: uuid.UUID) ->
     document = db.get(Document, document_id)
     if not document or document.removed_at or document.review_state != "published":
         raise DomainError("published_document_required", "Only a published document can be indexed.", 409)
+    if document.source_metadata.get("topicRef"):
+        raise DomainError("topic_publication_controls_index",
+                          "Topic textbook parts are indexed only through versioned topic publication.", 409)
     if document.kind == "textbook":
         version = db.scalar(select(TextbookContentVersion).where(
             TextbookContentVersion.document_id == document.id, TextbookContentVersion.status == "published"
@@ -159,7 +194,10 @@ def reindex_document(db: Session, settings: Settings, document_id: uuid.UUID) ->
 
 def retrieve(db: Session, settings: Settings, principal: Principal, student_id: uuid.UUID,
              subject_id: str, query: str, limit: int) -> RetrievalResponse:
-    units = authorize_student(db, principal, student_id, subject_id)
+    units, topics = authorize_student(db, principal, student_id, subject_id)
+    if topics:
+        return RetrievalResponse(query=query, subjectId=subject_id,
+            evidence=_topic_evidence(db, settings, student_id, subject_id, query, limit, topics))
     vector = embed_texts(settings, [query])[0]
     distance = RetrievalChunk.embedding.cosine_distance(vector)
     records = db.execute(select(RetrievalChunk, Document, TextbookUnit, distance.label("distance")).join(
@@ -195,12 +233,17 @@ def evidence(db: Session, principal: Principal, settings: Settings, chunk_id: uu
     chunk = db.get(RetrievalChunk, chunk_id)
     if not chunk or chunk.status != "active":
         raise DomainError("evidence_not_found", "Evidence not found.", 404)
-    units = authorize_student(db, principal, student_id, chunk.subject_id)
-    if chunk.unit_id not in units:
+    units, topics = authorize_student(db, principal, student_id, chunk.subject_id)
+    if (chunk.topic_id and chunk.topic_id not in topics) or (chunk.unit_id and chunk.unit_id not in units):
         raise DomainError("evidence_not_found", "Evidence not found.", 404)
     document = db.get(Document, chunk.document_id)
-    unit = db.get(TextbookUnit, chunk.unit_id)
-    source_published = (db.get(TextbookContentVersion, chunk.textbook_content_version_id).status == "published"
+    unit = db.get(TextbookUnit, chunk.unit_id) if chunk.unit_id else None
+    topic = db.get(TextbookTopic, chunk.topic_id) if chunk.topic_id else None
+    group = db.get(TextbookGroup, chunk.group_id) if chunk.group_id else None
+    book = db.get(Textbook, topic.textbook_id) if topic else None
+    block = db.get(DocumentBlock, chunk.source_item_id); page_row = db.get(DocumentPage, block.page_id) if block else None
+    source_published = (db.get(TextbookTopicContentVersion, chunk.topic_content_version_id).status == "published"
+        if chunk.topic_content_version_id else db.get(TextbookContentVersion, chunk.textbook_content_version_id).status == "published"
         if chunk.source_type == "textbook_section" and chunk.textbook_content_version_id
         else bool(chunk.official_material_version_id and db.get(OfficialMaterialVersion, chunk.official_material_version_id)
                   and db.get(OfficialMaterialVersion, chunk.official_material_version_id).status == "published"))
@@ -210,4 +253,8 @@ def evidence(db: Session, principal: Principal, settings: Settings, chunk_id: uu
         documentId=document.id, documentTitle=document.title, page=chunk.page_number,
         boundingBox=chunk.bounding_box, sourceAssetId=chunk.source_asset_id,
         sourceUrl=f"/api/v1/retrieval/evidence/{chunk.id}?studentId={student_id}",
-        unitId=unit.id, unitCode=unit.unit_code, unitTitle=unit.title)
+        unitId=unit.id if unit else None, unitCode=unit.unit_code if unit else None, unitTitle=unit.title if unit else None,
+        topicRef=topic.public_ref if topic else None, topicCode=topic.code if topic else None,
+        topicTitle=topic.title if topic else None, groupLabel=book.group_label if book else None,
+        groupCode=group.code if group else None, groupTitle=group.title if group else None,
+        printedPage=page_row.printed_page_label if page_row else None)

@@ -6,7 +6,7 @@ The PostgreSQL-backed implementation covers authentication, secure sessions, fam
 
 ## Documentation
 
-- [Ordered implementation roadmap](TODO.md)
+- [Implementation roadmaps](todo/README.md)
 - [Repository overview and setup](../README.md)
 - [Overall architecture](docs/architecture.md)
 - [Frontend architecture](frontend/docs/architecture.md)

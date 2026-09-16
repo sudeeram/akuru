@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentInteraction, AssessmentQuestion, AssessmentWorkingFile,
     Document, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
-    OfficialQuestionUnitMapping, OfficialQuestionVersion, StudentProgression, StudentSubject)
+    OfficialQuestionTopicMapping, OfficialQuestionUnitMapping, OfficialQuestionVersion, StudentProgression, StudentSubject, TextbookTopic)
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
 from app.security import Principal
 from app.services.curriculum_plans import snapshot, student_coverage
@@ -56,7 +56,9 @@ def official_papers(db: Session, student_id: uuid.UUID):
 def eligible_questions(db: Session, student_id: uuid.UUID, subject_id: str):
     coverage = student_coverage(db, student_id, subject_id)
     if coverage.status != "ready": raise DomainError("assessment_coverage_not_ready", coverage.message, 409)
-    allowed = {uuid.UUID(unit.id) for unit in coverage.coveredUnits}
+    topic_mode = bool(coverage.coveredTopics)
+    allowed = ({uuid.UUID(unit.id) for unit in coverage.coveredUnits} if not topic_mode else
+               set(db.scalars(select(TextbookTopic.id).where(TextbookTopic.public_ref.in_([row.topicRef for row in coverage.coveredTopics]))).all()))
     questions = db.execute(select(OfficialQuestionVersion, OfficialMaterialVersion).join(
         OfficialMaterialVersion, OfficialMaterialVersion.id == OfficialQuestionVersion.material_version_id).where(
         OfficialMaterialVersion.course_id == "igcse", OfficialMaterialVersion.subject_id == subject_id,
@@ -64,9 +66,11 @@ def eligible_questions(db: Session, student_id: uuid.UUID, subject_id: str):
         OfficialQuestionVersion.mapping_status == "confirmed")).all()
     result = []
     for question, material in questions:
-        units = list(db.scalars(select(OfficialQuestionUnitMapping.unit_id).where(
-            OfficialQuestionUnitMapping.question_version_id == question.id, OfficialQuestionUnitMapping.status == "confirmed")).all())
-        if units and set(units).issubset(allowed): result.append((question, material, units))
+        model = OfficialQuestionTopicMapping if topic_mode else OfficialQuestionUnitMapping
+        field = model.topic_id if topic_mode else model.unit_id
+        mappings = list(db.scalars(select(field).where(model.question_version_id == question.id,
+            model.status == "confirmed", *((model.required.is_(True),) if topic_mode else ()))).all())
+        if mappings and set(mappings).issubset(allowed): result.append((question, material, mappings))
     return result
 
 def _choose(candidates, count, marks, seed):
@@ -97,6 +101,11 @@ def _rubric(db, paper_version_id, number):
         "commonMistakes": comment.common_mistakes if comment else [], "examinerAdvice": comment.advice if comment else []}
 
 def _unit_weights(db, question_id, units):
+    topic_rows = db.execute(select(OfficialQuestionTopicMapping.topic_id, OfficialQuestionTopicMapping.weight).where(
+        OfficialQuestionTopicMapping.question_version_id == question_id,
+        OfficialQuestionTopicMapping.status == "confirmed")).all()
+    if topic_rows:
+        return {str(topic_id): weight for topic_id, weight in topic_rows if topic_id in units}
     rows = db.execute(select(OfficialQuestionUnitMapping.unit_id, OfficialQuestionUnitMapping.weight).where(
         OfficialQuestionUnitMapping.question_version_id == question_id,
         OfficialQuestionUnitMapping.status == "confirmed")).all()
@@ -105,7 +114,7 @@ def _unit_weights(db, question_id, units):
     base, remainder = divmod(100, len(units))
     return {str(unit_id): base + (1 if index < remainder else 0) for index, unit_id in enumerate(units)}
 
-def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None):
+def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None, required_topic_id: uuid.UUID | None = None):
     student_id = principal.user.id
     active = db.scalar(select(Assessment).where(Assessment.student_id == student_id, Assessment.status == "active"))
     if active and active.ends_at > _now(): raise DomainError("assessment_already_active", "Finish the active assessment before starting another.", 409)
@@ -115,6 +124,8 @@ def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None):
     candidates = eligible_questions(db, student_id, payload.subjectId)
     if required_unit_id:
         candidates = [row for row in candidates if required_unit_id in row[2]]
+    if required_topic_id:
+        candidates = [row for row in candidates if required_topic_id in row[2]]
     blueprint = None; paper_version = None
     if payload.mode == "mock":
         progress = db.scalar(select(StudentProgression).where(StudentProgression.student_id == student_id, StudentProgression.is_current.is_(True)))
@@ -138,7 +149,7 @@ def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None):
             raise DomainError("official_paper_not_eligible", "Every question in an official paper must be within the student's covered units.", 409)
         target = sum(row[0].marks for row in selected); duration = max(1, round(target * 1.5)); title = "Official past paper"
     else:
-        selected = _choose(candidates, 1, 0, f"{student_id}:{required_unit_id or ''}")
+        selected = _choose(candidates, 1, 0, f"{student_id}:{required_topic_id or required_unit_id or ''}")
         if not selected: raise DomainError("question_pool_shortage", "No eligible practice question is available for the covered units.", 409)
         target, duration, title = selected[0][0].marks, 20, "Individual practice"
     ref = f"assessment:{uuid.uuid4()}"; curriculum = snapshot(db, ref, student_id, payload.subjectId); started = _now()
@@ -148,12 +159,16 @@ def start(db, principal, payload, *, required_unit_id: uuid.UUID | None = None):
         skills=blueprint.skills if blueprint else [], difficulty_profile=blueprint.difficulty_profile if blueprint else {},
         started_at=started, ends_at=started + timedelta(minutes=duration))
     db.add(assessment); db.flush()
-    for sequence, (question, material, units) in enumerate(selected, 1):
+    topic_mode = bool(student_coverage(db, student_id, payload.subjectId).coveredTopics)
+    for sequence, (question, material, mappings) in enumerate(selected, 1):
         db.add(AssessmentQuestion(assessment_id=assessment.id, sequence=sequence, source_question_version_id=question.id,
             source_document_version_id=material.source_document_version_id, question_number=question.question_number,
             prompt=question.prompt, shared_stem=question.shared_stem, marks=question.marks, equations=question.equations,
             asset_ids=question.asset_ids, source_locations=question.source_locations, rubric=_rubric(db, material.id, question.question_number),
-            unit_ids=[str(value) for value in units], unit_weights=_unit_weights(db, question.id, units),
+            unit_ids=[] if topic_mode else [str(value) for value in mappings],
+            unit_weights={} if topic_mode else _unit_weights(db, question.id, mappings),
+            topic_ids=[str(value) for value in mappings] if topic_mode else [],
+            topic_weights=_unit_weights(db, question.id, mappings) if topic_mode else {},
             skills=blueprint.skills if blueprint else [], difficulty="mixed"))
     db.commit(); db.refresh(assessment); return response(db, assessment)
 
@@ -181,7 +196,9 @@ def response(db, row):
         endsAt=row.ends_at, submittedAt=row.submitted_at, skills=row.skills, difficultyProfile=row.difficulty_profile,
         feedbackVisible=visible, questions=[AssessmentQuestionResponse(id=q.id, number=q.question_number, prompt=q.prompt,
             sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, sourceLocations=q.source_locations,
-            unitIds=q.unit_ids, skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",
+            unitIds=q.unit_ids, topicRefs=list(db.scalars(select(TextbookTopic.public_ref).where(
+                TextbookTopic.id.in_([uuid.UUID(value) for value in q.topic_ids]))).all()) if q.topic_ids else [],
+            skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",
             fileId=answers[q.id].file_id if q.id in answers else None, saveRevision=answers[q.id].save_revision if q.id in answers else 0,
             rubric=q.rubric if visible else None,
             result=assessment_marking.result_response(results[q.id]) if q.id in results else None) for q in questions])

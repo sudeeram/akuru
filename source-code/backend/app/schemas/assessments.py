@@ -124,6 +124,7 @@ class AssessmentQuestionResponse(BaseModel):
     assetIds: list
     sourceLocations: list
     unitIds: list
+    topicRefs: list[str] = Field(default_factory=list)
     skills: list
     difficulty: str
     answer: str = ""

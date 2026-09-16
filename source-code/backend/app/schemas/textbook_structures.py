@@ -1,0 +1,154 @@
+from typing import Literal
+
+from pydantic import BaseModel, Field, model_validator
+
+
+class TextbookCreateRequest(BaseModel):
+    courseId: Literal["igcse"] = "igcse"
+    subjectId: str = Field(min_length=1, max_length=32)
+    title: str = Field(min_length=1, max_length=240)
+    edition: str = Field(min_length=1, max_length=80)
+    publisher: str = Field(default="", max_length=160)
+    groupLabel: Literal["unit", "module"]
+
+    @model_validator(mode="after")
+    def trim_values(self):
+        self.subjectId = self.subjectId.strip().lower()
+        self.title = self.title.strip()
+        self.edition = self.edition.strip()
+        self.publisher = self.publisher.strip()
+        if not self.subjectId or not self.title or not self.edition:
+            raise ValueError("Subject, title and edition are required.")
+        return self
+
+
+class TextbookUpdateRequest(BaseModel):
+    title: str = Field(min_length=1, max_length=240)
+    edition: str = Field(min_length=1, max_length=80)
+    publisher: str = Field(default="", max_length=160)
+    groupLabel: Literal["unit", "module"]
+
+    @model_validator(mode="after")
+    def trim_values(self):
+        self.title = self.title.strip()
+        self.edition = self.edition.strip()
+        self.publisher = self.publisher.strip()
+        if not self.title or not self.edition:
+            raise ValueError("Title and edition are required.")
+        return self
+
+
+class GroupSaveRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=80)
+    title: str = Field(min_length=1, max_length=240)
+    summary: str = Field(default="", max_length=5000)
+    sequence: int = Field(ge=1, le=500)
+
+    @model_validator(mode="after")
+    def trim_values(self):
+        self.code = self.code.strip()
+        self.title = self.title.strip()
+        self.summary = self.summary.strip()
+        if not self.code or not self.title:
+            raise ValueError("Group code and title are required.")
+        return self
+
+
+class TopicSaveRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=80)
+    title: str = Field(min_length=1, max_length=240)
+    sequence: int = Field(ge=1, le=2000)
+    syllabusRef: str = Field(default="", max_length=120)
+    description: str = Field(default="", max_length=5000)
+
+    @model_validator(mode="after")
+    def trim_values(self):
+        self.code = self.code.strip()
+        self.title = self.title.strip()
+        self.syllabusRef = self.syllabusRef.strip()
+        self.description = self.description.strip()
+        if not self.code or not self.title:
+            raise ValueError("Topic code and title are required.")
+        return self
+
+
+class ReorderRequest(BaseModel):
+    refs: list[str] = Field(min_length=1, max_length=2000)
+
+    @model_validator(mode="after")
+    def unique_refs(self):
+        if len(self.refs) != len(set(self.refs)):
+            raise ValueError("Every item must appear exactly once.")
+        return self
+
+
+class PublishStructureRequest(BaseModel):
+    confirmCourse: bool
+    confirmSubject: bool
+    confirmEdition: bool
+    confirmStructure: bool
+
+
+class PublishTopicContentRequest(BaseModel):
+    confirmSources: bool
+    confirmExtraction: bool
+    confirmTopic: bool
+
+
+class TopicReadinessResponse(BaseModel):
+    state: str
+    ready: bool
+    contentVersion: int
+    supersededVersionCount: int
+    hasDraftChanges: bool
+    documentCount: int
+    primaryDocumentCount: int
+    processingCount: int
+    needsReviewCount: int
+    failedCount: int
+    unresolvedPageCount: int
+    unresolvedBlockCount: int
+    averageConfidence: float
+    checks: list[dict]
+
+
+class TopicResponse(BaseModel):
+    topicRef: str
+    code: str
+    title: str
+    sequence: int
+    syllabusRef: str
+    description: str
+    status: str
+    documentCount: int
+    removable: bool
+    content: TopicReadinessResponse
+
+
+class GroupResponse(BaseModel):
+    groupRef: str
+    code: str
+    title: str
+    summary: str
+    sequence: int
+    status: str
+    topics: list[TopicResponse]
+    removable: bool
+
+
+class TextbookResponse(BaseModel):
+    textbookRef: str
+    courseId: str
+    subjectId: str
+    title: str
+    edition: str
+    publisher: str
+    groupLabel: Literal["unit", "module"]
+    groupDisplayLabel: Literal["Unit", "Module"]
+    status: str
+    structureVersion: int
+    groups: list[GroupResponse]
+
+
+class TextbookListResponse(BaseModel):
+    textbooks: list[TextbookResponse]

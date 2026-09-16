@@ -92,7 +92,7 @@ def list_media(db,principal,student_id=None,subject_id=None):
     query=select(EducationalMedia)
     if principal.user.role != "admin":
         if not student_id or not subject_id: raise DomainError("media_scope_required","Student and subject are required.",422)
-        units=authorize_student(db,principal,student_id,subject_id)
+        units, _topics=authorize_student(db,principal,student_id,subject_id)
         query=query.where(EducationalMedia.status=="published",EducationalMedia.subject_id==subject_id,EducationalMedia.unit_id.in_(units))
     rows=db.scalars(query.order_by(EducationalMedia.created_at.desc())).all()
     return {"media":[_response(row,principal.user.role == "admin") for row in rows]}
@@ -119,7 +119,7 @@ def content(db,storage,principal,media_id,student_id=None):
     if not row: raise DomainError("media_not_found","Educational media not found.",404)
     if principal.user.role != "admin":
         if row.status != "published" or not student_id: raise DomainError("media_not_found","Educational media not found.",404)
-        try: eligible_units=authorize_student(db,principal,student_id,row.subject_id)
+        try: eligible_units, _topics=authorize_student(db,principal,student_id,row.subject_id)
         except DomainError as exc: raise DomainError("media_not_found","Educational media not found.",404) from exc
         if row.unit_id not in eligible_units: raise DomainError("media_not_found","Educational media not found.",404)
     return storage.get(row.object_key,row.content_type)

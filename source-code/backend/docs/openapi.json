@@ -643,6 +643,13 @@
             "title": "Sourcelocations",
             "type": "array"
           },
+          "topicRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Topicrefs",
+            "type": "array"
+          },
           "unitIds": {
             "items": {},
             "title": "Unitids",
@@ -1457,6 +1464,115 @@
         "title": "ContextStatement",
         "type": "object"
       },
+      "ContextTopic": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "attempts": {
+            "items": {
+              "$ref": "#/components/schemas/ContextAttempt"
+            },
+            "title": "Attempts",
+            "type": "array"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "dimensions": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Dimensions",
+            "type": "object"
+          },
+          "evidenceCount": {
+            "default": 0,
+            "title": "Evidencecount",
+            "type": "integer"
+          },
+          "masteryScore": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Masteryscore"
+          },
+          "mistakes": {
+            "items": {
+              "$ref": "#/components/schemas/ContextMistakePattern"
+            },
+            "title": "Mistakes",
+            "type": "array"
+          },
+          "reviewedRecommendations": {
+            "items": {
+              "$ref": "#/components/schemas/ContextReviewedRecommendation"
+            },
+            "title": "Reviewedrecommendations",
+            "type": "array"
+          },
+          "signals": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Signals",
+            "type": "array"
+          },
+          "statements": {
+            "items": {
+              "$ref": "#/components/schemas/ContextStatement"
+            },
+            "title": "Statements",
+            "type": "array"
+          },
+          "studyPlan": {
+            "items": {
+              "$ref": "#/components/schemas/ContextPlanItem"
+            },
+            "title": "Studyplan",
+            "type": "array"
+          },
+          "topic": {
+            "$ref": "#/components/schemas/PlanTopicResponse"
+          },
+          "trend": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trend"
+          },
+          "varietyCount": {
+            "default": 0,
+            "title": "Varietycount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topic",
+          "active"
+        ],
+        "title": "ContextTopic",
+        "type": "object"
+      },
       "ContextUnit": {
         "properties": {
           "active": {
@@ -1719,6 +1835,13 @@
       },
       "CoverageDiagnosticResponse": {
         "properties": {
+          "coveredTopics": {
+            "items": {
+              "$ref": "#/components/schemas/PlanTopicResponse"
+            },
+            "title": "Coveredtopics",
+            "type": "array"
+          },
           "coveredUnits": {
             "items": {
               "$ref": "#/components/schemas/PlanUnitResponse"
@@ -1900,12 +2023,76 @@
             "title": "Availableunits",
             "type": "array"
           },
+          "basedOnVersion": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basedonversion"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/PlanChangeResponse"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "createdAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Createdat"
+          },
+          "groupLabel": {
+            "default": "unit",
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/PlanTopicGroupResponse"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
           "periods": {
             "items": {
               "$ref": "#/components/schemas/PlanPeriod"
             },
             "title": "Periods",
             "type": "array"
+          },
+          "publishedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publishedat"
+          },
+          "publishedPeriods": {
+            "items": {
+              "$ref": "#/components/schemas/PlanPeriod"
+            },
+            "title": "Publishedperiods",
+            "type": "array"
+          },
+          "requiresPublishedChangeConfirmation": {
+            "default": false,
+            "title": "Requirespublishedchangeconfirmation",
+            "type": "boolean"
           },
           "status": {
             "title": "Status",
@@ -2649,9 +2836,53 @@
             "title": "Documenttitle",
             "type": "string"
           },
+          "groupCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupcode"
+          },
+          "groupLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouplabel"
+          },
+          "groupTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouptitle"
+          },
           "page": {
             "title": "Page",
             "type": "integer"
+          },
+          "printedPage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpage"
           },
           "score": {
             "anyOf": [
@@ -2684,18 +2915,72 @@
             "title": "Sourceurl",
             "type": "string"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitId": {
-            "format": "uuid",
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           },
           "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unittitle"
           }
         },
         "required": [
@@ -2707,10 +2992,7 @@
           "page",
           "boundingBox",
           "sourceAssetId",
-          "sourceUrl",
-          "unitId",
-          "unitCode",
-          "unitTitle"
+          "sourceUrl"
         ],
         "title": "EvidenceResponse",
         "type": "object"
@@ -2829,6 +3111,44 @@
         "title": "ExtractionBlockResponse",
         "type": "object"
       },
+      "ExtractionBlockUpdateRequest": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "latex": {
+            "anyOf": [
+              {
+                "maxLength": 20000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latex"
+          },
+          "sequenceNumber": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Sequencenumber",
+            "type": "integer"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "sequenceNumber"
+        ],
+        "title": "ExtractionBlockUpdateRequest",
+        "type": "object"
+      },
       "ExtractionPageResponse": {
         "properties": {
           "blocks": {
@@ -2863,9 +3183,31 @@
             "title": "Needsreview",
             "type": "boolean"
           },
+          "originalRenderAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Originalrenderassetid"
+          },
           "pageNumber": {
             "title": "Pagenumber",
             "type": "integer"
+          },
+          "printedPageLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpagelabel"
           },
           "renderAssetId": {
             "title": "Renderassetid",
@@ -2887,6 +3229,173 @@
           "needsReview"
         ],
         "title": "ExtractionPageResponse",
+        "type": "object"
+      },
+      "ExtractionPageUpdateRequest": {
+        "properties": {
+          "printedPageLabel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpagelabel"
+          }
+        },
+        "title": "ExtractionPageUpdateRequest",
+        "type": "object"
+      },
+      "GroupMasteryResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "evidenceWeight": {
+            "title": "Evidenceweight",
+            "type": "number"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupLabel": {
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "score": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "topicCount": {
+            "title": "Topiccount",
+            "type": "integer"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMasteryResponse"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupLabel",
+          "groupCode",
+          "groupTitle",
+          "subjectId",
+          "score",
+          "confidence",
+          "evidenceWeight",
+          "topicCount",
+          "explanation",
+          "topics"
+        ],
+        "title": "GroupMasteryResponse",
+        "type": "object"
+      },
+      "GroupResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "groupRef": {
+            "title": "Groupref",
+            "type": "string"
+          },
+          "removable": {
+            "title": "Removable",
+            "type": "boolean"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicResponse"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupRef",
+          "code",
+          "title",
+          "summary",
+          "sequence",
+          "status",
+          "topics",
+          "removable"
+        ],
+        "title": "GroupResponse",
+        "type": "object"
+      },
+      "GroupSaveRequest": {
+        "properties": {
+          "code": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "sequence": {
+            "maximum": 500.0,
+            "minimum": 1.0,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "summary": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "title",
+          "sequence"
+        ],
+        "title": "GroupSaveRequest",
         "type": "object"
       },
       "HintInteractionRequest": {
@@ -2979,8 +3488,25 @@
       },
       "LearnerContextResponse": {
         "properties": {
+          "activeTopic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanTopicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "activeUnit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanUnitResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "contextVersion": {
             "title": "Contextversion",
@@ -3009,6 +3535,13 @@
             "title": "Subjectid",
             "type": "string"
           },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/ContextTopic"
+            },
+            "title": "Topics",
+            "type": "array"
+          },
           "units": {
             "items": {
               "$ref": "#/components/schemas/ContextUnit"
@@ -3022,8 +3555,6 @@
           "contextVersion",
           "generatedAt",
           "subjectId",
-          "activeUnit",
-          "units",
           "evidence",
           "providerContext"
         ],
@@ -3324,10 +3855,24 @@
       },
       "MasteryResponse": {
         "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupMasteryResponse"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
           "studentId": {
             "format": "uuid",
             "title": "Studentid",
             "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMasteryResponse"
+            },
+            "title": "Topics",
+            "type": "array"
           },
           "units": {
             "items": {
@@ -3586,12 +4131,28 @@
             "title": "Requiresstudentaction",
             "type": "boolean"
           },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanTopicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "unit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanUnitResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "unit",
           "reason",
           "evidenceRefs",
           "activity",
@@ -3912,6 +4473,56 @@
         "title": "PaperMappingResponse",
         "type": "object"
       },
+      "PlanChangeResponse": {
+        "properties": {
+          "change": {
+            "title": "Change",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "fromPeriod": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fromperiod"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "toPeriod": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Toperiod"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "code",
+          "title",
+          "change"
+        ],
+        "title": "PlanChangeResponse",
+        "type": "object"
+      },
       "PlanGenerateRequest": {
         "properties": {
           "studentId": {
@@ -3951,6 +4562,39 @@
           "activityType": {
             "title": "Activitytype",
             "type": "string"
+          },
+          "groupCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupcode"
+          },
+          "groupLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouplabel"
+          },
+          "groupTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouptitle"
           },
           "id": {
             "format": "uuid",
@@ -3994,21 +4638,66 @@
             "title": "Topic",
             "type": "string"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitId": {
-            "format": "uuid",
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           }
         },
         "required": [
           "id",
           "subject",
-          "unitId",
-          "unitCode",
           "topic",
           "activityType",
           "minutes",
@@ -4036,6 +4725,14 @@
             "title": "Term",
             "type": "integer"
           },
+          "topicRefs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Topicrefs",
+            "type": "array"
+          },
           "unitIds": {
             "items": {
               "type": "string"
@@ -4050,6 +4747,75 @@
           "term"
         ],
         "title": "PlanPeriod",
+        "type": "object"
+      },
+      "PlanTopicGroupResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "groupRef": {
+            "title": "Groupref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/PlanTopicResponse"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupRef",
+          "code",
+          "title",
+          "topics"
+        ],
+        "title": "PlanTopicGroupResponse",
+        "type": "object"
+      },
+      "PlanTopicResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupRef": {
+            "title": "Groupref",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "code",
+          "title",
+          "groupRef",
+          "groupCode",
+          "groupTitle"
+        ],
+        "title": "PlanTopicResponse",
         "type": "object"
       },
       "PlanUnitResponse": {
@@ -4329,9 +5095,27 @@
       },
       "ProviderLearnerContext": {
         "properties": {
+          "activeTopicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activetopiccode"
+          },
           "activeUnitCode": {
-            "title": "Activeunitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activeunitcode"
           },
           "contextVersion": {
             "title": "Contextversion",
@@ -4381,7 +5165,6 @@
         "required": [
           "learnerRef",
           "subjectId",
-          "activeUnitCode",
           "contextVersion",
           "learningSignals",
           "recurringMistakes",
@@ -4421,6 +5204,11 @@
       },
       "PublishPlanRequest": {
         "properties": {
+          "confirmPublishedChanges": {
+            "default": false,
+            "title": "Confirmpublishedchanges",
+            "type": "boolean"
+          },
           "confirmSubject": {
             "title": "Confirmsubject",
             "type": "boolean"
@@ -4435,6 +5223,34 @@
           "confirmTextbook"
         ],
         "title": "PublishPlanRequest",
+        "type": "object"
+      },
+      "PublishStructureRequest": {
+        "properties": {
+          "confirmCourse": {
+            "title": "Confirmcourse",
+            "type": "boolean"
+          },
+          "confirmEdition": {
+            "title": "Confirmedition",
+            "type": "boolean"
+          },
+          "confirmStructure": {
+            "title": "Confirmstructure",
+            "type": "boolean"
+          },
+          "confirmSubject": {
+            "title": "Confirmsubject",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmCourse",
+          "confirmSubject",
+          "confirmEdition",
+          "confirmStructure"
+        ],
+        "title": "PublishStructureRequest",
         "type": "object"
       },
       "PublishTextbookRequest": {
@@ -4458,6 +5274,29 @@
           "confirmEdition"
         ],
         "title": "PublishTextbookRequest",
+        "type": "object"
+      },
+      "PublishTopicContentRequest": {
+        "properties": {
+          "confirmExtraction": {
+            "title": "Confirmextraction",
+            "type": "boolean"
+          },
+          "confirmSources": {
+            "title": "Confirmsources",
+            "type": "boolean"
+          },
+          "confirmTopic": {
+            "title": "Confirmtopic",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmSources",
+          "confirmExtraction",
+          "confirmTopic"
+        ],
+        "title": "PublishTopicContentRequest",
         "type": "object"
       },
       "PurgePreviewResponse": {
@@ -4745,12 +5584,28 @@
             "title": "Score",
             "type": "number"
           },
+          "topic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanTopicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "unit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanUnitResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
-          "unit",
           "score",
           "factors",
           "evidenceRefs"
@@ -5075,6 +5930,39 @@
             "title": "Diagnosisid",
             "type": "string"
           },
+          "groupCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupcode"
+          },
+          "groupLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouplabel"
+          },
+          "groupTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouptitle"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -5144,18 +6032,72 @@
             "title": "Title",
             "type": "string"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitId": {
-            "format": "uuid",
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           },
           "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unittitle"
           }
         },
         "required": [
@@ -5163,9 +6105,6 @@
           "diagnosisId",
           "studentId",
           "subjectId",
-          "unitId",
-          "unitCode",
-          "unitTitle",
           "category",
           "description",
           "observedEvidence",
@@ -5367,6 +6306,24 @@
           "mode"
         ],
         "title": "ReleaseUpdate",
+        "type": "object"
+      },
+      "ReorderRequest": {
+        "properties": {
+          "refs": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2000,
+            "minItems": 1,
+            "title": "Refs",
+            "type": "array"
+          }
+        },
+        "required": [
+          "refs"
+        ],
+        "title": "ReorderRequest",
         "type": "object"
       },
       "RetrievalRequest": {
@@ -5618,6 +6575,24 @@
           "units"
         ],
         "title": "SaveTextbookReviewRequest",
+        "type": "object"
+      },
+      "SaveTopicMappingsRequest": {
+        "properties": {
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMapping"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Mappings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "mappings"
+        ],
+        "title": "SaveTopicMappingsRequest",
         "type": "object"
       },
       "SaveUnitMappingsRequest": {
@@ -5992,6 +6967,146 @@
         "title": "SupportTranscriptResponse",
         "type": "object"
       },
+      "TextbookCreateRequest": {
+        "properties": {
+          "courseId": {
+            "const": "igcse",
+            "default": "igcse",
+            "title": "Courseid",
+            "type": "string"
+          },
+          "edition": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Edition",
+            "type": "string"
+          },
+          "groupLabel": {
+            "enum": [
+              "unit",
+              "module"
+            ],
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "publisher": {
+            "default": "",
+            "maxLength": 160,
+            "title": "Publisher",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subjectId",
+          "title",
+          "edition",
+          "groupLabel"
+        ],
+        "title": "TextbookCreateRequest",
+        "type": "object"
+      },
+      "TextbookListResponse": {
+        "properties": {
+          "textbooks": {
+            "items": {
+              "$ref": "#/components/schemas/TextbookResponse"
+            },
+            "title": "Textbooks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "textbooks"
+        ],
+        "title": "TextbookListResponse",
+        "type": "object"
+      },
+      "TextbookResponse": {
+        "properties": {
+          "courseId": {
+            "title": "Courseid",
+            "type": "string"
+          },
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          },
+          "groupDisplayLabel": {
+            "enum": [
+              "Unit",
+              "Module"
+            ],
+            "title": "Groupdisplaylabel",
+            "type": "string"
+          },
+          "groupLabel": {
+            "enum": [
+              "unit",
+              "module"
+            ],
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/GroupResponse"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "structureVersion": {
+            "title": "Structureversion",
+            "type": "integer"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookRef": {
+            "title": "Textbookref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "textbookRef",
+          "courseId",
+          "subjectId",
+          "title",
+          "edition",
+          "publisher",
+          "groupLabel",
+          "groupDisplayLabel",
+          "status",
+          "structureVersion",
+          "groups"
+        ],
+        "title": "TextbookResponse",
+        "type": "object"
+      },
       "TextbookReviewResponse": {
         "properties": {
           "courseId": {
@@ -6125,6 +7240,746 @@
           "endPage"
         ],
         "title": "TextbookUnitDraft",
+        "type": "object"
+      },
+      "TextbookUpdateRequest": {
+        "properties": {
+          "edition": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Edition",
+            "type": "string"
+          },
+          "groupLabel": {
+            "enum": [
+              "unit",
+              "module"
+            ],
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "publisher": {
+            "default": "",
+            "maxLength": 160,
+            "title": "Publisher",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "edition",
+          "groupLabel"
+        ],
+        "title": "TextbookUpdateRequest",
+        "type": "object"
+      },
+      "TopicGroupOption": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "groupRef": {
+            "title": "Groupref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/TopicOption"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "groupRef",
+          "code",
+          "title",
+          "topics"
+        ],
+        "title": "TopicGroupOption",
+        "type": "object"
+      },
+      "TopicMapping": {
+        "properties": {
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "rationale": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Rationale",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "topicRef": {
+            "maxLength": 56,
+            "minLength": 8,
+            "title": "Topicref",
+            "type": "string"
+          },
+          "weight": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Weight",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topicRef",
+          "weight"
+        ],
+        "title": "TopicMapping",
+        "type": "object"
+      },
+      "TopicMappingSuggestionResponse": {
+        "properties": {
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMapping"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questionId",
+          "method",
+          "suggestions"
+        ],
+        "title": "TopicMappingSuggestionResponse",
+        "type": "object"
+      },
+      "TopicMasteryResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "dimensions": {
+            "items": {
+              "$ref": "#/components/schemas/MasteryDimensionResponse"
+            },
+            "title": "Dimensions",
+            "type": "array"
+          },
+          "evidenceCount": {
+            "title": "Evidencecount",
+            "type": "integer"
+          },
+          "evidenceWeight": {
+            "title": "Evidenceweight",
+            "type": "number"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupLabel": {
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "lastEvidenceAt": {
+            "format": "date-time",
+            "title": "Lastevidenceat",
+            "type": "string"
+          },
+          "preciseScore": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Precisescore",
+            "type": "number"
+          },
+          "provisional": {
+            "title": "Provisional",
+            "type": "boolean"
+          },
+          "recentEvents": {
+            "items": {
+              "$ref": "#/components/schemas/MasteryEventResponse"
+            },
+            "title": "Recentevents",
+            "type": "array"
+          },
+          "score": {
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "topicCode": {
+            "title": "Topiccode",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          },
+          "trend": {
+            "title": "Trend",
+            "type": "number"
+          },
+          "varietyCount": {
+            "title": "Varietycount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupLabel",
+          "groupCode",
+          "groupTitle",
+          "subjectId",
+          "score",
+          "preciseScore",
+          "confidence",
+          "provisional",
+          "evidenceCount",
+          "evidenceWeight",
+          "varietyCount",
+          "trend",
+          "lastEvidenceAt",
+          "dimensions",
+          "recentEvents"
+        ],
+        "title": "TopicMasteryResponse",
+        "type": "object"
+      },
+      "TopicOption": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupRef": {
+            "title": "Groupref",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "code",
+          "title",
+          "groupRef",
+          "groupCode",
+          "groupTitle"
+        ],
+        "title": "TopicOption",
+        "type": "object"
+      },
+      "TopicPaperMappingResponse": {
+        "properties": {
+          "confirmedQuestionCount": {
+            "title": "Confirmedquestioncount",
+            "type": "integer"
+          },
+          "groupLabel": {
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/TopicGroupOption"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "paperId": {
+            "title": "Paperid",
+            "type": "string"
+          },
+          "paperTitle": {
+            "title": "Papertitle",
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/TopicQuestionMappingResponse"
+            },
+            "title": "Questions",
+            "type": "array"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookEdition": {
+            "title": "Textbookedition",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "totalQuestionCount": {
+            "title": "Totalquestioncount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "paperId",
+          "paperTitle",
+          "subjectId",
+          "textbookTitle",
+          "textbookEdition",
+          "groupLabel",
+          "groups",
+          "questions",
+          "confirmedQuestionCount",
+          "totalQuestionCount"
+        ],
+        "title": "TopicPaperMappingResponse",
+        "type": "object"
+      },
+      "TopicPartBatchItem": {
+        "properties": {
+          "contentBase64": {
+            "title": "Contentbase64",
+            "type": "string"
+          },
+          "contentType": {
+            "title": "Contenttype",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Idempotencykey",
+            "type": "string"
+          },
+          "printedEndPage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedendpage"
+          },
+          "printedStartPage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedstartpage"
+          },
+          "role": {
+            "default": "primary",
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "contentType",
+          "contentBase64",
+          "idempotencyKey"
+        ],
+        "title": "TopicPartBatchItem",
+        "type": "object"
+      },
+      "TopicPartBatchRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TopicPartBatchItem"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TopicPartBatchRequest",
+        "type": "object"
+      },
+      "TopicPartSuggestion": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "suggestedTopicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestedtopiccode"
+          },
+          "suggestedTopicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggestedtopicref"
+          }
+        },
+        "required": [
+          "filename",
+          "suggestedTopicRef",
+          "suggestedTopicCode",
+          "confidence"
+        ],
+        "title": "TopicPartSuggestion",
+        "type": "object"
+      },
+      "TopicPartSuggestionRequest": {
+        "properties": {
+          "filenames": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Filenames",
+            "type": "array"
+          }
+        },
+        "required": [
+          "filenames"
+        ],
+        "title": "TopicPartSuggestionRequest",
+        "type": "object"
+      },
+      "TopicQuestionMappingResponse": {
+        "properties": {
+          "groupWeights": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Groupweights",
+            "type": "object"
+          },
+          "mappings": {
+            "items": {
+              "$ref": "#/components/schemas/TopicMapping"
+            },
+            "title": "Mappings",
+            "type": "array"
+          },
+          "marks": {
+            "title": "Marks",
+            "type": "integer"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "prompt": {
+            "title": "Prompt",
+            "type": "string"
+          },
+          "questionId": {
+            "title": "Questionid",
+            "type": "string"
+          },
+          "sharedStem": {
+            "title": "Sharedstem",
+            "type": "string"
+          },
+          "sourceLocations": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sourcelocations",
+            "type": "array"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "questionId",
+          "number",
+          "prompt",
+          "sharedStem",
+          "marks",
+          "status",
+          "sourceLocations",
+          "mappings"
+        ],
+        "title": "TopicQuestionMappingResponse",
+        "type": "object"
+      },
+      "TopicReadinessResponse": {
+        "properties": {
+          "averageConfidence": {
+            "title": "Averageconfidence",
+            "type": "number"
+          },
+          "checks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "contentVersion": {
+            "title": "Contentversion",
+            "type": "integer"
+          },
+          "documentCount": {
+            "title": "Documentcount",
+            "type": "integer"
+          },
+          "failedCount": {
+            "title": "Failedcount",
+            "type": "integer"
+          },
+          "hasDraftChanges": {
+            "title": "Hasdraftchanges",
+            "type": "boolean"
+          },
+          "needsReviewCount": {
+            "title": "Needsreviewcount",
+            "type": "integer"
+          },
+          "primaryDocumentCount": {
+            "title": "Primarydocumentcount",
+            "type": "integer"
+          },
+          "processingCount": {
+            "title": "Processingcount",
+            "type": "integer"
+          },
+          "ready": {
+            "title": "Ready",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "supersededVersionCount": {
+            "title": "Supersededversioncount",
+            "type": "integer"
+          },
+          "unresolvedBlockCount": {
+            "title": "Unresolvedblockcount",
+            "type": "integer"
+          },
+          "unresolvedPageCount": {
+            "title": "Unresolvedpagecount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "state",
+          "ready",
+          "contentVersion",
+          "supersededVersionCount",
+          "hasDraftChanges",
+          "documentCount",
+          "primaryDocumentCount",
+          "processingCount",
+          "needsReviewCount",
+          "failedCount",
+          "unresolvedPageCount",
+          "unresolvedBlockCount",
+          "averageConfidence",
+          "checks"
+        ],
+        "title": "TopicReadinessResponse",
+        "type": "object"
+      },
+      "TopicResponse": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/TopicReadinessResponse"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "documentCount": {
+            "title": "Documentcount",
+            "type": "integer"
+          },
+          "removable": {
+            "title": "Removable",
+            "type": "boolean"
+          },
+          "sequence": {
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "syllabusRef": {
+            "title": "Syllabusref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "code",
+          "title",
+          "sequence",
+          "syllabusRef",
+          "description",
+          "status",
+          "documentCount",
+          "removable",
+          "content"
+        ],
+        "title": "TopicResponse",
+        "type": "object"
+      },
+      "TopicSaveRequest": {
+        "properties": {
+          "code": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 5000,
+            "title": "Description",
+            "type": "string"
+          },
+          "sequence": {
+            "maximum": 2000.0,
+            "minimum": 1.0,
+            "title": "Sequence",
+            "type": "integer"
+          },
+          "syllabusRef": {
+            "default": "",
+            "maxLength": 120,
+            "title": "Syllabusref",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 240,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "title",
+          "sequence"
+        ],
+        "title": "TopicSaveRequest",
         "type": "object"
       },
       "TutorAdminPresetsResponse": {
@@ -6404,6 +8259,39 @@
             "title": "Documentversion",
             "type": "integer"
           },
+          "groupCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupcode"
+          },
+          "groupLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouplabel"
+          },
+          "groupTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouptitle"
+          },
           "pageReference": {
             "title": "Pagereference",
             "type": "string"
@@ -6443,17 +8331,71 @@
             "title": "Textbooktitle",
             "type": "string"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitId": {
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           },
           "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unittitle"
           }
         },
         "required": [
@@ -6461,9 +8403,6 @@
           "documentVersion",
           "textbookTitle",
           "textbookEdition",
-          "unitId",
-          "unitCode",
-          "unitTitle",
           "contentKind",
           "passage",
           "pdfPageIndex",
@@ -6644,6 +8583,28 @@
             "title": "Feedbackvisible",
             "type": "boolean"
           },
+          "groupCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groupcode"
+          },
+          "groupTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grouptitle"
+          },
           "hintCount": {
             "title": "Hintcount",
             "type": "integer"
@@ -6686,20 +8647,65 @@
             ],
             "title": "Submittedat"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unittitle"
           }
         },
         "required": [
           "practiceRef",
           "status",
-          "unitCode",
-          "unitTitle",
           "question",
           "hintCount",
           "feedbackVisible",
@@ -7049,9 +9055,27 @@
             "title": "Fixedreason",
             "type": "string"
           },
+          "fixedTopicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixedtopicref"
+          },
           "fixedUnitId": {
-            "title": "Fixedunitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fixedunitid"
           },
           "instruction": {
             "title": "Instruction",
@@ -7060,7 +9084,6 @@
         },
         "required": [
           "instruction",
-          "fixedUnitId",
           "fixedReason",
           "evidenceRefs"
         ],
@@ -7109,8 +9132,25 @@
       },
       "TutorSessionResponse": {
         "properties": {
+          "activeTopic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanTopicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "activeUnit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanUnitResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "currentTutor": {
             "$ref": "#/components/schemas/TutorProfileResponse"
@@ -7160,6 +9200,13 @@
             "title": "Subjectid",
             "type": "string"
           },
+          "topicEvents": {
+            "items": {
+              "$ref": "#/components/schemas/TutorTopicEventResponse"
+            },
+            "title": "Topicevents",
+            "type": "array"
+          },
           "turns": {
             "items": {
               "$ref": "#/components/schemas/TutorTurnResponse"
@@ -7178,7 +9225,6 @@
         "required": [
           "sessionRef",
           "subjectId",
-          "activeUnit",
           "currentTutor",
           "mode",
           "status",
@@ -7207,16 +9253,35 @@
             "title": "Subjectid",
             "type": "string"
           },
+          "topicRef": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
           "unitId": {
-            "maxLength": 40,
-            "minLength": 32,
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           }
         },
         "required": [
           "subjectId",
-          "unitId",
           "profileRef",
           "requestKey"
         ],
@@ -7232,6 +9297,13 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/PlanTopicResponse"
+            },
+            "title": "Topics",
+            "type": "array"
           },
           "units": {
             "items": {
@@ -7351,21 +9423,66 @@
             "title": "Subjectid",
             "type": "string"
           },
+          "topicCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topiccode"
+          },
+          "topicRef": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
+          "topicTitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topictitle"
+          },
           "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitcode"
           },
           "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unittitle"
           }
         },
         "required": [
           "signalRef",
           "studentName",
           "subjectId",
-          "unitCode",
-          "unitTitle",
           "category",
           "observation",
           "confidence",
@@ -7573,15 +9690,34 @@
             "title": "Requestkey",
             "type": "string"
           },
+          "topicRef": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
+          },
           "unitId": {
-            "maxLength": 40,
-            "minLength": 32,
-            "title": "Unitid",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "minLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unitid"
           }
         },
         "required": [
-          "unitId",
           "requestKey"
         ],
         "title": "TutorSwitchUnitRequest",
@@ -7630,6 +9766,28 @@
           "summary"
         ],
         "title": "TutorToolResult",
+        "type": "object"
+      },
+      "TutorTopicEventResponse": {
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "fromTopic": {
+            "$ref": "#/components/schemas/PlanTopicResponse"
+          },
+          "toTopic": {
+            "$ref": "#/components/schemas/PlanTopicResponse"
+          }
+        },
+        "required": [
+          "fromTopic",
+          "toTopic",
+          "createdAt"
+        ],
+        "title": "TutorTopicEventResponse",
         "type": "object"
       },
       "TutorTurnCreateRequest": {
@@ -8795,6 +10953,100 @@
         ]
       }
     },
+    "/api/v1/admin/curriculum-plans/{subject_id}/draft": {
+      "post": {
+        "operationId": "start_curriculum_plan_draft_api_v1_admin_curriculum_plans__subject_id__draft_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_id",
+            "required": true,
+            "schema": {
+              "title": "Subject Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurriculumPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Start Curriculum Plan Draft",
+        "tags": [
+          "curriculum"
+        ]
+      }
+    },
     "/api/v1/admin/curriculum-plans/{subject_id}/publish": {
       "post": {
         "operationId": "publish_curriculum_plan_api_v1_admin_curriculum_plans__subject_id__publish_post",
@@ -9191,6 +11443,1946 @@
         "summary": "Read Question Pool",
         "tags": [
           "curriculum"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks": {
+      "get": {
+        "operationId": "list_textbooks_api_v1_admin_textbooks_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Textbooks",
+        "tags": [
+          "textbook structures"
+        ]
+      },
+      "post": {
+        "operationId": "create_textbook_api_v1_admin_textbooks_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextbookCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Textbook",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}": {
+      "delete": {
+        "operationId": "archive_textbook_api_v1_admin_textbooks__textbook_ref__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Archive Textbook",
+        "tags": [
+          "textbook structures"
+        ]
+      },
+      "get": {
+        "operationId": "get_textbook_api_v1_admin_textbooks__textbook_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get Textbook",
+        "tags": [
+          "textbook structures"
+        ]
+      },
+      "post": {
+        "operationId": "update_textbook_api_v1_admin_textbooks__textbook_ref__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextbookUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Textbook",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups": {
+      "post": {
+        "operationId": "create_group_api_v1_admin_textbooks__textbook_ref__groups_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Group",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups/reorder": {
+      "post": {
+        "operationId": "reorder_groups_api_v1_admin_textbooks__textbook_ref__groups_reorder_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reorder Groups",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups/{group_ref}": {
+      "delete": {
+        "operationId": "remove_group_api_v1_admin_textbooks__textbook_ref__groups__group_ref__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group_ref",
+            "required": true,
+            "schema": {
+              "title": "Group Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Remove Group",
+        "tags": [
+          "textbook structures"
+        ]
+      },
+      "post": {
+        "operationId": "update_group_api_v1_admin_textbooks__textbook_ref__groups__group_ref__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group_ref",
+            "required": true,
+            "schema": {
+              "title": "Group Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GroupSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Group",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups/{group_ref}/topics": {
+      "post": {
+        "operationId": "create_topic_api_v1_admin_textbooks__textbook_ref__groups__group_ref__topics_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group_ref",
+            "required": true,
+            "schema": {
+              "title": "Group Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Topic",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups/{group_ref}/topics/reorder": {
+      "post": {
+        "operationId": "reorder_topics_api_v1_admin_textbooks__textbook_ref__groups__group_ref__topics_reorder_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group_ref",
+            "required": true,
+            "schema": {
+              "title": "Group Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reorder Topics",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/groups/{group_ref}/topics/{topic_ref}": {
+      "post": {
+        "operationId": "update_topic_api_v1_admin_textbooks__textbook_ref__groups__group_ref__topics__topic_ref__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group_ref",
+            "required": true,
+            "schema": {
+              "title": "Group Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Topic",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/publish": {
+      "post": {
+        "operationId": "publish_structure_api_v1_admin_textbooks__textbook_ref__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishStructureRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Publish Structure",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/suggest": {
+      "post": {
+        "operationId": "suggest_topic_parts_api_v1_admin_textbooks__textbook_ref__topics_suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicPartSuggestionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicPartSuggestion"
+                  },
+                  "title": "Response Suggest Topic Parts Api V1 Admin Textbooks  Textbook Ref  Topics Suggest Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Suggest Topic Parts",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}": {
+      "delete": {
+        "operationId": "remove_topic_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Remove Topic",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/documents": {
+      "post": {
+        "operationId": "upload_topic_part_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__documents_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "default": "primary",
+              "maxLength": 24,
+              "title": "Role",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "printedStartPage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Printedstartpage"
+            }
+          },
+          {
+            "in": "query",
+            "name": "printedEndPage",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 24,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Printedendpage"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Filename",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "X-Filename",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "title": "Content-Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 8,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Content",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentUploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Upload Topic Part",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/documents/batch": {
+      "post": {
+        "operationId": "upload_topic_parts_batch_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__documents_batch_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicPartBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentUploadResponse"
+                  },
+                  "title": "Response Upload Topic Parts Batch Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Documents Batch Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Upload Topic Parts Batch",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/publish": {
+      "post": {
+        "operationId": "publish_topic_content_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishTopicContentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TextbookResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Publish Topic Content",
+        "tags": [
+          "textbook structures"
         ]
       }
     },
@@ -11767,6 +15959,236 @@
         ]
       }
     },
+    "/api/v1/documents/{document_id}/extraction/blocks/{block_id}": {
+      "post": {
+        "operationId": "update_extraction_block_api_v1_documents__document_id__extraction_blocks__block_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "block_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Block Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionBlockUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Extraction Block",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/extraction/pages/{page_id}": {
+      "post": {
+        "operationId": "update_extraction_page_api_v1_documents__document_id__extraction_pages__page_id__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Page Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractionPageUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Update Extraction Page",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/api/v1/documents/{document_id}/jobs/latest": {
       "get": {
         "operationId": "latest_document_job_api_v1_documents__document_id__jobs_latest_get",
@@ -14336,6 +18758,85 @@
         ]
       }
     },
+    "/api/v1/questions/papers/{paper_id}/topic-mappings": {
+      "get": {
+        "operationId": "paper_topic_mappings_api_v1_questions_papers__paper_id__topic_mappings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicPaperMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Paper Topic Mappings",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
     "/api/v1/questions/papers/{paper_id}/unit-mappings": {
       "get": {
         "operationId": "paper_unit_mappings_api_v1_questions_papers__paper_id__unit_mappings_get",
@@ -14410,6 +18911,301 @@
           }
         },
         "summary": "Paper Unit Mappings",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/topic-mapping": {
+      "post": {
+        "operationId": "save_topic_mapping_api_v1_questions__question_id__topic_mapping_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveTopicMappingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicQuestionMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Save Topic Mapping",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/topic-mapping/publish": {
+      "post": {
+        "operationId": "publish_topic_mapping_api_v1_questions__question_id__topic_mapping_publish_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicQuestionMappingResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Publish Topic Mapping",
+        "tags": [
+          "questions"
+        ]
+      }
+    },
+    "/api/v1/questions/{question_id}/topic-mapping/suggest": {
+      "post": {
+        "operationId": "suggest_topic_mapping_api_v1_questions__question_id__topic_mapping_suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicMappingSuggestionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Suggest Topic Mapping",
         "tags": [
           "questions"
         ]

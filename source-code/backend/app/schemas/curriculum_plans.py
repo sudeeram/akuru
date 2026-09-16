@@ -7,10 +7,36 @@ class PlanUnitResponse(BaseModel):
     title: str
 
 
+class PlanTopicResponse(BaseModel):
+    topicRef: str
+    code: str
+    title: str
+    groupRef: str
+    groupCode: str
+    groupTitle: str
+
+
+class PlanTopicGroupResponse(BaseModel):
+    groupRef: str
+    code: str
+    title: str
+    topics: list[PlanTopicResponse]
+
+
 class PlanPeriod(BaseModel):
     grade: int = Field(ge=10, le=11)
     term: int = Field(ge=1, le=3)
     unitIds: list[str] = Field(default_factory=list, max_length=300)
+    topicRefs: list[str] = Field(default_factory=list, max_length=500)
+
+
+class PlanChangeResponse(BaseModel):
+    topicRef: str
+    code: str
+    title: str
+    change: str
+    fromPeriod: str | None = None
+    toPeriod: str | None = None
 
 
 class SavePlanRequest(BaseModel):
@@ -20,6 +46,7 @@ class SavePlanRequest(BaseModel):
 class PublishPlanRequest(BaseModel):
     confirmSubject: bool
     confirmTextbook: bool
+    confirmPublishedChanges: bool = False
 
 
 class CurriculumPlanResponse(BaseModel):
@@ -29,7 +56,15 @@ class CurriculumPlanResponse(BaseModel):
     textbookTitle: str
     textbookEdition: str
     availableUnits: list[PlanUnitResponse]
+    groupLabel: str = "unit"
+    groups: list[PlanTopicGroupResponse] = Field(default_factory=list)
     periods: list[PlanPeriod]
+    publishedPeriods: list[PlanPeriod] = Field(default_factory=list)
+    changes: list[PlanChangeResponse] = Field(default_factory=list)
+    requiresPublishedChangeConfirmation: bool = False
+    basedOnVersion: int | None = None
+    createdAt: str | None = None
+    publishedAt: str | None = None
 
 
 class CoverageDiagnosticResponse(BaseModel):
@@ -39,6 +74,7 @@ class CoverageDiagnosticResponse(BaseModel):
     currentGrade: int | None = None
     currentTerm: int | None = None
     coveredUnits: list[PlanUnitResponse] = Field(default_factory=list)
+    coveredTopics: list[PlanTopicResponse] = Field(default_factory=list)
     missingPeriods: list[str] = Field(default_factory=list)
 
 

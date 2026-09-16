@@ -75,7 +75,7 @@ const adminNav = [
   ['today', 'Admin overview', LayoutDashboard],
   ['accounts', 'Accounts & enrolments', Users],
   ['library', 'Documents & textbooks', Library],
-  ['units', 'Textbook units', BookOpen],
+  ['units', 'Textbook structure', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
   ['questions', 'Question mapping', ClipboardCheck],
   ['blueprints', 'Mock blueprints', Clock3],
@@ -293,6 +293,7 @@ export default function Portal() {
   };
   return (
     <div className="portal-shell">
+      <a className="skip-link" href="#main-content">Skip to page content</a>
       <header className="topbar">
         <div className="topbar-identity">
           <div className="brand">
@@ -375,7 +376,7 @@ export default function Portal() {
           )}
         </div>
       </nav>
-      <div id="main-content" className="main-content">
+      <main id="main-content" className="main-content" tabIndex={-1}>
         {error && (
           <div className="error" role="alert">
             {error}
@@ -434,7 +435,7 @@ export default function Portal() {
         ) : view === 'assignments' && parent ? (
           <Assignments {...props} />
         ) : null}
-      </div>
+      </main>
       <footer className="app-footer">
         <span>AKURU · A little progress, every day.</span>
         <span>iGCSE · Admin-reviewed learning material</span>

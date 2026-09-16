@@ -250,6 +250,34 @@ a:focus-visible {
   outline: 3px solid #78a4ff;
   outline-offset: 3px;
 }
+input:focus-visible,
+textarea:focus-visible,
+[role='combobox']:focus-visible {
+  outline: 3px solid #78a4ff;
+  outline-offset: 2px;
+}
+.skip-link {
+  position: fixed;
+  z-index: 2000;
+  top: 8px;
+  left: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: #193f8b;
+  color: #fff;
+  transform: translateY(-150%);
+}
+.skip-link:focus { transform: translateY(0); }
+.catalogue-filters { display: grid; gap: 12px; padding: 14px; border: 1px solid #d8e2f2; border-radius: 10px; background: #f8fbff; }
+.catalogue-filters legend { padding: 0 5px; color: #314767; font-size: 14px; font-weight: 700; }
+.catalogue-filters .picker { min-width: 0; }
+.catalogue-filters label { margin-bottom: 0; }
+.status > span { display: inline-block; min-width: 0.8rem; font-weight: 800; text-align: center; }
+@media (max-width: 700px) {
+  .catalogue-filters .three-cols { grid-template-columns: 1fr; }
+  .button-row { align-items: stretch; }
+  .button-row > button { min-height: 44px; }
+}
 h1,
 h2,
 h3,

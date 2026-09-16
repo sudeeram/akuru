@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.curriculum_plans import PlanUnitResponse
+from app.schemas.curriculum_plans import PlanTopicResponse, PlanUnitResponse
 
 
 class LearnerContextRequest(BaseModel):
@@ -77,11 +77,28 @@ class ContextUnit(BaseModel):
     reviewedRecommendations: list[ContextReviewedRecommendation] = Field(default_factory=list)
     studyPlan: list[ContextPlanItem] = Field(default_factory=list)
 
+class ContextTopic(BaseModel):
+    topic: PlanTopicResponse
+    active: bool
+    masteryScore: float | None = None
+    confidence: str | None = None
+    trend: float | None = None
+    evidenceCount: int = 0
+    varietyCount: int = 0
+    dimensions: dict[str, float] = Field(default_factory=dict)
+    signals: list[str] = Field(default_factory=list)
+    statements: list[ContextStatement] = Field(default_factory=list)
+    attempts: list[ContextAttempt] = Field(default_factory=list)
+    mistakes: list[ContextMistakePattern] = Field(default_factory=list)
+    reviewedRecommendations: list[ContextReviewedRecommendation] = Field(default_factory=list)
+    studyPlan: list[ContextPlanItem] = Field(default_factory=list)
+
 
 class ProviderLearnerContext(BaseModel):
     learnerRef: str
     subjectId: str
-    activeUnitCode: str
+    activeUnitCode: str | None = None
+    activeTopicCode: str | None = None
     contextVersion: str
     learningSignals: list[dict]
     recurringMistakes: list[dict]
@@ -94,7 +111,9 @@ class LearnerContextResponse(BaseModel):
     contextVersion: str
     generatedAt: datetime
     subjectId: str
-    activeUnit: PlanUnitResponse
-    units: list[ContextUnit]
+    activeUnit: PlanUnitResponse | None = None
+    activeTopic: PlanTopicResponse | None = None
+    units: list[ContextUnit] = Field(default_factory=list)
+    topics: list[ContextTopic] = Field(default_factory=list)
     evidence: list[ContextEvidence]
     providerContext: ProviderLearnerContext

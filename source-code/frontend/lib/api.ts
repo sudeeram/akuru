@@ -98,10 +98,17 @@ export type TextbookReview = {
   edition: string; units: TextbookReviewUnit[];
 };
 export type CurriculumPlanUnit = { id: string; code: string; title: string };
-export type CurriculumPlanPeriod = { grade: number; term: number; unitIds: string[] };
+export type CurriculumPlanPeriod = { grade: number; term: number; unitIds: string[]; topicRefs?: string[] };
+export type CurriculumPlanTopic = { topicRef: string; code: string; title: string; groupRef: string; groupCode: string; groupTitle: string };
+export type CurriculumPlanTopicGroup = { groupRef: string; code: string; title: string; topics: CurriculumPlanTopic[] };
 export type CurriculumPlan = {
   versionNumber: number; status: string; subjectId: string; textbookTitle: string;
-  textbookEdition: string; availableUnits: CurriculumPlanUnit[]; periods: CurriculumPlanPeriod[];
+  textbookEdition: string; availableUnits: CurriculumPlanUnit[];
+  groupLabel: 'unit' | 'module'; groups: CurriculumPlanTopicGroup[];
+  periods: (CurriculumPlanPeriod & { topicRefs: string[] })[];
+  publishedPeriods: (CurriculumPlanPeriod & { topicRefs: string[] })[];
+  changes: { topicRef: string; code: string; title: string; change: 'added' | 'removed' | 'moved'; fromPeriod?: string | null; toPeriod?: string | null }[];
+  requiresPublishedChangeConfirmation: boolean; basedOnVersion?: number | null; createdAt?: string | null; publishedAt?: string | null;
 };
 export type SourceLocation = { page: number; blockId: string; boundingBox: Record<string, unknown> };
 export type OfficialMaterialReview = {
@@ -113,10 +120,12 @@ export type OfficialMaterialReview = {
   examinerComments: { questionNumber: string; commonMistakes: string[]; advice: string[]; sourceLocations: SourceLocation[] }[];
 };
 export type UnitMapping = { unitId: string; weight: number; rationale: string; confidence?: number | null; method?: string | null };
+export type TopicMapping = { topicRef: string; weight: number; required: boolean; rationale: string; confidence?: number | null; method?: string | null };
 export type PaperMappings = {
   paperId: string; paperTitle: string; subjectId: string; textbookTitle: string; textbookEdition: string;
-  units: { id: string; code: string; title: string }[];
-  questions: { questionId: string; number: string; prompt: string; marks: number; status: string; mappings: UnitMapping[] }[];
+  groupLabel: 'unit' | 'module'; groups: { groupRef: string; code: string; title: string; topics: { topicRef: string; code: string; title: string; groupRef: string; groupCode: string; groupTitle: string }[] }[];
+  questions: { questionId: string; number: string; prompt: string; sharedStem: string; marks: number; status: string; sourceLocations: SourceLocation[]; mappings: TopicMapping[]; groupWeights: Record<string, number> }[];
+  confirmedQuestionCount: number; totalQuestionCount: number;
 };
 export type UiFeaturesAccess = {
   allowed: true;
@@ -155,18 +164,19 @@ export type TutorQuotaAudit = { studentRef: string; events: { action: string; re
 export type TutorHistorySummary = { summaryRef: string; sessionRef: string; studentName: string; subjectId: string; unitsCovered: { code: string; title: string }[]; activities: string[]; strengths: string[]; difficulties: string[]; suggestedNextSteps: string[]; usage: { aiRequests?: number; textTokens?: number; voiceTurns?: number }; createdAt: string };
 export type TutorSafetyEvent = { eventRef: string; studentName: string; category: string; severity: string; action: string; notificationStatus: string; reviewStatus: string; createdAt: string };
 export type TutorSessionUnit = { id: string; code: string; title: string };
+export type TutorSessionTopic = { topicRef: string; code: string; title: string; groupRef: string; groupCode: string; groupTitle: string };
 export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; structured: Partial<TutorAgentReply>; createdAt: string };
 export type TutorSession = {
-  sessionRef: string; subjectId: string; activeUnit: TutorSessionUnit; currentTutor: TutorProfile;
+  sessionRef: string; subjectId: string; activeUnit?: TutorSessionUnit | null; activeTopic?: TutorSessionTopic | null; currentTutor: TutorProfile;
   mode: 'practice'; status: 'active' | 'ended'; startedAt: string; endedAt?: string | null;
   turns: TutorTurn[];
   profileEvents: { fromProfileRef: string; fromProfileVersion: number; toProfileRef: string; toProfileVersion: number; handoverSummary: Record<string, unknown>; createdAt: string }[];
   unitEvents: { fromUnit: TutorSessionUnit; toUnit: TutorSessionUnit; createdAt: string }[];
 };
-export type TutorSessionOptions = { subjects: { id: string; name: string; units: TutorSessionUnit[] }[]; profiles: TutorProfile[] };
+export type TutorSessionOptions = { subjects: { id: string; name: string; units: TutorSessionUnit[]; topics?: TutorSessionTopic[] }[]; profiles: TutorProfile[] };
 export type NextUnitResult = {
   status: 'ready' | 'no_evidence' | 'no_eligible_units'; message: string; algorithmVersion: string;
-  recommendation?: { unit: TutorSessionUnit; reason: string; evidenceRefs: string[];
+  recommendation?: { unit?: TutorSessionUnit | null; topic?: TutorSessionTopic | null; reason: string; evidenceRefs: string[];
     activity: { type: string; title: string; instruction: string; successCondition: string };
     requiresStudentAction: boolean; moveAction: Record<string, unknown> } | null;
   ranking: { unit: TutorSessionUnit; score: number }[];
@@ -288,10 +298,11 @@ export const saveRealtimeTranscriptTurn = (connectionRef: string, role: 'student
 );
 export const getTutorSessionOptions = () => request('tutoring/session-options') as Promise<TutorSessionOptions>;
 export const getTutorSessions = () => request('tutoring/sessions') as Promise<{ sessions: TutorSession[] }>;
-export const startTutorSession = (subjectId: string, unitId: string, profileRef: string, requestKey: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, unitId, profileRef, requestKey } }) as Promise<TutorSession>;
+export const startTutorSession = (subjectId: string, unitId: string, profileRef: string, requestKey: string, topicRef?: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, unitId: topicRef ? undefined : unitId, topicRef, profileRef, requestKey } }) as Promise<TutorSession>;
 export const addTutorTurn = (sessionRef: string, content: string, modality: 'text' | 'voice', requestKey: string) => request(`tutoring/sessions/${sessionRef}/turns`, { method: 'POST', body: { content, modality, requestKey } }) as Promise<TutorSession>;
 export const switchTutorProfile = (sessionRef: string, profileRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-profile`, { method: 'POST', body: { profileRef, requestKey } }) as Promise<TutorSession>;
 export const switchTutorUnit = (sessionRef: string, unitId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { unitId, requestKey } }) as Promise<TutorSession>;
+export const switchTutorTopic = (sessionRef: string, topicRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { topicRef, requestKey } }) as Promise<TutorSession>;
 export const endTutorSession = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/end`, { method: 'POST', body: { requestKey } }) as Promise<TutorSession>;
 export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-unit`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextUnitResult>;
 export const searchTutorSources = (sessionRef: string, query: string, textbookEdition?: string) => request(`tutoring/sessions/${sessionRef}/sources/search`, { method: 'POST', body: { query, textbookEdition, limit: 5 } }) as Promise<TutorSourceSearch>;
@@ -363,9 +374,11 @@ export const getCurriculumPlan = (subjectId: string) =>
   api(`admin/curriculum-plans/${subjectId}`) as Promise<CurriculumPlan>;
 export const saveCurriculumPlan = (subjectId: string, periods: CurriculumPlanPeriod[]) =>
   api(`admin/curriculum-plans/${subjectId}`, { periods }) as Promise<CurriculumPlan>;
-export const publishCurriculumPlan = (subjectId: string) =>
+export const createCurriculumPlanDraft = (subjectId: string) =>
+  api(`admin/curriculum-plans/${subjectId}/draft`, {}) as Promise<CurriculumPlan>;
+export const publishCurriculumPlan = (subjectId: string, confirmPublishedChanges = false) =>
   api(`admin/curriculum-plans/${subjectId}/publish`, {
-    confirmSubject: true, confirmTextbook: true,
+    confirmSubject: true, confirmTextbook: true, confirmPublishedChanges,
   }) as Promise<CurriculumPlan>;
 export const getOfficialMaterialReview = (id: string) =>
   api(`documents/${id}/official-review`) as Promise<OfficialMaterialReview>;
@@ -382,13 +395,13 @@ export const publishOfficialMaterialReview = (id: string, linked: boolean) =>
     confirmCourse: true, confirmSubject: true, confirmSourcePaper: linked, confirmComplete: true,
   }) as Promise<OfficialMaterialReview>;
 export const getPaperMappings = (paperId: string) =>
-  api(`questions/papers/${paperId}/unit-mappings`) as Promise<PaperMappings>;
+  api(`questions/papers/${paperId}/topic-mappings`) as Promise<PaperMappings>;
 export const suggestQuestionMappings = (questionId: string) =>
-  api(`questions/${questionId}/unit-mapping/suggest`, {}) as Promise<{ questionId: string; method: string; suggestions: UnitMapping[] }>;
-export const saveQuestionMappings = (questionId: string, mappings: UnitMapping[]) =>
-  api(`questions/${questionId}/unit-mapping`, { mappings }) as Promise<PaperMappings['questions'][number]>;
+  api(`questions/${questionId}/topic-mapping/suggest`, {}) as Promise<{ questionId: string; method: string; suggestions: TopicMapping[] }>;
+export const saveQuestionMappings = (questionId: string, mappings: TopicMapping[]) =>
+  api(`questions/${questionId}/topic-mapping`, { mappings }) as Promise<PaperMappings['questions'][number]>;
 export const publishQuestionMappings = (questionId: string) =>
-  api(`questions/${questionId}/unit-mapping/publish`, {}) as Promise<PaperMappings['questions'][number]>;
+  api(`questions/${questionId}/topic-mapping/publish`, {}) as Promise<PaperMappings['questions'][number]>;
 export async function uploadWorking(file: File, assessmentId: string, questionId: string): Promise<FileRef & { ocrConfidence: number; needsReview: boolean }> {
   if (file.size > 5 * 1024 * 1024) throw new Error('Choose a file smaller than 5 MB.');
   const token = csrfToken();
@@ -409,6 +422,58 @@ export type Subject = {
   topics: string[];
   course: string;
 };
+export type TextbookStructureTopic = {
+  topicRef: string; code: string; title: string; sequence: number; syllabusRef: string;
+  description: string; status: string; documentCount: number; removable: boolean;
+  content: { state: string; ready: boolean; contentVersion: number; supersededVersionCount: number; hasDraftChanges: boolean; documentCount: number;
+    primaryDocumentCount: number; processingCount: number; needsReviewCount: number; failedCount: number;
+    unresolvedPageCount: number; unresolvedBlockCount: number; averageConfidence: number;
+    checks: { code: string; passed: boolean; message: string }[] };
+};
+export type TextbookStructureGroup = {
+  groupRef: string; code: string; title: string; summary: string; sequence: number;
+  status: string; removable: boolean; topics: TextbookStructureTopic[];
+};
+export type TextbookStructure = {
+  textbookRef: string; courseId: string; subjectId: string; title: string; edition: string;
+  publisher: string; groupLabel: 'unit' | 'module'; groupDisplayLabel: 'Unit' | 'Module';
+  status: string; structureVersion: number; groups: TextbookStructureGroup[];
+};
+export const getTextbookStructures = () => request('admin/textbooks') as Promise<{ textbooks: TextbookStructure[] }>;
+export const createTextbookStructure = (body: { courseId: 'igcse'; subjectId: string; title: string; edition: string; publisher: string; groupLabel: 'unit' | 'module' }) => request('admin/textbooks', { method: 'POST', body }) as Promise<TextbookStructure>;
+export const updateTextbookStructure = (ref: string, body: { title: string; edition: string; publisher: string; groupLabel: 'unit' | 'module' }) => request(`admin/textbooks/${ref}`, { method: 'POST', body }) as Promise<TextbookStructure>;
+export const archiveTextbookStructure = (ref: string) => request(`admin/textbooks/${ref}`, { method: 'DELETE' }) as Promise<TextbookStructure>;
+export const saveTextbookGroup = (bookRef: string, body: { code: string; title: string; summary: string; sequence: number }, groupRef?: string) => request(`admin/textbooks/${bookRef}/groups${groupRef ? `/${groupRef}` : ''}`, { method: 'POST', body }) as Promise<TextbookStructure>;
+export const removeTextbookGroup = (bookRef: string, groupRef: string) => request(`admin/textbooks/${bookRef}/groups/${groupRef}`, { method: 'DELETE' }) as Promise<TextbookStructure>;
+export const reorderTextbookGroups = (bookRef: string, refs: string[]) => request(`admin/textbooks/${bookRef}/groups/reorder`, { method: 'POST', body: { refs } }) as Promise<TextbookStructure>;
+export const saveTextbookTopic = (bookRef: string, groupRef: string, body: { code: string; title: string; sequence: number; syllabusRef: string; description: string }, topicRef?: string) => request(`admin/textbooks/${bookRef}/groups/${groupRef}/topics${topicRef ? `/${topicRef}` : ''}`, { method: 'POST', body }) as Promise<TextbookStructure>;
+export const removeTextbookTopic = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}`, { method: 'DELETE' }) as Promise<TextbookStructure>;
+export const reorderTextbookTopics = (bookRef: string, groupRef: string, refs: string[]) => request(`admin/textbooks/${bookRef}/groups/${groupRef}/topics/reorder`, { method: 'POST', body: { refs } }) as Promise<TextbookStructure>;
+export const publishTextbookStructure = (bookRef: string) => request(`admin/textbooks/${bookRef}/publish`, { method: 'POST', body: { confirmCourse: true, confirmSubject: true, confirmEdition: true, confirmStructure: true } }) as Promise<TextbookStructure>;
+export const publishTextbookTopic = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/publish`, { method: 'POST', body: { confirmSources: true, confirmExtraction: true, confirmTopic: true } }) as Promise<TextbookStructure>;
+export async function uploadTopicPart(bookRef: string, topicRef: string, file: File, role: 'primary' | 'supporting' | 'reference' = 'primary') {
+  if (file.size > 50 * 1024 * 1024) throw new Error('Choose a file no larger than 50 MB.');
+  const response = await fetch(`/api/v1/admin/textbooks/${bookRef}/topics/${topicRef}/documents?role=${role}`, {
+    method: 'POST', headers: { 'Content-Type': file.type, 'X-Filename': file.name,
+      'Idempotency-Key': crypto.randomUUID(), 'X-CSRF-Token': csrfToken() }, body: file,
+  });
+  const data: unknown = await response.json().catch(() => ({}));
+  if (!response.ok) throw new ApiError(apiErrorMessage(data), response.status);
+  return data as { document: { id: string }; job: DocumentJob };
+}
+async function fileBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer()); let binary = '';
+  for (let offset = 0; offset < bytes.length; offset += 0x8000)
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
+  return btoa(binary);
+}
+export async function uploadTopicPartsBatch(bookRef: string, topicRef: string, files: File[], role: 'primary' | 'supporting' | 'reference' = 'primary') {
+  const items = await Promise.all(files.map(async (file) => ({ filename: file.name,
+    contentType: file.type, contentBase64: await fileBase64(file), role,
+    idempotencyKey: crypto.randomUUID() })));
+  return request(`admin/textbooks/${bookRef}/topics/${topicRef}/documents/batch`, { method: 'POST', body: { items } });
+}
+export const suggestTopicParts = (bookRef: string, filenames: string[]) => request(`admin/textbooks/${bookRef}/topics/suggest`, { method: 'POST', body: { filenames } }) as Promise<{ filename: string; suggestedTopicRef?: string | null; suggestedTopicCode?: string | null; confidence: number }[]>;
 export type Student = {
   parentId: string;
   username: string;
@@ -494,6 +559,8 @@ export type UnitMastery = {
   dimensions: { dimension: string; score: number; evidenceWeight: number }[];
   recentEvents: { id: string; previousScore?: number | null; newScore: number; previousConfidence?: string | null; newConfidence: string; explanation: string; createdAt: string }[];
 };
+export type TopicMastery = Omit<UnitMastery, 'unitId' | 'unitCode' | 'unitTitle'> & { topicRef: string; topicCode: string; topicTitle: string; groupLabel: string; groupCode: string; groupTitle: string };
+export type MasteryGroup = { groupLabel: string; groupCode: string; groupTitle: string; subjectId: string; score: number; confidence: 'low' | 'medium' | 'high'; evidenceWeight: number; topicCount: number; explanation: string; topics: TopicMastery[] };
 export type ImprovementRecommendation = {
   id: string; diagnosisId: string; studentId: string; subjectId: string; unitId: string;
   unitCode: string; unitTitle: string; category: string; description: string; observedEvidence: string[];
@@ -535,6 +602,7 @@ export type Doc = {
   edition?: string | null;
 };
 export type ExtractionBlock = {
+  id: string;
   sequenceNumber: number;
   kind: string;
   text: string;
@@ -547,10 +615,13 @@ export type ExtractionBlock = {
   metadata: Record<string, unknown>;
 };
 export type ExtractionPage = {
+  id: string;
   pageNumber: number;
   widthPoints: number;
   heightPoints: number;
   renderAssetId: string;
+  originalRenderAssetId?: string | null;
+  printedPageLabel?: string | null;
   method: string;
   confidence: number;
   needsReview: boolean;
@@ -564,6 +635,8 @@ export type DocumentExtraction = {
 export async function getDocumentExtraction(id: string): Promise<DocumentExtraction> {
   return request(`documents/${id}/extraction`) as Promise<DocumentExtraction>;
 }
+export const updateExtractionPage = (documentId: string, pageId: string, printedPageLabel: string) => request(`documents/${documentId}/extraction/pages/${pageId}`, { method: 'POST', body: { printedPageLabel } }) as Promise<DocumentExtraction>;
+export const updateExtractionBlock = (documentId: string, blockId: string, body: { kind: string; text: string; latex?: string | null; sequenceNumber: number }) => request(`documents/${documentId}/extraction/blocks/${blockId}`, { method: 'POST', body }) as Promise<DocumentExtraction>;
 export type DocumentJob = {
   stage: string;
   status: string;
@@ -658,9 +731,15 @@ export type State = {
       items: {
         id: string;
         subject: string;
-        unitId: string;
-        unitCode: string;
+        unitId?: string | null;
+        unitCode?: string | null;
         topic: string;
+        topicRef?: string | null;
+        topicCode?: string | null;
+        topicTitle?: string | null;
+        groupLabel?: string | null;
+        groupCode?: string | null;
+        groupTitle?: string | null;
         activityType: string;
         minutes: number;
         reason: string;
@@ -673,6 +752,7 @@ export type State = {
     }
   >;
   mastery: Record<string, UnitMastery[]>;
+  masteryGroups?: Record<string, MasteryGroup[]>;
   recommendations: Record<string, ImprovementRecommendation[]>;
 };
 export type Unit = {

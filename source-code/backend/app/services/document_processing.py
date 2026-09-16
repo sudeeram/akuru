@@ -16,6 +16,7 @@ from app.errors import DomainError
 from app.config import get_settings
 from app.models import (
     DocumentAsset, DocumentBlock, DocumentJob, DocumentPage, DocumentStageRun, DocumentVersion,
+    TextbookTopicDocument,
 )
 from app.queue import DocumentQueue, QueueUnavailable
 from app.repositories.documents import DocumentRepository
@@ -223,8 +224,13 @@ def persist_extraction(
     db.flush()
     for page_data in extraction["pages"]:
         page_number = page_data["pageNumber"]
+        original_asset = _store_asset(
+            db, storage, version, extraction_version, page_number, 0, "page_original",
+            "image/png", page_data.get("originalRender", page_data["render"]), None,
+            {"dpi": extraction["renderDpi"], "preservedOriginal": True},
+        )
         render_asset = _store_asset(
-            db, storage, version, extraction_version, page_number, 0, "page_render",
+            db, storage, version, extraction_version, page_number, 1, "page_render",
             "image/png", page_data["render"], None, {"dpi": extraction["renderDpi"]},
         )
         asset_rows = []
@@ -238,7 +244,8 @@ def persist_extraction(
             document_version_id=version.id, page_number=page_number,
             printed_page_label=page_data.get("printedPageLabel"),
             width_points=page_data["widthPoints"], height_points=page_data["heightPoints"],
-            render_asset_id=render_asset.id, native_text=page_data["nativeText"],
+            render_asset_id=render_asset.id, original_render_asset_id=original_asset.id,
+            native_text=page_data["nativeText"],
             extraction_method=page_data["method"], confidence=page_data["confidence"],
             needs_review=page_data["needsReview"], page_metadata=page_data["metadata"],
         )
@@ -252,7 +259,7 @@ def persist_extraction(
                 bounding_box=block_data["bbox"], extraction_method=block_data["method"],
                 confidence=block_data["confidence"], needs_review=block_data["needsReview"],
                 source_asset_id=asset_rows[source_index].id if source_index is not None else None,
-                block_metadata={"bboxSpace": block_data["bboxSpace"]},
+                block_metadata={"bboxSpace": block_data["bboxSpace"], **block_data.get("metadata", {})},
             ))
     db.flush()
     return {key: value for key, value in extraction.items() if key != "pages"}
@@ -328,6 +335,8 @@ def process_job(job_id: uuid.UUID, storage: ObjectStorage | None = None) -> str:
             job.error_message = failure.message
             job.completed_at = utcnow()
             version.status = "failed"
+            link = db.scalar(select(TextbookTopicDocument).where(TextbookTopicDocument.document_version_id == version.id))
+            if link: link.review_status = "failed"
             stage_run.status = "failed"
             stage_run.completed_at = job.completed_at
             repository.add_event(
@@ -342,6 +351,8 @@ def process_job(job_id: uuid.UUID, storage: ObjectStorage | None = None) -> str:
         job.result_data = result
         job.completed_at = utcnow()
         version.status = "needs_review"
+        link = db.scalar(select(TextbookTopicDocument).where(TextbookTopicDocument.document_version_id == version.id))
+        if link: link.review_status = "needs_review" if result.get("reviewFlagCount", 0) else "ready"
         stage_run.status = "completed"
         stage_run.output_data = result
         stage_run.completed_at = job.completed_at

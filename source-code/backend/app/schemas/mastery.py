@@ -33,9 +33,43 @@ class UnitMasteryResponse(BaseModel):
     dimensions: list[MasteryDimensionResponse]
     recentEvents: list[MasteryEventResponse]
 
+class TopicMasteryResponse(BaseModel):
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    groupLabel: str
+    groupCode: str
+    groupTitle: str
+    subjectId: str
+    score: float = Field(ge=0, le=10)
+    preciseScore: float = Field(ge=0, le=10)
+    confidence: str
+    provisional: bool
+    evidenceCount: int
+    evidenceWeight: float
+    varietyCount: int
+    trend: float
+    lastEvidenceAt: datetime
+    dimensions: list[MasteryDimensionResponse]
+    recentEvents: list[MasteryEventResponse]
+
+class GroupMasteryResponse(BaseModel):
+    groupLabel: str
+    groupCode: str
+    groupTitle: str
+    subjectId: str
+    score: float = Field(ge=0, le=10)
+    confidence: str
+    evidenceWeight: float
+    topicCount: int
+    explanation: str
+    topics: list[TopicMasteryResponse]
+
 class MasteryResponse(BaseModel):
     studentId: uuid.UUID
     units: list[UnitMasteryResponse]
+    topics: list[TopicMasteryResponse] = Field(default_factory=list)
+    groups: list[GroupMasteryResponse] = Field(default_factory=list)
 
 class HintInteractionRequest(BaseModel):
     idempotencyKey: str = Field(min_length=8, max_length=100)

@@ -9,7 +9,7 @@ from collections import defaultdict
 from pathlib import Path
 
 import pymupdf as fitz
-from PIL import Image
+from PIL import Image, ImageOps, ImageStat
 
 from app.services.document_processing_types import ProcessingFailure
 
@@ -18,6 +18,22 @@ QUESTION_RE = re.compile(r"^\s*(?:question\s+)?\d+[.)]\s+", re.IGNORECASE)
 SUBPART_RE = re.compile(r"^\s*(?:\([a-zivx]+\)|[a-z][.)])\s+", re.IGNORECASE)
 MATH_RE = re.compile(r"(?:[=±×÷√∑∫≤≥]|\b(?:sin|cos|tan|log)\b|\w\s*[²³]|\w\s*\^\s*\d)", re.IGNORECASE)
 ANSWER_RE = re.compile(r"(?:_{3,}|\.{5,}|\[\s*\d+\s*marks?\s*\])", re.IGNORECASE)
+SCIENCE_NOTATION_RE = re.compile(r"(?:[A-Z][a-z]?\d|[₀-₉⁰-⁹]|→|⇌|\b(?:acid|alkali|mole|ion)\b)", re.IGNORECASE)
+
+
+def _normalize_render(png: bytes) -> tuple[bytes, dict]:
+    image = Image.open(io.BytesIO(png)).convert("RGB")
+    gray = ImageOps.grayscale(image)
+    contrast = float(ImageStat.Stat(gray).stddev[0])
+    extrema = gray.getextrema()
+    normalized = ImageOps.autocontrast(image, cutoff=1) if extrema[1] - extrema[0] < 220 else image.copy()
+    stream = io.BytesIO(); normalized.save(stream, format="PNG")
+    return stream.getvalue(), {
+        "orientationDetectedDegrees": 0, "rotationAppliedDegrees": 0, "deskewAppliedDegrees": 0,
+        "widthPixels": image.width, "heightPixels": image.height,
+        "contrastScore": round(min(1.0, contrast / 64.0), 4),
+        "lowContrast": contrast < 22, "normalization": "exif-safe-autocontrast-v1",
+    }
 
 
 def bbox_dict(box) -> dict[str, float]:
@@ -102,6 +118,7 @@ def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], 
         text = " ".join(word["text"] for word in words)
         confidence = sum(word["confidence"] for word in words) / len(words) / 100
         kind = classify_text(text, 10, 10)
+        notation_review = bool(MATH_RE.search(text) or SCIENCE_NOTATION_RE.search(text))
         block = {
             "kind": kind,
             "text": text,
@@ -110,7 +127,8 @@ def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], 
             "bboxSpace": "normalized",
             "method": "ocr",
             "confidence": round(max(0, min(confidence, 1)), 4),
-            "needsReview": confidence < 0.85 or bool(MATH_RE.search(text)),
+            "needsReview": confidence < 0.85 or notation_review,
+            "metadata": {"ocrLanguage": "+".join(selected), "notationReview": notation_review},
         }
         blocks.append(block)
         if MATH_RE.search(text) and kind != "equation":
@@ -140,14 +158,17 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
             kind = classify_text(text, max_size, median)
             source_asset_index = None
             has_math = bool(MATH_RE.search(text))
-            if has_math:
+            notation_review = has_math or bool(SCIENCE_NOTATION_RE.search(text))
+            if notation_review:
                 crop = _render_page(page, dpi, fitz.Rect(block["bbox"]))
                 source_asset_index = len(assets)
                 assets.append({"kind": "equation_crop", "mimeType": "image/png", "content": crop, "bbox": bbox_dict(block["bbox"])})
             blocks.append({
                 "kind": kind, "text": text, "latex": text_to_latex(text) if kind == "equation" else None,
                 "bbox": bbox_dict(block["bbox"]), "bboxSpace": "pdf_points", "method": "native_pdf",
-                "confidence": 0.99, "needsReview": kind == "equation", "sourceAssetIndex": source_asset_index,
+                "confidence": 0.99, "needsReview": kind == "equation" or notation_review,
+                "sourceAssetIndex": source_asset_index,
+                "metadata": {"notationReview": notation_review},
             })
             if has_math and kind != "equation":
                 blocks.append({
@@ -187,7 +208,8 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
         blocks.append({
             "kind": "table", "text": "\n".join(" | ".join(cell or "" for cell in row) for row in table.extract()),
             "latex": None, "bbox": bbox_dict(table.bbox), "bboxSpace": "pdf_points",
-            "method": "native_pdf_table", "confidence": 0.9, "needsReview": False,
+            "method": "native_pdf_table", "confidence": 0.9, "needsReview": True,
+            "metadata": {"structureReview": True},
         })
     try:
         drawing_regions = page.cluster_drawings()
@@ -210,7 +232,7 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
         blocks.append({
             "kind": "diagram", "text": "", "latex": None, "bbox": bbox_dict(box),
             "bboxSpace": "pdf_points", "method": "vector_drawing", "confidence": 0.7,
-            "needsReview": True, "sourceAssetIndex": asset_index,
+            "needsReview": True, "sourceAssetIndex": asset_index, "metadata": {"visualReview": True},
         })
     blocks.sort(key=lambda item: (item["bbox"]["y0"], item["bbox"]["x0"]))
     return blocks, assets
@@ -240,7 +262,8 @@ def extract_document(
     review_count = 0
     try:
         for page_number, page in enumerate(document, 1):
-            rendered = _render_page(page, render_dpi)
+            original_render = _render_page(page, render_dpi)
+            rendered, quality_metadata = _normalize_render(original_render)
             blocks, assets = _native_blocks(page, render_dpi)
             native_text = "\n".join(block["text"] for block in blocks if block["text"])
             ocr_metadata = {}
@@ -282,7 +305,8 @@ def extract_document(
                 "method": method,
                 "confidence": min((block["confidence"] for block in blocks), default=0),
                 "needsReview": page_review,
-                "metadata": ocr_metadata,
+                "metadata": {**ocr_metadata, **quality_metadata},
+                "originalRender": original_render,
                 "blocks": blocks,
                 "assets": assets,
             })

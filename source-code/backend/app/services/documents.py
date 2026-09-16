@@ -5,11 +5,12 @@ import uuid
 from pathlib import PurePath
 
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.errors import DomainError
-from app.models import Document, DocumentJob, DocumentVersion
+from app.models import Document, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage, DocumentVersion
 from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (
@@ -114,6 +115,8 @@ def upload_document(
     publisher: str | None,
     isbn: str | None,
     source_url: str | None,
+    upload_request_key: str | None = None,
+    extra_metadata: dict | None = None,
 ) -> DocumentUploadResponse:
     normalized_mime = validate_file(filename, content_type, content)
     scan(content, settings)
@@ -124,6 +127,13 @@ def upload_document(
         raise DomainError("textbook_edition_required", "Enter the textbook edition before uploading.", 422)
     repository = DocumentRepository(db)
     _validate_relationships(repository, kind, course_id, subject_id, source_document_id)
+    if upload_request_key:
+        existing = db.scalar(select(Document).where(Document.upload_request_key == upload_request_key))
+        if existing:
+            version = repository.latest_version(existing.id); job = repository.latest_job(existing.id)
+            if not version or not job:
+                raise DomainError("upload_incomplete", "The earlier upload request is incomplete; contact an administrator.", 409)
+            return DocumentUploadResponse(document=document_response(existing, version), job=job_response(job))
     checksum = hashlib.sha256(content).hexdigest()
     if repository.checksum_exists(checksum):
         raise DomainError("duplicate_document", "This exact file has already been uploaded.", 409)
@@ -139,6 +149,7 @@ def upload_document(
             "sourceUrl": source_url,
         }.items() if value
     }
+    metadata.update(extra_metadata or {})
     storage.put(object_key, content, normalized_mime)
     document = Document(
         id=document_id,
@@ -160,6 +171,7 @@ def upload_document(
         variant=variant,
         source_metadata=metadata,
         size_bytes=len(content),
+        upload_request_key=upload_request_key,
     )
     version = DocumentVersion(
         id=version_id,
@@ -269,6 +281,8 @@ def extraction_response(db: Session, document_id: uuid.UUID) -> DocumentExtracti
         pages.append(ExtractionPageResponse(
             id=str(page.id), pageNumber=page.page_number, widthPoints=page.width_points,
             heightPoints=page.height_points, renderAssetId=str(page.render_asset_id),
+            originalRenderAssetId=str(page.original_render_asset_id) if page.original_render_asset_id else None,
+            printedPageLabel=page.printed_page_label,
             method=page.extraction_method, confidence=page.confidence,
             needsReview=page.needs_review, metadata=page.page_metadata,
             blocks=[ExtractionBlockResponse(
@@ -283,6 +297,76 @@ def extraction_response(db: Session, document_id: uuid.UUID) -> DocumentExtracti
     return DocumentExtractionResponse(
         documentId=str(document.id), versionId=str(version.id), status=version.status, pages=pages,
     )
+
+
+BLOCK_KINDS = {"heading", "paragraph", "table", "question", "subpart", "answer_space", "equation", "image", "diagram"}
+
+
+def update_extraction_page(db: Session, principal: Principal, document_id: uuid.UUID,
+                           page_id: uuid.UUID, printed_page_label: str | None) -> DocumentExtractionResponse:
+    document, version = get_document(db, document_id)
+    page = db.scalar(select(DocumentPage).where(DocumentPage.id == page_id,
+                                                DocumentPage.document_version_id == version.id))
+    if not page:
+        raise DomainError("document_page_not_found", "The extracted page could not be found.", 404)
+    page.printed_page_label = (printed_page_label or "").strip() or None
+    db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
+                         event_type="page_reviewed", event_data={"pageNumber": page.page_number,
+                                                                  "printedPageLabel": page.printed_page_label}))
+    _refresh_topic_document_readiness(db, version.id)
+    db.commit()
+    return extraction_response(db, document_id)
+
+
+def update_extraction_block(db: Session, principal: Principal, document_id: uuid.UUID,
+                            block_id: uuid.UUID, *, kind: str, text: str, latex: str | None,
+                            sequence_number: int) -> DocumentExtractionResponse:
+    document, version = get_document(db, document_id)
+    block = db.scalar(select(DocumentBlock).where(DocumentBlock.id == block_id,
+                                                   DocumentBlock.document_version_id == version.id))
+    if not block:
+        raise DomainError("document_block_not_found", "The extracted block could not be found.", 404)
+    if kind not in BLOCK_KINDS:
+        raise DomainError("invalid_block_kind", "Choose a supported extracted block type.", 422)
+    duplicate = db.scalar(select(DocumentBlock).where(
+        DocumentBlock.page_id == block.page_id, DocumentBlock.sequence_number == sequence_number,
+        DocumentBlock.id != block.id,
+    ))
+    if duplicate:
+        raise DomainError("duplicate_block_order", "Block reading order must be unique on the page.", 409)
+    block.block_kind, block.text, block.latex = kind, text.strip(), (latex or "").strip() or None
+    block.sequence_number = sequence_number; block.needs_review = False
+    block.block_metadata = {**block.block_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
+    page = db.get(DocumentPage, block.page_id)
+    if page:
+        page.needs_review = bool(db.scalar(select(DocumentBlock.id).where(
+            DocumentBlock.page_id == page.id, DocumentBlock.needs_review.is_(True), DocumentBlock.id != block.id,
+        )))
+    db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
+                         event_type="extraction_block_corrected", event_data={"pageNumber": page.page_number if page else None,
+                                                                              "blockId": str(block.id)}))
+    _refresh_topic_document_readiness(db, version.id)
+    db.commit()
+    return extraction_response(db, document_id)
+
+
+def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUID) -> None:
+    from app.models import TextbookTopicDocument
+    link = db.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_version_id == document_version_id,
+    ))
+    if not link or link.review_status in {"failed", "superseded"}:
+        return
+    unresolved_pages = db.scalar(select(DocumentPage.id).where(
+        DocumentPage.document_version_id == document_version_id, DocumentPage.needs_review.is_(True),
+    ).limit(1))
+    unresolved_blocks = db.scalar(select(DocumentBlock.id).where(
+        DocumentBlock.document_version_id == document_version_id, DocumentBlock.needs_review.is_(True),
+    ).limit(1))
+    page_exists = db.scalar(select(DocumentPage.id).where(
+        DocumentPage.document_version_id == document_version_id,
+    ).limit(1))
+    link.review_status = "ready" if page_exists and not unresolved_pages and not unresolved_blocks else "needs_review"
 
 
 def download_asset(

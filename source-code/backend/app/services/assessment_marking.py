@@ -10,7 +10,9 @@ from app.ai.prompts import get_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile, Document, RetrievalChunk, TextbookUnit, User
+from app.models import (Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile,
+    Document, DocumentBlock, DocumentPage, RetrievalChunk, Textbook, TextbookGroup, TextbookTopic,
+    TextbookTopicContentVersion, TextbookUnit, User)
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
 from app.services import evaluations, mastery, usage_limits, weaknesses
@@ -40,6 +42,29 @@ def _sources(db: Session, question: AssessmentQuestion, limit: int) -> list[dict
     manifest = [{"type": "frozen_question", "questionVersionId": str(question.source_question_version_id),
                  "documentVersionId": str(question.source_document_version_id), "locations": question.source_locations},
                 {"type": "frozen_rubric", "rubric": question.rubric}]
+    topic_ids = [uuid.UUID(value) for value in (question.topic_ids or [])]
+    if topic_ids:
+        rows = db.execute(select(RetrievalChunk, Document, TextbookTopic, TextbookGroup, Textbook).join(
+            Document, Document.id == RetrievalChunk.document_id).join(TextbookTopic, TextbookTopic.id == RetrievalChunk.topic_id
+            ).join(TextbookGroup, TextbookGroup.id == RetrievalChunk.group_id).join(
+            Textbook, Textbook.id == TextbookTopic.textbook_id).where(
+            RetrievalChunk.status == "active", RetrievalChunk.topic_id.in_(topic_ids),
+            RetrievalChunk.source_type == "textbook_section", Document.review_state == "published",
+            Document.removed_at.is_(None), Textbook.status == "published", TextbookTopic.status == "published",
+            RetrievalChunk.topic_content_version_id == TextbookTopic.current_published_content_version_id,
+        ).order_by(RetrievalChunk.topic_id, RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(limit)).all()
+        for chunk, document, topic, group, book in rows:
+            block = db.get(DocumentBlock, chunk.source_item_id)
+            page = db.get(DocumentPage, block.page_id) if block else None
+            manifest.append({"type": "textbook_context", "chunkId": str(chunk.id), "documentId": str(document.id),
+                "documentVersionId": str(chunk.document_version_id), "documentTitle": document.title,
+                "topicRef": topic.public_ref, "topicCode": topic.code, "topicTitle": topic.title,
+                "groupLabel": book.group_label, "groupCode": group.code, "groupTitle": group.title,
+                "page": chunk.page_number, "printedPage": page.printed_page_label if page else None,
+                "boundingBox": chunk.bounding_box, "contentHash": chunk.content_hash, "content": chunk.content})
+        if not rows:
+            manifest.append({"type": "evidence_insufficient", "reason": "No reviewed source exists for the mapped topics."})
+        return manifest
     unit_ids = [uuid.UUID(value) for value in question.unit_ids]
     rows = db.execute(select(RetrievalChunk, Document, TextbookUnit).join(
         Document, Document.id == RetrievalChunk.document_id).join(

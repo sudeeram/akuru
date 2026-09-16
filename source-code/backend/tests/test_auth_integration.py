@@ -1,3 +1,4 @@
+import base64
 import json
 import uuid
 from contextlib import contextmanager
@@ -16,9 +17,9 @@ from app.main import app
 from app.models import (
     AIInvocation, AIProviderAccount, Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentCurriculumSnapshot, AssessmentQuestion, AssessmentResult, AuditEvent, CurriculumPlan, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob,
     DocumentPage, DocumentVersion, StudentAIQuota, StudentAIUsage, StudentProfile,
-    ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionUnitMapping, OfficialQuestionVersion,
-    RetrievalChunk, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, TutorLearnerContextLog, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSafetyEvent, TutorSession, TutorSessionProfileEvent, TutorSessionSummary, TutorSessionUnitEvent, TutorTurn, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
+    ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionTopicMapping, OfficialQuestionUnitMapping, OfficialQuestionVersion,
+    RetrievalChunk, CurriculumPlanTopic, CurriculumPlanUnit, StudentProgression, StudentSubject, TextbookContentVersion, TextbookUnit, TextbookUnitVersion,
+    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, Textbook, TextbookGroup, TextbookStructureVersion, TextbookTopic, TextbookTopicContentVersion, TextbookTopicDocument, TutorLearnerContextLog, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSafetyEvent, TutorSession, TutorSessionProfileEvent, TutorSessionSummary, TutorSessionUnitEvent, TutorTurn, UnitMastery, UnitMasteryDimension, UnitMasteryEvent, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -153,6 +154,285 @@ def test_rejects_untrusted_origins(auth_client) -> None:
     assert response.json() == {
         "error": {"code": "origin_not_allowed", "message": "Origin not allowed.", "details": []}
     }
+
+
+@pytest.mark.integration
+def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_client, monkeypatch) -> None:
+    client, username, password = auth_client
+    assert client.get("/api/v1/admin/textbooks").status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+
+    created = client.post("/api/v1/admin/textbooks", headers=headers, json={
+        "courseId": "igcse", "subjectId": "chemistry", "title": "Chemistry Student Book",
+        "edition": "2026", "publisher": "AKURU test", "groupLabel": "unit",
+    })
+    assert created.status_code == 201, created.text
+    book = created.json(); book_ref = book["textbookRef"]
+    assert book_ref.startswith("book_") and "id" not in book
+    assert book["groupDisplayLabel"] == "Unit"
+    duplicate = client.post("/api/v1/admin/textbooks", headers=headers, json={
+        "courseId": "igcse", "subjectId": "chemistry", "title": "Chemistry Student Book",
+        "edition": "2026", "publisher": "Other", "groupLabel": "unit",
+    })
+    assert duplicate.status_code == 409
+
+    for sequence, code in enumerate(("U1", "U2"), 1):
+        response = client.post(f"/api/v1/admin/textbooks/{book_ref}/groups", headers=headers, json={
+            "code": code, "title": f"Unit {sequence}", "summary": "", "sequence": sequence,
+        })
+        assert response.status_code == 200, response.text
+        book = response.json()
+    first_group, second_group = book["groups"]
+    assert "id" not in first_group
+
+    for group, code in ((first_group, "1"), (second_group, "11")):
+        response = client.post(
+            f"/api/v1/admin/textbooks/{book_ref}/groups/{group['groupRef']}/topics",
+            headers=headers, json={"code": code, "title": f"Topic {code}", "sequence": 1,
+                                   "syllabusRef": "", "description": ""},
+        )
+        assert response.status_code == 200, response.text
+        book = response.json()
+    refs = [group["groupRef"] for group in reversed(book["groups"])]
+    reordered = client.post(f"/api/v1/admin/textbooks/{book_ref}/groups/reorder", headers=headers,
+                            json={"refs": refs})
+    assert reordered.status_code == 200, reordered.text
+    assert [group["groupRef"] for group in reordered.json()["groups"]] == refs
+
+    invalid = client.post(f"/api/v1/admin/textbooks/{book_ref}/publish", headers=headers, json={
+        "confirmCourse": True, "confirmSubject": True, "confirmEdition": True, "confirmStructure": False,
+    })
+    assert invalid.status_code == 422
+    confirmation = {"confirmCourse": True, "confirmSubject": True,
+                    "confirmEdition": True, "confirmStructure": True}
+    published = client.post(f"/api/v1/admin/textbooks/{book_ref}/publish", headers=headers, json=confirmation)
+    assert published.status_code == 200, published.text
+    assert published.json()["status"] == "published" and published.json()["structureVersion"] == 1
+
+    group = published.json()["groups"][0]
+    changed = client.post(f"/api/v1/admin/textbooks/{book_ref}/groups/{group['groupRef']}", headers=headers,
+                          json={"code": group["code"], "title": group["title"] + " revised",
+                                "summary": "", "sequence": group["sequence"]})
+    assert changed.status_code == 200 and changed.json()["status"] == "draft"
+    republished = client.post(f"/api/v1/admin/textbooks/{book_ref}/publish", headers=headers, json=confirmation)
+    assert republished.status_code == 200 and republished.json()["structureVersion"] == 2
+
+    session = next(app.dependency_overrides[get_db]())
+    textbook = session.scalar(select(Textbook).where(Textbook.public_ref == book_ref))
+    versions = session.scalars(select(TextbookStructureVersion).where(
+        TextbookStructureVersion.textbook_id == textbook.id,
+    ).order_by(TextbookStructureVersion.version_number)).all()
+    assert len(versions) == 2
+    assert versions[0].snapshot["groups"][1]["title"] == "Unit 1"
+    assert versions[1].snapshot["groups"][0]["title"].endswith("revised")
+    actions = set(session.scalars(select(AuditEvent.action).where(
+        AuditEvent.target_id.in_([book_ref, group["groupRef"]]),
+    )).all())
+    assert "textbook.created" in actions and "textbook_structure.published" in actions
+
+    topic_ref = republished.json()["groups"][0]["topics"][0]["topicRef"]
+    scan_pdf = fitz.open(); scan_page = scan_pdf.new_page(); scan_page.insert_text((72, 72), "H2SO4 + NaOH → salt", fontsize=16)
+    scan_bytes = scan_pdf.tobytes(); scan_pdf.close()
+    upload_headers = {**headers, "X-Filename": "topic-11-acids.pdf", "Content-Type": "application/pdf",
+                      "Idempotency-Key": "topic-11-first-part"}
+    upload = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/documents",
+                         params={"role": "primary", "printedStartPage": "101", "printedEndPage": "104"},
+                         headers=upload_headers, content=scan_bytes)
+    assert upload.status_code == 201, upload.text
+    repeated = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/documents",
+                           params={"role": "primary"}, headers=upload_headers, content=scan_bytes)
+    assert repeated.status_code == 201 and repeated.json()["document"]["id"] == upload.json()["document"]["id"]
+    suggestions = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/suggest", headers=headers,
+                              json={"filenames": ["topic-11-neutralisation.pdf"]})
+    assert suggestions.status_code == 200 and suggestions.json()[0]["suggestedTopicRef"] == topic_ref
+    version_id = uuid.UUID(upload.json()["document"]["versionId"])
+    link = session.scalar(select(TextbookTopicDocument).where(TextbookTopicDocument.document_version_id == version_id))
+    assert link and link.role == "primary" and link.printed_start_page == "101"
+
+    @contextmanager
+    def worker_session():
+        yield session
+    monkeypatch.setattr(document_processing, "SessionLocal", worker_session)
+    storage = app.dependency_overrides[get_storage](); queue = app.dependency_overrides[get_document_queue]()
+    assert document_processing.process_job(uuid.UUID(upload.json()["job"]["id"]), storage) == "needs_review"
+    extraction = client.get(f"/api/v1/documents/{upload.json()['document']['id']}/extraction").json()
+    page = extraction["pages"][0]
+    assert page["originalRenderAssetId"] and page["renderAssetId"] != page["originalRenderAssetId"]
+    assert "contrastScore" in page["metadata"]
+    block = page["blocks"][0]
+    corrected = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/extraction/blocks/{block['id']}", headers=headers,
+        json={"kind": "equation", "text": "H2SO4 + NaOH → salt", "latex": "H_2SO_4", "sequenceNumber": block["sequenceNumber"]},
+    )
+    assert corrected.status_code == 200 and corrected.json()["pages"][0]["blocks"][0]["needsReview"] is False
+    labelled = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/extraction/pages/{page['id']}", headers=headers,
+        json={"printedPageLabel": "101"},
+    )
+    assert labelled.status_code == 200 and labelled.json()["pages"][0]["printedPageLabel"] == "101"
+    ready_book = client.get(f"/api/v1/admin/textbooks/{book_ref}").json()
+    ready_topic = next(item for row in ready_book["groups"] for item in row["topics"] if item["topicRef"] == topic_ref)
+    assert ready_topic["content"]["state"] == "ready" and ready_topic["content"]["ready"] is True
+    confirmation = {"confirmSources": True, "confirmExtraction": True, "confirmTopic": True}
+    published_content = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
+                                    headers=headers, json=confirmation)
+    assert published_content.status_code == 200, published_content.text
+    published_topic = next(item for row in published_content.json()["groups"] for item in row["topics"] if item["topicRef"] == topic_ref)
+    assert published_topic["content"]["state"] == "published" and published_topic["content"]["contentVersion"] == 1
+    content_version = session.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == link.topic_id, TextbookTopicContentVersion.status == "published"))
+    assert content_version and content_version.source_manifest[0]["documentVersionId"] == str(version_id)
+    assert session.query(RetrievalChunk).filter_by(topic_content_version_id=content_version.id, status="active").count() >= 1
+    revised = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/extraction/blocks/{block['id']}", headers=headers,
+        json={"kind": "equation", "text": "H2SO4 + 2NaOH → Na2SO4 + 2H2O", "latex": "H_2SO_4 + 2NaOH",
+              "sequenceNumber": block["sequenceNumber"]},
+    )
+    assert revised.status_code == 200
+    republished_content = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
+                                      headers=headers, json=confirmation)
+    assert republished_content.status_code == 200
+    versions = session.scalars(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == link.topic_id).order_by(TextbookTopicContentVersion.version_number)).all()
+    assert [row.status for row in versions] == ["superseded", "published"]
+    assert session.query(RetrievalChunk).filter_by(topic_content_version_id=versions[0].id, status="superseded").count() >= 1
+    assert session.query(RetrievalChunk).filter_by(topic_content_version_id=versions[1].id, status="active").count() >= 1
+    unchanged = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
+                            headers=headers, json=confirmation)
+    assert unchanged.status_code == 409 and unchanged.json()["error"]["code"] == "topic_content_not_ready"
+
+    # Step 5: publish cumulative topic coverage, clone it, append a newly covered topic,
+    # and retain the assessment's original immutable snapshot.
+    second_topic = session.scalar(select(TextbookTopic).where(
+        TextbookTopic.textbook_id == textbook.id, TextbookTopic.id != link.topic_id,
+    ))
+    admin = session.query(User).filter_by(username=username).one()
+    second_topic.status = "published"
+    session.add(TextbookTopicContentVersion(topic_id=second_topic.id, version_number=1, status="published",
+        source_manifest=[{"test": True}], extraction_manifest={"test": True}, published_by=admin.id))
+    student_user = User(username=f"coverage-student-{uuid.uuid4().hex}", display_name="Coverage Student",
+        role="student", password_hash=hash_password("coverage student password"), must_change_password=False)
+    parent_user = User(username=f"coverage-parent-{uuid.uuid4().hex}", display_name="Coverage Parent",
+        role="parent", password_hash=hash_password("coverage parent password"), must_change_password=False)
+    session.add_all([parent_user, student_user]); session.flush()
+    session.add_all([StudentProfile(student_id=student_user.id, parent_id=parent_user.id),
+        StudentProgression(student_id=student_user.id, course_id="igcse", grade=10, term=1, is_current=True),
+        StudentProgression(student_id=student_user.id, course_id="igcse", grade=10, term=2, is_current=False),
+        StudentSubject(student_id=student_user.id, subject_id="chemistry")]); session.commit()
+    initial_plan = client.get("/api/v1/admin/curriculum-plans/chemistry").json()
+    assert initial_plan["status"] == "not_started" and initial_plan["groups"]
+    draft = client.post("/api/v1/admin/curriculum-plans/chemistry/draft", headers=headers, json={}).json()
+    draft["periods"][0]["topicRefs"] = [topic_ref]
+    saved = client.post("/api/v1/admin/curriculum-plans/chemistry", headers=headers,
+                        json={"periods": draft["periods"]})
+    assert saved.status_code == 200
+    first_publication = client.post("/api/v1/admin/curriculum-plans/chemistry/publish", headers=headers,
+        json={"confirmSubject": True, "confirmTextbook": True})
+    assert first_publication.status_code == 200
+    frozen = snapshot(session, "topic-coverage-assessment", student_user.id, "chemistry")
+    assert frozen.covered_topic_ids == [str(link.topic_id)]
+    next_draft = client.post("/api/v1/admin/curriculum-plans/chemistry/draft", headers=headers, json={}).json()
+    assert next_draft["basedOnVersion"] == 1 and next_draft["periods"][0]["topicRefs"] == [topic_ref]
+    next_draft["periods"][1]["topicRefs"] = [second_topic.public_ref]
+    revised_plan = client.post("/api/v1/admin/curriculum-plans/chemistry", headers=headers,
+                               json={"periods": next_draft["periods"]}).json()
+    assert revised_plan["changes"][0]["change"] == "added"
+    assert client.post("/api/v1/admin/curriculum-plans/chemistry/publish", headers=headers,
+        json={"confirmSubject": True, "confirmTextbook": True}).status_code == 200
+    progression = session.query(StudentProgression).filter_by(student_id=student_user.id).all()
+    next(row for row in progression if row.term == 1).is_current = False
+    session.commit()
+    next(row for row in progression if row.term == 2).is_current = True
+    session.commit()
+    cumulative = client.get(f"/api/v1/admin/students/{student_user.id}/coverage",
+                            params={"subjectId": "chemistry"}).json()
+    assert {row["topicRef"] for row in cumulative["coveredTopics"]} == {topic_ref, second_topic.public_ref}
+    assert snapshot(session, "topic-coverage-assessment", student_user.id, "chemistry").covered_topic_ids == [str(link.topic_id)]
+    destructive = client.post("/api/v1/admin/curriculum-plans/chemistry/draft", headers=headers, json={}).json()
+    destructive["periods"][1]["topicRefs"] = []
+    changed_plan = client.post("/api/v1/admin/curriculum-plans/chemistry", headers=headers,
+                               json={"periods": destructive["periods"]}).json()
+    assert changed_plan["requiresPublishedChangeConfirmation"] is True
+    blocked = client.post("/api/v1/admin/curriculum-plans/chemistry/publish", headers=headers,
+        json={"confirmSubject": True, "confirmTextbook": True})
+    assert blocked.status_code == 409 and blocked.json()["error"]["code"] == "curriculum_published_change_confirmation_required"
+    assert client.post("/api/v1/admin/curriculum-plans/chemistry/publish", headers=headers,
+        json={"confirmSubject": True, "confirmTextbook": True, "confirmPublishedChanges": True}).status_code == 200
+    assert session.query(CurriculumPlan).filter_by(subject_id="chemistry", status="superseded").count() == 2
+
+    second_pdf = fitz.open(); second_page = second_pdf.new_page(); second_page.insert_text((72, 72), "Topic 11 acids")
+    second_bytes = second_pdf.tobytes(); second_pdf.close()
+    batch = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/documents/batch", headers=headers,
+                        json={"items": [{"filename": "topic-11-part-2.pdf", "contentType": "application/pdf",
+                                         "contentBase64": base64.b64encode(second_bytes).decode(), "role": "supporting",
+                                         "idempotencyKey": "topic-11-second-part"}]})
+    assert batch.status_code == 201 and batch.json()[0]["document"]["sourceMetadata"]["topicRef"] == topic_ref
+
+
+@pytest.mark.integration
+def test_topic_question_mapping_is_weighted_same_subject_and_requires_all_topics(auth_client) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}; session = next(app.dependency_overrides[get_db]())
+    admin = session.query(User).filter_by(username=username).one()
+    book = Textbook(course_id="igcse", subject_id="chemistry", title="Mapping chemistry", edition="2026",
+        publisher="Test", group_label="unit", status="published", created_by=admin.id, published_by=admin.id)
+    foreign_book = Textbook(course_id="igcse", subject_id="biology", title="Mapping biology", edition="2026",
+        publisher="Test", group_label="unit", status="published", created_by=admin.id, published_by=admin.id)
+    session.add_all([book, foreign_book]); session.flush()
+    groups = [TextbookGroup(textbook_id=book.id, code=f"U{i}", title=f"Unit {i}", sequence=i, status="published") for i in (1,2)]
+    foreign_group = TextbookGroup(textbook_id=foreign_book.id, code="B1", title="Biology", sequence=1, status="published")
+    session.add_all([*groups, foreign_group]); session.flush()
+    topics = [TextbookTopic(textbook_id=book.id, group_id=groups[i].id, course_id="igcse", subject_id="chemistry",
+        code=str(code), title=title, sequence=1, status="published") for i,(code,title) in enumerate(((4,"Acids"),(7,"Equations")))]
+    foreign_topic = TextbookTopic(textbook_id=foreign_book.id, group_id=foreign_group.id, course_id="igcse",
+        subject_id="biology", code="B1", title="Cells", sequence=1, status="published")
+    session.add_all([*topics, foreign_topic]); session.flush()
+    for topic in [*topics, foreign_topic]: session.add(TextbookTopicContentVersion(topic_id=topic.id, version_number=1,
+        status="published", source_manifest=[{"test":True}], extraction_manifest={}, published_by=admin.id))
+    paper = Document(kind="past_paper", course_id="igcse", subject_id="chemistry", title="Topic paper",
+        original_filename="paper.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex*2, review_state="published", uploaded_by=admin.id, size_bytes=1)
+    session.add(paper); session.flush()
+    source = DocumentVersion(document_id=paper.id, version_number=1, original_filename="paper.pdf",
+        object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf", sha256=uuid.uuid4().hex*2,
+        size_bytes=1, status="completed", uploaded_by=admin.id)
+    session.add(source); session.flush()
+    material = OfficialMaterialVersion(document_id=paper.id, source_document_version_id=source.id, version_number=1,
+        kind="past_paper", course_id="igcse", subject_id="chemistry", textbook_id=book.id, status="published",
+        inventory_count=1, completeness_confirmed=True, created_by=admin.id, published_by=admin.id)
+    session.add(material); session.flush()
+    question = OfficialQuestionVersion(material_version_id=material.id, question_number="1", prompt="Explain acids using an equation.",
+        shared_stem="Use the reaction evidence.", marks=4, source_locations=[{"page":1,"blockId":"evidence","boundingBox":{}}])
+    session.add(question); session.commit()
+    inventory = client.get(f"/api/v1/questions/papers/{paper.id}/topic-mappings").json()
+    assert len(inventory["groups"]) == 2 and inventory["questions"][0]["sourceLocations"][0]["page"] == 1
+    foreign = client.post(f"/api/v1/questions/{question.id}/topic-mapping", headers=headers, json={"mappings":[
+        {"topicRef":foreign_topic.public_ref,"weight":100,"required":True}]})
+    assert foreign.status_code == 422 and foreign.json()["error"]["code"] == "foreign_topic_mapping"
+    saved = client.post(f"/api/v1/questions/{question.id}/topic-mapping", headers=headers, json={"mappings":[
+        {"topicRef":topics[0].public_ref,"weight":60,"required":True},
+        {"topicRef":topics[1].public_ref,"weight":40,"required":True}]})
+    assert saved.status_code == 200 and saved.json()["groupWeights"] == {"U1":60,"U2":40}
+    assert client.post(f"/api/v1/questions/{question.id}/topic-mapping/publish", headers=headers, json={}).status_code == 200
+    rows = session.query(OfficialQuestionTopicMapping).filter_by(question_version_id=question.id, status="confirmed").all()
+    assert len(rows) == 2 and all(row.required for row in rows)
+    parent = User(username=f"mapping-parent-{uuid.uuid4().hex}", display_name="Mapping Parent", role="parent",
+        password_hash=hash_password("mapping parent password"), must_change_password=False)
+    student = User(username=f"mapping-student-{uuid.uuid4().hex}", display_name="Mapping Student", role="student",
+        password_hash=hash_password("mapping student password"), must_change_password=False)
+    session.add_all([parent, student]); session.flush()
+    session.add_all([StudentProfile(student_id=student.id, parent_id=parent.id),
+        StudentProgression(student_id=student.id, course_id="igcse", grade=10, term=1, is_current=True),
+        StudentSubject(student_id=student.id, subject_id="chemistry")])
+    plan = CurriculumPlan(course_id="igcse", subject_id="chemistry", textbook_id=book.id,
+        version_number=1, status="published", created_by=admin.id, published_by=admin.id)
+    session.add(plan); session.flush()
+    session.add(CurriculumPlanTopic(plan_id=plan.id, grade=10, term=1, topic_id=topics[0].id)); session.commit()
+    assert assessments.eligible_questions(session, student.id, "chemistry") == []
+    session.add(CurriculumPlanTopic(plan_id=plan.id, grade=10, term=1, topic_id=topics[1].id)); session.commit()
+    assert [row[0].id for row in assessments.eligible_questions(session, student.id, "chemistry")] == [question.id]
 
 
 @pytest.mark.integration

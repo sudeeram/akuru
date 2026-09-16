@@ -13,6 +13,7 @@ import {
   getLatestDocumentJob,
   getTextbookReview,
   getCurriculumPlan,
+  createCurriculumPlanDraft,
   getOfficialMaterialReview,
   getPaperMappings,
   proposeTextbookReview,
@@ -37,10 +38,12 @@ import {
   type CurriculumPlan,
   type OfficialMaterialReview,
   type PaperMappings,
-  type UnitMapping,
+  type TopicMapping,
   type AssessmentAudit,
   getAssessmentAudit,
   reassessAssessment,
+  updateExtractionBlock,
+  updateExtractionPage,
 } from '@/lib/api';
 import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
@@ -49,6 +52,7 @@ import { OperationsAdmin } from './operations-admin';
 import { TutorPresetAdmin } from './tutor-profiles';
 import { TutorQuotaAdmin } from './tutor-quotas';
 import { TutorHistory } from './tutor-history';
+import { TextbookStructureAdmin } from './textbook-structure';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -160,6 +164,7 @@ export function AdminWorkspace(p: Props) {
     [editId, setEditId] = useState('');
   const [grade, setGrade] = useState('Grade 10'),
     [term, setTerm] = useState('Term1'),
+    [coverageTerm, setCoverageTerm] = useState('all'),
     [progression, setProgression] = useState<string[]>(['Grade 10|Term1']),
     [enrolled, setEnrolled] = useState<string[]>(['maths']);
   const [subject, setSubject] = useState('maths'),
@@ -174,9 +179,7 @@ export function AdminWorkspace(p: Props) {
     [publisher, setPublisher] = useState(''),
     [isbn, setIsbn] = useState(''),
     [sourceUrl, setSourceUrl] = useState('');
-  const [code, setCode] = useState(''),
-    [unitTitle, setUnitTitle] = useState(''),
-    [docId, setDocId] = useState('');
+  const [docId, setDocId] = useState('');
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
   const [textbookReview, setTextbookReview] = useState<TextbookReview | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
@@ -185,7 +188,7 @@ export function AdminWorkspace(p: Props) {
   const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
   const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
   const [mappingQuestionId, setMappingQuestionId] = useState('');
-  const [mappingDraft, setMappingDraft] = useState<UnitMapping[]>([]);
+  const [mappingDraft, setMappingDraft] = useState<TopicMapping[]>([]);
   const [blueprintName, setBlueprintName] = useState('Term mock'),
     [blueprintMarks, setBlueprintMarks] = useState('20'),
     [blueprintMinutes, setBlueprintMinutes] = useState('30'),
@@ -199,9 +202,6 @@ export function AdminWorkspace(p: Props) {
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
   );
   const doc = p.data.documents.find((d) => d.id === docId);
-  const units = p.data.units.filter(
-    (u) => u.subject === subject,
-  );
   const documentKinds = {
     Textbook: 'textbook',
     'Reference material': 'reference',
@@ -364,7 +364,7 @@ export function AdminWorkspace(p: Props) {
             today: 'Curriculum administration',
             accounts: 'Accounts & enrolments',
             library: 'Documents & textbooks',
-            units: 'Textbook units',
+            units: 'Textbook structure',
             coverage: 'Grade & term coverage',
             questions: 'Question mapping',
             blueprints: 'Mock paper blueprints',
@@ -386,13 +386,8 @@ export function AdminWorkspace(p: Props) {
           {error}
         </div>
       )}
-      {['units'].includes(p.view) && (
-        <output className="panel spaced">
-          This screen previews a later roadmap workflow. Its write API is not implemented yet, so editing is disabled.
-        </output>
-      )}
       <fieldset
-        disabled={busy || ['units'].includes(p.view)}
+        disabled={busy}
         style={{ border: 0, padding: 0, minWidth: 0 }}
       >
         {p.view === 'today' && (
@@ -891,21 +886,28 @@ export function AdminWorkspace(p: Props) {
                           {page.needsReview ? ' · review required' : ''}
                         </span>
                       </div>
-                      <div className="extraction-review-grid"><div><strong className="small">Original rendered page</strong><Image
-                        src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
+                      <div className="two-cols"><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></div>
+                      <div className="extraction-review-grid"><div><strong className="small">Original page</strong><Image
+                        src={`/api/v1/documents/${doc.id}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
                         alt={`Rendered source page ${page.pageNumber}`}
                         width={Math.max(1, Math.round(page.widthPoints))}
                         height={Math.max(1, Math.round(page.heightPoints))}
                         unoptimized
                         loading="lazy"
                         style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
+                      /></div><div><strong className="small">Normalized review page</strong><Image
+                        src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
+                        alt={`Normalized review page ${page.pageNumber}`}
+                        width={Math.max(1, Math.round(page.widthPoints))} height={Math.max(1, Math.round(page.heightPoints))}
+                        unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
                       /></div><div><strong className="small">Extracted content</strong>{page.blocks.map((block) => (
-                        <div className="small" key={`${page.pageNumber}-${block.sequenceNumber}`}>
+                        <div className="small stack" key={`${page.pageNumber}-${block.sequenceNumber}`}>
                           <strong>{block.kind}</strong> · {block.method} ·{' '}
                           {Math.round(block.confidence * 100)}%
                           {block.needsReview ? ' · review required' : ''}
-                          {block.text && <p>{block.text}</p>}
-                          {block.latex && <code>{block.latex}</code>}
+                          <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
+                          <Field label="Extracted text" multiline value={block.text} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value } : item) } : row) })}/>
+                          <Field label="Equation or formula (LaTeX)" multiline value={block.latex || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, latex: value } : item) } : row) })}/>
                           {block.sourceAssetId && (
                             <Image
                               src={`/api/v1/documents/${doc.id}/assets/${block.sourceAssetId}/content`}
@@ -917,6 +919,7 @@ export function AdminWorkspace(p: Props) {
                               style={{ maxWidth: '20rem', height: 'auto', objectFit: 'contain' }}
                             />
                           )}
+                          <Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, sequenceNumber: block.sequenceNumber })); }, 'Extracted block reviewed and saved.')}>Save reviewed block</Button>
                         </div>
                       ))}</div></div>
                     </article>
@@ -930,49 +933,7 @@ export function AdminWorkspace(p: Props) {
           </>
         )}
         {p.view === 'units' && (
-          <>
-            <form
-              className="panel stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void run(async () => {
-                  await api('admin/units', {
-                    textbookId,
-                    code,
-                    title: unitTitle,
-                  });
-                  setCode('');
-                  setUnitTitle('');
-                }, 'Textbook unit added.');
-              }}
-            >
-              {subjectPicker}
-              <Picker
-                label="Textbook"
-                value={textbookId}
-                onChange={setTextbookId}
-                options={books.map((b) => ({ value: b.id, label: b.name }))}
-              />
-              <Field label="Unit code" value={code} onChange={setCode} />
-              <Field
-                label="Unit title"
-                value={unitTitle}
-                onChange={setUnitTitle}
-              />
-              <Button type="submit" className="primary">
-                Add unit
-              </Button>
-            </form>
-            <section className="panel spaced">
-              <h2>Registered units</h2>
-              {units.map((u) => (
-                <p key={u.id}>
-                  {u.code} · {u.title} ·{' '}
-                  {p.data.documents.find((d) => d.id === u.textbookId)?.name}
-                </p>
-              ))}
-            </section>
-          </>
+          <TextbookStructureAdmin subjects={p.data.subjects} notify={p.notify} refreshPortal={p.refresh} />
         )}
         {p.view === 'coverage' && (
           <section className="panel stack">
@@ -985,34 +946,42 @@ export function AdminWorkspace(p: Props) {
                     <p>Edition {curriculumPlan.textbookEdition} · Plan {curriculumPlan.versionNumber || 'not saved'} · {curriculumPlan.status.replaceAll('_', ' ')}</p>
                   </div>
                 </div>
-                <p>Assign each unit to the Grade and Term where it is first taught. A student in Grade 10 Term2 receives the union of Grade 10 Term1 and Term2.</p>
-                {curriculumPlan.periods.map((period, index) => {
+                <p>Assign each published topic to the Grade and Term where it is first taught. Grade 10 Term1 and Term2 are combined for a student who has reached Term2, and coverage continues accumulating through later periods.</p>
+                {curriculumPlan.status === 'published' && <Button variant="outline" onClick={() => void run(async () => {
+                  setCurriculumPlan(await createCurriculumPlanDraft(subject));
+                }, `Plan ${curriculumPlan.versionNumber + 1} draft created from the published plan.`)}>Add topics covered now</Button>}
+                <div className="toolbar"><Picker label="Term to review" value={coverageTerm} onChange={setCoverageTerm} options={[{ value: 'all', label: 'All terms' }, ...[1, 2, 3].map((value) => ({ value: String(value), label: `Term ${value}` }))]} /><p className="small">Use this keyboard-friendly filter to focus on the term being planned. A student receives cumulative coverage from earlier terms.</p></div>
+                {curriculumPlan.periods.filter((period) => coverageTerm === 'all' || String(period.term) === coverageTerm).map((period) => {
+                  const index = curriculumPlan.periods.findIndex((row) => row.grade === period.grade && row.term === period.term);
                   const cumulativeIds = curriculumPlan.periods
                     .filter((row) => (row.grade < period.grade) || (row.grade === period.grade && row.term <= period.term))
-                    .flatMap((row) => row.unitIds);
+                    .flatMap((row) => row.topicRefs || []);
+                  const publishedIds = curriculumPlan.publishedPeriods.find((row) => row.grade === period.grade && row.term === period.term)?.topicRefs || [];
                   return (
-                    <section className="panel stack" key={`${period.grade}-${period.term}`}>
-                      <h3>Grade {period.grade} · Term{period.term}</h3>
-                      <Checks
-                        label="Units introduced in this term"
-                        items={curriculumPlan.availableUnits.map((unit) => ({ id: unit.id, name: `${unit.code} · ${unit.title}` }))}
-                        selected={period.unitIds}
-                        change={(ids) => setCurriculumPlan({
-                          ...curriculumPlan,
-                          periods: curriculumPlan.periods.map((row, i) => i === index ? { ...row, unitIds: ids } : { ...row, unitIds: row.unitIds.filter((id) => !ids.includes(id)) }),
-                        })}
-                      />
-                      <p className="small"><strong>Cumulative coverage:</strong>{' '}{curriculumPlan.availableUnits.filter((unit) => cumulativeIds.includes(unit.id)).map((unit) => unit.code).join(', ') || 'No units configured'}</p>
+                    <section className="panel stack" aria-labelledby={`coverage-${period.grade}-${period.term}`} key={`${period.grade}-${period.term}`}>
+                      <h3 id={`coverage-${period.grade}-${period.term}`}>Grade {period.grade} · Term{period.term}</h3>
+                      {curriculumPlan.groups.map((group) => <Checks key={group.groupRef}
+                        label={`${curriculumPlan.groupLabel === 'module' ? 'Module' : 'Unit'} ${group.code} · ${group.title}`}
+                        items={group.topics.map((topic) => ({ id: topic.topicRef, name: `${topic.code} · ${topic.title}${publishedIds.includes(topic.topicRef) ? ' · published' : ''}` }))}
+                        selected={period.topicRefs || []}
+                        change={(ids) => setCurriculumPlan({ ...curriculumPlan, periods: curriculumPlan.periods.map((row, i) => i === index
+                          ? { ...row, topicRefs: [...(row.topicRefs || []).filter((ref) => !group.topics.some((topic) => topic.topicRef === ref)), ...ids] }
+                          : { ...row, topicRefs: (row.topicRefs || []).filter((ref) => !ids.includes(ref)) }) })} />)}
+                      <p className="small"><strong>Cumulative coverage preview:</strong>{' '}{curriculumPlan.groups.flatMap((group) => group.topics).filter((topic) => cumulativeIds.includes(topic.topicRef)).map((topic) => topic.code).join(', ') || 'No topics configured'}</p>
                     </section>
                   );
                 })}
+                {!!curriculumPlan.changes.length && <section className="callout stack"><strong>Changes from published plan {curriculumPlan.basedOnVersion}</strong>
+                  {curriculumPlan.changes.map((change) => <span key={change.topicRef}>{change.code} · {change.change}{change.fromPeriod ? ` from ${change.fromPeriod}` : ''}{change.toPeriod ? ` to ${change.toPeriod}` : ''}</span>)}
+                  {curriculumPlan.requiresPublishedChangeConfirmation && <p>Moving or removing published coverage can change future practice, mock papers and Tutor access. Existing assessments retain their original snapshot.</p>}
+                </section>}
                 <div className="button-row">
                   <Button variant="outline" onClick={() => void run(async () => {
                     setCurriculumPlan(await saveCurriculumPlan(subject, curriculumPlan.periods));
                   }, 'Curriculum plan draft saved.')}>Save draft</Button>
                   <Button className="primary" disabled={curriculumPlan.status !== 'draft'} onClick={() => {
                     if (window.confirm(`Publish curriculum plan ${curriculumPlan.versionNumber} for ${curriculumPlan.textbookTitle}? Existing assessments keep their current snapshot.`))
-                      void run(async () => { setCurriculumPlan(await publishCurriculumPlan(subject)); }, 'Curriculum plan published.');
+                      void run(async () => { setCurriculumPlan(await publishCurriculumPlan(subject, curriculumPlan.requiresPublishedChangeConfirmation)); }, 'Curriculum plan published.');
                   }}>Publish plan</Button>
                 </div>
               </>
@@ -1027,7 +996,7 @@ export function AdminWorkspace(p: Props) {
             }} options={papers.map((item) => ({ value: item.id, label: item.name }))} />
             {paperMappings && (
               <>
-                <p><strong>{paperMappings.paperTitle}</strong> · {paperMappings.textbookTitle}, {paperMappings.textbookEdition}</p>
+                <p><strong>{paperMappings.paperTitle}</strong> · {paperMappings.textbookTitle}, {paperMappings.textbookEdition} · {paperMappings.confirmedQuestionCount}/{paperMappings.totalQuestionCount} questions confirmed</p>
                 <div className="button-row">
                   {paperMappings.questions.map((question) => (
                     <Button key={question.questionId} variant={mappingQuestionId === question.questionId ? 'default' : 'outline'} onClick={() => {
@@ -1038,17 +1007,15 @@ export function AdminWorkspace(p: Props) {
                 {paperMappings.questions.filter((question) => question.questionId === mappingQuestionId).map((question) => (
                   <article className="panel stack" key={question.questionId}>
                     <h2>Question {question.number} · {question.marks} marks</h2>
+                    {question.sharedStem && <p><strong>Shared evidence:</strong> {question.sharedStem}</p>}
                     <p>{question.prompt}</p>
-                    <p>Choose every required unit and assign weights totaling exactly 100%.</p>
-                    {paperMappings.units.map((unit) => {
-                      const mapped = mappingDraft.find((row) => row.unitId === unit.id);
-                      return (
-                        <div className="spread" key={unit.id}>
-                          <div className="check-label"><Checkbox aria-label={`Map ${unit.code}`} disabled={question.status === 'confirmed'} checked={Boolean(mapped)} onCheckedChange={(yes) => setMappingDraft(yes ? [...mappingDraft, { unitId: unit.id, weight: 0, rationale: '', method: 'admin' }] : mappingDraft.filter((row) => row.unitId !== unit.id))} /><span>{unit.code} · {unit.title}</span></div>
-                          {mapped && <Input aria-label={`${unit.code} weight percentage`} disabled={question.status === 'confirmed'} type="number" min="1" max="100" value={mapped.weight} onChange={(event) => setMappingDraft(mappingDraft.map((row) => row.unitId === unit.id ? { ...row, weight: Number(event.target.value) } : row))} style={{ maxWidth: '7rem' }} />}
-                        </div>
-                      );
-                    })}
+                    <p className="small">Extracted evidence: {question.sourceLocations.map((source) => `page ${source.page}`).join(', ') || 'source page retained'}</p>
+                    <p>Choose every related topic, assign weights totaling exactly 100%, and mark the topics that every student must have covered.</p>
+                    {paperMappings.groups.map((group) => <fieldset className="panel stack" key={group.groupRef}><legend>{paperMappings.groupLabel === 'module' ? 'Module' : 'Unit'} {group.code} · {group.title}</legend>{group.topics.map((topic) => {
+                      const mapped = mappingDraft.find((row) => row.topicRef === topic.topicRef);
+                      return <div className="spread" key={topic.topicRef}><div className="check-label"><Checkbox aria-label={`Map ${topic.code}`} disabled={question.status === 'confirmed'} checked={Boolean(mapped)} onCheckedChange={(yes) => setMappingDraft(yes ? [...mappingDraft, { topicRef: topic.topicRef, weight: 0, required: true, rationale: '', method: 'admin' }] : mappingDraft.filter((row) => row.topicRef !== topic.topicRef))} /><span>{topic.code} · {topic.title}</span></div>{mapped && <div className="button-row"><label className="check-label" htmlFor={`required-${question.questionId}-${topic.topicRef}`}><Checkbox id={`required-${question.questionId}-${topic.topicRef}`} disabled={question.status === 'confirmed'} checked={mapped.required} onCheckedChange={(value) => setMappingDraft(mappingDraft.map((row) => row.topicRef === topic.topicRef ? { ...row, required: Boolean(value) } : row))} />Required</label><Input aria-label={`${topic.code} weight percentage`} disabled={question.status === 'confirmed'} type="number" min="1" max="100" value={mapped.weight} onChange={(event) => setMappingDraft(mappingDraft.map((row) => row.topicRef === topic.topicRef ? { ...row, weight: Number(event.target.value) } : row))} style={{ maxWidth: '7rem' }} /></div>}</div>;
+                    })}</fieldset>)}
+                    {!!Object.keys(question.groupWeights).length && <p className="small"><strong>Group summary:</strong> {Object.entries(question.groupWeights).map(([code, weight]) => `${code} ${weight}%`).join(' · ')}</p>}
                     <p className={mappingDraft.reduce((sum, row) => sum + row.weight, 0) === 100 ? 'small' : 'error'}>Total weight: {mappingDraft.reduce((sum, row) => sum + row.weight, 0)}%</p>
                     <div className="button-row">
                       <Button variant="outline" disabled={question.status === 'confirmed'} onClick={() => void run(async () => {
@@ -1059,7 +1026,7 @@ export function AdminWorkspace(p: Props) {
                         setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) });
                       }, 'Mapping draft saved.')}>Save mapping</Button>
                       <Button className="primary" disabled={question.status !== 'draft'} onClick={() => {
-                        if (window.confirm(`Confirm the unit mapping for question ${question.number}? It becomes immutable.`)) void run(async () => {
+                        if (window.confirm(`Confirm the topic mapping for question ${question.number}? It becomes immutable.`)) void run(async () => {
                           const response = await publishQuestionMappings(question.questionId);
                           setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) }); setMappingDraft(response.mappings);
                         }, 'Question mapping confirmed.');

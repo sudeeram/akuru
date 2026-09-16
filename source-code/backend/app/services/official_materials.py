@@ -9,7 +9,7 @@ from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
-    OfficialQuestionVersion,
+    OfficialQuestionVersion, Textbook,
     TextbookContentVersion,
 )
 from app.schemas.official_materials import (
@@ -60,6 +60,13 @@ def _published_textbook_version(db: Session, document: Document):
     if not version:
         raise DomainError("published_textbook_required", "Publish a same-subject textbook before reviewing this paper.", 409)
     return version
+
+
+def _published_textbook(db: Session, document: Document):
+    return db.scalar(select(Textbook).where(
+        Textbook.course_id == document.course_id, Textbook.subject_id == document.subject_id,
+        Textbook.status == "published",
+    ).order_by(Textbook.published_at.desc()))
 
 
 def _locations(block: DocumentBlock, page_number: int) -> list[SourceLocation]:
@@ -173,7 +180,8 @@ def propose_review(db: Session, principal: Principal, document_id: uuid.UUID):
         document_id=document.id, source_document_version_id=version.id, version_number=next_version,
         kind=document.kind, course_id=document.course_id, subject_id=document.subject_id,
         source_paper_id=document.source_document_id, status="draft", created_by=principal.user.id,
-        textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" else None,
+        textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" and not _published_textbook(db, document) else None,
+        textbook_id=_published_textbook(db, document).id if document.kind == "past_paper" and _published_textbook(db, document) else None,
     )
     db.add(material); db.flush()
     proposal = _proposal_rows(db, version, document.kind)
@@ -232,7 +240,8 @@ def save_review(db: Session, principal: Principal, document_id: uuid.UUID, paylo
     if not material:
         version = _source_version(db, document.id)
         next_version = (db.scalar(select(func.max(OfficialMaterialVersion.version_number)).where(OfficialMaterialVersion.document_id == document.id)) or 0) + 1
-        material = OfficialMaterialVersion(document_id=document.id, source_document_version_id=version.id, version_number=next_version, kind=document.kind, course_id=document.course_id, subject_id=document.subject_id, source_paper_id=document.source_document_id, created_by=principal.user.id, textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" else None)
+        logical = _published_textbook(db, document) if document.kind == "past_paper" else None
+        material = OfficialMaterialVersion(document_id=document.id, source_document_version_id=version.id, version_number=next_version, kind=document.kind, course_id=document.course_id, subject_id=document.subject_id, source_paper_id=document.source_document_id, created_by=principal.user.id, textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" and not logical else None, textbook_id=logical.id if logical else None)
         db.add(material); db.flush()
     expected_kind_count = len(payload.questions if document.kind == "past_paper" else payload.markSchemeEntries if document.kind == "mark_scheme" else payload.examinerComments)
     if any((payload.questions if document.kind != "past_paper" else [], payload.markSchemeEntries if document.kind != "mark_scheme" else [], payload.examinerComments if document.kind != "examiner_report" else [])):
@@ -272,6 +281,7 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
         source_paper_version, allowed = _published_paper_questions(db, material.source_paper_id)
         material.source_paper_version_id = source_paper_version.id
         material.textbook_content_version_id = source_paper_version.textbook_content_version_id
+        material.textbook_id = source_paper_version.textbook_id
         model = MarkSchemeEntryVersion if material.kind == "mark_scheme" else ExaminerCommentVersion
         numbers = set(db.scalars(select(model.question_number).where(model.material_version_id == material.id)).all())
         if not numbers.issubset(allowed):
