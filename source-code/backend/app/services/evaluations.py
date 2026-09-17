@@ -17,6 +17,7 @@ PHASE1_SUBJECTS = ("english", "maths", "ict", "biology", "chemistry", "physics",
 THRESHOLDS = {
     "inventory_recall": .98, "ocr_similarity": .97, "equation_preservation": 1.0,
     "diagram_preservation": 1.0, "mapping_precision": .95, "cross_subject_rejection": 1.0,
+    "topic_isolation": 1.0, "citation_completeness": 1.0,
     "mark_exactness": .90, "method_mark_exactness": .95, "small_error_recall": .90,
     "improved_answer_quality": .95, "grounding": 1.0, "repeatability": .95,
 }
@@ -71,9 +72,13 @@ def _score(category: str, expected: dict, output: dict) -> dict[str, float]:
     if category == "equation": return {"equation_preservation": float(output.get("equation") == expected.get("equation"))}
     if category == "diagram": return {"diagram_preservation": float(bool(output.get("preserved")) == bool(expected.get("preserved", True)))}
     if category == "mapping":
-        predicted, wanted = output.get("unitIds", []), expected.get("unitIds", [])
+        predicted, wanted = output.get("topicRefs", output.get("unitIds", [])), expected.get("topicRefs", expected.get("unitIds", []))
         precision = 1.0 if not predicted and not wanted else (len(set(predicted) & set(wanted)) / len(set(predicted)) if predicted else 0.0)
         return {"mapping_precision": precision, "cross_subject_rejection": float(bool(output.get("crossSubjectRejected")) == bool(expected.get("crossSubjectRejected", True)))}
+    if category == "topic_citation":
+        required = expected.get("requiredCitationFields", [])
+        return {"topic_isolation": float(bool(output.get("topicIsolation")) == bool(expected.get("topicIsolation", True))),
+                "citation_completeness": _ratio(output.get("citationFields"), required)}
     if category == "marking":
         return {"mark_exactness": float(output.get("marks") == expected.get("marks")), "method_mark_exactness": _ratio(output.get("methodPoints"), expected.get("methodPoints"))}
     if category == "feedback":
@@ -134,7 +139,7 @@ def review_corpus(db: Session, principal: Principal, corpus_id: uuid.UUID, decis
     if not row: raise DomainError("evaluation_corpus_not_found", "Evaluation corpus was not found.", 404)
     if decision == "approved":
         categories = {case["category"] for case in row.cases}
-        required = TUTOR_CATEGORIES if row.workflow == "tutor" else {"inventory", "ocr", "equation", "diagram", "mapping", "marking", "feedback", "repeatability"}
+        required = TUTOR_CATEGORIES if row.workflow == "tutor" else {"inventory", "ocr", "equation", "diagram", "mapping", "topic_citation", "marking", "feedback", "repeatability"}
         if categories != required:
             raise DomainError("evaluation_corpus_incomplete", "Approved corpora must include every required evaluation category.", 409)
         if row.workflow == "tutor":

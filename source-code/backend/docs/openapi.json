@@ -2564,6 +2564,7 @@
               "equation",
               "diagram",
               "mapping",
+              "topic_citation",
               "marking",
               "feedback",
               "repeatability",
@@ -7279,6 +7280,62 @@
         "title": "TextbookUpdateRequest",
         "type": "object"
       },
+      "TopicDocumentQualityReport": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/TopicQualityCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "diagramCount": {
+            "title": "Diagramcount",
+            "type": "integer"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "equationCount": {
+            "title": "Equationcount",
+            "type": "integer"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "pageCount": {
+            "title": "Pagecount",
+            "type": "integer"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "reviewStatus": {
+            "title": "Reviewstatus",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentId",
+          "filename",
+          "role",
+          "reviewStatus",
+          "pageCount",
+          "equationCount",
+          "diagramCount",
+          "passed",
+          "checks"
+        ],
+        "title": "TopicDocumentQualityReport",
+        "type": "object"
+      },
       "TopicGroupOption": {
         "properties": {
           "code": {
@@ -7738,6 +7795,83 @@
           "filenames"
         ],
         "title": "TopicPartSuggestionRequest",
+        "type": "object"
+      },
+      "TopicQualityCheck": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "code",
+          "threshold",
+          "value",
+          "passed"
+        ],
+        "title": "TopicQualityCheck",
+        "type": "object"
+      },
+      "TopicQualityReport": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/TopicDocumentQualityReport"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "resolution": {
+            "title": "Resolution",
+            "type": "string"
+          },
+          "thresholds": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Thresholds",
+            "type": "object"
+          },
+          "topicCode": {
+            "title": "Topiccode",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "thresholds",
+          "passed",
+          "documents",
+          "resolution"
+        ],
+        "title": "TopicQualityReport",
         "type": "object"
       },
       "TopicQuestionMappingResponse": {
@@ -13381,6 +13515,93 @@
           }
         },
         "summary": "Publish Topic Content",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/quality": {
+      "get": {
+        "operationId": "topic_quality_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__quality_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicQualityReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Topic Quality",
         "tags": [
           "textbook structures"
         ]

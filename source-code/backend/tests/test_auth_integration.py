@@ -2253,6 +2253,7 @@ def test_admin_evaluation_corpus_regression_and_release_gate(auth_client) -> Non
         {"caseId": "equation", "category": "equation", "expected": {"equation": "x^2"}},
         {"caseId": "diagram", "category": "diagram", "expected": {"preserved": True}},
         {"caseId": "mapping", "category": "mapping", "expected": {"unitIds": ["u1"], "crossSubjectRejected": True}},
+        {"caseId": "citation", "category": "topic_citation", "expected": {"topicIsolation": True, "requiredCitationFields": ["topicRef", "printedPage"]}},
         {"caseId": "marking", "category": "marking", "expected": {"marks": 2, "methodPoints": ["M1"]}},
         {"caseId": "feedback", "category": "feedback", "expected": {"smallErrors": ["unit"], "improvedAnswerRequired": True, "sourceIds": ["s1"]}},
         {"caseId": "repeat", "category": "repeatability", "expected": {"stableDecisions": ["M1"]}},
@@ -2265,6 +2266,7 @@ def test_admin_evaluation_corpus_regression_and_release_gate(auth_client) -> Non
     outputs = {
         "inventory": {"questionIds": ["Q1"]}, "ocr": {"text": "source text"}, "equation": {"equation": "x^2"},
         "diagram": {"preserved": True}, "mapping": {"unitIds": ["u1"], "crossSubjectRejected": True},
+        "citation": {"topicIsolation": True, "citationFields": ["topicRef", "printedPage"]},
         "marking": {"marks": 2, "methodPoints": ["M1"]},
         "feedback": {"smallErrors": ["unit"], "improvedAnswer": "Use the correct unit.", "sourceIds": ["s1"]},
         "repeat": {"stableDecisions": ["M1"]},

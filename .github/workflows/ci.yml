@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Validate Ubuntu playbook shell syntax
-        run: bash -n deploy/ubuntu/install-prerequisites.sh deploy/ubuntu/verify-prerequisites.sh deploy/ubuntu/install-services.sh deploy/ubuntu/encrypted-backup.sh deploy/ubuntu/security-check.sh
+        run: bash -n deploy/ubuntu/install-prerequisites.sh deploy/ubuntu/verify-prerequisites.sh deploy/ubuntu/install-services.sh deploy/ubuntu/encrypted-backup.sh deploy/ubuntu/security-check.sh deploy/ubuntu/release-preflight.sh deploy/ubuntu/deploy-reviewed-release.sh deploy/ubuntu/release-acceptance.sh
       - name: Reject committed secrets and frontend credential references
         run: bash deploy/ubuntu/security-check.sh
 

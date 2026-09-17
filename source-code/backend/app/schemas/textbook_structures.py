@@ -95,6 +95,35 @@ class PublishTopicContentRequest(BaseModel):
     confirmTopic: bool
 
 
+class TopicQualityCheck(BaseModel):
+    code: str
+    threshold: float
+    value: float
+    passed: bool
+
+
+class TopicDocumentQualityReport(BaseModel):
+    documentId: str
+    filename: str
+    role: str
+    reviewStatus: str
+    pageCount: int
+    equationCount: int
+    diagramCount: int
+    passed: bool
+    checks: list[TopicQualityCheck]
+
+
+class TopicQualityReport(BaseModel):
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    thresholds: dict[str, float]
+    passed: bool
+    documents: list[TopicDocumentQualityReport]
+    resolution: str
+
+
 class TopicReadinessResponse(BaseModel):
     state: str
     ready: bool

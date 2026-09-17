@@ -93,6 +93,7 @@ At minimum, set the real database password and public hostname, and verify these
 
 ```dotenv
 AKURU_ENVIRONMENT=production
+AKURU_PUBLIC_HOST=akuru.example.com
 AKURU_TUTOR_RELEASE_GATES_REQUIRED=true
 AKURU_DATABASE_HOST=127.0.0.1
 AKURU_DATABASE_PORT=5432
@@ -196,6 +197,19 @@ curl --fail https://akuru.example.com/health
 ```
 
 Keep `/data/akuru`, encrypted PostgreSQL backups, and `/etc/akuru/akuru.env` outside release replacement. See the [database backup guide](../../source-code/docs/database-backup.md), [environment reference](../../source-code/docs/environment.md), [production security guide](../../source-code/backend/docs/step-20-production-security-operations.md), and [Step 2 document-storage guide](../../source-code/backend/docs/step-02-document-storage.md).
+
+## Reviewed release procedure
+
+For the textbook-topic release, run the deployment tools only on the OCI host after the target Git SHA has been reviewed and pushed:
+
+```bash
+cd /opt/akuru
+sudo ./deploy/ubuntu/release-preflight.sh <reviewed-sha>
+sudo ./deploy/ubuntu/deploy-reviewed-release.sh --execute <reviewed-sha>
+sudo ./deploy/ubuntu/release-acceptance.sh akuru.magicalinternational.com
+```
+
+The preflight requires the educational-content audit to be empty. The deployment command takes encrypted database and document backups before it installs the locked dependencies or applies Alembic. It writes non-secret evidence below `/data/akuru/release-evidence`. See [the Step 10 release guide](../../source-code/backend/docs/textbook-topic-step-10-production-release.md) for the manual Admin and Chemistry-pilot acceptance checks.
 
 ## Upgrade outline
 

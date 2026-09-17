@@ -85,6 +85,7 @@ Exit gate: the exact release builds on ARM64 and all release checks pass.
 
    ```dotenv
    AKURU_ENVIRONMENT=production
+   AKURU_PUBLIC_HOST=akuru.magicalinternational.com
    AKURU_DATABASE_HOST=127.0.0.1
    AKURU_DATABASE_PORT=5432
    AKURU_DATABASE_NAME=akuru

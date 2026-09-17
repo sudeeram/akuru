@@ -7,7 +7,7 @@ from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.textbook_structures import (
     GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest, TextbookCreateRequest,
-    TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicSaveRequest,
+    TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicQualityReport, TopicSaveRequest,
 )
 from app.security import Principal
 from app.services import textbook_structures
@@ -36,6 +36,13 @@ def create_textbook(payload: TextbookCreateRequest,
 def get_textbook(textbook_ref: str, _principal: Annotated[Principal, Depends(require_roles("admin"))],
                  db: Annotated[Session, Depends(get_db)]):
     return textbook_structures.get_textbook(db, textbook_ref)
+
+
+@router.get("/{textbook_ref}/topics/{topic_ref}/quality", response_model=TopicQualityReport)
+def topic_quality(textbook_ref: str, topic_ref: str,
+                  _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                  db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.get_topic_quality(db, textbook_ref, topic_ref)
 
 
 @router.post("/{textbook_ref}", response_model=TextbookResponse)

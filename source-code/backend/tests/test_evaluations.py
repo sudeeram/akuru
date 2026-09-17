@@ -11,7 +11,9 @@ def test_evaluation_metrics_cover_step_19_quality_dimensions():
     assert marking == {"mark_exactness": 0, "method_mark_exactness": 1}
     feedback = _score("feedback", {"smallErrors": ["unit"], "sourceIds": ["s1"], "improvedAnswerRequired": True}, {"smallErrors": ["unit"], "sourceIds": ["s1"], "improvedAnswer": "Improved"})
     assert feedback == {"small_error_recall": 1, "improved_answer_quality": 1, "grounding": 1}
-    assert set(THRESHOLDS) == {"inventory_recall", "ocr_similarity", "equation_preservation", "diagram_preservation", "mapping_precision", "cross_subject_rejection", "mark_exactness", "method_mark_exactness", "small_error_recall", "improved_answer_quality", "grounding", "repeatability"}
+    citation = _score("topic_citation", {"topicIsolation": True, "requiredCitationFields": ["topicRef", "printedPage"]}, {"topicIsolation": True, "citationFields": ["topicRef", "printedPage"]})
+    assert citation == {"topic_isolation": 1, "citation_completeness": 1}
+    assert set(THRESHOLDS) == {"inventory_recall", "ocr_similarity", "equation_preservation", "diagram_preservation", "mapping_precision", "cross_subject_rejection", "topic_isolation", "citation_completeness", "mark_exactness", "method_mark_exactness", "small_error_recall", "improved_answer_quality", "grounding", "repeatability"}
 
 
 def test_tutor_metrics_require_every_reviewed_check():

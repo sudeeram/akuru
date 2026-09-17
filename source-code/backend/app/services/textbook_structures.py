@@ -31,6 +31,7 @@ from app.schemas.documents import DocumentType, DocumentUploadResponse, TopicPar
 from app.services import documents
 from app.config import get_settings
 from app.services.embeddings import embed_texts
+from app.services import topic_quality
 
 
 def _book(db: Session, textbook_ref: str, *, include_archived: bool = False) -> Textbook:
@@ -136,7 +137,8 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         "documentVersionId", "role", "sequence", "extractionVersion", "reviewedContentHash"
     )} for row in (published.source_manifest if published else [])]
     has_draft_changes = not published or live_fingerprints != published_fingerprints
-    ready = source_ready and not unresolved_pages and not unresolved_blocks and has_draft_changes
+    quality = topic_quality.report(db, topic)
+    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes
     if published: state = "published"
     elif not links: state = "no_document"
     elif failed: state = "failed"
@@ -150,6 +152,8 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         {"code": "extraction_review", "passed": review == 0 and unresolved_pages == 0 and unresolved_blocks == 0,
          "message": "Every flagged page and block must be reviewed."},
         {"code": "no_failures", "passed": failed == 0, "message": "Failed textbook parts must be retried or removed."},
+        {"code": "quality_gate", "passed": quality["passed"],
+         "message": "Every topic PDF must meet page, OCR, formula, diagram, printed-page and retrieval thresholds."},
         {"code": "new_version", "passed": has_draft_changes,
          "message": "A published topic needs reviewed changes before another version is created."},
     ]
@@ -213,6 +217,11 @@ def list_textbooks(db: Session) -> TextbookListResponse:
 
 def get_textbook(db: Session, textbook_ref: str) -> TextbookResponse:
     return _response(db, _book(db, textbook_ref))
+
+
+def get_topic_quality(db: Session, textbook_ref: str, topic_ref: str) -> dict:
+    book = _book(db, textbook_ref)
+    return topic_quality.report(db, _topic(db, book, topic_ref))
 
 
 def create_textbook(db: Session, principal: Principal, payload: TextbookCreateRequest) -> TextbookResponse:

@@ -275,20 +275,20 @@ Course
 
 ### Automated validation
 
-- [ ] Add database constraint and migration tests for both label types and all scope boundaries.
-- [ ] Add backend authorization, family-isolation, idempotency and immutable-snapshot tests.
-- [ ] Add scanned English, French, Science, ICT and Maths fixtures with equations, diagrams and tables.
-- [ ] Add frontend contract tests for every Admin and role-specific workflow.
-- [ ] Add cumulative-coverage tests across Grade 10 and Grade 11 terms.
-- [ ] Add multi-topic eligibility, cross-subject rejection and pool-shortage tests.
-- [ ] Add topic mastery aggregation and Tutor citation-isolation tests.
-- [ ] Run contract generation/check, backend tests, frontend tests, typecheck, lint, build, Alembic upgrade/check and security checks.
+- [x] Add database constraint and migration tests for both label types and all scope boundaries.
+- [x] Add backend authorization, family-isolation, idempotency and immutable-snapshot tests.
+- [x] Add scanned English, French, Science, ICT and Maths fixtures with equations, diagrams and tables.
+- [x] Add frontend contract tests for every Admin and role-specific workflow.
+- [x] Add cumulative-coverage tests across Grade 10 and Grade 11 terms.
+- [x] Add multi-topic eligibility, cross-subject rejection and pool-shortage tests.
+- [x] Add topic mastery aggregation and Tutor citation-isolation tests.
+- [x] Run contract generation/check, backend tests, frontend tests, typecheck, lint, build, Alembic upgrade/check and security checks.
 
 ### Content-quality evaluation
 
-- [ ] Define thresholds for page coverage, OCR confidence, formula review, diagram retention, printed-page accuracy and topic retrieval precision.
-- [ ] Produce an Admin quality report per topic PDF.
-- [ ] Block publication when mandatory checks fail; allow audited Admin resolution of review flags.
+- [x] Define thresholds for page coverage, OCR confidence, formula review, diagram retention, printed-page accuracy and topic retrieval precision.
+- [x] Produce an Admin quality report per topic PDF.
+- [x] Block publication when mandatory checks fail; allow audited Admin resolution of review flags.
 - [ ] Pilot with Chemistry Topics 1 and 2 before processing the remaining collection.
 
 **Done when:** The complete quality gate passes and pilot content retrieves only the correct reviewed topic with exact citations.
@@ -296,6 +296,11 @@ Course
 ## Step 10 — Deploy safely to production
 
 **Goal:** Introduce the new empty-content schema without affecting authentication or operations.
+
+**Implementation status:** The local release tooling, dependency locks, configuration validation, evidence recording and CI syntax checks are complete. The remaining items require execution and evidence on the OCI production host, so they remain unchecked until then.
+
+- [x] Build a read-only production preflight, guarded deployment command, HTTPS/service acceptance check and non-secret release-evidence record.
+- [x] Pin frontend and backend production dependencies and require the public hostname in production configuration.
 
 - [ ] Commit and push a reviewed release revision.
 - [ ] Confirm the production educational-content audit is still empty immediately before migration.

@@ -481,3 +481,19 @@ test('topic hierarchy workflow supports keyboard filters and accessible status c
   assert.match(styles, /catalogue-filters/);
   assert.match(readFileSync(new URL('../features/shared.tsx', import.meta.url), 'utf8'), /aria-label=\{`Status: \$\{label\}`\}/);
 });
+
+test('topic PDFs have an Admin-only quality report and publication quality gate', () => {
+  const backendQuality = readFileSync(new URL('../../backend/app/services/topic_quality.py', import.meta.url), 'utf8');
+  const textbookApi = readFileSync(new URL('../../backend/app/api/v1/textbook_structures.py', import.meta.url), 'utf8');
+  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
+  assert.match(api, /getTopicQualityReport/);
+  assert.match(textbookStructure, /View topic PDF quality report/);
+  assert.match(textbookApi, /topics\/\{topic_ref\}\/quality/);
+  assert.match(backendQuality, /pageCoverage/);
+  assert.match(backendQuality, /ocrConfidence/);
+  assert.match(backendQuality, /formulaReview/);
+  assert.match(backendQuality, /diagramRetention/);
+  assert.match(backendQuality, /printedPageAccuracy/);
+  assert.match(backendQuality, /topicRetrievalPrecision/);
+  assert.match(textbookService, /quality_gate/);
+});

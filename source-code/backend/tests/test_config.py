@@ -20,7 +20,7 @@ def test_default_document_storage_is_outside_source_checkout() -> None:
 def test_production_rejects_insecure_transport_and_missing_operations_secret() -> None:
     with pytest.raises(ValidationError):
         Settings(database_password="secret", environment="production", _env_file=None)
-    secure = Settings(database_password="secret", environment="production", cookie_secure=True,
+    secure = Settings(database_password="secret", environment="production", public_host="akuru.example.com", cookie_secure=True,
         cors_origins=["https://akuru.example.com"], allowed_hosts=["akuru.example.com"],
         operations_token="long-random-operations-token", malware_scan_command="clamscan",
         tutor_release_gates_required=True, _env_file=None)

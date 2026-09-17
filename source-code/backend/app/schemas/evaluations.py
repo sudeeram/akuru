@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 Category = Literal[
-    "inventory", "ocr", "equation", "diagram", "mapping", "marking", "feedback", "repeatability",
+    "inventory", "ocr", "equation", "diagram", "mapping", "topic_citation", "marking", "feedback", "repeatability",
     "tutor_factual", "tutor_mathematical", "tutor_grounding", "tutor_personalisation",
     "tutor_recommendation", "tutor_persona", "tutor_security", "tutor_handover",
     "tutor_voice", "tutor_preset_safety", "tutor_operations",

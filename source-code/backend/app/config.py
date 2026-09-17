@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     )
 
     environment: str = "development"
+    public_host: str | None = None
     database_host: str = "127.0.0.1"
     database_port: int = 5432
     database_name: str = "akuru"
@@ -105,6 +106,8 @@ class Settings(BaseSettings):
                 raise ValueError("Production CORS origins must use HTTPS")
             if any(host in {"*", "localhost", "127.0.0.1"} for host in self.allowed_hosts):
                 raise ValueError("Production allowed hosts must contain only public hostnames")
+            if not self.public_host:
+                raise ValueError("AKURU_PUBLIC_HOST is required in production")
             if not self.operations_token:
                 raise ValueError("AKURU_OPERATIONS_TOKEN is required in production")
             if not self.malware_scan_command:

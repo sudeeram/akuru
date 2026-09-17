@@ -46,7 +46,7 @@ export interface Schemas {
   "DocumentUploadResponse": { "document": Schemas["DocumentResponse"]; "job": Schemas["DocumentJobResponse"]; };
   "ErrorItem": { "code": string; "message": string; "details"?: Array<{ [key: string]: unknown; }>; };
   "ErrorResponse": { "error": Schemas["ErrorItem"]; };
-  "EvaluationCase": { "caseId": string; "category": "inventory" | "ocr" | "equation" | "diagram" | "mapping" | "marking" | "feedback" | "repeatability" | "tutor_factual" | "tutor_mathematical" | "tutor_grounding" | "tutor_personalisation" | "tutor_recommendation" | "tutor_persona" | "tutor_security" | "tutor_handover" | "tutor_voice" | "tutor_preset_safety" | "tutor_operations"; "input"?: { [key: string]: unknown; }; "expected": { [key: string]: unknown; }; };
+  "EvaluationCase": { "caseId": string; "category": "inventory" | "ocr" | "equation" | "diagram" | "mapping" | "topic_citation" | "marking" | "feedback" | "repeatability" | "tutor_factual" | "tutor_mathematical" | "tutor_grounding" | "tutor_personalisation" | "tutor_recommendation" | "tutor_persona" | "tutor_security" | "tutor_handover" | "tutor_voice" | "tutor_preset_safety" | "tutor_operations"; "input"?: { [key: string]: unknown; }; "expected": { [key: string]: unknown; }; };
   "EvaluationDashboard": { "corpora": Array<Schemas["CorpusResponse"]>; "runs": Array<Schemas["EvaluationRunResponse"]>; "releases": Array<Schemas["ReleaseResponse"]>; "missingApprovedSubjects": Array<string>; "missingApprovedTutorSubjects": Array<string>; };
   "EvaluationObservation": { "caseId": string; "output": { [key: string]: unknown; }; };
   "EvaluationRunCreate": { "corpusId": string; "candidateModel": string; "promptVersion": string; "modality"?: "assessment" | "text" | "voice" | "tools"; "environment"?: "ci" | "staging"; "observations": Array<Schemas["EvaluationObservation"]>; };
@@ -153,6 +153,7 @@ export interface Schemas {
   "TextbookReviewResponse": { "versionNumber": number; "status": string; "courseId": string; "subjectId": string; "edition": string; "units": Array<Schemas["TextbookUnitDraft"]>; };
   "TextbookUnitDraft": { "code": string; "chapter"?: string; "title": string; "summary"?: string; "startPage": number; "endPage": number; "sections"?: Array<string>; "definitions"?: Array<string>; "concepts"?: Array<string>; "equations"?: Array<string>; "examples"?: Array<string>; "diagrams"?: Array<string>; };
   "TextbookUpdateRequest": { "title": string; "edition": string; "publisher"?: string; "groupLabel": "unit" | "module"; };
+  "TopicDocumentQualityReport": { "documentId": string; "filename": string; "role": string; "reviewStatus": string; "pageCount": number; "equationCount": number; "diagramCount": number; "passed": boolean; "checks": Array<Schemas["TopicQualityCheck"]>; };
   "TopicGroupOption": { "groupRef": string; "code": string; "title": string; "topics": Array<Schemas["TopicOption"]>; };
   "TopicMapping": { "topicRef": string; "weight": number; "required"?: boolean; "rationale"?: string; "confidence"?: number | null; "method"?: string | null; };
   "TopicMappingSuggestionResponse": { "questionId": string; "method": string; "suggestions": Array<Schemas["TopicMapping"]>; };
@@ -163,6 +164,8 @@ export interface Schemas {
   "TopicPartBatchRequest": { "items": Array<Schemas["TopicPartBatchItem"]>; };
   "TopicPartSuggestion": { "filename": string; "suggestedTopicRef": string | null; "suggestedTopicCode": string | null; "confidence": number; };
   "TopicPartSuggestionRequest": { "filenames": Array<string>; };
+  "TopicQualityCheck": { "code": string; "threshold": number; "value": number; "passed": boolean; };
+  "TopicQualityReport": { "topicRef": string; "topicCode": string; "topicTitle": string; "thresholds": { [key: string]: number; }; "passed": boolean; "documents": Array<Schemas["TopicDocumentQualityReport"]>; "resolution": string; };
   "TopicQuestionMappingResponse": { "questionId": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "status": string; "sourceLocations": Array<{ [key: string]: unknown; }>; "mappings": Array<Schemas["TopicMapping"]>; "groupWeights"?: { [key: string]: number; }; };
   "TopicReadinessResponse": { "state": string; "ready": boolean; "contentVersion": number; "supersededVersionCount": number; "hasDraftChanges": boolean; "documentCount": number; "primaryDocumentCount": number; "processingCount": number; "needsReviewCount": number; "failedCount": number; "unresolvedPageCount": number; "unresolvedBlockCount": number; "averageConfidence": number; "checks": Array<{ [key: string]: unknown; }>; };
   "TopicResponse": { "topicRef": string; "code": string; "title": string; "sequence": number; "syllabusRef": string; "description": string; "status": string; "documentCount": number; "removable": boolean; "content": Schemas["TopicReadinessResponse"]; };
@@ -247,6 +250,7 @@ export interface ApiOperations {
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/documents": { request: unknown; response: Schemas["DocumentUploadResponse"] };
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/documents/batch": { request: Schemas["TopicPartBatchRequest"]; response: Array<Schemas["DocumentUploadResponse"]> };
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/publish": { request: Schemas["PublishTopicContentRequest"]; response: Schemas["TextbookResponse"] };
+  "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/quality": { request: unknown; response: Schemas["TopicQualityReport"] };
   "GET /api/v1/admin/ui-features": { request: unknown; response: Schemas["UiFeaturesResponse"] };
   "GET /api/v1/assessments": { request: unknown; response: Schemas["AssessmentListResponse"] };
   "GET /api/v1/assessments/admin/audit": { request: unknown; response: Schemas["AssessmentAuditListResponse"] };
