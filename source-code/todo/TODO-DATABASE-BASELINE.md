@@ -122,9 +122,9 @@ See [Step 4 local reset evidence](../backend/docs/database-baseline-step-04-loca
 
 **Goal:** Make production execution a controlled, reversible maintenance event.
 
-- [ ] Commit the baseline and all compatibility removal in one reviewed release revision.
-- [ ] Push the revision and confirm GitHub CI passes.
-- [ ] Record the exact commit SHA and create a release tag.
+- [x] Commit the baseline and all compatibility removal in one reviewed release revision.
+- [x] Push the revision and confirm GitHub CI passes.
+- [x] Record the exact commit SHA and create a release tag.
 - [x] Update `release-preflight.sh` so its empty-content audit matches the final baseline-reset policy.
 - [x] Update `deploy-reviewed-release.sh` with an explicit database-recreation mode that cannot run without a typed confirmation and exact database-name validation.
 - [x] Ensure the deployment command refuses database names other than the configured `akuru` application database.
@@ -133,6 +133,11 @@ See [Step 4 local reset evidence](../backend/docs/database-baseline-step-04-loca
 - [~] Schedule a maintenance window and prevent public writes before starting. The command now requires an approved window reference and stops all application writers; the owner must choose the actual window before Step 6.
 
 **Done when:** The production reset can be executed from a reviewed SHA using guarded commands, with backups and rollback inputs already available.
+
+**Release candidate:** `2e2950354b5e275aa102d58684a9023aa94a697e`,
+tagged `database-baseline-v1-20260917`. GitHub Actions run `35197718649`
+passed. The only remaining owner action is selecting the actual maintenance
+window before Step 6.
 
 ## Step 6 — Recreate the production database
 

@@ -5,6 +5,12 @@ authorize or perform the production reset. Production execution belongs to
 Steps 6 and 7 and must use the exact reviewed release SHA and tag recorded here
 after CI passes.
 
+Reviewed release SHA: `2e2950354b5e275aa102d58684a9023aa94a697e`
+
+Release tag: `database-baseline-v1-20260917`
+
+GitHub Actions: run `35197718649` passed all jobs.
+
 ## Maintenance window and write freeze
 
 Before running the reset, the owner must choose a low-use window, notify the
