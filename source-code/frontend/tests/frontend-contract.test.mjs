@@ -101,7 +101,15 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(api, /getDocumentExtraction/);
   assert.match(api, /documents\/\$\{id\}\/extraction/);
   assert.match(admin, /Extracted page \{page\.pageNumber\}/);
-  assert.match(admin, /review required/);
+  assert.match(admin, /Review required/);
+  assert.match(admin, /Extraction review progress/);
+  assert.match(admin, /Pages to review/);
+  assert.match(admin, /Blocks to review/);
+  assert.match(admin, /extraction-page-\$\{page\.pageNumber\}/);
+  assert.match(admin, /review-status-required/);
+  assert.match(admin, /review-status-complete/);
+  assert.match(styles, /\.review-status-required/);
+  assert.match(styles, /\.review-status-complete/);
   assert.match(admin, /renderAssetId/);
   assert.match(admin, /block\.latex/);
   assert.match(admin, /block\.sourceAssetId/);

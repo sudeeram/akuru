@@ -196,6 +196,15 @@ export function AdminWorkspace(p: Props) {
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
   );
   const doc = p.data.documents.find((d) => d.id === docId);
+  const extractionReview = extraction ? {
+    totalPages: extraction.pages.length,
+    pendingPages: extraction.pages.filter((page) => page.needsReview),
+    totalBlocks: extraction.pages.reduce((total, page) => total + page.blocks.length, 0),
+    pendingBlocks: extraction.pages.reduce(
+      (total, page) => total + page.blocks.filter((block) => block.needsReview).length,
+      0,
+    ),
+  } : null;
   const documentKinds = {
     Textbook: 'textbook',
     'Reference material': 'reference',
@@ -828,13 +837,42 @@ export function AdminWorkspace(p: Props) {
                     </section>
                   )}
                   {extractionError && <p className="error" role="alert">{extractionError}</p>}
+                  {extractionReview && (
+                    <section className="extraction-review-summary stack" aria-labelledby="extraction-review-summary-title">
+                      <div className="spread">
+                        <div>
+                          <strong id="extraction-review-summary-title">Extraction review progress</strong>
+                          <p className="small">Review every red item before publishing this textbook topic.</p>
+                        </div>
+                        <span className={`review-status-badge ${extractionReview.pendingPages.length ? 'review-status-required' : 'review-status-complete'}`}>
+                          {extractionReview.pendingPages.length ? 'Review required' : 'Reviewed'}
+                        </span>
+                      </div>
+                      <div className="extraction-review-stats" aria-label="Extraction review statistics">
+                        <div><strong>{extractionReview.totalPages}</strong><span>Total pages</span></div>
+                        <div><strong>{extractionReview.pendingPages.length}</strong><span>Pages to review</span></div>
+                        <div><strong>{extractionReview.totalPages - extractionReview.pendingPages.length}</strong><span>Reviewed pages</span></div>
+                        <div><strong>{extractionReview.pendingBlocks}</strong><span>Blocks to review</span></div>
+                        <div><strong>{extractionReview.totalBlocks - extractionReview.pendingBlocks}</strong><span>Cleared blocks</span></div>
+                      </div>
+                      {extractionReview.pendingPages.length > 0 && (
+                        <nav className="extraction-page-links" aria-label="Pages requiring review">
+                          <strong>Go to page:</strong>
+                          {extractionReview.pendingPages.map((page) => (
+                            <a key={page.id} href={`#extraction-page-${page.pageNumber}`}>Page {page.pageNumber}</a>
+                          ))}
+                        </nav>
+                      )}
+                    </section>
+                  )}
                   {extraction?.pages.map((page) => (
-                    <article className="panel stack" key={`page-${page.pageNumber}`}>
+                    <article className="panel stack extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`}>
                       <div className="spread small">
-                        <strong>Extracted page {page.pageNumber}</strong>
-                        <span>
-                          {page.method} · {Math.round(page.confidence * 100)}%
-                          {page.needsReview ? ' · review required' : ''}
+                        <div><strong>Extracted page {page.pageNumber}</strong><p>{page.method} · {Math.round(page.confidence * 100)}% extraction confidence</p></div>
+                        <span className={`review-status-badge ${page.needsReview ? 'review-status-required' : 'review-status-complete'}`}>
+                          {page.needsReview
+                            ? `Review required · ${page.blocks.filter((block) => block.needsReview).length} block${page.blocks.filter((block) => block.needsReview).length === 1 ? '' : 's'} pending`
+                            : 'Reviewed'}
                         </span>
                       </div>
                       <div className="two-cols"><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></div>
@@ -853,9 +891,7 @@ export function AdminWorkspace(p: Props) {
                         unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
                       /></div><div><strong className="small">Extracted content</strong>{page.blocks.map((block) => (
                         <div className="small stack" key={`${page.pageNumber}-${block.sequenceNumber}`}>
-                          <strong>{block.kind}</strong> · {block.method} ·{' '}
-                          {Math.round(block.confidence * 100)}%
-                          {block.needsReview ? ' · review required' : ''}
+                          <div className="spread"><span><strong>{block.kind}</strong> · {block.method} · {Math.round(block.confidence * 100)}%</span><span className={`review-status-badge ${block.needsReview ? 'review-status-required' : 'review-status-complete'}`}>{block.needsReview ? 'Review required' : 'Reviewed'}</span></div>
                           <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
                           <Field label="Extracted text" multiline value={block.text} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value } : item) } : row) })}/>
                           <Field label="Equation or formula (LaTeX)" multiline value={block.latex || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, latex: value } : item) } : row) })}/>
