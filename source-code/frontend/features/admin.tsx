@@ -11,17 +11,13 @@ import {
   errorMessage,
   getDocumentExtraction,
   getLatestDocumentJob,
-  getTextbookReview,
   getCurriculumPlan,
   createCurriculumPlanDraft,
   getOfficialMaterialReview,
   getPaperMappings,
-  proposeTextbookReview,
-  publishTextbookReview,
   publishCurriculumPlan,
   publishOfficialMaterialReview,
   publishQuestionMappings,
-  saveTextbookReview,
   saveCurriculumPlan,
   saveOfficialMaterialReview,
   proposeOfficialMaterialReview,
@@ -34,7 +30,6 @@ import {
   type DocumentJob,
   type State,
   type Student,
-  type TextbookReview,
   type CurriculumPlan,
   type OfficialMaterialReview,
   type PaperMappings,
@@ -181,7 +176,6 @@ export function AdminWorkspace(p: Props) {
     [sourceUrl, setSourceUrl] = useState('');
   const [docId, setDocId] = useState('');
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
-  const [textbookReview, setTextbookReview] = useState<TextbookReview | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
   const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
@@ -232,15 +226,9 @@ export function AdminWorkspace(p: Props) {
         if (active) {
           setDocumentJob(job);
           setExtraction(extracted);
-          if (selected.kind === 'Textbook') {
-            void getTextbookReview(docId).then(setTextbookReview).catch(() => setTextbookReview(null));
-            setOfficialReview(null);
-          } else {
-            setTextbookReview(null);
-            if (['Past paper', 'Marking scheme', 'Examiner report'].includes(selected.kind))
-              void getOfficialMaterialReview(docId).then(setOfficialReview).catch(() => setOfficialReview(null));
-            else setOfficialReview(null);
-          }
+          if (['Past paper', 'Marking scheme', 'Examiner report'].includes(selected.kind))
+            void getOfficialMaterialReview(docId).then(setOfficialReview).catch(() => setOfficialReview(null));
+          else setOfficialReview(null);
         }
       })
       .catch((cause) => {
@@ -396,8 +384,8 @@ export function AdminWorkspace(p: Props) {
               {[
                 ['Parent accounts', parents.length],
                 ['Students', p.data.students.length],
-                ['Textbook units', p.data.units.length],
-                ['Mapped questions', p.data.questionBank.length],
+                ['Textbooks', p.data.documents.filter((document) => document.kind === 'Textbook').length],
+                ['Official papers', p.data.officialPapers.length],
               ].map(([label, value]) => (
                 <section className="panel metric" key={label}>
                   <strong>{value}</strong>
@@ -775,47 +763,10 @@ export function AdminWorkspace(p: Props) {
                       <p>Extractor: {documentJob.extractionVersion}</p>
                     </div>
                   )}
-                  {doc.kind === 'Textbook' && ['needs_review', 'completed'].includes(doc.status) && (
+                  {doc.kind === 'Textbook' && (
                     <section className="panel stack">
-                      <div className="spread">
-                        <div>
-                          <strong>Reviewed textbook units</strong>
-                          <p>Confirm {doc.subject}, iGCSE and edition {doc.edition || 'missing'} before publication.</p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          onClick={() => void run(async () => {
-                            setTextbookReview(await proposeTextbookReview(doc.id));
-                          }, 'Unit proposal created from extracted evidence.')}
-                        >
-                          Propose units
-                        </Button>
-                      </div>
-                      {textbookReview?.units.map((unit, index) => (
-                        <article className="panel stack" key={`${unit.code}-${index}`}>
-                          <div className="two-cols">
-                            <Field label="Unit code" value={unit.code} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, code: value } : row) })} />
-                            <Field label="Unit title" value={unit.title} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, title: value } : row) })} />
-                          </div>
-                          <Field label="Chapter" value={unit.chapter} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, chapter: value } : row) })} />
-                          <div className="two-cols">
-                            <Field label="Start page" type="number" value={String(unit.startPage)} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, startPage: Number(value) } : row) })} />
-                            <Field label="End page" type="number" value={String(unit.endPage)} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, endPage: Number(value) } : row) })} />
-                          </div>
-                          <Field label="Summary" multiline value={unit.summary} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, summary: value } : row) })} />
-                          {(['sections', 'definitions', 'concepts', 'equations', 'examples', 'diagrams'] as const).map((field) => (
-                            <Field key={field} label={`${field[0].toUpperCase()}${field.slice(1)} · one per line`} multiline value={unit[field].join('\n')} onChange={(value) => setTextbookReview({ ...textbookReview, units: textbookReview.units.map((row, i) => i === index ? { ...row, [field]: value.split('\n').map((item) => item.trim()).filter(Boolean) } : row) })} />
-                          ))}
-                        </article>
-                      ))}
-                      {textbookReview && (
-                        <div className="button-row">
-                          <Button variant="outline" onClick={() => void run(async () => { setTextbookReview(await saveTextbookReview(doc.id, textbookReview)); }, 'Textbook review draft saved.')}>Save review</Button>
-                          <Button className="primary" disabled={textbookReview.status === 'published'} onClick={() => {
-                            if (window.confirm(`Publish ${textbookReview.units.length} reviewed units for ${doc.name}?`)) void run(async () => { setTextbookReview(await publishTextbookReview(doc.id)); }, 'Textbook units published.');
-                          }}>Publish reviewed units</Button>
-                        </div>
-                      )}
+                      <strong>Topic-based textbook workflow</strong>
+                      <p>Create the textbook, its Unit or Module groups, and topics in Textbook structure. Attach each scanned PDF or image directly to its topic, review extraction quality, then publish that topic independently.</p>
                     </section>
                   )}
                   {['Past paper', 'Marking scheme', 'Examiner report'].includes(doc.kind) && ['needs_review', 'completed'].includes(doc.status) && (

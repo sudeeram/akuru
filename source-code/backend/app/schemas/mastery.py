@@ -16,23 +16,6 @@ class MasteryEventResponse(BaseModel):
     explanation: str
     createdAt: datetime
 
-class UnitMasteryResponse(BaseModel):
-    unitId: uuid.UUID
-    unitCode: str
-    unitTitle: str
-    subjectId: str
-    score: float = Field(ge=0, le=10)
-    preciseScore: float = Field(ge=0, le=10)
-    confidence: str
-    provisional: bool
-    evidenceCount: int
-    evidenceWeight: float
-    varietyCount: int
-    trend: float
-    lastEvidenceAt: datetime
-    dimensions: list[MasteryDimensionResponse]
-    recentEvents: list[MasteryEventResponse]
-
 class TopicMasteryResponse(BaseModel):
     topicRef: str
     topicCode: str
@@ -67,7 +50,6 @@ class GroupMasteryResponse(BaseModel):
 
 class MasteryResponse(BaseModel):
     studentId: uuid.UUID
-    units: list[UnitMasteryResponse]
     topics: list[TopicMasteryResponse] = Field(default_factory=list)
     groups: list[GroupMasteryResponse] = Field(default_factory=list)
 

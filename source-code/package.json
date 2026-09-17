@@ -11,6 +11,7 @@
     "backend:dev": "node scripts/run-backend.mjs dev",
     "backend:worker": "node scripts/run-backend.mjs worker",
     "backend:migrate": "node scripts/run-backend.mjs migrate",
+    "backend:seed": "node scripts/run-backend.mjs seed",
     "database:backup": "node scripts/run-backend.mjs backup",
     "database:restore-drill": "node scripts/run-backend.mjs restore-drill",
     "contract:generate": "node scripts/run-backend.mjs contract:generate",

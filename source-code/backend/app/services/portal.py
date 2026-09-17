@@ -114,7 +114,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 assessment_questions.append({"id": qid, "subject": item.subjectId, "topic": item.title,
                     "title": f"Question {question.number}", "prompt": question.prompt, "marks": question.marks,
                     "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
-                    "unitIds": question.unitIds, "rubric": question.rubric, "assetIds": question.assetIds,
+                    "topicRefs": question.topicRefs, "rubric": question.rubric, "assetIds": question.assetIds,
                     "equations": question.equations,
                     "assessmentId": str(item.id)})
             if question.result:
@@ -141,7 +141,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             "feedbackVisible": item.feedbackVisible})
     mastery_full = ({row["id"]: mastery.list_mastery(db, principal, uuid.UUID(row["id"])) for row in visible_students}
         if principal.user.role in {"student", "parent"} else {})
-    mastery_rows = {student_id: [unit.model_dump(mode="json") for unit in result.units]
+    mastery_rows = {student_id: [topic.model_dump(mode="json") for topic in result.topics]
                     for student_id, result in mastery_full.items()}
     mastery_groups = {student_id: [group.model_dump(mode="json") for group in result.groups]
                       for student_id, result in mastery_full.items()}
@@ -180,9 +180,6 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             for subject in subjects
         ],
         "students": visible_students,
-        "units": [],
-        "coverage": [],
-        "questionBank": [],
         "drafts": {},
         "questions": assessment_questions,
         "attempts": assessment_attempts,

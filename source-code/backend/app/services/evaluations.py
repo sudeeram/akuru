@@ -72,7 +72,7 @@ def _score(category: str, expected: dict, output: dict) -> dict[str, float]:
     if category == "equation": return {"equation_preservation": float(output.get("equation") == expected.get("equation"))}
     if category == "diagram": return {"diagram_preservation": float(bool(output.get("preserved")) == bool(expected.get("preserved", True)))}
     if category == "mapping":
-        predicted, wanted = output.get("topicRefs", output.get("unitIds", [])), expected.get("topicRefs", expected.get("unitIds", []))
+        predicted, wanted = output.get("topicRefs", []), expected.get("topicRefs", [])
         precision = 1.0 if not predicted and not wanted else (len(set(predicted) & set(wanted)) / len(set(predicted)) if predicted else 0.0)
         return {"mapping_precision": precision, "cross_subject_rejection": float(bool(output.get("crossSubjectRejected")) == bool(expected.get("crossSubjectRejected", True)))}
     if category == "topic_citation":

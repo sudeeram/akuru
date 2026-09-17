@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 class TutorSummaryResponse(BaseModel):
     summaryRef: str; sessionRef: str; studentName: str; subjectId: str
-    unitsCovered: list[dict]; activities: list[str]; strengths: list[str]
+    topicsCovered: list[dict]; activities: list[str]; strengths: list[str]
     difficulties: list[str]; suggestedNextSteps: list[str]; usage: dict; createdAt: datetime
 
 

@@ -1,9 +1,7 @@
 from sqlalchemy import CheckConstraint, UniqueConstraint
-import pytest
 
 from app.database import Base
 from app import models  # noqa: F401
-from migrations.versions import c31d9e5a7b42_add_textbook_topic_hierarchy as migration
 
 
 def _constraint_names(table_name: str, kind: type) -> set[str]:
@@ -44,17 +42,3 @@ def test_identity_and_operational_tables_remain_present() -> None:
         "ai_provider_accounts", "student_ai_quotas", "audit_events",
     }
     assert preserved <= set(Base.metadata.tables)
-
-
-def test_migration_guard_fails_closed_when_content_exists(monkeypatch) -> None:
-    class Result:
-        def __init__(self, value: bool): self.value = value
-        def scalar(self): return self.value
-
-    class Connection:
-        def execute(self, statement):
-            return Result('FROM "documents"' in str(statement))
-
-    monkeypatch.setattr(migration.op, "get_bind", lambda: Connection())
-    with pytest.raises(RuntimeError, match="documents"):
-        migration._require_empty_content()

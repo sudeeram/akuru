@@ -10,7 +10,6 @@ from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
     OfficialQuestionVersion, Textbook,
-    TextbookContentVersion,
 )
 from app.schemas.official_materials import (
     ExaminerCommentReview, MarkSchemeEntryReview, MarkingPoint, OfficialMaterialReview,
@@ -51,22 +50,14 @@ def _current(db: Session, document_id: uuid.UUID):
     ).order_by(OfficialMaterialVersion.version_number.desc()))
 
 
-def _published_textbook_version(db: Session, document: Document):
-    version = db.scalar(select(TextbookContentVersion).where(
-        TextbookContentVersion.course_id == document.course_id,
-        TextbookContentVersion.subject_id == document.subject_id,
-        TextbookContentVersion.status == "published",
-    ).order_by(TextbookContentVersion.published_at.desc()))
-    if not version:
-        raise DomainError("published_textbook_required", "Publish a same-subject textbook before reviewing this paper.", 409)
-    return version
-
-
 def _published_textbook(db: Session, document: Document):
-    return db.scalar(select(Textbook).where(
+    textbook = db.scalar(select(Textbook).where(
         Textbook.course_id == document.course_id, Textbook.subject_id == document.subject_id,
         Textbook.status == "published",
     ).order_by(Textbook.published_at.desc()))
+    if not textbook:
+        raise DomainError("published_textbook_required", "Publish a same-subject textbook structure before reviewing this paper.", 409)
+    return textbook
 
 
 def _locations(block: DocumentBlock, page_number: int) -> list[SourceLocation]:
@@ -180,8 +171,7 @@ def propose_review(db: Session, principal: Principal, document_id: uuid.UUID):
         document_id=document.id, source_document_version_id=version.id, version_number=next_version,
         kind=document.kind, course_id=document.course_id, subject_id=document.subject_id,
         source_paper_id=document.source_document_id, status="draft", created_by=principal.user.id,
-        textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" and not _published_textbook(db, document) else None,
-        textbook_id=_published_textbook(db, document).id if document.kind == "past_paper" and _published_textbook(db, document) else None,
+        textbook_id=_published_textbook(db, document).id if document.kind == "past_paper" else None,
     )
     db.add(material); db.flush()
     proposal = _proposal_rows(db, version, document.kind)
@@ -241,7 +231,7 @@ def save_review(db: Session, principal: Principal, document_id: uuid.UUID, paylo
         version = _source_version(db, document.id)
         next_version = (db.scalar(select(func.max(OfficialMaterialVersion.version_number)).where(OfficialMaterialVersion.document_id == document.id)) or 0) + 1
         logical = _published_textbook(db, document) if document.kind == "past_paper" else None
-        material = OfficialMaterialVersion(document_id=document.id, source_document_version_id=version.id, version_number=next_version, kind=document.kind, course_id=document.course_id, subject_id=document.subject_id, source_paper_id=document.source_document_id, created_by=principal.user.id, textbook_content_version_id=_published_textbook_version(db, document).id if document.kind == "past_paper" and not logical else None, textbook_id=logical.id if logical else None)
+        material = OfficialMaterialVersion(document_id=document.id, source_document_version_id=version.id, version_number=next_version, kind=document.kind, course_id=document.course_id, subject_id=document.subject_id, source_paper_id=document.source_document_id, created_by=principal.user.id, textbook_id=logical.id if logical else None)
         db.add(material); db.flush()
     expected_kind_count = len(payload.questions if document.kind == "past_paper" else payload.markSchemeEntries if document.kind == "mark_scheme" else payload.examinerComments)
     if any((payload.questions if document.kind != "past_paper" else [], payload.markSchemeEntries if document.kind != "mark_scheme" else [], payload.examinerComments if document.kind != "examiner_report" else [])):
@@ -280,7 +270,6 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             raise DomainError("source_paper_confirmation_required", "Confirm the related published past paper.", 422)
         source_paper_version, allowed = _published_paper_questions(db, material.source_paper_id)
         material.source_paper_version_id = source_paper_version.id
-        material.textbook_content_version_id = source_paper_version.textbook_content_version_id
         material.textbook_id = source_paper_version.textbook_id
         model = MarkSchemeEntryVersion if material.kind == "mark_scheme" else ExaminerCommentVersion
         numbers = set(db.scalars(select(model.question_number).where(model.material_version_id == material.id)).all())

@@ -67,9 +67,6 @@ class PortalStateResponse(BaseModel):
     accounts: list[AccountSummaryResponse]
     subjects: list[SubjectPresentationResponse]
     students: list[StudentResponse]
-    units: list[dict[str, Any]] = Field(default_factory=list)
-    coverage: list[dict[str, Any]] = Field(default_factory=list)
-    questionBank: list[dict[str, Any]] = Field(default_factory=list)
     drafts: dict[str, Any] = Field(default_factory=dict)
     questions: list[dict[str, Any]] = Field(default_factory=list)
     attempts: list[dict[str, Any]] = Field(default_factory=list)
@@ -81,6 +78,7 @@ class PortalStateResponse(BaseModel):
     reviews: list[dict[str, Any]] = Field(default_factory=list)
     plans: dict[str, Any] = Field(default_factory=dict)
     mastery: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
+    masteryGroups: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
     recommendations: dict[str, list[dict[str, Any]]] = Field(default_factory=dict)
 
 

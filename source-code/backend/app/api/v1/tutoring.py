@@ -19,10 +19,10 @@ from app.schemas.tutoring import TutorCapabilitiesResponse
 from app.schemas.tutor_sessions import (
     TutorEndSessionRequest, TutorSessionListResponse, TutorSessionOptionsResponse,
     TutorSessionResponse, TutorSessionStartRequest, TutorSwitchProfileRequest,
-    TutorSwitchUnitRequest, TutorTurnCreateRequest,
+    TutorSwitchTopicRequest, TutorTurnCreateRequest,
 )
 from app.schemas.tutor_context import LearnerContextRequest, LearnerContextResponse
-from app.schemas.tutor_recommendations import NextUnitRequest, NextUnitResponse
+from app.schemas.tutor_recommendations import NextTopicRequest, NextTopicResponse
 from app.schemas.tutor_sources import TutorCitation, TutorCitationContextResponse, TutorSourceSearchRequest, TutorSourceSearchResponse
 from app.schemas.tutor_agent import TutorAgentTurnRequest, TutorAgentTurnResponse
 from app.schemas.tutor_practice import (TutorPracticeAction, TutorPracticeAnswer, TutorPracticeResponse,
@@ -204,9 +204,9 @@ def learner_context(
     return tutor_context.build_and_log(db, settings, principal, session_ref, payload.requestKey)
 
 
-@router.post("/sessions/{session_ref}/next-unit", response_model=NextUnitResponse)
+@router.post("/sessions/{session_ref}/next-topic", response_model=NextTopicResponse)
 def next_unit(
-    session_ref: str, payload: NextUnitRequest,
+    session_ref: str, payload: NextTopicRequest,
     principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
 ):
@@ -341,13 +341,13 @@ def switch_profile(
     return tutor_sessions.switch_profile(db, settings, principal, session_ref, payload)
 
 
-@router.post("/sessions/{session_ref}/switch-unit", response_model=TutorSessionResponse)
-def switch_unit(
-    session_ref: str, payload: TutorSwitchUnitRequest,
+@router.post("/sessions/{session_ref}/switch-topic", response_model=TutorSessionResponse)
+def switch_topic(
+    session_ref: str, payload: TutorSwitchTopicRequest,
     principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
 ):
-    return tutor_sessions.switch_unit(db, settings, principal, session_ref, payload)
+    return tutor_sessions.switch_topic(db, settings, principal, session_ref, payload)
 
 
 @router.post("/sessions/{session_ref}/end", response_model=TutorSessionResponse)

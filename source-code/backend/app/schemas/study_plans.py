@@ -6,9 +6,9 @@ class PlanGenerateRequest(BaseModel):
     studentId: uuid.UUID | None = None
 
 class PlanItemResponse(BaseModel):
-    id: uuid.UUID; subject: str; unitId: uuid.UUID | None = None; unitCode: str | None = None; topic: str
-    topicRef: str | None = None; topicCode: str | None = None; topicTitle: str | None = None
-    groupLabel: str | None = None; groupCode: str | None = None; groupTitle: str | None = None
+    id: uuid.UUID; subject: str; topic: str
+    topicRef: str; topicCode: str; topicTitle: str
+    groupLabel: str; groupCode: str; groupTitle: str
     activityType: str; minutes: int; reason: str; source: str; sourceUrl: str
     successCondition: str; scheduledFor: datetime; status: str
 

@@ -32,13 +32,17 @@ pass "protected runtime environment file"
 # shellcheck disable=SC1090
 source "$env_file"
 [[ "${AKURU_ENVIRONMENT:-}" == "production" ]] || fail "AKURU_ENVIRONMENT must be production"
+[[ "${AKURU_DATABASE_NAME:-}" == "akuru" ]] || fail "AKURU_DATABASE_NAME must be exactly akuru for this release"
+[[ "${AKURU_DATABASE_HOST:-}" == "127.0.0.1" || "${AKURU_DATABASE_HOST:-}" == "localhost" ]] || fail "database must be local"
+[[ "${AKURU_DATABASE_USER:-}" =~ ^[a-z_][a-z0-9_]*$ ]] || fail "invalid application database role"
+[[ "${AKURU_DATABASE_USER:-}" != "postgres" ]] || fail "application must not use the postgres administrator role"
 [[ "${AKURU_COOKIE_SECURE:-}" == "true" ]] || fail "secure cookies must be enabled"
 [[ "${AKURU_LOCAL_STORAGE_PATH:-}" == /data/akuru/* ]] || fail "document storage must be under /data/akuru"
 pass "production runtime configuration"
 
 "${app_root}/deploy/ubuntu/security-check.sh"
-sudo -u akuru "${source_root}/backend/.venv/bin/python" -m app.content_migration_audit --require-empty
-pass "educational-content audit is empty"
+sudo -u akuru "${source_root}/backend/.venv/bin/python" -m app.content_migration_audit --require-baseline-reset-eligible
+pass "current and legacy educational-content tables satisfy the baseline-reset policy"
 
 sudo -u akuru "${source_root}/backend/.venv/bin/alembic" heads | tee /tmp/akuru-alembic-heads.txt
 [[ "$(wc -l < /tmp/akuru-alembic-heads.txt | tr -d ' ')" == "1" ]] || fail "repository must have exactly one Alembic migration head"
@@ -51,7 +55,7 @@ report="$report_root/preflight-${actual}-$(date -u +%Y%m%dT%H%M%SZ).txt"
   echo "AKURU production release preflight"
   echo "release_sha=${actual}"
   echo "checked_at=$(date -u --iso-8601=seconds)"
-  echo "content_audit=empty"
+  echo "baseline_reset_content_audit=eligible"
   echo "migration_heads=one"
   echo "next=take encrypted database and document backup, then execute deploy-reviewed-release.sh"
 } > "$report"

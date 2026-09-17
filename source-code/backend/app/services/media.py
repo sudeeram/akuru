@@ -9,7 +9,7 @@ from app.ai.base import AIProviderError
 from app.ai.image_router import ImageAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AuditEvent, Document, EducationalMedia, RetrievalChunk, TextbookUnit
+from app.models import AuditEvent, Document, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic
 from app.services.retrieval import authorize_student
 
 PROMPT_VERSION = "illustration-v1"
@@ -21,8 +21,9 @@ def _number(value, name, low=-10000, high=10000):
     return float(value)
 
 def _source(db: Session, subject_id: str, chunk_id: uuid.UUID):
-    row = db.execute(select(RetrievalChunk, Document, TextbookUnit).join(Document, Document.id == RetrievalChunk.document_id).join(
-        TextbookUnit, TextbookUnit.id == RetrievalChunk.unit_id).where(RetrievalChunk.id == chunk_id,
+    row = db.execute(select(RetrievalChunk, Document, TextbookTopic, TextbookGroup).join(Document, Document.id == RetrievalChunk.document_id).join(
+        TextbookTopic, TextbookTopic.id == RetrievalChunk.topic_id).join(
+        TextbookGroup, TextbookGroup.id == TextbookTopic.group_id).where(RetrievalChunk.id == chunk_id,
         RetrievalChunk.status == "active", RetrievalChunk.subject_id == subject_id,
         Document.review_state == "published", Document.removed_at.is_(None))).first()
     if not row: raise DomainError("media_source_invalid", "Choose active evidence from a published source in the same subject.", 409)
@@ -51,7 +52,7 @@ def _svg(kind: str, parameters: dict, title: str, alt: str) -> bytes:
     return (start+body+'</svg>').encode()
 
 def _response(row: EducationalMedia, private=True):
-    return {"id":row.id,"subjectId":row.subject_id,"unitId":row.unit_id,"sourceChunkId":row.source_chunk_id,
+    return {"id":row.id,"subjectId":row.subject_id,"topicId":row.topic_id,"sourceChunkId":row.source_chunk_id,
         "kind":row.kind,"title":row.title,"altText":row.alt_text,"prompt":row.prompt if private else "","promptVersion":row.prompt_version,
         "parameters":row.parameters if private else {},"sourceManifest":row.source_manifest,"provider":row.provider if private else "reviewed",
         "model":row.model if private else "","responseId":row.response_id if private else None,"contentType":row.content_type,"status":row.status,
@@ -59,13 +60,14 @@ def _response(row: EducationalMedia, private=True):
         "createdAt":row.created_at,"reviewedAt":row.reviewed_at,"contentUrl":f"/api/v1/media/{row.id}/content"}
 
 def _save(db, storage, principal, payload, content, content_type, provider, model, response_id, prompt, status):
-    chunk, document, unit = _source(db,payload.subjectId,payload.sourceChunkId); media_id=uuid.uuid4()
+    chunk, document, topic, group = _source(db,payload.subjectId,payload.sourceChunkId); media_id=uuid.uuid4()
     key=f"media/{payload.subjectId}/{media_id}.{ 'svg' if content_type == 'image/svg+xml' else 'png'}"
     storage.put(key,content,content_type)
     manifest=[{"chunkId":str(chunk.id),"documentId":str(document.id),"documentTitle":document.title,
-        "documentVersionId":str(chunk.document_version_id),"unitId":str(unit.id),"unitCode":unit.unit_code,
+        "documentVersionId":str(chunk.document_version_id),"topicRef":topic.public_ref,"topicCode":topic.code,
+        "groupCode":group.code,
         "page":chunk.page_number,"contentHash":chunk.content_hash}]
-    row=EducationalMedia(id=media_id,subject_id=payload.subjectId,unit_id=unit.id,source_chunk_id=chunk.id,
+    row=EducationalMedia(id=media_id,subject_id=payload.subjectId,topic_id=topic.id,source_chunk_id=chunk.id,
         kind=payload.kind if hasattr(payload,"kind") else "conceptual_image",title=payload.title,alt_text=payload.altText,
         prompt=prompt,prompt_version=SVG_VERSION if provider=="akuru" else PROMPT_VERSION,parameters=getattr(payload,"parameters",{}),
         source_manifest=manifest,provider=provider,model=model,response_id=response_id,object_key=key,content_type=content_type,
@@ -79,7 +81,7 @@ def deterministic(db,storage,principal,payload):
         json.dumps(payload.parameters,sort_keys=True),"published")
 
 def illustration(db,storage,settings,principal,payload):
-    chunk,document,unit=_source(db,payload.subjectId,payload.sourceChunkId)
+    chunk,document,topic,group=_source(db,payload.subjectId,payload.sourceChunkId)
     grounded=("Create a clear educational conceptual illustration for an iGCSE learner. No decorative labels, marks, answers, "
         "logos, copyrighted characters, or claims beyond the supplied source. Prompt: "+payload.prompt+"\nApproved source context: "+chunk.content)
     try:
@@ -92,18 +94,19 @@ def list_media(db,principal,student_id=None,subject_id=None):
     query=select(EducationalMedia)
     if principal.user.role != "admin":
         if not student_id or not subject_id: raise DomainError("media_scope_required","Student and subject are required.",422)
-        units, _topics=authorize_student(db,principal,student_id,subject_id)
-        query=query.where(EducationalMedia.status=="published",EducationalMedia.subject_id==subject_id,EducationalMedia.unit_id.in_(units))
+        topics=authorize_student(db,principal,student_id,subject_id)
+        query=query.where(EducationalMedia.status=="published",EducationalMedia.subject_id==subject_id,EducationalMedia.topic_id.in_(topics))
     rows=db.scalars(query.order_by(EducationalMedia.created_at.desc())).all()
     return {"media":[_response(row,principal.user.role == "admin") for row in rows]}
 
 def sources(db,subject_id):
-    rows=db.execute(select(RetrievalChunk,Document,TextbookUnit).join(Document,Document.id==RetrievalChunk.document_id).join(
-        TextbookUnit,TextbookUnit.id==RetrievalChunk.unit_id).where(RetrievalChunk.status=="active",
+    rows=db.execute(select(RetrievalChunk,Document,TextbookTopic,TextbookGroup).join(Document,Document.id==RetrievalChunk.document_id).join(
+        TextbookTopic,TextbookTopic.id==RetrievalChunk.topic_id).join(TextbookGroup,TextbookGroup.id==TextbookTopic.group_id).where(RetrievalChunk.status=="active",
         RetrievalChunk.subject_id==subject_id,Document.review_state=="published",Document.removed_at.is_(None)).order_by(
-        TextbookUnit.sequence,RetrievalChunk.page_number).limit(200)).all()
-    return [{"id":chunk.id,"subjectId":chunk.subject_id,"unitCode":unit.unit_code,"unitTitle":unit.title,
-        "documentTitle":document.title,"page":chunk.page_number,"excerpt":chunk.content[:240]} for chunk,document,unit in rows]
+        TextbookGroup.sequence,TextbookTopic.sequence,RetrievalChunk.page_number).limit(200)).all()
+    return [{"id":chunk.id,"subjectId":chunk.subject_id,"topicRef":topic.public_ref,"topicCode":topic.code,
+        "topicTitle":topic.title,"groupCode":group.code,"documentTitle":document.title,"page":chunk.page_number,
+        "excerpt":chunk.content[:240]} for chunk,document,topic,group in rows]
 
 def review(db,principal,media_id,payload):
     row=db.get(EducationalMedia,media_id)
@@ -119,7 +122,7 @@ def content(db,storage,principal,media_id,student_id=None):
     if not row: raise DomainError("media_not_found","Educational media not found.",404)
     if principal.user.role != "admin":
         if row.status != "published" or not student_id: raise DomainError("media_not_found","Educational media not found.",404)
-        try: eligible_units, _topics=authorize_student(db,principal,student_id,row.subject_id)
+        try: eligible_topics=authorize_student(db,principal,student_id,row.subject_id)
         except DomainError as exc: raise DomainError("media_not_found","Educational media not found.",404) from exc
-        if row.unit_id not in eligible_units: raise DomainError("media_not_found","Educational media not found.",404)
+        if row.topic_id not in eligible_topics: raise DomainError("media_not_found","Educational media not found.",404)
     return storage.get(row.object_key,row.content_type)

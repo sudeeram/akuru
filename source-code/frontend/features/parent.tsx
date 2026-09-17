@@ -78,15 +78,15 @@ export function Reviews(p: FeatureProps) {
       <div className="section-heading"><h2>Child-by-child learning summary</h2></div>
       <div className="learner-grid">
         {p.data.students.filter(child => student === 'all' || child.id === student).map(child => {
-          const units = p.data.mastery?.[child.id] || [];
+          const topics = p.data.mastery?.[child.id] || [];
           const groups = p.data.masteryGroups?.[child.id] || [];
           const pending = (p.data.recommendations?.[child.id] || []).filter(item => item.reviewStatus === 'pending_review').length;
-          const average = units.length ? units.reduce((total, unit) => total + unit.score, 0) / units.length : null;
+          const average = topics.length ? topics.reduce((total, topic) => total + topic.score, 0) / topics.length : null;
           return <section className="panel stack" key={child.id}><div className="spread"><h3>{child.name}</h3><strong>{average == null ? 'More evidence needed' : `${average.toFixed(1)}/10 average`}</strong></div>
-            <p>{child.grade} · {child.term} · {units.length} measured unit{units.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
-            {units.map(unit => <div className="source-note" key={unit.unitId}><div className="spread"><span>{unit.unitCode} · {unit.unitTitle}</span><strong>{unit.score.toFixed(1)}/10</strong></div><p className="small">{unit.trend > 0 ? 'Improving' : unit.trend < 0 ? 'Declining' : 'Steady'} ({unit.trend > 0 ? '+' : ''}{unit.trend.toFixed(1)}) · {unit.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
+            <p>{child.grade} · {child.term} · {topics.length} measured topic{topics.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
+            {topics.map(topic => <div className="source-note" key={topic.topicRef}><div className="spread"><span>{topic.groupCode} · {topic.topicCode} · {topic.topicTitle}</span><strong>{topic.score.toFixed(1)}/10</strong></div><p className="small">{topic.trend > 0 ? 'Improving' : topic.trend < 0 ? 'Declining' : 'Steady'} ({topic.trend > 0 ? '+' : ''}{topic.trend.toFixed(1)}) · {topic.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{topic.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
             {groups.map(group => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary>{group.groupLabel} {group.groupCode} · {group.groupTitle} · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.filter(topic => topic.score < 7).map(topic => <p className="small" key={topic.topicRef}><strong>Action:</strong> Topic {topic.topicCode} · {topic.topicTitle} needs focused practice ({topic.score.toFixed(1)}/10).</p>)}</details>)}
-            {!units.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a unit trend.</p>}
+            {!topics.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a topic trend.</p>}
             <TutorSignals studentId={child.id} />
           </section>;
         })}
@@ -126,7 +126,7 @@ export function Reviews(p: FeatureProps) {
       <div className="section-heading"><h2>AKURU recommendation review</h2></div>
       <section className="panel">
         {recommendationReviews.map((item) => <div className="resource-row" key={item.id}>
-          <div><h3>{item.title}</h3><p>{p.data.students.find((s) => s.id === item.studentId)?.name} · {item.unitCode} · {item.reason}</p><small>Evidence: {item.observedEvidence.join(' ')}</small></div>
+          <div><h3>{item.title}</h3><p>{p.data.students.find((s) => s.id === item.studentId)?.name} · {item.groupCode} · {item.topicCode} · {item.reason}</p><small>Evidence: {item.observedEvidence.join(' ')}</small></div>
           <Button variant="outline" disabled={busy} onClick={() => reviewRecommendation(item.id, 'rejected')}>Decline</Button>
           <Button className="primary" disabled={busy} onClick={() => reviewRecommendation(item.id, 'approved')}>Approve</Button>
         </div>)}
@@ -180,19 +180,7 @@ export function Assignments(p: FeatureProps) {
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const child = p.data.students.find((s) => s.id === student)!;
-  const qs = p.data.questions.filter(
-    (q) =>
-      child.subjects.includes(q.subject) &&
-      q.unitIds?.every((id) =>
-        p.data.coverage.some(
-          (c) =>
-            c.subject === q.subject &&
-            c.grade === child.grade &&
-            c.term === child.term &&
-            c.unitIds.includes(id),
-        ),
-      ),
-  );
+  const qs = p.data.questions.filter((q) => child.subjects.includes(q.subject));
   const activeQuestion = qs.some((q) => q.id === question)
     ? question
     : qs[0]?.id || '';

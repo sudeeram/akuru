@@ -11,15 +11,12 @@ class RecommendationResponse(BaseModel):
     diagnosisId: uuid.UUID
     studentId: uuid.UUID
     subjectId: str
-    unitId: uuid.UUID | None = None
-    unitCode: str | None = None
-    unitTitle: str | None = None
-    topicRef: str | None = None
-    topicCode: str | None = None
-    topicTitle: str | None = None
-    groupLabel: str | None = None
-    groupCode: str | None = None
-    groupTitle: str | None = None
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    groupLabel: str
+    groupCode: str
+    groupTitle: str
     category: str
     description: str
     observedEvidence: list[str]

@@ -23,13 +23,11 @@ class TutorPracticeAction(BaseModel):
 class TutorPracticeResponse(BaseModel):
     practiceRef: str
     status: Literal["active", "submitted"]
-    unitCode: str | None = None
-    unitTitle: str | None = None
-    topicRef: str | None = None
-    topicCode: str | None = None
-    topicTitle: str | None = None
-    groupCode: str | None = None
-    groupTitle: str | None = None
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    groupCode: str
+    groupTitle: str
     question: AssessmentQuestionResponse
     assetUrls: list[str] = Field(default_factory=list)
     hintCount: int
@@ -43,11 +41,9 @@ class TutorSignalResponse(BaseModel):
     signalRef: str
     studentName: str
     subjectId: str
-    unitCode: str | None = None
-    unitTitle: str | None = None
-    topicRef: str | None = None
-    topicCode: str | None = None
-    topicTitle: str | None = None
+    topicRef: str
+    topicCode: str
+    topicTitle: str
     category: str
     observation: str
     confidence: float

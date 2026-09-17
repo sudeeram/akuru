@@ -7,8 +7,7 @@ from app.config import Settings
 from app.errors import DomainError
 from app.models import (
     Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion, RetrievalChunk,
-    Textbook, TextbookContentVersion, TextbookGroup, TextbookTopic, TextbookTopicContentVersion,
-    TextbookUnit, TutorSession,
+    Textbook, TextbookGroup, TextbookTopic, TextbookTopicContentVersion, TutorSession,
 )
 from app.schemas.tutor_sources import TutorCitation, TutorCitationContextResponse, TutorSourceSearchResponse
 from app.security import Principal
@@ -34,34 +33,19 @@ def _session(db: Session, settings: Settings, principal: Principal, session_ref:
     if row.status != "active":
         raise DomainError("tutor_session_ended", "This tutor session has ended.", 409)
     coverage = curriculum_plans.student_coverage(db, principal.user.id, row.subject_id)
-    topic_refs = {item.topicRef for item in coverage.coveredTopics}
-    active_topic = db.get(TextbookTopic, row.active_topic_id) if row.active_topic_id else None
-    valid = (active_topic and active_topic.public_ref in topic_refs) or str(row.active_unit_id) in {item.id for item in coverage.coveredUnits}
-    if coverage.status != "ready" or not valid:
-        raise DomainError("tutor_unit_not_eligible", "The active tutor unit is no longer eligible.", 409)
+    active = db.get(TextbookTopic, row.active_topic_id)
+    if coverage.status != "ready" or not active or active.public_ref not in {
+        item.topicRef for item in coverage.coveredTopics
+    }:
+        raise DomainError("tutor_topic_not_eligible", "The active Tutor topic is no longer eligible.", 409)
     return row
 
 
-def _published_textbook(db: Session, session: TutorSession, edition: str | None = None):
-    query = select(TextbookContentVersion, Document, DocumentVersion).join(
-        Document, Document.id == TextbookContentVersion.document_id
-    ).join(DocumentVersion, DocumentVersion.id == TextbookContentVersion.source_document_version_id).where(
-        TextbookContentVersion.course_id == "igcse",
-        TextbookContentVersion.subject_id == session.subject_id,
-        TextbookContentVersion.status == "published",
-        Document.review_state == "published", Document.removed_at.is_(None),
-        DocumentVersion.status == "completed",
-    )
-    if edition:
-        query = query.where(TextbookContentVersion.edition == edition)
-    row = db.execute(query.order_by(TextbookContentVersion.published_at.desc(), TextbookContentVersion.version_number.desc())).first()
-    if not row:
-        return None
-    version, document, document_version = row
-    unit = db.get(TextbookUnit, session.active_unit_id)
-    if not unit or unit.content_version_id != version.id or unit.subject_id != session.subject_id:
-        return None
-    return version, document, document_version, unit
+def _published_version(db: Session, topic: TextbookTopic) -> TextbookTopicContentVersion | None:
+    return db.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentVersion.status == "published",
+    ).order_by(TextbookTopicContentVersion.version_number.desc()))
 
 
 def _asset(db: Session, chunk: RetrievalChunk, page: DocumentPage) -> DocumentAsset | None:
@@ -70,142 +54,85 @@ def _asset(db: Session, chunk: RetrievalChunk, page: DocumentPage) -> DocumentAs
     return asset if asset and asset.document_version_id == chunk.document_version_id else None
 
 
-def _citation(db: Session, session: TutorSession, chunk: RetrievalChunk, document: Document,
-              document_version: DocumentVersion, version: TextbookContentVersion,
-              unit: TextbookUnit, page: DocumentPage, block: DocumentBlock,
+def _citation(db: Session, session: TutorSession, chunk: RetrievalChunk,
               confidence: float) -> TutorCitation:
+    topic = db.get(TextbookTopic, session.active_topic_id)
+    group = db.get(TextbookGroup, topic.group_id)
+    book = db.get(Textbook, topic.textbook_id)
+    document = db.get(Document, chunk.document_id)
+    document_version = db.get(DocumentVersion, chunk.document_version_id)
+    block = db.get(DocumentBlock, chunk.source_item_id)
+    page = db.scalar(select(DocumentPage).where(
+        DocumentPage.document_version_id == chunk.document_version_id,
+        DocumentPage.page_number == chunk.page_number))
+    if not document or document.review_state != "published" or document.removed_at or not document_version \
+            or not block or block.needs_review or not page:
+        raise DomainError("tutor_citation_not_found", "Citation not found.", 404)
     asset = _asset(db, chunk, page)
     if not asset:
         raise DomainError("tutor_citation_asset_missing", "The authorized citation image is unavailable.", 409)
-    citation_ref = f"citation_{chunk.id.hex}"
     label = page.printed_page_label or page.page_metadata.get("printedPageLabel")
-    page_reference = f"printed page {label} (PDF page {page.page_number})" if label else f"PDF page {page.page_number}"
-    source_base = f"/api/v1/tutoring/sessions/{session.public_ref}/sources/{citation_ref}"
+    citation_ref = f"citation_{chunk.id.hex}"
+    base = f"/api/v1/tutoring/sessions/{session.public_ref}/sources/{citation_ref}"
     return TutorCitation(citationRef=citation_ref, documentVersion=document_version.version_number,
-        textbookTitle=document.title, textbookEdition=version.edition, unitId=str(unit.id),
-        unitCode=unit.unit_code, unitTitle=unit.title, contentKind=block.block_kind,
+        textbookTitle=book.title, textbookEdition=book.edition, topicRef=topic.public_ref,
+        topicCode=topic.code, topicTitle=topic.title, groupLabel=book.group_label,
+        groupCode=group.code, groupTitle=group.title, contentKind=block.block_kind,
         passage=chunk.content, pdfPageIndex=page.page_number - 1, pdfPageNumber=page.page_number,
-        printedPageLabel=str(label) if label else None, pageReference=page_reference,
+        printedPageLabel=str(label) if label else None,
+        pageReference=f"printed page {label} (PDF page {page.page_number})" if label else f"PDF page {page.page_number}",
         boundingBox=chunk.bounding_box, confidence=round(max(0, min(1, confidence)), 6),
-        assetRef=f"asset_{asset.id.hex}", sourceUrl=source_base, assetUrl=source_base + "/asset")
+        assetRef=f"asset_{asset.id.hex}", sourceUrl=base, assetUrl=base + "/asset")
 
 
-def _exact_row(db: Session, session: TutorSession, chunk_id: uuid.UUID):
-    textbook = _published_textbook(db, session)
-    if not textbook:
-        return None
-    version, document, document_version, unit = textbook
-    return db.execute(select(RetrievalChunk, DocumentPage, DocumentBlock).join(
-        DocumentPage, (DocumentPage.document_version_id == RetrievalChunk.document_version_id) &
-        (DocumentPage.page_number == RetrievalChunk.page_number)
-    ).join(DocumentBlock, DocumentBlock.id == RetrievalChunk.source_item_id).where(
-        RetrievalChunk.id == chunk_id, RetrievalChunk.status == "active",
-        RetrievalChunk.source_type == "textbook_section", RetrievalChunk.course_id == "igcse",
-        RetrievalChunk.subject_id == session.subject_id, RetrievalChunk.unit_id == session.active_unit_id,
-        RetrievalChunk.textbook_content_version_id == version.id,
-        RetrievalChunk.document_id == document.id,
-        RetrievalChunk.document_version_id == document_version.id,
-        DocumentBlock.needs_review.is_(False),
-    )).first()
+def _active_chunks(db: Session, session: TutorSession):
+    topic = db.get(TextbookTopic, session.active_topic_id)
+    version = _published_version(db, topic)
+    if not version:
+        return topic, None, None
+    book = db.get(Textbook, topic.textbook_id)
+    if topic.status != "published" or book.status != "published":
+        return topic, None, None
+    return topic, version, book
 
 
 def search(db: Session, settings: Settings, principal: Principal, session_ref: str,
            query: str, edition: str | None, limit: int) -> TutorSourceSearchResponse:
     session = _session(db, settings, principal, session_ref)
-    if session.active_topic_id:
-        topic = db.get(TextbookTopic, session.active_topic_id); group = db.get(TextbookGroup, topic.group_id)
-        book = db.get(Textbook, topic.textbook_id); version = db.get(TextbookTopicContentVersion, topic.current_published_content_version_id)
-        if not topic or not group or not book or not version or topic.status != "published" or book.status != "published" or (edition and book.edition != edition):
-            return TutorSourceSearchResponse(status="evidence_insufficient", message="No approved textbook topic is available.", query=query)
-        vector=embed_texts(settings,[query])[0]; distance=RetrievalChunk.embedding.cosine_distance(vector)
-        rows=db.execute(select(RetrievalChunk,Document,DocumentVersion,DocumentPage,DocumentBlock,distance.label("distance")
-            ).join(Document,Document.id==RetrievalChunk.document_id).join(DocumentVersion,DocumentVersion.id==RetrievalChunk.document_version_id
-            ).join(DocumentPage,(DocumentPage.document_version_id==RetrievalChunk.document_version_id)&(DocumentPage.page_number==RetrievalChunk.page_number)
-            ).join(DocumentBlock,DocumentBlock.id==RetrievalChunk.source_item_id).where(
-            RetrievalChunk.status=="active",RetrievalChunk.topic_id==topic.id,
-            RetrievalChunk.topic_content_version_id==version.id,Document.review_state=="published",
-            Document.removed_at.is_(None),DocumentBlock.needs_review.is_(False)).order_by(distance).limit(limit)).all()
-        citations=[]
-        for chunk,document,document_version,page,block,raw_distance in rows:
-            confidence=max(0,1-float(raw_distance))
-            if confidence < settings.tutor_retrieval_min_score: continue
-            asset=_asset(db,chunk,page)
-            if not asset: continue
-            label=page.printed_page_label or page.page_metadata.get("printedPageLabel")
-            base=f"/api/v1/tutoring/sessions/{session.public_ref}/sources/citation_{chunk.id.hex}"
-            citations.append(TutorCitation(citationRef=f"citation_{chunk.id.hex}",documentVersion=document_version.version_number,
-                textbookTitle=book.title,textbookEdition=book.edition,topicRef=topic.public_ref,topicCode=topic.code,
-                topicTitle=topic.title,groupLabel=book.group_label,groupCode=group.code,groupTitle=group.title,
-                contentKind=block.block_kind,passage=chunk.content,pdfPageIndex=page.page_number-1,
-                pdfPageNumber=page.page_number,printedPageLabel=str(label) if label else None,
-                pageReference=f"printed page {label} (PDF page {page.page_number})" if label else f"PDF page {page.page_number}",
-                boundingBox=chunk.bounding_box,confidence=round(confidence,6),assetRef=f"asset_{asset.id.hex}",
-                sourceUrl=base,assetUrl=base+"/asset"))
-        return TutorSourceSearchResponse(status="exact" if citations else "evidence_insufficient",
-            message="Exact approved topic evidence found." if citations else "AKURU could not find an exact approved passage in this topic. Do not invent a citation.",
-            query=query,citations=citations)
-    textbook = _published_textbook(db, session, edition)
-    if not textbook:
+    topic, version, book = _active_chunks(db, session)
+    if not version or (edition and book.edition != edition):
         return TutorSourceSearchResponse(status="evidence_insufficient",
-            message="No approved textbook edition is available for this eligible unit.", query=query)
-    version, document, document_version, unit = textbook
+            message="No approved textbook topic is available.", query=query)
     vector = embed_texts(settings, [query])[0]
     distance = RetrievalChunk.embedding.cosine_distance(vector)
-    rows = db.execute(select(RetrievalChunk, DocumentPage, DocumentBlock, distance.label("distance")).join(
-        DocumentPage, (DocumentPage.document_version_id == RetrievalChunk.document_version_id) &
-        (DocumentPage.page_number == RetrievalChunk.page_number)
-    ).join(DocumentBlock, DocumentBlock.id == RetrievalChunk.source_item_id).where(
+    rows = db.execute(select(RetrievalChunk, distance.label("distance")).where(
         RetrievalChunk.status == "active", RetrievalChunk.source_type == "textbook_section",
-        RetrievalChunk.course_id == "igcse", RetrievalChunk.subject_id == session.subject_id,
-        RetrievalChunk.unit_id == session.active_unit_id,
-        RetrievalChunk.textbook_content_version_id == version.id,
-        RetrievalChunk.document_id == document.id,
-        RetrievalChunk.document_version_id == document_version.id,
-        DocumentBlock.needs_review.is_(False),
+        RetrievalChunk.topic_id == topic.id, RetrievalChunk.topic_content_version_id == version.id,
     ).order_by(distance, RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(limit)).all()
     citations = []
-    for chunk, page, block, raw_distance in rows:
-        confidence = max(0.0, 1.0 - float(raw_distance))
-        if confidence >= settings.tutor_retrieval_min_score:
-            citations.append(_citation(db, session, chunk, document, document_version, version, unit, page, block, confidence))
-    if not citations:
-        return TutorSourceSearchResponse(status="evidence_insufficient",
-            message="AKURU could not find an exact approved passage. Do not mention a textbook page or quotation.", query=query)
-    return TutorSourceSearchResponse(status="exact", message="Exact approved textbook evidence found.",
-                                     query=query, citations=citations)
+    for chunk, raw_distance in rows:
+        confidence = max(0, 1 - float(raw_distance))
+        if confidence < settings.tutor_retrieval_min_score:
+            continue
+        try:
+            citations.append(_citation(db, session, chunk, confidence))
+        except DomainError:
+            continue
+    return TutorSourceSearchResponse(status="exact" if citations else "evidence_insufficient",
+        message="Exact approved topic evidence found." if citations else
+            "AKURU could not find an exact approved passage in this topic. Do not invent a citation.",
+        query=query, citations=citations)
 
 
 def get_citation(db: Session, settings: Settings, principal: Principal, session_ref: str,
                  citation_ref: str) -> TutorCitation:
     session = _session(db, settings, principal, session_ref)
-    if session.active_topic_id:
-        chunk_id=_chunk_id(citation_ref); chunk=db.get(RetrievalChunk,chunk_id)
-        if not chunk or chunk.status!="active" or chunk.topic_id!=session.active_topic_id:
-            raise DomainError("tutor_citation_not_found","Citation not found.",404)
-        topic=db.get(TextbookTopic,session.active_topic_id); group=db.get(TextbookGroup,topic.group_id); book=db.get(Textbook,topic.textbook_id)
-        if chunk.topic_content_version_id!=topic.current_published_content_version_id:
-            raise DomainError("tutor_citation_not_found","Citation not found.",404)
-        document=db.get(Document,chunk.document_id); document_version=db.get(DocumentVersion,chunk.document_version_id)
-        block=db.get(DocumentBlock,chunk.source_item_id)
-        page=db.scalar(select(DocumentPage).where(DocumentPage.document_version_id==chunk.document_version_id,
-            DocumentPage.page_number==chunk.page_number))
-        if not document or document.review_state!="published" or not block or block.needs_review or not page:
-            raise DomainError("tutor_citation_not_found","Citation not found.",404)
-        asset=_asset(db,chunk,page)
-        if not asset: raise DomainError("tutor_citation_asset_missing","The authorized citation image is unavailable.",409)
-        label=page.printed_page_label or page.page_metadata.get("printedPageLabel"); base=f"/api/v1/tutoring/sessions/{session.public_ref}/sources/{citation_ref}"
-        return TutorCitation(citationRef=citation_ref,documentVersion=document_version.version_number,textbookTitle=book.title,
-            textbookEdition=book.edition,topicRef=topic.public_ref,topicCode=topic.code,topicTitle=topic.title,
-            groupLabel=book.group_label,groupCode=group.code,groupTitle=group.title,contentKind=block.block_kind,
-            passage=chunk.content,pdfPageIndex=page.page_number-1,pdfPageNumber=page.page_number,
-            printedPageLabel=str(label) if label else None,pageReference=f"printed page {label} (PDF page {page.page_number})" if label else f"PDF page {page.page_number}",
-            boundingBox=chunk.bounding_box,confidence=1,assetRef=f"asset_{asset.id.hex}",sourceUrl=base,assetUrl=base+"/asset")
-    row = _exact_row(db, session, _chunk_id(citation_ref))
-    if not row:
+    topic, version, _ = _active_chunks(db, session)
+    chunk = db.get(RetrievalChunk, _chunk_id(citation_ref))
+    if not version or not chunk or chunk.status != "active" or chunk.topic_id != topic.id \
+            or chunk.topic_content_version_id != version.id:
         raise DomainError("tutor_citation_not_found", "Citation not found.", 404)
-    chunk, page, block = row
-    version, document, document_version, unit = _published_textbook(db, session)
-    return _citation(db, session, chunk, document, document_version, version, unit, page, block, 1.0)
+    return _citation(db, session, chunk, 1)
 
 
 def nearby_context(db: Session, settings: Settings, principal: Principal, session_ref: str,
@@ -215,12 +142,11 @@ def nearby_context(db: Session, settings: Settings, principal: Principal, sessio
     selected_chunk = db.get(RetrievalChunk, _chunk_id(citation_ref))
     chunks = db.scalars(select(RetrievalChunk).where(
         RetrievalChunk.status == "active", RetrievalChunk.source_type == "textbook_section",
-        (RetrievalChunk.topic_content_version_id == selected_chunk.topic_content_version_id) if session.active_topic_id else
-        (RetrievalChunk.textbook_content_version_id == selected_chunk.textbook_content_version_id),
+        RetrievalChunk.topic_content_version_id == selected_chunk.topic_content_version_id,
         RetrievalChunk.document_version_id == selected_chunk.document_version_id,
-        (RetrievalChunk.topic_id == session.active_topic_id) if session.active_topic_id else
-        (RetrievalChunk.unit_id == session.active_unit_id),
-        RetrievalChunk.source_ordinal.between(max(0, selected_chunk.source_ordinal - radius), selected_chunk.source_ordinal + radius),
+        RetrievalChunk.topic_id == session.active_topic_id,
+        RetrievalChunk.source_ordinal.between(max(0, selected_chunk.source_ordinal - radius),
+                                               selected_chunk.source_ordinal + radius),
     ).order_by(RetrievalChunk.source_ordinal)).all()
     nearby = [get_citation(db, settings, principal, session_ref, f"citation_{chunk.id.hex}")
               for chunk in chunks if chunk.id != selected_chunk.id]
@@ -231,8 +157,7 @@ def nearby_context(db: Session, settings: Settings, principal: Principal, sessio
 def open_asset(db: Session, settings: Settings, principal: Principal, storage: ObjectStorage,
                session_ref: str, citation_ref: str) -> StoredObject:
     citation = get_citation(db, settings, principal, session_ref, citation_ref)
-    asset_id = uuid.UUID(hex=citation.assetRef.removeprefix("asset_"))
-    asset = db.get(DocumentAsset, asset_id)
+    asset = db.get(DocumentAsset, uuid.UUID(hex=citation.assetRef.removeprefix("asset_")))
     try:
         return storage.get(asset.object_key, asset.mime_type)
     except FileNotFoundError as error:

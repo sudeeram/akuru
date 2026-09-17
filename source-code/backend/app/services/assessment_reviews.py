@@ -30,7 +30,7 @@ def review(db, principal, result_id, payload):
         awarded_marks=marks, marking_decisions=[point.model_dump() for point in payload.markingDecisions],
         teaching_explanation=payload.feedback, improved_answer=payload.improvedAnswer,
         strengths=payload.strengths, small_mistakes=payload.smallMistakes, conceptual_mistakes=payload.conceptualMistakes,
-        review_reasons=[], recommendations=[], unit_evidence=[])
+        review_reasons=[], recommendations=[], topic_evidence=[])
     # Confidence remains the original model confidence; a human decision is not a new probability estimate.
     values["source_manifest"].append({"type": "human_review", "originalResultId": str(original.id),
         "reviewerId": str(principal.user.id), "reviewerRole": principal.user.role, "reason": payload.reason})

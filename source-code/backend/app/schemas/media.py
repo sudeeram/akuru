@@ -23,7 +23,7 @@ class MediaReview(BaseModel):
     notes: str = Field(min_length=3, max_length=2000)
 
 class MediaResponse(BaseModel):
-    id: uuid.UUID; subjectId: str; unitId: uuid.UUID; sourceChunkId: uuid.UUID
+    id: uuid.UUID; subjectId: str; topicId: uuid.UUID; sourceChunkId: uuid.UUID
     kind: str; title: str; altText: str; prompt: str; promptVersion: str
     parameters: dict; sourceManifest: list[dict]; provider: str; model: str
     responseId: str | None; contentType: str; status: str; reviewNotes: str
@@ -33,4 +33,5 @@ class MediaListResponse(BaseModel):
     media: list[MediaResponse]
 
 class MediaSourceResponse(BaseModel):
-    id: uuid.UUID; subjectId: str; unitCode: str; unitTitle: str; documentTitle: str; page: int; excerpt: str
+    id: uuid.UUID; subjectId: str; topicRef: str; topicCode: str; topicTitle: str
+    groupCode: str; documentTitle: str; page: int; excerpt: str

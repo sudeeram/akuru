@@ -16,6 +16,7 @@ const commands = {
   dev: ["-m", "uvicorn", "app.main:app", "--reload", "--host", "127.0.0.1", "--port", "8000"],
   worker: ["-m", "app.workers.document_worker"],
   migrate: ["-m", "alembic", "upgrade", "head"],
+  seed: ["-m", "app.seed_catalog"],
   test: ["-m", "pytest", "-q"],
   backup: ["-m", "app.database_maintenance", "backup", ...process.argv.slice(3)],
   "restore-drill": ["-m", "app.database_maintenance", "restore-drill", ...process.argv.slice(3)],

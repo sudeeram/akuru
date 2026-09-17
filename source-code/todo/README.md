@@ -5,6 +5,7 @@ This folder is the single home for AKURU delivery backlogs.
 - [Core platform roadmap](TODO.md)
 - [Tutor Agent roadmap](TODO-TUTOR.md)
 - [Textbook groups, topics and incremental coverage](TODO-TEXTBOOK-TOPICS.md)
+- [Database baseline reset and migration squash](TODO-DATABASE-BASELINE.md)
 
 Status markers used by the roadmaps:
 

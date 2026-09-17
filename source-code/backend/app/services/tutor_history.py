@@ -5,8 +5,8 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import (AIInvocation, AuditEvent, StudentProfile, TextbookGroup, TextbookTopic, TextbookUnit, TutorPractice,
-                        TutorSafetyEvent, TutorSession, TutorSessionSummary, TutorSessionUnitEvent,
+from app.models import (AIInvocation, AuditEvent, StudentProfile, TextbookGroup, TextbookTopic, TutorPractice,
+                        TutorSafetyEvent, TutorSession, TutorSessionSummary,
                         TutorSessionTopicEvent, TutorSignal, TutorTurn, User)
 from app.security import Principal
 
@@ -35,11 +35,7 @@ def detect_safety(db: Session, session: TutorSession, turn: TutorTurn) -> None:
 def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
     existing = db.scalar(select(TutorSessionSummary).where(TutorSessionSummary.session_id == session.id))
     if existing: return existing
-    unit_ids = [session.active_unit_id] if session.active_unit_id else []
-    for event in db.scalars(select(TutorSessionUnitEvent).where(TutorSessionUnitEvent.session_id == session.id)).all():
-        unit_ids.extend((event.from_unit_id, event.to_unit_id))
-    units = [db.get(TextbookUnit, value) for value in dict.fromkeys(unit_ids)]
-    topic_ids = [session.active_topic_id] if session.active_topic_id else []
+    topic_ids = [session.active_topic_id]
     for event in db.scalars(select(TutorSessionTopicEvent).where(TutorSessionTopicEvent.session_id == session.id)).all():
         topic_ids.extend((event.from_topic_id,event.to_topic_id))
     topics=[db.get(TextbookTopic,value) for value in dict.fromkeys(topic_ids)]
@@ -56,13 +52,10 @@ def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
     ).one()
     strengths = [s.observation for s in signals if s.category in {"confidence", "engagement"}]
     difficulties = [s.observation for s in signals if s.category in {"misconception", "practice_need"}]
-    units = [unit for unit in units if unit]
-    next_steps = [f"Continue guided practice for {unit.unit_code} · {unit.title}." for unit in units[:3]]
-    next_steps += [f"Continue guided practice for {topic.code} · {topic.title}." for topic in topics[:3]]
+    next_steps = [f"Continue guided practice for {topic.code} · {topic.title}." for topic in topics[:3]]
     row = TutorSessionSummary(public_ref=f"summary_{uuid.uuid4().hex}", session_id=session.id,
         student_id=session.student_id, subject_id=session.subject_id,
-        units_covered=[{"code": unit.unit_code, "title": unit.title} for unit in units] +
-            [{"code": topic.code,"title": topic.title,"topicRef":topic.public_ref,
+        topics_covered=[{"code": topic.code,"title": topic.title,"topicRef":topic.public_ref,
               "groupTitle":db.get(TextbookGroup,topic.group_id).title} for topic in topics],
         activities=["Tutor conversation"] + (["Guided practice"] if practices else []),
         strengths=strengths, difficulties=difficulties, next_steps=next_steps,
@@ -73,7 +66,7 @@ def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
 def _summary(db: Session, row: TutorSessionSummary) -> dict:
     session = db.get(TutorSession, row.session_id); student = db.get(User, row.student_id)
     return {"summaryRef": row.public_ref, "sessionRef": session.public_ref, "studentName": student.display_name,
-        "subjectId": row.subject_id, "unitsCovered": row.units_covered, "activities": row.activities,
+        "subjectId": row.subject_id, "topicsCovered": row.topics_covered, "activities": row.activities,
         "strengths": row.strengths, "difficulties": row.difficulties, "suggestedNextSteps": row.next_steps,
         "usage": row.usage_data, "createdAt": row.created_at}
 

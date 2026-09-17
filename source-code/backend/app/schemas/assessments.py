@@ -80,7 +80,7 @@ class AssessmentPassTwo(BaseModel):
     conceptualMistakes: list[str] = Field(default_factory=list, max_length=30)
     improvedAnswer: str = Field(min_length=1, max_length=20_000)
     teachingExplanation: str = Field(min_length=1, max_length=30_000)
-    unitEvidence: list[dict] = Field(default_factory=list, max_length=30)
+    topicEvidence: list[dict] = Field(default_factory=list, max_length=30)
     recommendations: list[str] = Field(default_factory=list, max_length=30)
     confidence: float = Field(ge=0, le=1)
     reviewReasons: list[str] = Field(default_factory=list, max_length=20)
@@ -98,7 +98,7 @@ class AssessmentResultResponse(BaseModel):
     conceptualMistakes: list[str]
     improvedAnswer: str
     teachingExplanation: str
-    unitEvidence: list[dict]
+    topicEvidence: list[dict]
     recommendations: list[str]
     reviewReasons: list[str]
     subjectEngine: str
@@ -123,7 +123,6 @@ class AssessmentQuestionResponse(BaseModel):
     equations: list
     assetIds: list
     sourceLocations: list
-    unitIds: list
     topicRefs: list[str] = Field(default_factory=list)
     skills: list
     difficulty: str

@@ -649,11 +649,6 @@
             },
             "title": "Topicrefs",
             "type": "array"
-          },
-          "unitIds": {
-            "items": {},
-            "title": "Unitids",
-            "type": "array"
           }
         },
         "required": [
@@ -665,7 +660,6 @@
           "equations",
           "assetIds",
           "sourceLocations",
-          "unitIds",
           "skills",
           "difficulty"
         ],
@@ -863,12 +857,12 @@
             "title": "Teachingexplanation",
             "type": "string"
           },
-          "unitEvidence": {
+          "topicEvidence": {
             "items": {
               "additionalProperties": true,
               "type": "object"
             },
-            "title": "Unitevidence",
+            "title": "Topicevidence",
             "type": "array"
           },
           "version": {
@@ -889,7 +883,7 @@
           "conceptualMistakes",
           "improvedAnswer",
           "teachingExplanation",
-          "unitEvidence",
+          "topicEvidence",
           "recommendations",
           "reviewReasons",
           "subjectEngine",
@@ -1573,115 +1567,6 @@
         "title": "ContextTopic",
         "type": "object"
       },
-      "ContextUnit": {
-        "properties": {
-          "active": {
-            "title": "Active",
-            "type": "boolean"
-          },
-          "attempts": {
-            "items": {
-              "$ref": "#/components/schemas/ContextAttempt"
-            },
-            "title": "Attempts",
-            "type": "array"
-          },
-          "confidence": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Confidence"
-          },
-          "dimensions": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "title": "Dimensions",
-            "type": "object"
-          },
-          "evidenceCount": {
-            "default": 0,
-            "title": "Evidencecount",
-            "type": "integer"
-          },
-          "masteryScore": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Masteryscore"
-          },
-          "mistakes": {
-            "items": {
-              "$ref": "#/components/schemas/ContextMistakePattern"
-            },
-            "title": "Mistakes",
-            "type": "array"
-          },
-          "reviewedRecommendations": {
-            "items": {
-              "$ref": "#/components/schemas/ContextReviewedRecommendation"
-            },
-            "title": "Reviewedrecommendations",
-            "type": "array"
-          },
-          "signals": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Signals",
-            "type": "array"
-          },
-          "statements": {
-            "items": {
-              "$ref": "#/components/schemas/ContextStatement"
-            },
-            "title": "Statements",
-            "type": "array"
-          },
-          "studyPlan": {
-            "items": {
-              "$ref": "#/components/schemas/ContextPlanItem"
-            },
-            "title": "Studyplan",
-            "type": "array"
-          },
-          "trend": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trend"
-          },
-          "unit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
-          },
-          "varietyCount": {
-            "default": 0,
-            "title": "Varietycount",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "unit",
-          "active"
-        ],
-        "title": "ContextUnit",
-        "type": "object"
-      },
       "CorpusCreate": {
         "properties": {
           "cases": {
@@ -1840,13 +1725,6 @@
               "$ref": "#/components/schemas/PlanTopicResponse"
             },
             "title": "Coveredtopics",
-            "type": "array"
-          },
-          "coveredUnits": {
-            "items": {
-              "$ref": "#/components/schemas/PlanUnitResponse"
-            },
-            "title": "Coveredunits",
             "type": "array"
           },
           "currentGrade": {
@@ -2016,13 +1894,6 @@
       },
       "CurriculumPlanResponse": {
         "properties": {
-          "availableUnits": {
-            "items": {
-              "$ref": "#/components/schemas/PlanUnitResponse"
-            },
-            "title": "Availableunits",
-            "type": "array"
-          },
           "basedOnVersion": {
             "anyOf": [
               {
@@ -2121,7 +1992,6 @@
           "subjectId",
           "textbookTitle",
           "textbookEdition",
-          "availableUnits",
           "periods"
         ],
         "title": "CurriculumPlanResponse",
@@ -2838,37 +2708,16 @@
             "type": "string"
           },
           "groupCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Groupcode"
+            "title": "Groupcode",
+            "type": "string"
           },
           "groupLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouplabel"
+            "title": "Grouplabel",
+            "type": "string"
           },
           "groupTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouptitle"
+            "title": "Grouptitle",
+            "type": "string"
           },
           "page": {
             "title": "Page",
@@ -2917,71 +2766,16 @@
             "type": "string"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
-          },
-          "unitTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unittitle"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
@@ -2993,7 +2787,13 @@
           "page",
           "boundingBox",
           "sourceAssetId",
-          "sourceUrl"
+          "sourceUrl",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupLabel",
+          "groupCode",
+          "groupTitle"
         ],
         "title": "EvidenceResponse",
         "type": "object"
@@ -3490,24 +3290,7 @@
       "LearnerContextResponse": {
         "properties": {
           "activeTopic": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanTopicResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "activeUnit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanUnitResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/PlanTopicResponse"
           },
           "contextVersion": {
             "title": "Contextversion",
@@ -3542,13 +3325,6 @@
             },
             "title": "Topics",
             "type": "array"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/ContextUnit"
-            },
-            "title": "Units",
-            "type": "array"
           }
         },
         "required": [
@@ -3556,6 +3332,7 @@
           "contextVersion",
           "generatedAt",
           "subjectId",
+          "activeTopic",
           "evidence",
           "providerContext"
         ],
@@ -3599,32 +3376,6 @@
           "csrfToken"
         ],
         "title": "LoginResponse",
-        "type": "object"
-      },
-      "MappingSuggestionResponse": {
-        "properties": {
-          "method": {
-            "title": "Method",
-            "type": "string"
-          },
-          "questionId": {
-            "title": "Questionid",
-            "type": "string"
-          },
-          "suggestions": {
-            "items": {
-              "$ref": "#/components/schemas/UnitMapping"
-            },
-            "title": "Suggestions",
-            "type": "array"
-          }
-        },
-        "required": [
-          "questionId",
-          "method",
-          "suggestions"
-        ],
-        "title": "MappingSuggestionResponse",
         "type": "object"
       },
       "MarkSchemeEntryReview": {
@@ -3874,18 +3625,10 @@
             },
             "title": "Topics",
             "type": "array"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/UnitMasteryResponse"
-            },
-            "title": "Units",
-            "type": "array"
           }
         },
         "required": [
-          "studentId",
-          "units"
+          "studentId"
         ],
         "title": "MasteryResponse",
         "type": "object"
@@ -4007,16 +3750,16 @@
             "title": "Title",
             "type": "string"
           },
-          "unitId": {
+          "topicId": {
             "format": "uuid",
-            "title": "Unitid",
+            "title": "Topicid",
             "type": "string"
           }
         },
         "required": [
           "id",
           "subjectId",
-          "unitId",
+          "topicId",
           "sourceChunkId",
           "kind",
           "title",
@@ -4072,6 +3815,10 @@
             "title": "Excerpt",
             "type": "string"
           },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -4085,20 +3832,26 @@
             "title": "Subjectid",
             "type": "string"
           },
-          "unitCode": {
-            "title": "Unitcode",
+          "topicCode": {
+            "title": "Topiccode",
             "type": "string"
           },
-          "unitTitle": {
-            "title": "Unittitle",
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
             "type": "string"
           }
         },
         "required": [
           "id",
           "subjectId",
-          "unitCode",
-          "unitTitle",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupCode",
           "documentTitle",
           "page",
           "excerpt"
@@ -4106,7 +3859,7 @@
         "title": "MediaSourceResponse",
         "type": "object"
       },
-      "NextUnitRecommendation": {
+      "NextTopicRecommendation": {
         "properties": {
           "activity": {
             "$ref": "#/components/schemas/RecommendationActivity"
@@ -4133,36 +3886,20 @@
             "type": "boolean"
           },
           "topic": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanTopicResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "unit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanUnitResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/PlanTopicResponse"
           }
         },
         "required": [
+          "topic",
           "reason",
           "evidenceRefs",
           "activity",
           "moveAction"
         ],
-        "title": "NextUnitRecommendation",
+        "title": "NextTopicRecommendation",
         "type": "object"
       },
-      "NextUnitRequest": {
+      "NextTopicRequest": {
         "properties": {
           "requestKey": {
             "maxLength": 100,
@@ -4181,10 +3918,10 @@
           "subjectId",
           "requestKey"
         ],
-        "title": "NextUnitRequest",
+        "title": "NextTopicRequest",
         "type": "object"
       },
-      "NextUnitResponse": {
+      "NextTopicResponse": {
         "properties": {
           "algorithmVersion": {
             "title": "Algorithmversion",
@@ -4218,7 +3955,7 @@
           },
           "ranking": {
             "items": {
-              "$ref": "#/components/schemas/RankedUnit"
+              "$ref": "#/components/schemas/RankedTopic"
             },
             "title": "Ranking",
             "type": "array"
@@ -4226,7 +3963,7 @@
           "recommendation": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/NextUnitRecommendation"
+                "$ref": "#/components/schemas/NextTopicRecommendation"
               },
               {
                 "type": "null"
@@ -4237,7 +3974,7 @@
             "enum": [
               "ready",
               "no_evidence",
-              "no_eligible_units"
+              "no_eligible_topics"
             ],
             "title": "Status",
             "type": "string"
@@ -4258,7 +3995,7 @@
           "message",
           "algorithmVersion"
         ],
-        "title": "NextUnitResponse",
+        "title": "NextTopicResponse",
         "type": "object"
       },
       "OfficialMaterialReview": {
@@ -4425,55 +4162,6 @@
         "title": "OfficialQuestionReview",
         "type": "object"
       },
-      "PaperMappingResponse": {
-        "properties": {
-          "paperId": {
-            "title": "Paperid",
-            "type": "string"
-          },
-          "paperTitle": {
-            "title": "Papertitle",
-            "type": "string"
-          },
-          "questions": {
-            "items": {
-              "$ref": "#/components/schemas/QuestionMappingResponse"
-            },
-            "title": "Questions",
-            "type": "array"
-          },
-          "subjectId": {
-            "title": "Subjectid",
-            "type": "string"
-          },
-          "textbookEdition": {
-            "title": "Textbookedition",
-            "type": "string"
-          },
-          "textbookTitle": {
-            "title": "Textbooktitle",
-            "type": "string"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/UnitOption"
-            },
-            "title": "Units",
-            "type": "array"
-          }
-        },
-        "required": [
-          "paperId",
-          "paperTitle",
-          "subjectId",
-          "textbookTitle",
-          "textbookEdition",
-          "units",
-          "questions"
-        ],
-        "title": "PaperMappingResponse",
-        "type": "object"
-      },
       "PlanChangeResponse": {
         "properties": {
           "change": {
@@ -4565,37 +4253,16 @@
             "type": "string"
           },
           "groupCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Groupcode"
+            "title": "Groupcode",
+            "type": "string"
           },
           "groupLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouplabel"
+            "title": "Grouplabel",
+            "type": "string"
           },
           "groupTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouptitle"
+            "title": "Grouptitle",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -4640,66 +4307,28 @@
             "type": "string"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
           "id",
           "subject",
           "topic",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupLabel",
+          "groupCode",
+          "groupTitle",
           "activityType",
           "minutes",
           "reason",
@@ -4732,14 +4361,6 @@
             },
             "maxItems": 500,
             "title": "Topicrefs",
-            "type": "array"
-          },
-          "unitIds": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 300,
-            "title": "Unitids",
             "type": "array"
           }
         },
@@ -4817,29 +4438,6 @@
           "groupTitle"
         ],
         "title": "PlanTopicResponse",
-        "type": "object"
-      },
-      "PlanUnitResponse": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "code",
-          "title"
-        ],
-        "title": "PlanUnitResponse",
         "type": "object"
       },
       "PortalCatalogResponse": {
@@ -4934,14 +4532,6 @@
           "catalog": {
             "$ref": "#/components/schemas/PortalCatalogResponse"
           },
-          "coverage": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Coverage",
-            "type": "array"
-          },
           "documents": {
             "items": {
               "additionalProperties": true,
@@ -4974,6 +4564,17 @@
             "title": "Mastery",
             "type": "object"
           },
+          "masteryGroups": {
+            "additionalProperties": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            "title": "Masterygroups",
+            "type": "object"
+          },
           "officialPapers": {
             "items": {
               "additionalProperties": true,
@@ -4986,14 +4587,6 @@
             "additionalProperties": true,
             "title": "Plans",
             "type": "object"
-          },
-          "questionBank": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Questionbank",
-            "type": "array"
           },
           "questions": {
             "items": {
@@ -5034,14 +4627,6 @@
               "$ref": "#/components/schemas/SubjectPresentationResponse"
             },
             "title": "Subjects",
-            "type": "array"
-          },
-          "units": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Units",
             "type": "array"
           },
           "user": {
@@ -5097,26 +4682,8 @@
       "ProviderLearnerContext": {
         "properties": {
           "activeTopicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Activetopiccode"
-          },
-          "activeUnitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Activeunitcode"
+            "title": "Activetopiccode",
+            "type": "string"
           },
           "contextVersion": {
             "title": "Contextversion",
@@ -5166,6 +4733,7 @@
         "required": [
           "learnerRef",
           "subjectId",
+          "activeTopicCode",
           "contextVersion",
           "learningSignals",
           "recurringMistakes",
@@ -5252,29 +4820,6 @@
           "confirmStructure"
         ],
         "title": "PublishStructureRequest",
-        "type": "object"
-      },
-      "PublishTextbookRequest": {
-        "properties": {
-          "confirmCourse": {
-            "title": "Confirmcourse",
-            "type": "boolean"
-          },
-          "confirmEdition": {
-            "title": "Confirmedition",
-            "type": "boolean"
-          },
-          "confirmSubject": {
-            "title": "Confirmsubject",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "confirmCourse",
-          "confirmSubject",
-          "confirmEdition"
-        ],
-        "title": "PublishTextbookRequest",
         "type": "object"
       },
       "PublishTopicContentRequest": {
@@ -5389,47 +4934,6 @@
           "purgedTurnCount"
         ],
         "title": "PurgeResultResponse",
-        "type": "object"
-      },
-      "QuestionMappingResponse": {
-        "properties": {
-          "mappings": {
-            "items": {
-              "$ref": "#/components/schemas/UnitMapping"
-            },
-            "title": "Mappings",
-            "type": "array"
-          },
-          "marks": {
-            "title": "Marks",
-            "type": "integer"
-          },
-          "number": {
-            "title": "Number",
-            "type": "string"
-          },
-          "prompt": {
-            "title": "Prompt",
-            "type": "string"
-          },
-          "questionId": {
-            "title": "Questionid",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "questionId",
-          "number",
-          "prompt",
-          "marks",
-          "status",
-          "mappings"
-        ],
-        "title": "QuestionMappingResponse",
         "type": "object"
       },
       "QuestionPoolDiagnosticResponse": {
@@ -5565,7 +5069,7 @@
         "title": "QuotaAuditResponse",
         "type": "object"
       },
-      "RankedUnit": {
+      "RankedTopic": {
         "properties": {
           "evidenceRefs": {
             "items": {
@@ -5586,32 +5090,16 @@
             "type": "number"
           },
           "topic": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanTopicResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "unit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanUnitResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/PlanTopicResponse"
           }
         },
         "required": [
+          "topic",
           "score",
           "factors",
           "evidenceRefs"
         ],
-        "title": "RankedUnit",
+        "title": "RankedTopic",
         "type": "object"
       },
       "RankingFactor": {
@@ -5932,37 +5420,16 @@
             "type": "string"
           },
           "groupCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Groupcode"
+            "title": "Groupcode",
+            "type": "string"
           },
           "groupLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouplabel"
+            "title": "Grouplabel",
+            "type": "string"
           },
           "groupTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouptitle"
+            "title": "Grouptitle",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -6034,71 +5501,16 @@
             "type": "string"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
-          },
-          "unitTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unittitle"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
@@ -6106,6 +5518,12 @@
           "diagnosisId",
           "studentId",
           "subjectId",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupLabel",
+          "groupCode",
+          "groupTitle",
           "category",
           "description",
           "observedEvidence",
@@ -6543,41 +5961,6 @@
         "title": "SavePlanRequest",
         "type": "object"
       },
-      "SaveTextbookReviewRequest": {
-        "properties": {
-          "courseId": {
-            "title": "Courseid",
-            "type": "string"
-          },
-          "edition": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Edition",
-            "type": "string"
-          },
-          "subjectId": {
-            "title": "Subjectid",
-            "type": "string"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/TextbookUnitDraft"
-            },
-            "maxItems": 200,
-            "minItems": 1,
-            "title": "Units",
-            "type": "array"
-          }
-        },
-        "required": [
-          "courseId",
-          "subjectId",
-          "edition",
-          "units"
-        ],
-        "title": "SaveTextbookReviewRequest",
-        "type": "object"
-      },
       "SaveTopicMappingsRequest": {
         "properties": {
           "mappings": {
@@ -6594,24 +5977,6 @@
           "mappings"
         ],
         "title": "SaveTopicMappingsRequest",
-        "type": "object"
-      },
-      "SaveUnitMappingsRequest": {
-        "properties": {
-          "mappings": {
-            "items": {
-              "$ref": "#/components/schemas/UnitMapping"
-            },
-            "maxItems": 20,
-            "minItems": 1,
-            "title": "Mappings",
-            "type": "array"
-          }
-        },
-        "required": [
-          "mappings"
-        ],
-        "title": "SaveUnitMappingsRequest",
         "type": "object"
       },
       "SourceLocation": {
@@ -7106,141 +6471,6 @@
           "groups"
         ],
         "title": "TextbookResponse",
-        "type": "object"
-      },
-      "TextbookReviewResponse": {
-        "properties": {
-          "courseId": {
-            "title": "Courseid",
-            "type": "string"
-          },
-          "edition": {
-            "title": "Edition",
-            "type": "string"
-          },
-          "status": {
-            "title": "Status",
-            "type": "string"
-          },
-          "subjectId": {
-            "title": "Subjectid",
-            "type": "string"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/TextbookUnitDraft"
-            },
-            "title": "Units",
-            "type": "array"
-          },
-          "versionNumber": {
-            "title": "Versionnumber",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "versionNumber",
-          "status",
-          "courseId",
-          "subjectId",
-          "edition",
-          "units"
-        ],
-        "title": "TextbookReviewResponse",
-        "type": "object"
-      },
-      "TextbookUnitDraft": {
-        "properties": {
-          "chapter": {
-            "default": "",
-            "maxLength": 240,
-            "title": "Chapter",
-            "type": "string"
-          },
-          "code": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Code",
-            "type": "string"
-          },
-          "concepts": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Concepts",
-            "type": "array"
-          },
-          "definitions": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Definitions",
-            "type": "array"
-          },
-          "diagrams": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Diagrams",
-            "type": "array"
-          },
-          "endPage": {
-            "minimum": 1.0,
-            "title": "Endpage",
-            "type": "integer"
-          },
-          "equations": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Equations",
-            "type": "array"
-          },
-          "examples": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Examples",
-            "type": "array"
-          },
-          "sections": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 100,
-            "title": "Sections",
-            "type": "array"
-          },
-          "startPage": {
-            "minimum": 1.0,
-            "title": "Startpage",
-            "type": "integer"
-          },
-          "summary": {
-            "default": "",
-            "maxLength": 5000,
-            "title": "Summary",
-            "type": "string"
-          },
-          "title": {
-            "maxLength": 240,
-            "minLength": 1,
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "code",
-          "title",
-          "startPage",
-          "endPage"
-        ],
-        "title": "TextbookUnitDraft",
         "type": "object"
       },
       "TextbookUpdateRequest": {
@@ -8394,37 +7624,16 @@
             "type": "integer"
           },
           "groupCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Groupcode"
+            "title": "Groupcode",
+            "type": "string"
           },
           "groupLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouplabel"
+            "title": "Grouplabel",
+            "type": "string"
           },
           "groupTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouptitle"
+            "title": "Grouptitle",
+            "type": "string"
           },
           "pageReference": {
             "title": "Pagereference",
@@ -8466,70 +7675,16 @@
             "type": "string"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
-          },
-          "unitTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unittitle"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
@@ -8537,6 +7692,12 @@
           "documentVersion",
           "textbookTitle",
           "textbookEdition",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupLabel",
+          "groupCode",
+          "groupTitle",
           "contentKind",
           "passage",
           "pdfPageIndex",
@@ -8718,26 +7879,12 @@
             "type": "boolean"
           },
           "groupCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Groupcode"
+            "title": "Groupcode",
+            "type": "string"
           },
           "groupTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Grouptitle"
+            "title": "Grouptitle",
+            "type": "string"
           },
           "hintCount": {
             "title": "Hintcount",
@@ -8782,64 +7929,26 @@
             "title": "Submittedat"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unittitle"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
           "practiceRef",
           "status",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupCode",
+          "groupTitle",
           "question",
           "hintCount",
           "feedbackVisible",
@@ -9190,26 +8299,8 @@
             "type": "string"
           },
           "fixedTopicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fixedtopicref"
-          },
-          "fixedUnitId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fixedunitid"
+            "title": "Fixedtopicref",
+            "type": "string"
           },
           "instruction": {
             "title": "Instruction",
@@ -9218,6 +8309,7 @@
         },
         "required": [
           "instruction",
+          "fixedTopicRef",
           "fixedReason",
           "evidenceRefs"
         ],
@@ -9267,24 +8359,7 @@
       "TutorSessionResponse": {
         "properties": {
           "activeTopic": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanTopicResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "activeUnit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PlanUnitResponse"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "$ref": "#/components/schemas/PlanTopicResponse"
           },
           "currentTutor": {
             "$ref": "#/components/schemas/TutorProfileResponse"
@@ -9347,18 +8422,12 @@
             },
             "title": "Turns",
             "type": "array"
-          },
-          "unitEvents": {
-            "items": {
-              "$ref": "#/components/schemas/TutorUnitEventResponse"
-            },
-            "title": "Unitevents",
-            "type": "array"
           }
         },
         "required": [
           "sessionRef",
           "subjectId",
+          "activeTopic",
           "currentTutor",
           "mode",
           "status",
@@ -9388,34 +8457,15 @@
             "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "maxLength": 80,
-                "minLength": 8,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "maxLength": 40,
-                "minLength": 32,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
+            "maxLength": 80,
+            "minLength": 8,
+            "title": "Topicref",
+            "type": "string"
           }
         },
         "required": [
           "subjectId",
+          "topicRef",
           "profileRef",
           "requestKey"
         ],
@@ -9438,19 +8488,12 @@
             },
             "title": "Topics",
             "type": "array"
-          },
-          "units": {
-            "items": {
-              "$ref": "#/components/schemas/PlanUnitResponse"
-            },
-            "title": "Units",
-            "type": "array"
           }
         },
         "required": [
           "id",
           "name",
-          "units"
+          "topics"
         ],
         "title": "TutorSessionSubjectOption",
         "type": "object"
@@ -9558,65 +8601,25 @@
             "type": "string"
           },
           "topicCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topiccode"
+            "title": "Topiccode",
+            "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
+            "title": "Topicref",
+            "type": "string"
           },
           "topicTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topictitle"
-          },
-          "unitCode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitcode"
-          },
-          "unitTitle": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unittitle"
+            "title": "Topictitle",
+            "type": "string"
           }
         },
         "required": [
           "signalRef",
           "studentName",
           "subjectId",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
           "category",
           "observation",
           "confidence",
@@ -9764,12 +8767,12 @@
             "title": "Summaryref",
             "type": "string"
           },
-          "unitsCovered": {
+          "topicsCovered": {
             "items": {
               "additionalProperties": true,
               "type": "object"
             },
-            "title": "Unitscovered",
+            "title": "Topicscovered",
             "type": "array"
           },
           "usage": {
@@ -9783,7 +8786,7 @@
           "sessionRef",
           "studentName",
           "subjectId",
-          "unitsCovered",
+          "topicsCovered",
           "activities",
           "strengths",
           "difficulties",
@@ -9816,7 +8819,7 @@
         "title": "TutorSwitchProfileRequest",
         "type": "object"
       },
-      "TutorSwitchUnitRequest": {
+      "TutorSwitchTopicRequest": {
         "properties": {
           "requestKey": {
             "maxLength": 100,
@@ -9825,36 +8828,17 @@
             "type": "string"
           },
           "topicRef": {
-            "anyOf": [
-              {
-                "maxLength": 80,
-                "minLength": 8,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topicref"
-          },
-          "unitId": {
-            "anyOf": [
-              {
-                "maxLength": 40,
-                "minLength": 32,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Unitid"
+            "maxLength": 80,
+            "minLength": 8,
+            "title": "Topicref",
+            "type": "string"
           }
         },
         "required": [
+          "topicRef",
           "requestKey"
         ],
-        "title": "TutorSwitchUnitRequest",
+        "title": "TutorSwitchTopicRequest",
         "type": "object"
       },
       "TutorToolResult": {
@@ -10024,28 +9008,6 @@
         "title": "TutorTurnResponse",
         "type": "object"
       },
-      "TutorUnitEventResponse": {
-        "properties": {
-          "createdAt": {
-            "format": "date-time",
-            "title": "Createdat",
-            "type": "string"
-          },
-          "fromUnit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
-          },
-          "toUnit": {
-            "$ref": "#/components/schemas/PlanUnitResponse"
-          }
-        },
-        "required": [
-          "fromUnit",
-          "toUnit",
-          "createdAt"
-        ],
-        "title": "TutorUnitEventResponse",
-        "type": "object"
-      },
       "TutorVisual": {
         "properties": {
           "altText": {
@@ -10213,176 +9175,6 @@
           "role"
         ],
         "title": "UiFeaturesUserResponse",
-        "type": "object"
-      },
-      "UnitMapping": {
-        "properties": {
-          "confidence": {
-            "anyOf": [
-              {
-                "maximum": 1.0,
-                "minimum": 0.0,
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Confidence"
-          },
-          "method": {
-            "anyOf": [
-              {
-                "maxLength": 40,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Method"
-          },
-          "rationale": {
-            "default": "",
-            "maxLength": 1000,
-            "title": "Rationale",
-            "type": "string"
-          },
-          "unitId": {
-            "format": "uuid",
-            "title": "Unitid",
-            "type": "string"
-          },
-          "weight": {
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Weight",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "unitId",
-          "weight"
-        ],
-        "title": "UnitMapping",
-        "type": "object"
-      },
-      "UnitMasteryResponse": {
-        "properties": {
-          "confidence": {
-            "title": "Confidence",
-            "type": "string"
-          },
-          "dimensions": {
-            "items": {
-              "$ref": "#/components/schemas/MasteryDimensionResponse"
-            },
-            "title": "Dimensions",
-            "type": "array"
-          },
-          "evidenceCount": {
-            "title": "Evidencecount",
-            "type": "integer"
-          },
-          "evidenceWeight": {
-            "title": "Evidenceweight",
-            "type": "number"
-          },
-          "lastEvidenceAt": {
-            "format": "date-time",
-            "title": "Lastevidenceat",
-            "type": "string"
-          },
-          "preciseScore": {
-            "maximum": 10.0,
-            "minimum": 0.0,
-            "title": "Precisescore",
-            "type": "number"
-          },
-          "provisional": {
-            "title": "Provisional",
-            "type": "boolean"
-          },
-          "recentEvents": {
-            "items": {
-              "$ref": "#/components/schemas/MasteryEventResponse"
-            },
-            "title": "Recentevents",
-            "type": "array"
-          },
-          "score": {
-            "maximum": 10.0,
-            "minimum": 0.0,
-            "title": "Score",
-            "type": "number"
-          },
-          "subjectId": {
-            "title": "Subjectid",
-            "type": "string"
-          },
-          "trend": {
-            "title": "Trend",
-            "type": "number"
-          },
-          "unitCode": {
-            "title": "Unitcode",
-            "type": "string"
-          },
-          "unitId": {
-            "format": "uuid",
-            "title": "Unitid",
-            "type": "string"
-          },
-          "unitTitle": {
-            "title": "Unittitle",
-            "type": "string"
-          },
-          "varietyCount": {
-            "title": "Varietycount",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "unitId",
-          "unitCode",
-          "unitTitle",
-          "subjectId",
-          "score",
-          "preciseScore",
-          "confidence",
-          "provisional",
-          "evidenceCount",
-          "evidenceWeight",
-          "varietyCount",
-          "trend",
-          "lastEvidenceAt",
-          "dimensions",
-          "recentEvents"
-        ],
-        "title": "UnitMasteryResponse",
-        "type": "object"
-      },
-      "UnitOption": {
-        "properties": {
-          "code": {
-            "title": "Code",
-            "type": "string"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "title": {
-            "title": "Title",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "code",
-          "title"
-        ],
-        "title": "UnitOption",
         "type": "object"
       },
       "UpdateStudentRequest": {
@@ -17055,388 +15847,6 @@
         ]
       }
     },
-    "/api/v1/documents/{document_id}/textbook-review": {
-      "get": {
-        "operationId": "textbook_review_api_v1_documents__document_id__textbook_review_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "document_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Document Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TextbookReviewResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Textbook Review",
-        "tags": [
-          "documents"
-        ]
-      },
-      "post": {
-        "operationId": "save_textbook_review_api_v1_documents__document_id__textbook_review_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "document_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Document Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveTextbookReviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TextbookReviewResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Save Textbook Review",
-        "tags": [
-          "documents"
-        ]
-      }
-    },
-    "/api/v1/documents/{document_id}/textbook-review/propose": {
-      "post": {
-        "operationId": "propose_textbook_review_api_v1_documents__document_id__textbook_review_propose_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "document_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Document Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TextbookReviewResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Propose Textbook Review",
-        "tags": [
-          "documents"
-        ]
-      }
-    },
-    "/api/v1/documents/{document_id}/textbook-review/publish": {
-      "post": {
-        "operationId": "publish_textbook_review_api_v1_documents__document_id__textbook_review_publish_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "document_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Document Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishTextbookRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TextbookReviewResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Publish Textbook Review",
-        "tags": [
-          "documents"
-        ]
-      }
-    },
     "/api/v1/evaluations/admin": {
       "get": {
         "operationId": "admin_dashboard_api_v1_evaluations_admin_get",
@@ -19058,85 +17468,6 @@
         ]
       }
     },
-    "/api/v1/questions/papers/{paper_id}/unit-mappings": {
-      "get": {
-        "operationId": "paper_unit_mappings_api_v1_questions_papers__paper_id__unit_mappings_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "paper_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Paper Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PaperMappingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Paper Unit Mappings",
-        "tags": [
-          "questions"
-        ]
-      }
-    },
     "/api/v1/questions/{question_id}/topic-mapping": {
       "post": {
         "operationId": "save_topic_mapping_api_v1_questions__question_id__topic_mapping_post",
@@ -19427,301 +17758,6 @@
           }
         },
         "summary": "Suggest Topic Mapping",
-        "tags": [
-          "questions"
-        ]
-      }
-    },
-    "/api/v1/questions/{question_id}/unit-mapping": {
-      "post": {
-        "operationId": "save_unit_mapping_api_v1_questions__question_id__unit_mapping_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "question_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Question Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SaveUnitMappingsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QuestionMappingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Save Unit Mapping",
-        "tags": [
-          "questions"
-        ]
-      }
-    },
-    "/api/v1/questions/{question_id}/unit-mapping/publish": {
-      "post": {
-        "operationId": "publish_unit_mapping_api_v1_questions__question_id__unit_mapping_publish_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "question_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Question Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QuestionMappingResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Publish Unit Mapping",
-        "tags": [
-          "questions"
-        ]
-      }
-    },
-    "/api/v1/questions/{question_id}/unit-mapping/suggest": {
-      "post": {
-        "operationId": "suggest_unit_mapping_api_v1_questions__question_id__unit_mapping_suggest_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "question_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Question Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MappingSuggestionResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Suggest Unit Mapping",
         "tags": [
           "questions"
         ]
@@ -22789,9 +20825,9 @@
         ]
       }
     },
-    "/api/v1/tutoring/sessions/{session_ref}/next-unit": {
+    "/api/v1/tutoring/sessions/{session_ref}/next-topic": {
       "post": {
-        "operationId": "next_unit_api_v1_tutoring_sessions__session_ref__next_unit_post",
+        "operationId": "next_unit_api_v1_tutoring_sessions__session_ref__next_topic_post",
         "parameters": [
           {
             "in": "path",
@@ -22839,7 +20875,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NextUnitRequest"
+                "$ref": "#/components/schemas/NextTopicRequest"
               }
             }
           },
@@ -22850,7 +20886,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/NextUnitResponse"
+                  "$ref": "#/components/schemas/NextTopicResponse"
                 }
               }
             },
@@ -23976,9 +22012,9 @@
         ]
       }
     },
-    "/api/v1/tutoring/sessions/{session_ref}/switch-unit": {
+    "/api/v1/tutoring/sessions/{session_ref}/switch-topic": {
       "post": {
-        "operationId": "switch_unit_api_v1_tutoring_sessions__session_ref__switch_unit_post",
+        "operationId": "switch_topic_api_v1_tutoring_sessions__session_ref__switch_topic_post",
         "parameters": [
           {
             "in": "path",
@@ -24026,7 +22062,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TutorSwitchUnitRequest"
+                "$ref": "#/components/schemas/TutorSwitchTopicRequest"
               }
             }
           },
@@ -24074,7 +22110,7 @@
             "description": "Validation failed"
           }
         },
-        "summary": "Switch Unit",
+        "summary": "Switch Topic",
         "tags": [
           "tutoring"
         ]

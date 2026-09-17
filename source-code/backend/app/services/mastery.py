@@ -6,10 +6,9 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (Assessment, AssessmentInteraction, AssessmentQuestion, AssessmentResult, StudentProfile,
-    Textbook, TextbookGroup, TextbookTopic, TopicMastery, TopicMasteryDimension, TopicMasteryEvent,
-    TextbookUnit, UnitMastery, UnitMasteryDimension, UnitMasteryEvent)
+    Textbook, TextbookGroup, TextbookTopic, TopicMastery, TopicMasteryDimension, TopicMasteryEvent)
 from app.schemas.mastery import (GroupMasteryResponse, MasteryDimensionResponse, MasteryEventResponse,
-    MasteryResponse, TopicMasteryResponse, UnitMasteryResponse)
+    MasteryResponse, TopicMasteryResponse)
 from app.security import Principal
 
 DIMENSIONS = ("knowledge", "application", "method", "accuracy", "reasoning", "communication", "retention")
@@ -41,12 +40,11 @@ def _dimension(question, decision):
     return "knowledge"
 
 def _mapping_weights(question):
-    topic_mode = bool(question.topic_ids)
-    raw = question.topic_weights if topic_mode else question.unit_weights or {}
+    raw = question.topic_weights or {}
     if raw and sum(int(value) for value in raw.values()) == 100:
-        return {uuid.UUID(key): int(value) / 100 for key, value in raw.items()}, topic_mode
-    ids = [uuid.UUID(value) for value in (question.topic_ids if topic_mode else question.unit_ids)]
-    return ({item_id: 1 / len(ids) for item_id in ids} if ids else {}), topic_mode
+        return {uuid.UUID(key): int(value) / 100 for key, value in raw.items()}
+    ids = [uuid.UUID(value) for value in question.topic_ids]
+    return {item_id: 1 / len(ids) for item_id in ids} if ids else {}
 
 def _evidence(db, student_id):
     rows = db.execute(select(AssessmentResult, AssessmentQuestion, Assessment).join(
@@ -66,13 +64,13 @@ def _evidence(db, student_id):
         age_days = max(0, (_now() - result.created_at).total_seconds() / 86400)
         factors = evidence_factors(question.marks, question.difficulty, assessment.mode, hints, retry, age_days, result.confidence)
         base, ratio = math.prod(factors.values()), result.awarded_marks / result.max_marks
-        weights, topic_mode = _mapping_weights(question)
+        weights = _mapping_weights(question)
         for item_id, unit_weight in weights.items():
             dimensions = defaultdict(list); dimensions["knowledge"].append((ratio, base * unit_weight))
             for decision in result.marking_decisions:
                 dimensions[_dimension(question, decision)].append((decision["marksAwarded"] / decision["maxMarks"], base * unit_weight))
             evidence.append({"result": result, "question": question, "assessment": assessment,
-                "topicId" if topic_mode else "unitId": item_id,
+                "topicId": item_id,
                 "unitWeight": unit_weight, "weight": base * unit_weight, "ratio": ratio,
                 "dimensions": dimensions, "factors": factors, "retry": retry, "hints": hints})
     return evidence
@@ -108,58 +106,39 @@ def record_result(db, result, *, commit=True):
     if result.status != "published": return
     question = db.get(AssessmentQuestion, result.question_id); assessment = db.get(Assessment, result.assessment_id)
     all_evidence = _evidence(db, assessment.student_id)
-    weights, topic_mode = _mapping_weights(question)
-    MasteryModel = TopicMastery if topic_mode else UnitMastery
-    DimensionModel = TopicMasteryDimension if topic_mode else UnitMasteryDimension
-    EventModel = TopicMasteryEvent if topic_mode else UnitMasteryEvent
-    id_field = "topic_id" if topic_mode else "unit_id"
-    evidence_key = "topicId" if topic_mode else "unitId"
+    weights = _mapping_weights(question)
     for item_id in weights:
-        if db.scalar(select(EventModel).where(getattr(EventModel, id_field) == item_id, EventModel.trigger_result_id == result.id)): continue
-        rows = [row for row in all_evidence if row.get(evidence_key) == item_id]; calculated = calculate(rows)
-        mastery = db.scalar(select(MasteryModel).where(MasteryModel.student_id == assessment.student_id,
-            getattr(MasteryModel, id_field) == item_id).with_for_update())
+        if db.scalar(select(TopicMasteryEvent).where(TopicMasteryEvent.topic_id == item_id, TopicMasteryEvent.trigger_result_id == result.id)): continue
+        rows = [row for row in all_evidence if row.get("topicId") == item_id]; calculated = calculate(rows)
+        mastery = db.scalar(select(TopicMastery).where(TopicMastery.student_id == assessment.student_id,
+            TopicMastery.topic_id == item_id).with_for_update())
         previous_score, previous_confidence = (float(mastery.score), mastery.confidence) if mastery else (None, None)
         if not mastery:
-            mastery = MasteryModel(student_id=assessment.student_id, subject_id=assessment.subject_id, **{id_field: item_id})
+            mastery = TopicMastery(student_id=assessment.student_id, subject_id=assessment.subject_id, topic_id=item_id)
             db.add(mastery)
         else:
-            mastery.version_number += 1; db.execute(delete(DimensionModel).where(DimensionModel.mastery_id == mastery.id))
+            mastery.version_number += 1; db.execute(delete(TopicMasteryDimension).where(TopicMasteryDimension.mastery_id == mastery.id))
         mastery.score=calculated["score"]; mastery.display_score=round(calculated["score"], 1)
         mastery.confidence=calculated["confidence"]; mastery.provisional=calculated["provisional"]
         mastery.evidence_count=calculated["count"]; mastery.evidence_weight=calculated["weight"]
         mastery.variety_count=calculated["variety"]; mastery.trend=calculated["trend"]; mastery.last_evidence_at=calculated["last"]
         db.flush()
         for name, (dimension_score, weight) in calculated["dimensions"].items():
-            db.add(DimensionModel(mastery_id=mastery.id, dimension=name, score=dimension_score, evidence_weight=weight))
+            db.add(TopicMasteryDimension(mastery_id=mastery.id, dimension=name, score=dimension_score, evidence_weight=weight))
         trigger = next(row for row in rows if row["result"].id == result.id)
         explanation = (f"{assessment.mode.replace('_', ' ')} result; {result.awarded_marks}/{result.max_marks} marks; "
             f"unit weight {round(trigger['unitWeight'] * 100)}%; {trigger['hints']} hints; retry {trigger['retry'] + 1}.")
-        db.add(EventModel(mastery_id=mastery.id, student_id=assessment.student_id, **{id_field: item_id},
+        db.add(TopicMasteryEvent(mastery_id=mastery.id, student_id=assessment.student_id, topic_id=item_id,
             trigger_result_id=result.id, previous_score=previous_score, new_score=calculated["score"],
             previous_confidence=previous_confidence, new_confidence=calculated["confidence"],
-            contribution={"explanation": explanation.replace("unit weight", "topic weight") if topic_mode else explanation,
-                "factors": trigger["factors"], "unitWeight": trigger["unitWeight"],
+            contribution={"explanation": explanation.replace("unit weight", "topic weight"),
+                "factors": trigger["factors"], "topicWeight": trigger["unitWeight"],
                 "contributingResultIds": [str(row["result"].id) for row in rows]}))
     if commit: db.commit()
     else: db.flush()
 
 def list_mastery(db, principal, student_id, subject_id=None):
     authorize(db, principal, student_id)
-    query = select(UnitMastery, TextbookUnit).join(TextbookUnit, TextbookUnit.id == UnitMastery.unit_id).where(UnitMastery.student_id == student_id)
-    if subject_id: query = query.where(UnitMastery.subject_id == subject_id)
-    units = []
-    for mastery, unit in db.execute(query.order_by(UnitMastery.subject_id, TextbookUnit.sequence)).all():
-        dimensions = db.scalars(select(UnitMasteryDimension).where(UnitMasteryDimension.mastery_id == mastery.id)).all()
-        events = db.scalars(select(UnitMasteryEvent).where(UnitMasteryEvent.mastery_id == mastery.id).order_by(UnitMasteryEvent.created_at.desc()).limit(10)).all()
-        units.append(UnitMasteryResponse(unitId=unit.id, unitCode=unit.unit_code, unitTitle=unit.title, subjectId=mastery.subject_id,
-            score=float(mastery.display_score), preciseScore=float(mastery.score), confidence=mastery.confidence,
-            provisional=mastery.provisional, evidenceCount=mastery.evidence_count, evidenceWeight=float(mastery.evidence_weight),
-            varietyCount=mastery.variety_count, trend=float(mastery.trend), lastEvidenceAt=mastery.last_evidence_at,
-            dimensions=[MasteryDimensionResponse(dimension=row.dimension, score=float(row.score), evidenceWeight=float(row.evidence_weight)) for row in dimensions],
-            recentEvents=[MasteryEventResponse(id=row.id, previousScore=float(row.previous_score) if row.previous_score is not None else None,
-                newScore=float(row.new_score), previousConfidence=row.previous_confidence, newConfidence=row.new_confidence,
-                explanation=row.contribution.get("explanation", "Mastery recalculated from assessed evidence."), createdAt=row.created_at) for row in events]))
     topics = []
     topic_rows = db.execute(select(TopicMastery, TextbookTopic, TextbookGroup, Textbook).join(
         TextbookTopic, TextbookTopic.id == TopicMastery.topic_id).join(
@@ -196,4 +175,4 @@ def list_mastery(db, principal, student_id, subject_id=None):
             score=round(score, 1), confidence=confidence, evidenceWeight=weight, topicCount=len(children),
             explanation=f"Weighted from {len(children)} topic mastery result(s) using {weight:.2f} evidence weight.",
             topics=children))
-    return MasteryResponse(studentId=student_id, units=units, topics=topics, groups=groups)
+    return MasteryResponse(studentId=student_id, topics=topics, groups=groups)

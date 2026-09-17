@@ -43,7 +43,7 @@ def append_signals(db: Session, session: TutorSession, turn: TutorTurn, signals:
                    provider: str, model: str, prompt_name: str, prompt_version: str) -> None:
     for signal in signals:
         db.add(TutorSignal(public_ref=f"tutor_signal_{uuid.uuid4().hex}", student_id=session.student_id,
-            session_id=session.id, turn_id=turn.id, unit_id=session.active_unit_id, topic_id=session.active_topic_id,
+            session_id=session.id, turn_id=turn.id, topic_id=session.active_topic_id,
             category=signal.category, observation=signal.observation,
             evidence_references=signal.evidenceRefs, confidence=signal.confidence,
             prompt_name=prompt_name, prompt_version=prompt_version, provider=provider, model=model))

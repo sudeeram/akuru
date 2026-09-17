@@ -573,7 +573,7 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     for ordinal, ((document, version, page, block), embedding) in enumerate(zip(blocks_to_index, embeddings), 1):
         content = block.text.strip() or block.latex or ""
         db.add(RetrievalChunk(document_id=document.id, document_version_id=version.id,
-            textbook_content_version_id=None, official_material_version_id=None, unit_id=None,
+            official_material_version_id=None,
             group_id=topic.group_id, topic_id=topic.id, topic_content_version_id=content_version.id,
             course_id=topic.course_id, subject_id=topic.subject_id, source_type="textbook_section",
             source_item_id=block.id, source_ordinal=ordinal, content=content, page_number=page.page_number,

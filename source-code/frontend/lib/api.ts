@@ -88,22 +88,12 @@ function csrfToken() {
 }
 export type Lesson = { explanation: string; points: string[]; hints: string[] };
 export type FileRef = { id: string; name: string };
-export type TextbookReviewUnit = {
-  code: string; chapter: string; title: string; summary: string; startPage: number; endPage: number;
-  sections: string[]; definitions: string[]; concepts: string[]; equations: string[];
-  examples: string[]; diagrams: string[];
-};
-export type TextbookReview = {
-  versionNumber: number; status: string; courseId: string; subjectId: string;
-  edition: string; units: TextbookReviewUnit[];
-};
-export type CurriculumPlanUnit = { id: string; code: string; title: string };
-export type CurriculumPlanPeriod = { grade: number; term: number; unitIds: string[]; topicRefs?: string[] };
+export type CurriculumPlanPeriod = { grade: number; term: number; topicRefs: string[] };
 export type CurriculumPlanTopic = { topicRef: string; code: string; title: string; groupRef: string; groupCode: string; groupTitle: string };
 export type CurriculumPlanTopicGroup = { groupRef: string; code: string; title: string; topics: CurriculumPlanTopic[] };
 export type CurriculumPlan = {
   versionNumber: number; status: string; subjectId: string; textbookTitle: string;
-  textbookEdition: string; availableUnits: CurriculumPlanUnit[];
+  textbookEdition: string;
   groupLabel: 'unit' | 'module'; groups: CurriculumPlanTopicGroup[];
   periods: (CurriculumPlanPeriod & { topicRefs: string[] })[];
   publishedPeriods: (CurriculumPlanPeriod & { topicRefs: string[] })[];
@@ -119,7 +109,6 @@ export type OfficialMaterialReview = {
   markSchemeEntries: { questionNumber: string; maxMarks: number; markingPoints: { code: string; text: string; kind: 'method' | 'accuracy' | 'independent' | 'communication' | 'other' }[]; alternatives: string[]; sourceLocations: SourceLocation[] }[];
   examinerComments: { questionNumber: string; commonMistakes: string[]; advice: string[]; sourceLocations: SourceLocation[] }[];
 };
-export type UnitMapping = { unitId: string; weight: number; rationale: string; confidence?: number | null; method?: string | null };
 export type TopicMapping = { topicRef: string; weight: number; required: boolean; rationale: string; confidence?: number | null; method?: string | null };
 export type PaperMappings = {
   paperId: string; paperTitle: string; subjectId: string; textbookTitle: string; textbookEdition: string;
@@ -161,29 +150,28 @@ export type TutorQuota = {
   textTokens: TutorQuotaAmount; voiceMinutes: TutorQuotaAmount; fallbackMessage: string;
 };
 export type TutorQuotaAudit = { studentRef: string; events: { action: string; reason: string; changes: Record<string, unknown>; createdAt: string }[] };
-export type TutorHistorySummary = { summaryRef: string; sessionRef: string; studentName: string; subjectId: string; unitsCovered: { code: string; title: string }[]; activities: string[]; strengths: string[]; difficulties: string[]; suggestedNextSteps: string[]; usage: { aiRequests?: number; textTokens?: number; voiceTurns?: number }; createdAt: string };
+export type TutorHistorySummary = { summaryRef: string; sessionRef: string; studentName: string; subjectId: string; topicsCovered: { code: string; title: string }[]; activities: string[]; strengths: string[]; difficulties: string[]; suggestedNextSteps: string[]; usage: { aiRequests?: number; textTokens?: number; voiceTurns?: number }; createdAt: string };
 export type TutorSafetyEvent = { eventRef: string; studentName: string; category: string; severity: string; action: string; notificationStatus: string; reviewStatus: string; createdAt: string };
-export type TutorSessionUnit = { id: string; code: string; title: string };
 export type TutorSessionTopic = { topicRef: string; code: string; title: string; groupRef: string; groupCode: string; groupTitle: string };
 export type TutorTurn = { turnRef: string; role: 'student' | 'assistant'; modality: 'text' | 'voice'; content: string; sequence: number; profileRef: string; profileVersion: number; sources: string[]; structured: Partial<TutorAgentReply>; createdAt: string };
 export type TutorSession = {
-  sessionRef: string; subjectId: string; activeUnit?: TutorSessionUnit | null; activeTopic?: TutorSessionTopic | null; currentTutor: TutorProfile;
+  sessionRef: string; subjectId: string; activeTopic: TutorSessionTopic; currentTutor: TutorProfile;
   mode: 'practice'; status: 'active' | 'ended'; startedAt: string; endedAt?: string | null;
   turns: TutorTurn[];
   profileEvents: { fromProfileRef: string; fromProfileVersion: number; toProfileRef: string; toProfileVersion: number; handoverSummary: Record<string, unknown>; createdAt: string }[];
-  unitEvents: { fromUnit: TutorSessionUnit; toUnit: TutorSessionUnit; createdAt: string }[];
+  topicEvents: { fromTopic: TutorSessionTopic; toTopic: TutorSessionTopic; createdAt: string }[];
 };
-export type TutorSessionOptions = { subjects: { id: string; name: string; units: TutorSessionUnit[]; topics?: TutorSessionTopic[] }[]; profiles: TutorProfile[] };
-export type NextUnitResult = {
-  status: 'ready' | 'no_evidence' | 'no_eligible_units'; message: string; algorithmVersion: string;
-  recommendation?: { unit?: TutorSessionUnit | null; topic?: TutorSessionTopic | null; reason: string; evidenceRefs: string[];
+export type TutorSessionOptions = { subjects: { id: string; name: string; topics: TutorSessionTopic[] }[]; profiles: TutorProfile[] };
+export type NextTopicResult = {
+  status: 'ready' | 'no_evidence' | 'no_eligible_topics'; message: string; algorithmVersion: string;
+  recommendation?: { topic: TutorSessionTopic; reason: string; evidenceRefs: string[];
     activity: { type: string; title: string; instruction: string; successCondition: string };
     requiresStudentAction: boolean; moveAction: Record<string, unknown> } | null;
-  ranking: { unit: TutorSessionUnit; score: number }[];
+  ranking: { topic: TutorSessionTopic; score: number }[];
 };
 export type TutorCitation = {
   citationRef: string; documentVersion: number; textbookTitle: string; textbookEdition: string;
-  unitId: string; unitCode: string; unitTitle: string; contentKind: string; passage: string;
+  topicRef: string; topicCode: string; topicTitle: string; groupLabel: string; groupCode: string; groupTitle: string; contentKind: string; passage: string;
   pdfPageIndex: number; pdfPageNumber: number; printedPageLabel?: string | null; pageReference: string;
   boundingBox: Record<string, unknown>; confidence: number; assetRef: string; sourceUrl: string; assetUrl: string;
 };
@@ -201,14 +189,14 @@ export type TutorAgentReply = {
   provider: string; model: string; promptName: string; promptVersion: string;
 };
 export type TutorPractice = {
-  practiceRef: string; status: 'active' | 'submitted'; unitCode: string; unitTitle: string;
+  practiceRef: string; status: 'active' | 'submitted'; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string;
   question: { id: string; number: string; prompt: string; sharedStem: string; marks: number;
     equations: string[]; assetIds: string[]; answer: string; result?: AssessmentResult | null };
   assetUrls: string[]; hintCount: number; latestHint?: string | null; feedbackVisible: boolean;
   createdAt: string; submittedAt?: string | null;
 };
-export type TutorSignal = { signalRef: string; studentName: string; subjectId: string; unitCode: string;
-  unitTitle: string; category: string; observation: string; confidence: number; evidenceCount: number;
+export type TutorSignal = { signalRef: string; studentName: string; subjectId: string; topicRef: string; topicCode: string;
+  topicTitle: string; category: string; observation: string; confidence: number; evidenceCount: number;
   promptName: string; promptVersion: string; createdAt: string };
 type ApiResult<P extends string> = P extends 'state'
   ? State
@@ -298,13 +286,12 @@ export const saveRealtimeTranscriptTurn = (connectionRef: string, role: 'student
 );
 export const getTutorSessionOptions = () => request('tutoring/session-options') as Promise<TutorSessionOptions>;
 export const getTutorSessions = () => request('tutoring/sessions') as Promise<{ sessions: TutorSession[] }>;
-export const startTutorSession = (subjectId: string, unitId: string, profileRef: string, requestKey: string, topicRef?: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, unitId: topicRef ? undefined : unitId, topicRef, profileRef, requestKey } }) as Promise<TutorSession>;
+export const startTutorSession = (subjectId: string, topicRef: string, profileRef: string, requestKey: string) => request('tutoring/sessions', { method: 'POST', body: { subjectId, topicRef, profileRef, requestKey } }) as Promise<TutorSession>;
 export const addTutorTurn = (sessionRef: string, content: string, modality: 'text' | 'voice', requestKey: string) => request(`tutoring/sessions/${sessionRef}/turns`, { method: 'POST', body: { content, modality, requestKey } }) as Promise<TutorSession>;
 export const switchTutorProfile = (sessionRef: string, profileRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-profile`, { method: 'POST', body: { profileRef, requestKey } }) as Promise<TutorSession>;
-export const switchTutorUnit = (sessionRef: string, unitId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { unitId, requestKey } }) as Promise<TutorSession>;
-export const switchTutorTopic = (sessionRef: string, topicRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-unit`, { method: 'POST', body: { topicRef, requestKey } }) as Promise<TutorSession>;
+export const switchTutorTopic = (sessionRef: string, topicRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/switch-topic`, { method: 'POST', body: { topicRef, requestKey } }) as Promise<TutorSession>;
 export const endTutorSession = (sessionRef: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/end`, { method: 'POST', body: { requestKey } }) as Promise<TutorSession>;
-export const getNextTutorUnit = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-unit`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextUnitResult>;
+export const getNextTutorTopic = (sessionRef: string, subjectId: string, requestKey: string) => request(`tutoring/sessions/${sessionRef}/next-topic`, { method: 'POST', body: { subjectId, requestKey } }) as Promise<NextTopicResult>;
 export const searchTutorSources = (sessionRef: string, query: string, textbookEdition?: string) => request(`tutoring/sessions/${sessionRef}/sources/search`, { method: 'POST', body: { query, textbookEdition, limit: 5 } }) as Promise<TutorSourceSearch>;
 export const getTutorCitationContext = (sessionRef: string, citationRef: string) => request(`tutoring/sessions/${sessionRef}/sources/${citationRef}/context`) as Promise<TutorCitationContext>;
 export const addTutorAgentTurn = (sessionRef: string, message: string, teachingMode: TutorAgentReply['teachingMode'], requestKey: string) => request(`tutoring/sessions/${sessionRef}/agent-turns`, { method: 'POST', body: { message, teachingMode, requestKey } }) as Promise<TutorAgentReply>;
@@ -357,19 +344,6 @@ export async function uploadLearningDocument(
   if (!response.ok) throw new ApiError(apiErrorMessage(data), response.status);
   return data;
 }
-export const getTextbookReview = (id: string) =>
-  api(`documents/${id}/textbook-review`) as Promise<TextbookReview>;
-export const proposeTextbookReview = (id: string) =>
-  api(`documents/${id}/textbook-review/propose`, {}) as Promise<TextbookReview>;
-export const saveTextbookReview = (id: string, review: TextbookReview) =>
-  api(`documents/${id}/textbook-review`, {
-    courseId: review.courseId, subjectId: review.subjectId,
-    edition: review.edition, units: review.units,
-  }) as Promise<TextbookReview>;
-export const publishTextbookReview = (id: string) =>
-  api(`documents/${id}/textbook-review/publish`, {
-    confirmCourse: true, confirmSubject: true, confirmEdition: true,
-  }) as Promise<TextbookReview>;
 export const getCurriculumPlan = (subjectId: string) =>
   api(`admin/curriculum-plans/${subjectId}`) as Promise<CurriculumPlan>;
 export const saveCurriculumPlan = (subjectId: string, periods: CurriculumPlanPeriod[]) =>
@@ -491,7 +465,7 @@ export type Student = {
   courses: Record<string, { level: string; syllabus: string }>;
 };
 export type Question = {
-  unitIds?: string[];
+  topicRefs?: string[];
   course?: string;
   id: string;
   subject: string;
@@ -554,31 +528,30 @@ export async function getAssessmentAudit() {
 export async function reassessAssessment(id: string, idempotencyKey: string) {
   return request(`assessments/admin/${id}/reassess`, { method: 'POST', body: { idempotencyKey } });
 }
-export type UnitMastery = {
-  unitId: string; unitCode: string; unitTitle: string; subjectId: string;
+export type TopicMastery = {
+  topicRef: string; topicCode: string; topicTitle: string; groupLabel: string; groupCode: string; groupTitle: string; subjectId: string;
   score: number; preciseScore: number; confidence: 'low' | 'medium' | 'high'; provisional: boolean;
   evidenceCount: number; evidenceWeight: number; varietyCount: number; trend: number; lastEvidenceAt: string;
   dimensions: { dimension: string; score: number; evidenceWeight: number }[];
   recentEvents: { id: string; previousScore?: number | null; newScore: number; previousConfidence?: string | null; newConfidence: string; explanation: string; createdAt: string }[];
 };
-export type TopicMastery = Omit<UnitMastery, 'unitId' | 'unitCode' | 'unitTitle'> & { topicRef: string; topicCode: string; topicTitle: string; groupLabel: string; groupCode: string; groupTitle: string };
 export type MasteryGroup = { groupLabel: string; groupCode: string; groupTitle: string; subjectId: string; score: number; confidence: 'low' | 'medium' | 'high'; evidenceWeight: number; topicCount: number; explanation: string; topics: TopicMastery[] };
 export type ImprovementRecommendation = {
-  id: string; diagnosisId: string; studentId: string; subjectId: string; unitId: string;
-  unitCode: string; unitTitle: string; category: string; description: string; observedEvidence: string[];
+  id: string; diagnosisId: string; studentId: string; subjectId: string; topicRef: string;
+  topicCode: string; topicTitle: string; groupLabel: string; groupCode: string; groupTitle: string; category: string; description: string; observedEvidence: string[];
   occurrenceCount: number; activityType: 'review' | 'targeted_practice' | 'spaced_retry' | 'unit_check';
   title: string; reason: string; action: string; successCondition: string; sourceTitle: string;
   sourcePage: number; sourceUrl: string; questionId?: string | null;
   reviewStatus: 'approved' | 'pending_review' | 'rejected'; reviewReason: string; createdAt: string;
 };
 export type EducationalMedia = {
-  id: string; subjectId: string; unitId: string; sourceChunkId: string; kind: string; title: string;
+  id: string; subjectId: string; topicId: string; sourceChunkId: string; kind: string; title: string;
   altText: string; prompt: string; promptVersion: string; parameters: Record<string, unknown>;
-  sourceManifest: { documentTitle?: string; unitCode?: string; page?: number }[]; provider: string;
+  sourceManifest: { documentTitle?: string; topicCode?: string; page?: number }[]; provider: string;
   model: string; responseId?: string | null; contentType: string; status: string; reviewNotes: string;
   createdAt: string; reviewedAt?: string | null; contentUrl: string;
 };
-export type MediaSource = { id: string; subjectId: string; unitCode: string; unitTitle: string; documentTitle: string; page: number; excerpt: string };
+export type MediaSource = { id: string; subjectId: string; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; documentTitle: string; page: number; excerpt: string };
 export type Assignment = {
   id: string;
   studentId: string;
@@ -696,9 +669,6 @@ export type State = {
     progressionPairs: { grade: string; term: string }[];
   };
   accounts: { id: string; username: string; name: string; role: string }[];
-  units: Unit[];
-  coverage: Coverage[];
-  questionBank: BankQuestion[];
   drafts: Record<string, string>;
   user: {
     id: string;
@@ -733,15 +703,13 @@ export type State = {
       items: {
         id: string;
         subject: string;
-        unitId?: string | null;
-        unitCode?: string | null;
         topic: string;
-        topicRef?: string | null;
-        topicCode?: string | null;
-        topicTitle?: string | null;
-        groupLabel?: string | null;
-        groupCode?: string | null;
-        groupTitle?: string | null;
+        topicRef: string;
+        topicCode: string;
+        topicTitle: string;
+        groupLabel: string;
+        groupCode: string;
+        groupTitle: string;
         activityType: string;
         minutes: number;
         reason: string;
@@ -753,30 +721,15 @@ export type State = {
       }[];
     }
   >;
-  mastery: Record<string, UnitMastery[]>;
+  mastery: Record<string, TopicMastery[]>;
   masteryGroups?: Record<string, MasteryGroup[]>;
   recommendations: Record<string, ImprovementRecommendation[]>;
-};
-export type Unit = {
-  id: string;
-  textbookId: string;
-  subject: string;
-  course: string;
-  code: string;
-  title: string;
-};
-export type Coverage = {
-  course: string;
-  subject: string;
-  grade: string;
-  term: string;
-  unitIds: string[];
 };
 export type BankQuestion = Question & {
   paperId: string;
   number: string;
   status: string;
-  unitIds: string[];
+  topicRefs: string[];
   explanation: string;
   points: string[];
   hints: string[];

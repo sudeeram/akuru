@@ -4,9 +4,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (Assessment, AssessmentQuestion, AssessmentResult, Document, ImprovementRecommendation,
-    OfficialMaterialVersion, OfficialQuestionTopicMapping, OfficialQuestionUnitMapping, OfficialQuestionVersion,
-    RetrievalChunk, StudentProfile, Textbook, TextbookGroup, TextbookTopic, TopicMastery,
-    TextbookUnit, UnitMastery, WeaknessDiagnosis)
+    OfficialMaterialVersion, OfficialQuestionTopicMapping, OfficialQuestionVersion, RetrievalChunk,
+    StudentProfile, Textbook, TextbookGroup, TextbookTopic, TopicMastery, WeaknessDiagnosis)
 from app.schemas.weaknesses import RecommendationListResponse, RecommendationResponse
 from app.services.curriculum_plans import student_coverage
 
@@ -29,24 +28,6 @@ def classify(subject_id, text, kind=None):
     if kind in {"method", "accuracy", "communication"}: return kind, kind
     if any(word in value for word in ("describe", "state", "name", "define")): return "command_word_response", "knowledge"
     return "factual_knowledge", "knowledge"
-
-def _eligible_question(db, student_id, subject_id, unit_id):
-    coverage = student_coverage(db, student_id, subject_id)
-    allowed = {uuid.UUID(row.id) for row in coverage.coveredUnits} if coverage.status == "ready" else set()
-    if unit_id not in allowed: return None
-    candidates = db.scalars(select(OfficialQuestionVersion).join(OfficialMaterialVersion,
-        OfficialMaterialVersion.id == OfficialQuestionVersion.material_version_id).join(
-        OfficialQuestionUnitMapping, OfficialQuestionUnitMapping.question_version_id == OfficialQuestionVersion.id).where(
-        OfficialMaterialVersion.course_id == "igcse", OfficialMaterialVersion.subject_id == subject_id,
-        OfficialMaterialVersion.kind == "past_paper", OfficialMaterialVersion.status == "published",
-        OfficialQuestionVersion.mapping_status == "confirmed", OfficialQuestionUnitMapping.status == "confirmed",
-        OfficialQuestionUnitMapping.unit_id == unit_id).order_by(OfficialQuestionVersion.id)).all()
-    for question in candidates:
-        mapped = set(db.scalars(select(OfficialQuestionUnitMapping.unit_id).where(
-            OfficialQuestionUnitMapping.question_version_id == question.id,
-            OfficialQuestionUnitMapping.status == "confirmed")).all())
-        if mapped and mapped.issubset(allowed): return question
-    return None
 
 def _eligible_topic_question(db, student_id, subject_id, topic_id):
     coverage = student_coverage(db, student_id, subject_id)
@@ -80,36 +61,32 @@ def record_result(db: Session, result: AssessmentResult, *, commit=True):
         if not text: continue
         category, dimension = classify(assessment.subject_id, text, kind)
         grouped.setdefault(category, {"dimension": dimension, "severity": severity, "evidence": []})["evidence"].append(text)
-    topic_mode = bool(question.topic_ids)
-    mapped_ids = [uuid.UUID(value) for value in (question.topic_ids if topic_mode else question.unit_ids)]
-    for mapped_id in mapped_ids:
-        unit_id, topic_id = (None, mapped_id) if topic_mode else (mapped_id, None)
+    mapped_ids = [uuid.UUID(value) for value in question.topic_ids]
+    for topic_id in mapped_ids:
         source = db.scalar(select(RetrievalChunk).join(Document, Document.id == RetrievalChunk.document_id).where(
-            (RetrievalChunk.topic_id == topic_id) if topic_mode else (RetrievalChunk.unit_id == unit_id),
+            RetrievalChunk.topic_id == topic_id,
             RetrievalChunk.subject_id == assessment.subject_id,
             RetrievalChunk.source_type == "textbook_section", RetrievalChunk.status == "active",
             Document.review_state == "published", Document.removed_at.is_(None)).order_by(RetrievalChunk.page_number))
-        candidate = (_eligible_topic_question(db, assessment.student_id, assessment.subject_id, topic_id)
-                     if topic_mode else _eligible_question(db, assessment.student_id, assessment.subject_id, unit_id))
+        candidate = _eligible_topic_question(db, assessment.student_id, assessment.subject_id, topic_id)
         for category, detail in grouped.items():
             if db.scalar(select(WeaknessDiagnosis.id).where(WeaknessDiagnosis.result_id == result.id,
-                (WeaknessDiagnosis.topic_id == topic_id) if topic_mode else (WeaknessDiagnosis.unit_id == unit_id),
+                WeaknessDiagnosis.topic_id == topic_id,
                 WeaknessDiagnosis.category == category)): continue
             count = (db.scalar(select(func.count()).select_from(WeaknessDiagnosis).where(
                 WeaknessDiagnosis.student_id == assessment.student_id,
-                (WeaknessDiagnosis.topic_id == topic_id) if topic_mode else (WeaknessDiagnosis.unit_id == unit_id),
+                WeaknessDiagnosis.topic_id == topic_id,
                 WeaknessDiagnosis.category == category)) or 0) + 1
             diagnosis = WeaknessDiagnosis(student_id=assessment.student_id, subject_id=assessment.subject_id,
-                unit_id=unit_id, topic_id=topic_id,
+                topic_id=topic_id,
                 result_id=result.id, question_id=question.id, category=category, dimension=detail["dimension"],
-                severity=detail["severity"], description=f"AKURU observed {category.replace('_', ' ')} in this {'topic' if topic_mode else 'unit'}.",
+                severity=detail["severity"], description=f"AKURU observed {category.replace('_', ' ')} in this topic.",
                 evidence={"items": detail["evidence"], "resultId": str(result.id)}, occurrence_number=count, confidence=result.confidence)
             db.add(diagnosis); db.flush()
             if not source:
                 continue
-            Mastery = TopicMastery if topic_mode else UnitMastery
-            mastery = db.scalar(select(Mastery).where(Mastery.student_id == assessment.student_id,
-                (Mastery.topic_id == topic_id) if topic_mode else (Mastery.unit_id == unit_id)))
+            mastery = db.scalar(select(TopicMastery).where(TopicMastery.student_id == assessment.student_id,
+                TopicMastery.topic_id == topic_id))
             needs_review = result.confidence < 0.85 or (assessment.subject_id in {"english", "french"} and detail["dimension"] == "communication") or bool(mastery and mastery.provisional)
             status = "pending_review" if needs_review else "approved"
             reason = "Low-confidence, provisional or subjective recommendation requires Parent/Admin review." if needs_review else ""
@@ -120,7 +97,7 @@ def record_result(db: Session, result: AssessmentResult, *, commit=True):
                 ("unit_check", "Complete a short unit check", "Use the linked eligible question as a short check.", "Score at least 70% without hints.")]
             for activity, title, action, success in activities:
                 db.add(ImprovementRecommendation(diagnosis_id=diagnosis.id, student_id=assessment.student_id,
-                    subject_id=assessment.subject_id, unit_id=unit_id, topic_id=topic_id, source_chunk_id=source.id,
+                    subject_id=assessment.subject_id, topic_id=topic_id, source_chunk_id=source.id,
                     activity_question_version_id=candidate.id if candidate and activity != "review" else None,
                     activity_type=activity, title=title, reason=diagnosis.description + repeated,
                     action=action, success_condition=success, review_status=status, review_reason=reason))
@@ -137,21 +114,7 @@ def list_recommendations(db, principal, student_id=None):
     if principal.user.role != "admin":
         if not student_id: student_id = principal.user.id
         _authorize(db, principal, student_id)
-    query = select(ImprovementRecommendation, WeaknessDiagnosis, TextbookUnit, RetrievalChunk, Document).join(
-        WeaknessDiagnosis, WeaknessDiagnosis.id == ImprovementRecommendation.diagnosis_id).join(
-        TextbookUnit, TextbookUnit.id == ImprovementRecommendation.unit_id).join(
-        RetrievalChunk, RetrievalChunk.id == ImprovementRecommendation.source_chunk_id).join(
-        Document, Document.id == RetrievalChunk.document_id).where(ImprovementRecommendation.unit_id.is_not(None))
-    if student_id: query = query.where(ImprovementRecommendation.student_id == student_id)
-    if principal.user.role == "student": query = query.where(ImprovementRecommendation.review_status == "approved")
-    rows = db.execute(query.order_by(ImprovementRecommendation.created_at.desc())).all()
-    recommendations=[RecommendationResponse(id=r.id, diagnosisId=d.id,
-        studentId=r.student_id, subjectId=r.subject_id, unitId=r.unit_id, unitCode=u.unit_code, unitTitle=u.title,
-        category=d.category, description=d.description, observedEvidence=d.evidence.get("items", []), occurrenceCount=d.occurrence_number,
-        activityType=r.activity_type, title=r.title, reason=r.reason, action=r.action, successCondition=r.success_condition,
-        sourceTitle=doc.title, sourcePage=chunk.page_number,
-        sourceUrl=f"/api/v1/retrieval/evidence/{chunk.id}?studentId={r.student_id}", questionId=r.activity_question_version_id,
-        reviewStatus=r.review_status, reviewReason=r.review_reason, createdAt=r.created_at) for r,d,u,chunk,doc in rows]
+    recommendations=[]
     topic_query = select(ImprovementRecommendation, WeaknessDiagnosis, TextbookTopic, TextbookGroup, Textbook,
         RetrievalChunk, Document).join(WeaknessDiagnosis, WeaknessDiagnosis.id == ImprovementRecommendation.diagnosis_id
         ).join(TextbookTopic, TextbookTopic.id == ImprovementRecommendation.topic_id).join(

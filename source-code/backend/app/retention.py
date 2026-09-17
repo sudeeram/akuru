@@ -73,7 +73,7 @@ def purge(*, student_id: uuid.UUID | None = None, dry_run: bool = True) -> dict[
             row.pass_one_output, row.pass_two_output = {}, {}
             row.strengths, row.small_mistakes, row.conceptual_mistakes = [], [], []
             row.improved_answer, row.teaching_explanation = "", ""
-            row.unit_evidence, row.recommendations = [], []
+            row.topic_evidence, row.recommendations = [], []
         for row in tutor_turns:
             row.content = "[Transcript content removed following a child-data deletion request.]"
             row.response_data = {}

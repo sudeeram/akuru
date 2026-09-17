@@ -14,7 +14,6 @@ from app.errors import DomainError
 from app.models import (
     AIProviderAccount,
     AuditEvent,
-    TextbookUnit,
     TutorProfileVersion,
     TutorRealtimeConnection,
     TutorSession,
@@ -63,10 +62,9 @@ def _close(db: Session, row: TutorRealtimeConnection, state: str, failure_code: 
 
 
 def _instructions(db: Session, session: TutorSession, profile: TutorProfileVersion, language_mode: str) -> str:
-    unit = db.get(TextbookUnit, session.active_unit_id)
     from app.models import TextbookGroup, TextbookTopic
-    topic = db.get(TextbookTopic, session.active_topic_id) if session.active_topic_id else None
-    group = db.get(TextbookGroup, topic.group_id) if topic else None
+    topic = db.get(TextbookTopic, session.active_topic_id)
+    group = db.get(TextbookGroup, topic.group_id)
     context = tutor_context._build(
         db,
         session.student_id,
@@ -86,12 +84,11 @@ def _instructions(db: Session, session: TutorSession, profile: TutorProfileVersi
         "french_conversation": "Hold a natural age-appropriate French conversation and correct briefly.",
         "french_vocabulary": "Practise syllabus-relevant French vocabulary with short recall checks.",
         "french_pronunciation": "Coach French pronunciation using short repeatable phrases and plain articulatory guidance.",
-    }.get(language_mode, "Teach the active unit through concise spoken practice.")
+    }.get(language_mode, "Teach the active topic through concise spoken practice.")
     payload = json.dumps({
         "subject": session.subject_id,
-        "unit": {"code": unit.unit_code, "title": unit.title} if unit else None,
         "topic": {"code": topic.code, "title": topic.title, "groupCode": group.code,
-                  "groupTitle": group.title} if topic else None,
+                  "groupTitle": group.title},
         "learnerContext": context.providerContext.model_dump(mode="json"),
         "savedTranscript": transcript,
         "activity": activity,

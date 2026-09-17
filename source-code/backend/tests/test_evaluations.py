@@ -5,7 +5,7 @@ def test_evaluation_metrics_cover_step_19_quality_dimensions():
     assert _score("inventory", {"questionIds": ["Q1", "Q2"]}, {"questionIds": ["Q1"]}) == {"inventory_recall": .5}
     assert _score("equation", {"equation": "x²"}, {"equation": "x²"})["equation_preservation"] == 1
     assert _score("diagram", {"preserved": True}, {"preserved": False})["diagram_preservation"] == 0
-    mapping = _score("mapping", {"unitIds": ["u1"], "crossSubjectRejected": True}, {"unitIds": ["u1", "u2"], "crossSubjectRejected": True})
+    mapping = _score("mapping", {"topicRefs": ["topic_1"], "crossSubjectRejected": True}, {"topicRefs": ["topic_1", "topic_2"], "crossSubjectRejected": True})
     assert mapping == {"mapping_precision": .5, "cross_subject_rejection": 1}
     marking = _score("marking", {"marks": 2, "methodPoints": ["M1"]}, {"marks": 1, "methodPoints": ["M1"]})
     assert marking == {"mark_exactness": 0, "method_mark_exactness": 1}

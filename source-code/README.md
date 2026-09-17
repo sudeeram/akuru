@@ -46,6 +46,8 @@ Start PostgreSQL and Redis, then use three terminals from this folder:
 npm run backend:dev
 ```
 
+For a new database, run `npm run backend:migrate` followed by `npm run backend:seed` before creating the first Admin.
+
 ```bash
 npm run backend:worker
 ```

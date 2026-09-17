@@ -164,14 +164,10 @@ test('admin manages OpenAI aliases and priorities without receiving keys', () =>
   assert.doesNotMatch(admin, /openai_account_keys|API_KEY|sk-/);
 });
 
-test('admin reviews and publishes versioned textbook units from source evidence', () => {
-  assert.match(api, /getTextbookReview/);
-  assert.match(api, /proposeTextbookReview/);
-  assert.match(api, /publishTextbookReview/);
-  assert.match(admin, /Reviewed textbook units/);
-  assert.match(admin, /Propose units/);
-  assert.match(admin, /'sections', 'definitions', 'concepts', 'equations', 'examples', 'diagrams'/);
-  assert.match(admin, /Publish reviewed units/);
+test('admin uses the topic-based textbook workflow', () => {
+  assert.match(admin, /Topic-based textbook workflow/);
+  assert.match(admin, /Attach each scanned PDF or image directly to its topic/);
+  assert.doesNotMatch(api, /textbook-review/);
 });
 
 test('admin edits and publishes cumulative curriculum coverage', () => {
@@ -228,15 +224,15 @@ test('student submissions request traceable AKURU assessment feedback', () => {
   assert.match(api, /studentEvidence: string/);
 });
 
-test('progress uses backend-calculated explainable unit mastery', () => {
-  assert.match(api, /type UnitMastery/);
+test('progress uses backend-calculated explainable topic mastery', () => {
+  assert.match(api, /type TopicMastery/);
   assert.match(api, /preciseScore: number/);
   assert.match(api, /confidence: 'low' \| 'medium' \| 'high'/);
-  assert.match(api, /mastery: Record<string, UnitMastery\[\]>/);
-  assert.match(student, /unit\.score\.toFixed\(1\)\}\/10/);
-  assert.match(student, /unit\.provisional \? 'Provisional' : unit\.confidence/);
+  assert.match(api, /mastery: Record<string, TopicMastery\[\]>/);
+  assert.match(student, /topic\.score\.toFixed\(1\)\}\/10/);
+  assert.match(student, /topic\.provisional \? 'Provisional' : topic\.confidence/);
   assert.match(student, /evidenceCount/);
-  assert.match(student, /unit\.trend/);
+  assert.match(student, /topic\.trend/);
   assert.match(student, /questions\/\$\{q\.id\}\/hint/);
 });
 
@@ -342,23 +338,23 @@ test('role-scoped tutor profiles use curated AKURU heroes and immutable API vers
   assert.doesNotMatch(tutorProfiles, />\{item\.id\}</);
 });
 
-test('student tutor room retains transcripts and supports explicit tutor and unit switches', () => {
+test('student tutor room retains transcripts and supports explicit tutor and topic switches', () => {
   assert.match(page, /Tutor room/);
   assert.match(tutorSessions, /getTutorSessionOptions/);
   assert.match(tutorSessions, /switchTutorProfile/);
-  assert.match(tutorSessions, /switchTutorUnit/);
+  assert.match(tutorSessions, /switchTutorTopic/);
   assert.match(tutorSessions, /CONTINUOUS HANDOVER/);
   assert.match(tutorSessions, /profileVersion/);
   assert.match(api, /requestKey/);
   assert.doesNotMatch(tutorSessions, /MediaRecorder|audioBlob|raw audio/i);
 });
 
-test('next-unit advice is evidence based and requires an explicit student move', () => {
-  assert.match(api, /getNextTutorUnit/);
+test('next-topic advice is evidence based and requires an explicit student move', () => {
+  assert.match(api, /getNextTutorTopic/);
   assert.match(tutorSessions, /What should I improve next/);
-  assert.match(tutorSessions, /Find next unit/);
-  assert.match(tutorSessions, /Move to this unit/);
-  assert.match(tutorSessions, /switchTutorUnit/);
+  assert.match(tutorSessions, /Find next topic/);
+  assert.match(tutorSessions, /Move to this topic/);
+  assert.match(tutorSessions, /switchTutorTopic/);
 });
 
 test('tutor textbook sources expose exact authorized citations and nearby context', () => {
@@ -397,7 +393,7 @@ test('guided tutor practice uses authoritative assessment feedback and bounded o
   assert.match(tutorSessions, /Submit for assessment/);
   assert.match(tutorSessions, /How each mark was decided/);
   assert.match(tutorSessions, /Improved answer/);
-  assert.match(tutorSessions, /Submit it before moving to another unit/);
+  assert.match(tutorSessions, /Submit it before moving to another topic/);
   assert.match(tutorSignals, /NON-AUTHORITATIVE/);
   assert.match(tutorSignals, /does not change mastery or study plans/);
   assert.match(parent, /TutorSignals studentId=\{child\.id\}/);

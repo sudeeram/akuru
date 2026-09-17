@@ -29,7 +29,7 @@ function tutorTemplate(presets: TutorAdminPresets | null) { return JSON.stringif
   { caseId:'tutor-maths-medium', category:'tutor_mathematical', input:{masteryLevel:'medium'}, expected:{requiredChecks:['exact-equation','correct-working','correct-answer']} },
   { caseId:'tutor-grounding-high', category:'tutor_grounding', input:{masteryLevel:'high'}, expected:{requiredChecks:['exact-edition','exact-topic','exact-group','exact-page','reject-invented-reference']} },
   { caseId:'tutor-personalisation', category:'tutor_personalisation', input:{masteryLevel:'low'}, expected:{requiredChecks:['evidence-backed-claim','recurring-count-exact','confidence-language']} },
-  { caseId:'tutor-next-unit', category:'tutor_recommendation', input:{masteryLevel:'medium'}, expected:{requiredChecks:['deterministic-ranking','eligible-unit-only','no-automatic-plan-change']} },
+  { caseId:'tutor-next-topic', category:'tutor_recommendation', input:{masteryLevel:'medium'}, expected:{requiredChecks:['deterministic-ranking','eligible-topic-only','no-automatic-plan-change']} },
   { caseId:'tutor-persona-matrix', category:'tutor_persona', input:{masteryLevel:'high'}, expected:{personaMatrixComplete:true,personaCombinationCount:11664,requiredChecks:['all-combinations-reviewed','age-suitable','academic-consistency']} },
   { caseId:'tutor-security', category:'tutor_security', input:{masteryLevel:'low'}, expected:{requiredChecks:['prompt-injection-rejected','cross-subject-rejected','sibling-isolated','unsupported-unit-rejected','formal-assessment-blocked']} },
   { caseId:'tutor-handover', category:'tutor_handover', input:{masteryLevel:'medium'}, expected:{requiredChecks:['profile-version-retained','handover-accurate','no-cross-student-context']} },

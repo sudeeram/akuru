@@ -1,12 +1,6 @@
 from pydantic import BaseModel, Field
 
 
-class PlanUnitResponse(BaseModel):
-    id: str
-    code: str
-    title: str
-
-
 class PlanTopicResponse(BaseModel):
     topicRef: str
     code: str
@@ -26,7 +20,6 @@ class PlanTopicGroupResponse(BaseModel):
 class PlanPeriod(BaseModel):
     grade: int = Field(ge=10, le=11)
     term: int = Field(ge=1, le=3)
-    unitIds: list[str] = Field(default_factory=list, max_length=300)
     topicRefs: list[str] = Field(default_factory=list, max_length=500)
 
 
@@ -55,7 +48,6 @@ class CurriculumPlanResponse(BaseModel):
     subjectId: str
     textbookTitle: str
     textbookEdition: str
-    availableUnits: list[PlanUnitResponse]
     groupLabel: str = "unit"
     groups: list[PlanTopicGroupResponse] = Field(default_factory=list)
     periods: list[PlanPeriod]
@@ -73,7 +65,6 @@ class CoverageDiagnosticResponse(BaseModel):
     planVersion: int | None = None
     currentGrade: int | None = None
     currentTerm: int | None = None
-    coveredUnits: list[PlanUnitResponse] = Field(default_factory=list)
     coveredTopics: list[PlanTopicResponse] = Field(default_factory=list)
     missingPeriods: list[str] = Field(default_factory=list)
 

@@ -5,9 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AssessmentBlueprint, StudentProgression, TextbookUnit
+from app.models import AssessmentBlueprint, StudentProgression
 from app.schemas.tutor_recommendations import (
-    NextUnitRecommendation, NextUnitResponse, RankedUnit, RankingFactor,
+    NextTopicRecommendation, NextTopicResponse, RankedTopic, RankingFactor,
     RecommendationActivity, TutorRecommendationBrief,
 )
 from app.security import Principal
@@ -15,7 +15,7 @@ from app.services import curriculum_plans, tutor_context, tutor_sessions
 from app.services.assessment_access import TutorCapability, require_tutor_access
 
 
-ALGORITHM_VERSION = "next-unit-v1"
+ALGORITHM_VERSION = "next-topic-v2"
 
 
 def _factor(name: str, points: float, explanation: str, refs=()) -> RankingFactor:
@@ -24,7 +24,7 @@ def _factor(name: str, points: float, explanation: str, refs=()) -> RankingFacto
 
 
 def _activity(unit) -> RecommendationActivity:
-    target = getattr(unit, "topic", None) or unit.unit
+    target = unit.topic
     planned = next((item for item in unit.studyPlan if item.status == "planned"), None)
     if planned:
         return RecommendationActivity(type=planned.activityType, title=planned.title,
@@ -47,7 +47,7 @@ def _activity(unit) -> RecommendationActivity:
         successCondition="Explain the idea and complete one eligible practice question.")
 
 
-def _rank(unit, blueprint_refs: list[str], sequence: int) -> tuple[RankedUnit, int]:
+def _rank(unit, blueprint_refs: list[str], sequence: int) -> tuple[RankedTopic, int]:
     factors = []
     evidence_refs = {ref for statement in unit.statements for ref in statement.evidenceRefs}
     has_learner_evidence = bool(unit.attempts or unit.mistakes or unit.reviewedRecommendations or unit.studyPlan or unit.masteryScore is not None)
@@ -83,13 +83,12 @@ def _rank(unit, blueprint_refs: list[str], sequence: int) -> tuple[RankedUnit, i
             "A published assessment blueprint exists for this subject and current term.", blueprint_refs))
     score = round(sum(item.points for item in factors), 2)
     evidence_refs.update(ref for factor in factors for ref in factor.evidenceRefs)
-    return RankedUnit(unit=getattr(unit,"unit",None), topic=getattr(unit,"topic",None), score=score, factors=factors,
+    return RankedTopic(topic=unit.topic, score=score, factors=factors,
                       evidenceRefs=sorted(evidence_refs)), sequence
 
 
-def _ranking_key(item: tuple[RankedUnit, int]):
-    target=item[0].topic or item[0].unit
-    return (-item[0].score, item[1], target.code, getattr(target,"topicRef",getattr(target,"id","")))
+def _ranking_key(item: tuple[RankedTopic, int]):
+    return (-item[0].score, item[1], item[0].topic.code, item[0].topic.topicRef)
 
 
 def recommend(db: Session, settings: Settings, principal: Principal, session_ref: str, subject_id: str, request_key: str):
@@ -100,11 +99,11 @@ def recommend(db: Session, settings: Settings, principal: Principal, session_ref
         raise DomainError("tutor_recommendation_subject_mismatch",
                           "Recommendations must stay inside the active tutor subject.", 422)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_next_unit")
+                         session.subject_id, "tutor_next_topic")
     coverage = curriculum_plans.student_coverage(db, principal.user.id, subject_id)
-    if coverage.status != "ready" or not (coverage.coveredTopics or coverage.coveredUnits):
-        return NextUnitResponse(status="no_eligible_units",
-            message="No eligible covered units are available for this subject.", algorithmVersion=ALGORITHM_VERSION)
+    if coverage.status != "ready" or not coverage.coveredTopics:
+        return NextTopicResponse(status="no_eligible_topics",
+            message="No eligible covered topics are available for this subject.", algorithmVersion=ALGORITHM_VERSION)
     context = tutor_context.build_and_log(db, settings, principal, session_ref, request_key)
     progression = db.scalar(select(StudentProgression).where(
         StudentProgression.student_id == principal.user.id,
@@ -115,33 +114,30 @@ def recommend(db: Session, settings: Settings, principal: Principal, session_ref
         AssessmentBlueprint.term == (progression.term if progression else -1),
         AssessmentBlueprint.status == "published").order_by(AssessmentBlueprint.id)).all()
     blueprint_refs = [f"assessment_blueprint:{item.id}" for item in blueprints]
-    scopes=context.topics if session.active_topic_id else context.units
+    scopes=context.topics
     ranked_pairs = [_rank(unit, blueprint_refs, index) for index, unit in enumerate(scopes)]
     ranked_pairs.sort(key=_ranking_key)
     ranking = [item[0] for item in ranked_pairs]
     if not any(unit.attempts or unit.mistakes or unit.reviewedRecommendations or unit.studyPlan or unit.masteryScore is not None for unit in scopes):
-        return NextUnitResponse(status="no_evidence",
-            message="AKURU needs assessed work or a reviewed learning recommendation before choosing a next unit.",
+        return NextTopicResponse(status="no_evidence",
+            message="AKURU needs assessed work or a reviewed learning recommendation before choosing a next topic.",
             algorithmVersion=ALGORITHM_VERSION, contextOperationRef=context.operationRef,
             contextVersion=context.contextVersion, ranking=ranking)
     chosen = ranking[0]
-    if chosen.topic:
-        source_unit=next(item for item in scopes if item.topic.topicRef==chosen.topic.topicRef)
-    else:
-        source_unit=next(item for item in scopes if item.unit.id==chosen.unit.id)
+    source_unit=next(item for item in scopes if item.topic.topicRef==chosen.topic.topicRef)
     activity = _activity(source_unit)
     positive = [factor.explanation for factor in chosen.factors if factor.points > 0]
-    reason = " ".join(positive) or "This unit has the highest deterministic priority from current evidence."
-    recommendation = NextUnitRecommendation(unit=chosen.unit, topic=chosen.topic, reason=reason,
+    reason = " ".join(positive) or "This topic has the highest deterministic priority from current evidence."
+    recommendation = NextTopicRecommendation(topic=chosen.topic, reason=reason,
         evidenceRefs=chosen.evidenceRefs, activity=activity, requiresStudentAction=True,
-        moveAction={"endpoint": f"/api/v1/tutoring/sessions/{session_ref}/switch-unit",
-                    **({"topicRef": chosen.topic.topicRef} if chosen.topic else {"unitId": chosen.unit.id}),
+        moveAction={"endpoint": f"/api/v1/tutoring/sessions/{session_ref}/switch-topic",
+                    "topicRef": chosen.topic.topicRef,
                     "requiresNewRequestKey": True})
     brief = TutorRecommendationBrief(
-        instruction="Explain the fixed AKURU ranking conversationally. Do not change the unit, reason, counts or evidence.",
-        fixedUnitId=chosen.unit.id if chosen.unit else None, fixedTopicRef=chosen.topic.topicRef if chosen.topic else None,
+        instruction="Explain the fixed AKURU ranking conversationally. Do not change the topic, reason, counts or evidence.",
+        fixedTopicRef=chosen.topic.topicRef,
         fixedReason=reason, evidenceRefs=chosen.evidenceRefs)
-    return NextUnitResponse(status="ready", message=f"AKURU found the highest-priority eligible {'topic' if chosen.topic else 'unit'}.",
+    return NextTopicResponse(status="ready", message="AKURU found the highest-priority eligible topic.",
         algorithmVersion=ALGORITHM_VERSION, contextOperationRef=context.operationRef,
         contextVersion=context.contextVersion, recommendation=recommendation, ranking=ranking,
         tutorBrief=brief)

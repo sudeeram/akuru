@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.errors import DomainError
 from app.models import (
-    AssessmentInteraction, AssessmentQuestion, StudentProfile, TextbookGroup, TextbookTopic, TextbookUnit, TutorPractice,
+    AssessmentInteraction, AssessmentQuestion, StudentProfile, TextbookGroup, TextbookTopic, TutorPractice,
     TutorSession, TutorSignal, User,
 )
 from app.schemas.assessments import AnswerSave, AssessmentMode
@@ -29,9 +29,8 @@ def _active(db: Session, student_id: uuid.UUID, session_ref: str, *, required: b
 
 
 def _response(db: Session, row: TutorPractice, latest_hint: str | None = None) -> TutorPracticeResponse:
-    unit = db.get(TextbookUnit, row.unit_id)
-    topic = db.get(TextbookTopic, row.topic_id) if row.topic_id else None
-    group = db.get(TextbookGroup, topic.group_id) if topic else None
+    topic = db.get(TextbookTopic, row.topic_id)
+    group = db.get(TextbookGroup, topic.group_id)
     assessment = assessments._owned(db, SimpleNamespace(user=SimpleNamespace(id=row.student_id)), row.assessment_id)
     payload = assessments.response(db, assessment)
     question = next(item for item in payload.questions if item.id == row.question_id)
@@ -42,10 +41,8 @@ def _response(db: Session, row: TutorPractice, latest_hint: str | None = None) -
         AssessmentInteraction.assessment_id == row.assessment_id,
         AssessmentInteraction.question_id == row.question_id, AssessmentInteraction.kind == "hint")) or 0
     return TutorPracticeResponse(practiceRef=row.public_ref, status=row.status,
-        unitCode=unit.unit_code if unit else None, unitTitle=unit.title if unit else None,
-        topicRef=topic.public_ref if topic else None, topicCode=topic.code if topic else None,
-        topicTitle=topic.title if topic else None, groupCode=group.code if group else None,
-        groupTitle=group.title if group else None, question=question,
+        topicRef=topic.public_ref, topicCode=topic.code, topicTitle=topic.title,
+        groupCode=group.code, groupTitle=group.title, question=question,
         assetUrls=[f"/api/v1/assessments/{row.assessment_id}/assets/{asset_id}" for asset_id in question.assetIds],
         hintCount=hints, latestHint=latest_hint,
         feedbackVisible=feedback_visible, createdAt=row.created_at, submittedAt=row.submitted_at)
@@ -74,11 +71,10 @@ def start(db: Session, settings: Settings, principal: Principal, session_ref: st
         return _response(db, active)
     assessment = assessments.start(db, principal, SimpleNamespace(
         mode=AssessmentMode.PRACTICE, subjectId=session.subject_id, blueprintId=None, paperId=None),
-        required_unit_id=session.active_unit_id, required_topic_id=session.active_topic_id)
+        required_topic_id=session.active_topic_id)
     question = assessment.questions[0]
     row = TutorPractice(public_ref=f"tutor_practice_{uuid.uuid4().hex}", session_id=session.id,
-        student_id=principal.user.id, subject_id=session.subject_id, unit_id=session.active_unit_id,
-        topic_id=session.active_topic_id,
+        student_id=principal.user.id, subject_id=session.subject_id, topic_id=session.active_topic_id,
         assessment_id=assessment.id, question_id=question.id, request_key=request_key)
     db.add(row); db.commit(); db.refresh(row)
     return _response(db, row)
@@ -116,14 +112,12 @@ def submit(db: Session, settings: Settings, principal: Principal, session_ref: s
 
 
 def signal_response(db: Session, row: TutorSignal) -> TutorSignalResponse:
-    unit = db.get(TextbookUnit, row.unit_id) if row.unit_id else None
-    topic = db.get(TextbookTopic, row.topic_id) if row.topic_id else None
+    topic = db.get(TextbookTopic, row.topic_id)
     student = db.get(User, row.student_id)
     session = db.get(TutorSession, row.session_id)
     return TutorSignalResponse(signalRef=row.public_ref, studentName=student.display_name,
-        subjectId=session.subject_id, unitCode=unit.unit_code if unit else None, unitTitle=unit.title if unit else None,
-        topicRef=topic.public_ref if topic else None, topicCode=topic.code if topic else None,
-        topicTitle=topic.title if topic else None,
+        subjectId=session.subject_id, topicRef=topic.public_ref, topicCode=topic.code,
+        topicTitle=topic.title,
         category=row.category, observation=row.observation, confidence=row.confidence,
         evidenceCount=len(row.evidence_references), promptName=row.prompt_name,
         promptVersion=row.prompt_version, createdAt=row.created_at)

@@ -118,6 +118,7 @@ Apply the schema and create the first administrator interactively:
 ```bash
 cd /opt/akuru/source-code/backend
 sudo -u akuru .venv/bin/python -m alembic upgrade head
+sudo -u akuru .venv/bin/python -m app.seed_catalog
 sudo -u akuru .venv/bin/python -m app.bootstrap_admin \
   --username admin --name "AKURU Administrator"
 ```
@@ -210,6 +211,26 @@ sudo ./deploy/ubuntu/release-acceptance.sh akuru.magicalinternational.com
 ```
 
 The preflight requires the educational-content audit to be empty. The deployment command takes encrypted database and document backups before it installs the locked dependencies or applies Alembic. It writes non-secret evidence below `/data/akuru/release-evidence`. See [the Step 10 release guide](../../source-code/backend/docs/textbook-topic-step-10-production-release.md) for the manual Admin and Chemistry-pilot acceptance checks.
+
+The one-time baseline reset uses a separate guarded mode. Agree and record an
+approved maintenance-window reference first. The command rejects every database
+name except the configured local `akuru` database, requires the exact typed
+confirmation, stops all application writers, repeats the legacy-aware content
+audit, and verifies fresh encrypted database and document backup evidence before
+dropping anything:
+
+```bash
+cd /opt/akuru
+sudo ./deploy/ubuntu/deploy-reviewed-release.sh \
+  --recreate-database <reviewed-sha> \
+  --confirm 'RESET AKURU DATABASE' \
+  --maintenance-window 'MW-2026-09-17T2200Z'
+```
+
+The command prompts interactively for the fresh Admin password after installing
+the baseline. It never writes that password to a file or deployment evidence.
+If any reset step fails, leave the application services stopped and follow the
+rollback procedure in the [Step 5 release plan](../../source-code/backend/docs/database-baseline-step-05-reviewed-release.md).
 
 ## Upgrade outline
 

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Course, Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage,
-    DocumentStageRun, DocumentVersion, Subject, TextbookContentVersion,
+    DocumentStageRun, DocumentVersion, Subject, Textbook,
 )
 
 
@@ -102,10 +102,9 @@ class DocumentRepository:
 
     def has_textbook(self, course_id: str, subject_id: str) -> bool:
         return self.db.execute(
-            select(TextbookContentVersion.id).join(Document, Document.id == TextbookContentVersion.document_id).where(
-                Document.course_id == course_id, Document.subject_id == subject_id,
-                Document.kind == "textbook", Document.removed_at.is_(None),
-                TextbookContentVersion.status == "published",
+            select(Textbook.id).where(
+                Textbook.course_id == course_id, Textbook.subject_id == subject_id,
+                Textbook.status == "published",
             )
         ).scalars().first() is not None
 

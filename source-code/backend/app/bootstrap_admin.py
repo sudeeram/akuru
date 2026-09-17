@@ -26,7 +26,7 @@ def main() -> None:
             display_name=args.name.strip(),
             role="admin",
             password_hash=hash_password(password),
-            must_change_password=False,
+            must_change_password=True,
         ))
     print(f"Created administrator: {username}")
 

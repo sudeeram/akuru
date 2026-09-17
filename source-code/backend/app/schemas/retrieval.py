@@ -23,15 +23,12 @@ class EvidenceResponse(BaseModel):
     boundingBox: dict
     sourceAssetId: uuid.UUID | None
     sourceUrl: str
-    unitId: uuid.UUID | None = None
-    unitCode: str | None = None
-    unitTitle: str | None = None
-    topicRef: str | None = None
-    topicCode: str | None = None
-    topicTitle: str | None = None
-    groupLabel: str | None = None
-    groupCode: str | None = None
-    groupTitle: str | None = None
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    groupLabel: str
+    groupCode: str
+    groupTitle: str
     printedPage: str | None = None
     score: float | None = None
 

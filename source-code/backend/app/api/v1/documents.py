@@ -12,10 +12,9 @@ from app.schemas.documents import (
     DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
     DocumentType, DocumentUploadResponse, ExtractionBlockUpdateRequest, ExtractionPageUpdateRequest,
 )
-from app.schemas.textbooks import PublishTextbookRequest, SaveTextbookReviewRequest, TextbookReviewResponse
 from app.schemas.official_materials import OfficialMaterialReview, PublishOfficialMaterialRequest, SaveOfficialMaterialReview
 from app.security import Principal
-from app.services import documents, official_materials, textbooks
+from app.services import documents, official_materials
 from app.services.document_processing import get_job, job_response, retry_job
 from app.storage import ObjectStorage, get_storage
 
@@ -132,42 +131,6 @@ def update_extraction_block(document_id: uuid.UUID, block_id: uuid.UUID, payload
     return documents.update_extraction_block(db, principal, document_id, block_id, kind=payload.kind,
                                              text=payload.text, latex=payload.latex,
                                              sequence_number=payload.sequenceNumber)
-
-
-@router.get("/{document_id}/textbook-review", response_model=TextbookReviewResponse)
-def textbook_review(
-    document_id: uuid.UUID,
-    _principal: Annotated[Principal, Depends(require_roles("admin"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> TextbookReviewResponse:
-    return textbooks.get_review(db, document_id)
-
-
-@router.post("/{document_id}/textbook-review", response_model=TextbookReviewResponse)
-def save_textbook_review(
-    document_id: uuid.UUID, payload: SaveTextbookReviewRequest,
-    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> TextbookReviewResponse:
-    return textbooks.save_review(db, principal, document_id, payload)
-
-
-@router.post("/{document_id}/textbook-review/propose", response_model=TextbookReviewResponse)
-def propose_textbook_review(
-    document_id: uuid.UUID,
-    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> TextbookReviewResponse:
-    return textbooks.propose_review(db, principal, document_id)
-
-
-@router.post("/{document_id}/textbook-review/publish", response_model=TextbookReviewResponse)
-def publish_textbook_review(
-    document_id: uuid.UUID, payload: PublishTextbookRequest,
-    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
-    db: Annotated[Session, Depends(get_db)],
-) -> TextbookReviewResponse:
-    return textbooks.publish(db, principal, document_id, payload)
 
 
 @router.get("/{document_id}/official-review", response_model=OfficialMaterialReview)

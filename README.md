@@ -97,6 +97,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m app.bootstrap_database
 .venv/bin/python -m alembic upgrade head
+.venv/bin/python -m app.seed_catalog
 ```
 
 AI is disabled by default, so local setup and tests do not require an OpenAI key or make paid calls. Follow the [Step 5 AI provider guide](source-code/backend/docs/step-05-ai-provider.md) and [Step 5A account-routing guide](source-code/backend/docs/step-05a-ai-account-routing.md) when you are ready to configure backend-only keys and models.
@@ -226,6 +227,7 @@ Apply migrations and create the first Admin:
 
 ```bash
 .venv/bin/python -m alembic upgrade head
+.venv/bin/python -m app.seed_catalog
 .venv/bin/python -m app.bootstrap_admin \
   --username admin \
   --name "AKURU Administrator"

@@ -11,6 +11,7 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-dev.txt
 .venv/bin/python -m app.bootstrap_database
 .venv/bin/python -m alembic upgrade head
+.venv/bin/python -m app.seed_catalog
 ```
 
 The private `.env` file contains the local connection settings and is ignored by Git. Commit `.env.example`, never `.env`. The settings code uses SQLAlchemy's structured URL builder, so special characters in passwords are handled safely.
@@ -35,7 +36,7 @@ Uploads return after the original bytes and an authoritative queued job are stor
 
 AI is disabled by default and tests use a fake provider. See the [Step 5 AI provider guide](docs/step-05-ai-provider.md) and [Step 5A account-routing guide](docs/step-05a-ai-account-routing.md) before configuring backend-only OpenAI keys and models.
 
-After deterministic extraction, Admins review and publish versioned textbook units before past papers can be accepted. See [Step 6 textbook review](docs/step-06-textbook-review.md).
+Admins create a Textbook → Unit/Module Group → Topic structure, attach scanned parts to topics, and publish reviewed topic content before past papers can be accepted. See [the topic-only baseline record](docs/database-baseline-step-01-topic-only-schema.md).
 
 ## Create the first administrator
 

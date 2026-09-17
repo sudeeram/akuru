@@ -925,7 +925,7 @@ function ClipboardIcon() {
 export function ProgressView(p: FeatureProps) {
   const [chosen, setChosen] = useState<Attempt | null>(null);
   const own = p.data.attempts.filter((a) => a.studentId === p.child.id);
-  const unitMastery = p.data.mastery?.[p.child.id] || [];
+  const topicMastery = p.data.mastery?.[p.child.id] || [];
   const masteryGroups = p.data.masteryGroups?.[p.child.id] || [];
   const nextSteps = (p.data.recommendations?.[p.child.id] || []).filter((item) => item.reviewStatus === 'approved');
   return (
@@ -983,30 +983,30 @@ export function ProgressView(p: FeatureProps) {
               <Evidence attempts={own.filter((a) => a.subject === s.id)} />
               <div className="stack spaced">
                 {masteryGroups.filter((group) => group.subjectId === s.id).map((group) => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary><strong>{group.groupLabel} {group.groupCode} · {group.groupTitle}</strong> · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.map((topic) => <div className="source-note" key={topic.topicRef}><div className="spread"><strong>Topic {topic.topicCode} · {topic.topicTitle}</strong><strong>{topic.score.toFixed(1)}/10</strong></div><p className="small">{topic.confidence} confidence · {topic.evidenceCount} assessed evidence item{topic.evidenceCount === 1 ? '' : 's'}</p></div>)}</details>)}
-                {unitMastery.filter((unit) => unit.subjectId === s.id).map((unit) => (
-                  <div className="source-note" key={unit.unitId}>
-                        <div className="spread"><strong>{unit.unitCode} · {unit.unitTitle}</strong><strong>{unit.score.toFixed(1)}/10</strong></div>
-                      <div className="spread small"><span>{unit.provisional ? 'Provisional' : unit.confidence} · {unit.confidence} confidence</span><span>{unit.trend > 0 ? '↑' : unit.trend < 0 ? '↓' : '→'} {Math.abs(unit.trend).toFixed(1)} recent trend</span></div>
-                    <p className="small">{unit.evidenceCount} assessed evidence item{unit.evidenceCount === 1 ? '' : 's'}</p>
-                    <div className="mastery-dimensions" aria-label={`${unit.unitTitle} skill dimensions`}>
-                      {unit.dimensions.map((dimension) => <div key={dimension.dimension}><div className="spread small"><span>{dimension.dimension.replaceAll('_', ' ')}</span><span>{dimension.score.toFixed(1)}/10</span></div><progress max="10" value={dimension.score}>{dimension.score} out of 10</progress></div>)}
+                {topicMastery.filter((topic) => topic.subjectId === s.id).map((topic) => (
+                  <div className="source-note" key={topic.topicRef}>
+                        <div className="spread"><strong>{topic.groupCode} · {topic.topicCode} · {topic.topicTitle}</strong><strong>{topic.score.toFixed(1)}/10</strong></div>
+                      <div className="spread small"><span>{topic.provisional ? 'Provisional' : topic.confidence} · {topic.confidence} confidence</span><span>{topic.trend > 0 ? '↑' : topic.trend < 0 ? '↓' : '→'} {Math.abs(topic.trend).toFixed(1)} recent trend</span></div>
+                    <p className="small">{topic.evidenceCount} assessed evidence item{topic.evidenceCount === 1 ? '' : 's'}</p>
+                    <div className="mastery-dimensions" aria-label={`${topic.topicTitle} skill dimensions`}>
+                      {topic.dimensions.map((dimension) => <div key={dimension.dimension}><div className="spread small"><span>{dimension.dimension.replaceAll('_', ' ')}</span><span>{dimension.score.toFixed(1)}/10</span></div><progress max="10" value={dimension.score}>{dimension.score} out of 10</progress></div>)}
                     </div>
-                    {!!unit.recentEvents.length && <details><summary>Latest 10 score changes</summary><ol>{unit.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.previousScore == null ? 'Started' : `${event.previousScore.toFixed(1)} →`} {event.newScore.toFixed(1)}/10. {event.explanation}</li>)}</ol></details>}
-                    {(p.data.recommendations?.[p.child.id] || []).filter(item => item.unitId === unit.unitId && item.reviewStatus !== 'rejected').filter((item, index, items) => items.findIndex(other => other.diagnosisId === item.diagnosisId) === index).map(item => <div className="small" key={item.id}><strong>Mistake pattern:</strong> {item.category.replaceAll('_', ' ')} ({item.occurrenceCount} observation{item.occurrenceCount === 1 ? '' : 's'})<ul>{item.observedEvidence.map(evidence => <li key={evidence}>{evidence}</li>)}</ul></div>)}
+                    {!!topic.recentEvents.length && <details><summary>Latest 10 score changes</summary><ol>{topic.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.previousScore == null ? 'Started' : `${event.previousScore.toFixed(1)} →`} {event.newScore.toFixed(1)}/10. {event.explanation}</li>)}</ol></details>}
+                    {(p.data.recommendations?.[p.child.id] || []).filter(item => item.topicRef === topic.topicRef && item.reviewStatus !== 'rejected').filter((item, index, items) => items.findIndex(other => other.diagnosisId === item.diagnosisId) === index).map(item => <div className="small" key={item.id}><strong>Mistake pattern:</strong> {item.category.replaceAll('_', ' ')} ({item.occurrenceCount} observation{item.occurrenceCount === 1 ? '' : 's'})<ul>{item.observedEvidence.map(evidence => <li key={evidence}>{evidence}</li>)}</ul></div>)}
                   </div>
                 ))}
-                {!unitMastery.some((unit) => unit.subjectId === s.id) && <p className="muted small">Complete assessed work to build unit mastery.</p>}
+                {!topicMastery.some((topic) => topic.subjectId === s.id) && <p className="muted small">Complete assessed work to build topic mastery.</p>}
               </div>
             </div>
           ))}
       </div>
           <p className="source-note">
-            Unit scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
+            Topic scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
           </p>
           <div className="section-heading"><h2>AKURU next steps</h2></div>
           <div className="subject-grid">
             {nextSteps.map((item) => <article className="panel" key={item.id}>
-              <span className="eyebrow">{item.unitCode} · {item.category.replaceAll('_', ' ')}</span>
+              <span className="eyebrow">{item.groupCode} · {item.topicCode} · {item.category.replaceAll('_', ' ')}</span>
               <h3>{item.title}</h3><p>{item.reason}</p>
               <p className="small spaced"><strong>Try this:</strong> {item.action}</p>
               <p className="small"><strong>Success:</strong> {item.successCondition}</p>

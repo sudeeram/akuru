@@ -13,7 +13,7 @@ from app.ai.prompts import get_tutor_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TextbookUnit, TutorProfileVersion, TutorTurn
+from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TutorProfileVersion, TutorTurn
 from app.repositories import tutor_agent as repository
 from app.schemas.tutor_agent import (
     TutorAgentTurnRequest, TutorAgentTurnResponse, TutorProviderOutput, TutorToolResult, TutorVisual,
@@ -92,7 +92,7 @@ def _media(db: Session, settings: Settings, principal: Principal, session,
     ) for citation in citations if citation.contentKind in {"image", "diagram", "equation"}]
     rows = db.scalars(select(EducationalMedia).where(
         EducationalMedia.status == "published", EducationalMedia.subject_id == session.subject_id,
-        EducationalMedia.unit_id == session.active_unit_id,
+        EducationalMedia.topic_id == session.active_topic_id,
         or_(EducationalMedia.provider == "akuru", EducationalMedia.reviewed_at.is_not(None)),
     ).order_by(EducationalMedia.created_at.desc()).limit(3)).all()
     for row in rows:
@@ -163,10 +163,10 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
             if error.code != "tutor_release_blocked": raise
             recommendation = None
             results.append(TutorToolResult(name="next_unit", status="unavailable",
-                summary="The next-unit tool is not released for this subject."))
+                summary="The next-topic tool is not released for this subject."))
     else:
         recommendation = None
-        results.append(TutorToolResult(name="next_unit", status="unavailable", summary="A next-unit recommendation was not requested."))
+        results.append(TutorToolResult(name="next_topic", status="unavailable", summary="A next-topic recommendation was not requested."))
     visual_allowed = True
     if settings.tutor_release_gates_required:
         from app.services.evaluations import tutor_feature_allowed
@@ -206,16 +206,15 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
-    unit = db.get(TextbookUnit, session.active_unit_id) if session.active_unit_id else None
-    topic = db.get(TextbookTopic, session.active_topic_id) if session.active_topic_id else None
-    group = db.get(TextbookGroup, topic.group_id) if topic else None
+    topic = db.get(TextbookTopic, session.active_topic_id)
+    group = db.get(TextbookGroup, topic.group_id)
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)
     operation_id = uuid.uuid4()
     context, citations, recommendation, tool_results, visuals, practice = _tools(
         db, settings, principal, session, payload, operation_id)
     if not citations and not (recommendation and recommendation.status == "ready") and payload.teachingMode != "exam_technique":
         stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
-            content="I could not find enough approved evidence in this unit to explain that reliably. Try rephrasing the question or ask your administrator to review the textbook extraction.",
+            content="I could not find enough approved evidence in this topic to explain that reliably. Try rephrasing the question or ask your administrator to review the textbook extraction.",
             teachingMode=payload.teachingMode, citations=[],
             followUpChoices=["Can you help me rephrase my question?"], toolResults=tool_results,
             visuals=visuals, proposedSignals=[], provider="akuru", model="evidence-gate-v1",
@@ -228,9 +227,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     prompt = get_tutor_prompt(payload.teachingMode)
     task_data = {
         "scope": {"course": "iGCSE", "subject": session.subject_id,
-                  **({"activeUnit": {"code": unit.unit_code, "title": unit.title}} if unit else {}),
-                  **({"activeTopic": {"code": topic.code, "title": topic.title,
-                      "groupCode": group.code, "groupTitle": group.title}} if topic else {})},
+                  "activeTopic": {"code": topic.code, "title": topic.title,
+                      "groupCode": group.code, "groupTitle": group.title}},
         "tutorProfile": {"name": profile.name, "tone": profile.tone, "friendliness": profile.friendliness,
                          "enthusiasm": profile.enthusiasm, "speed": profile.speed,
                          "communicationCharacter": profile.communication_character,
@@ -248,7 +246,7 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         instructions=prompt.instructions, task=json.dumps(task_data, ensure_ascii=False),
         output_type=TutorProviderOutput,
         metadata={"session_ref": session.public_ref, "subject": session.subject_id,
-                  "unit": unit.unit_code if unit else None, "topic": topic.code if topic else None,
+                  "topic": topic.code,
                   "mode": payload.teachingMode})
     result = _invoke(db, settings, principal, request, operation_id, generator)
     if settings.tutor_release_gates_required:
@@ -288,6 +286,6 @@ def open_media(db: Session, settings: Settings, principal: Principal, storage, s
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
                          session.subject_id, "tutor_visuals")
     row = db.get(EducationalMedia, media_id)
-    if not row or row.status != "published" or row.subject_id != session.subject_id or row.unit_id != session.active_unit_id:
+    if not row or row.status != "published" or row.subject_id != session.subject_id or row.topic_id != session.active_topic_id:
         raise DomainError("tutor_media_not_found", "Tutor visual not found.", 404)
     return storage.get(row.object_key, row.content_type)

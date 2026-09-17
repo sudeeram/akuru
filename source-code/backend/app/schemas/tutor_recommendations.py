@@ -2,10 +2,10 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from app.schemas.curriculum_plans import PlanTopicResponse, PlanUnitResponse
+from app.schemas.curriculum_plans import PlanTopicResponse
 
 
-class NextUnitRequest(BaseModel):
+class NextTopicRequest(BaseModel):
     subjectId: str = Field(min_length=2, max_length=32)
     requestKey: str = Field(min_length=8, max_length=100)
 
@@ -24,17 +24,15 @@ class RankingFactor(BaseModel):
     evidenceRefs: list[str] = Field(default_factory=list)
 
 
-class RankedUnit(BaseModel):
-    unit: PlanUnitResponse | None = None
-    topic: PlanTopicResponse | None = None
+class RankedTopic(BaseModel):
+    topic: PlanTopicResponse
     score: float
     factors: list[RankingFactor]
     evidenceRefs: list[str]
 
 
-class NextUnitRecommendation(BaseModel):
-    unit: PlanUnitResponse | None = None
-    topic: PlanTopicResponse | None = None
+class NextTopicRecommendation(BaseModel):
+    topic: PlanTopicResponse
     reason: str
     evidenceRefs: list[str]
     activity: RecommendationActivity
@@ -44,18 +42,17 @@ class NextUnitRecommendation(BaseModel):
 
 class TutorRecommendationBrief(BaseModel):
     instruction: str
-    fixedUnitId: str | None = None
-    fixedTopicRef: str | None = None
+    fixedTopicRef: str
     fixedReason: str
     evidenceRefs: list[str]
 
 
-class NextUnitResponse(BaseModel):
-    status: Literal["ready", "no_evidence", "no_eligible_units"]
+class NextTopicResponse(BaseModel):
+    status: Literal["ready", "no_evidence", "no_eligible_topics"]
     message: str
     algorithmVersion: str
     contextOperationRef: str | None = None
     contextVersion: str | None = None
-    recommendation: NextUnitRecommendation | None = None
-    ranking: list[RankedUnit] = Field(default_factory=list)
+    recommendation: NextTopicRecommendation | None = None
+    ranking: list[RankedTopic] = Field(default_factory=list)
     tutorBrief: TutorRecommendationBrief | None = None

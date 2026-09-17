@@ -12,7 +12,7 @@ from app.config import Settings
 from app.errors import DomainError
 from app.models import (Assessment, AssessmentAnswer, AssessmentQuestion, AssessmentResult, AssessmentWorkingFile,
     Document, DocumentBlock, DocumentPage, RetrievalChunk, Textbook, TextbookGroup, TextbookTopic,
-    TextbookTopicContentVersion, TextbookUnit, User)
+    TextbookTopicContentVersion, User)
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
 from app.services import subject_marking
 from app.services import evaluations, mastery, usage_limits, weaknesses
@@ -47,11 +47,13 @@ def _sources(db: Session, question: AssessmentQuestion, limit: int) -> list[dict
         rows = db.execute(select(RetrievalChunk, Document, TextbookTopic, TextbookGroup, Textbook).join(
             Document, Document.id == RetrievalChunk.document_id).join(TextbookTopic, TextbookTopic.id == RetrievalChunk.topic_id
             ).join(TextbookGroup, TextbookGroup.id == RetrievalChunk.group_id).join(
-            Textbook, Textbook.id == TextbookTopic.textbook_id).where(
+            Textbook, Textbook.id == TextbookTopic.textbook_id).join(
+            TextbookTopicContentVersion, TextbookTopicContentVersion.id == RetrievalChunk.topic_content_version_id).where(
             RetrievalChunk.status == "active", RetrievalChunk.topic_id.in_(topic_ids),
             RetrievalChunk.source_type == "textbook_section", Document.review_state == "published",
             Document.removed_at.is_(None), Textbook.status == "published", TextbookTopic.status == "published",
-            RetrievalChunk.topic_content_version_id == TextbookTopic.current_published_content_version_id,
+            TextbookTopicContentVersion.topic_id == TextbookTopic.id,
+            TextbookTopicContentVersion.status == "published",
         ).order_by(RetrievalChunk.topic_id, RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(limit)).all()
         for chunk, document, topic, group, book in rows:
             block = db.get(DocumentBlock, chunk.source_item_id)
@@ -65,20 +67,7 @@ def _sources(db: Session, question: AssessmentQuestion, limit: int) -> list[dict
         if not rows:
             manifest.append({"type": "evidence_insufficient", "reason": "No reviewed source exists for the mapped topics."})
         return manifest
-    unit_ids = [uuid.UUID(value) for value in question.unit_ids]
-    rows = db.execute(select(RetrievalChunk, Document, TextbookUnit).join(
-        Document, Document.id == RetrievalChunk.document_id).join(
-        TextbookUnit, TextbookUnit.id == RetrievalChunk.unit_id).where(
-        RetrievalChunk.status == "active", RetrievalChunk.subject_id == db.get(Assessment, question.assessment_id).subject_id,
-        RetrievalChunk.unit_id.in_(unit_ids), RetrievalChunk.source_type == "textbook_section",
-        Document.review_state == "published", Document.removed_at.is_(None),
-    ).order_by(RetrievalChunk.unit_id, RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(limit)).all()
-    for chunk, document, unit in rows:
-        manifest.append({"type": "textbook_context", "chunkId": str(chunk.id), "documentId": str(document.id),
-                         "documentVersionId": str(chunk.document_version_id), "documentTitle": document.title,
-                         "unitId": str(unit.id), "unitCode": unit.unit_code, "unitTitle": unit.title,
-                         "page": chunk.page_number, "boundingBox": chunk.bounding_box,
-                         "contentHash": chunk.content_hash, "content": chunk.content})
+    manifest.append({"type": "evidence_insufficient", "reason": "The question has no confirmed topic mapping."})
     return manifest
 
 
@@ -131,7 +120,7 @@ def result_response(row: AssessmentResult) -> dict:
             "markingDecisions": row.marking_decisions, "strengths": row.strengths,
             "smallMistakes": row.small_mistakes, "conceptualMistakes": row.conceptual_mistakes,
             "improvedAnswer": row.improved_answer, "teachingExplanation": row.teaching_explanation,
-            "unitEvidence": row.unit_evidence, "recommendations": row.recommendations,
+            "topicEvidence": row.topic_evidence, "recommendations": row.recommendations,
             "reviewReasons": row.review_reasons, "createdAt": row.created_at}
             | {"subjectEngine": row.subject_engine, "subjectEngineVersion": row.subject_engine_version,
                "deterministicChecks": row.deterministic_checks})
@@ -236,7 +225,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             marking_decisions=[d.model_dump() for d in second.output.decisions], strengths=second.output.strengths,
             small_mistakes=second.output.smallMistakes, conceptual_mistakes=second.output.conceptualMistakes,
             improved_answer=second.output.improvedAnswer, teaching_explanation=second.output.teachingExplanation,
-            unit_evidence=second.output.unitEvidence, recommendations=second.output.recommendations,
+            topic_evidence=second.output.topicEvidence, recommendations=second.output.recommendations,
             review_reasons=review, provider=second.provider, model=second.model, prompt_name=prompt.name,
             prompt_version=prompt.version, rubric_snapshot=question.rubric, source_manifest=sources,
             pass_one_output=first.output.model_dump(), pass_two_output=second.output.model_dump(),
