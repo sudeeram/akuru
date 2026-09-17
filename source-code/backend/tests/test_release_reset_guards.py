@@ -39,3 +39,9 @@ def test_preflight_runs_from_backend_and_checks_runtime_ownership() -> None:
     assert '(cd "${source_root}/backend"' in script
     assert "--require-baseline-reset-eligible" not in script
     assert "migration_policy=forward_only" in script
+
+
+def test_release_acceptance_ignores_journal_no_entries_banner() -> None:
+    script = (ROOT / "deploy" / "ubuntu" / "release-acceptance.sh").read_text()
+
+    assert "--priority=err --quiet --no-pager" in script

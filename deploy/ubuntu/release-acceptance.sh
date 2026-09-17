@@ -18,7 +18,7 @@ done
 for port in 5432 6379 8000 5181; do
   ! ss -lnt | awk '{print $4}' | grep -Eq "(^0\\.0\\.0\\.0:${port}$|^\\[::\\]:${port}$)"
 done
-recent_errors="$(journalctl -u akuru-api -u akuru-worker -u akuru-web -u redis-server --since '-10 min' --priority=err --no-pager || true)"
+recent_errors="$(journalctl -u akuru-api -u akuru-worker -u akuru-web -u redis-server --since '-10 min' --priority=err --quiet --no-pager || true)"
 if [[ -n "$recent_errors" ]]; then
   echo 'Recent service errors found; inspect logs before accepting this release.' >&2
   exit 1
