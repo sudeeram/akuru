@@ -27,7 +27,7 @@ Each stage run is unique by document version, stage and extraction version. A co
 
 ## Processing limits
 
-Preflight executes in a spawned child process rather than the FastAPI or long-running worker process. It enforces `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` and `AKURU_DOCUMENT_MAX_PAGES`. On Linux, including the OCI Ubuntu deployment target, it also applies `AKURU_DOCUMENT_JOB_MEMORY_MB` as an address-space limit. macOS local development retains process and timeout isolation but does not apply the Linux resource limit.
+Preflight executes in a spawned child process rather than the FastAPI or long-running worker process. It enforces `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` and `AKURU_DOCUMENT_MAX_PAGES`. On Linux, including the OCI Ubuntu deployment target, it also applies `AKURU_DOCUMENT_JOB_MEMORY_MB` as an address-space limit. The reviewed default is 1536 MiB because OCR of image-only textbook PDFs needs substantially more working memory than native-text PDFs. macOS local development retains process and timeout isolation but does not apply the Linux resource limit. Retrying a failed job refreshes all three ceilings from the current configuration so an operator correction takes effect without re-uploading the source document.
 
 The `deterministic-v1` stage validates the stored bytes, renders source pages, extracts native text and coordinates, invokes OCR for sparse/scanned pages, and records diagram/equation crops behind the same queue and idempotency contract.
 

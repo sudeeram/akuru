@@ -779,6 +779,9 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     stored_job.status = "failed"
     stored_job.error_code = "test_failure"
     stored_job.error_message = "Synthetic retry test."
+    stored_job.max_seconds = 5
+    stored_job.max_memory_mb = 128
+    stored_job.max_pages = 1
     session.commit()
     retried = client.post(
         f"/api/v1/documents/{document['id']}/retry",
@@ -786,6 +789,11 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
     )
     assert retried.status_code == 200
     assert retried.json()["status"] == "queued"
+    session.refresh(stored_job)
+    processing_settings = get_settings()
+    assert stored_job.max_seconds == processing_settings.document_job_timeout_seconds
+    assert stored_job.max_memory_mb == processing_settings.document_job_memory_mb
+    assert stored_job.max_pages == processing_settings.document_max_pages
     assert session.query(DocumentEvent).filter_by(
         document_id=stored_document.id, event_type="retry_queued"
     ).count() == 1

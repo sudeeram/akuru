@@ -80,6 +80,7 @@ def retry_job(db: Session, queue: DocumentQueue, document_id: uuid.UUID, actor_i
     if job.status != "failed":
         raise DomainError("document_not_failed", "Only a failed document can be retried.", 409)
     version = repository.version(job.document_version_id)
+    settings = get_settings()
     job.status = "queued"
     job.progress = 0
     job.error_code = None
@@ -88,6 +89,12 @@ def retry_job(db: Session, queue: DocumentQueue, document_id: uuid.UUID, actor_i
     job.started_at = None
     job.heartbeat_at = None
     job.completed_at = None
+    # A retry must use the currently reviewed processing ceilings. Otherwise a
+    # job that exhausted an older limit can never benefit from an operator's
+    # configuration correction.
+    job.max_seconds = settings.document_job_timeout_seconds
+    job.max_memory_mb = settings.document_job_memory_mb
+    job.max_pages = settings.document_max_pages
     version.status = "queued"
     repository.add_event(
         repository.document(document_id), version, actor_id, "retry_queued", {"jobId": str(job.id)}
@@ -133,6 +140,11 @@ def _isolated_extraction(
         )))
     except ProcessingFailure as exc:
         connection.send(("failure", (exc.code, exc.message)))
+    except MemoryError:
+        connection.send(("failure", (
+            "processing_resource_limit",
+            "Document processing exceeded its configured memory limit. An administrator can increase the limit and retry.",
+        )))
     except BaseException:
         connection.send(("failure", ("processing_failed", "Document preflight failed safely.")))
     finally:
