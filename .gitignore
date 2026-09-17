@@ -3,3 +3,7 @@
 # Local deployment credentials
 deploy/server/*.key
 deploy/server/*.key.pub
+
+# Licensed textbook and reference materials stay local and are uploaded through
+# the authenticated AKURU Admin workflow. Never commit them to source control.
+/textbooks/
