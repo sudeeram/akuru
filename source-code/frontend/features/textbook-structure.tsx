@@ -6,7 +6,7 @@ import {
   archiveTextbookStructure, createTextbookStructure, errorMessage, getTextbookStructures, getTopicQualityReport,
   publishTextbookStructure, removeTextbookGroup, removeTextbookTopic, reorderTextbookGroups,
   reorderTextbookTopics, saveTextbookGroup, saveTextbookTopic, type Subject,
-  type TextbookStructure, updateTextbookStructure, uploadTopicPart, uploadTopicPartsBatch, suggestTopicParts,
+  type TextbookStructure, updateTextbookStructure, uploadTopicPart, suggestTopicParts,
   publishTextbookTopic,
 } from '@/lib/api';
 import { Picker } from './shared';
@@ -47,8 +47,7 @@ export function TextbookStructureAdmin({ subjects, notify, refreshPortal }: Prop
       const suggestions = await suggestTopicParts(book.textbookRef, selectedFiles.map((file) => file.name));
       const conflicts = suggestions.filter((item) => item.suggestedTopicRef && item.suggestedTopicRef !== topicRef);
       if (conflicts.length && !window.confirm(`AKURU's filename check suggests a different topic for ${conflicts.map((item) => item.filename).join(', ')}. Upload to Topic ${topicCode} anyway?`)) return;
-      if (selectedFiles.length === 1) await uploadTopicPart(book.textbookRef, topicRef, selectedFiles[0]);
-      else await uploadTopicPartsBatch(book.textbookRef, topicRef, selectedFiles);
+      for (const file of selectedFiles) await uploadTopicPart(book.textbookRef, topicRef, file);
       await Promise.all([refresh(book.textbookRef), refreshPortal()]); notify(`${selectedFiles.length} textbook part${selectedFiles.length === 1 ? '' : 's'} uploaded for processing.`);
     } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); }
   };

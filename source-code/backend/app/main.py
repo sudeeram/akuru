@@ -40,6 +40,17 @@ install_error_handlers(app)
 app.include_router(api_router)
 
 
+def _request_body_limit(path: str) -> int:
+    is_topic_document_upload = (
+        path.startswith("/api/v1/admin/textbooks/") and path.endswith("/documents")
+    )
+    if path == "/api/v1/documents" or is_topic_document_upload:
+        return settings.max_document_bytes
+    if path.endswith("/working"):
+        return settings.assessment_working_max_bytes
+    return 1_000_000
+
+
 @app.middleware("http")
 async def request_security(request: Request, call_next):
     allowed, remaining, limit = rate_limiter.check(request)
@@ -53,9 +64,7 @@ async def request_security(request: Request, call_next):
                 content=error_content("origin_not_allowed", "Origin not allowed."),
             )
         content_length = request.headers.get("content-length")
-        body_limit = (settings.max_document_bytes if request.url.path == "/api/v1/documents"
-                      else settings.assessment_working_max_bytes if request.url.path.endswith("/working")
-                      else 1_000_000)
+        body_limit = _request_body_limit(request.url.path)
         if content_length and content_length.isdigit() and int(content_length) > body_limit:
             return JSONResponse(
                 status_code=413,

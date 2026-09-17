@@ -7,7 +7,7 @@ from app.services.usage_limits import pseudonymous_student_id
 from app.malware import scan
 from app.errors import DomainError
 import pytest
-from app.main import app
+from app.main import _request_body_limit, app
 
 
 def test_prompt_boundaries_treat_student_and_source_instructions_as_untrusted():
@@ -29,6 +29,13 @@ def test_local_api_rate_limit_fails_after_configured_limit():
     request = SimpleNamespace(url=SimpleNamespace(path="/api/v1/catalog"), client=SimpleNamespace(host="192.0.2.10"), headers={})
     results = [limiter.check(request)[0] for _ in range(11)]
     assert results[:10] == [True] * 10 and results[-1] is False
+
+
+def test_topic_document_upload_uses_the_document_body_limit():
+    topic_path = "/api/v1/admin/textbooks/book_example/topics/topic_example/documents"
+    assert _request_body_limit(topic_path) == 50 * 1024 * 1024
+    assert _request_body_limit(f"{topic_path}/batch") == 1_000_000
+    assert _request_body_limit("/api/v1/admin/textbooks/book_example") == 1_000_000
 
 
 def test_malicious_upload_is_rejected_without_storing_content(monkeypatch):
