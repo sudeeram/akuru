@@ -40,11 +40,17 @@ source "$env_file"
 [[ "${AKURU_LOCAL_STORAGE_PATH:-}" == /data/akuru/* ]] || fail "document storage must be under /data/akuru"
 pass "production runtime configuration"
 
+[[ -L "${source_root}/backend/.env" ]] || fail "backend .env must link to the protected runtime environment"
+[[ "$(readlink -f "${source_root}/backend/.env")" == "$env_file" ]] || fail "backend .env points to an unexpected file"
+sudo -u akuru test -w "${source_root}/frontend" || fail "akuru must own the frontend build directory"
+sudo -u akuru test -w "${source_root}/backend/.venv" || fail "akuru must own the backend virtual environment"
+pass "runtime environment link and build-directory ownership"
+
 "${app_root}/deploy/ubuntu/security-check.sh"
-sudo -u akuru "${source_root}/backend/.venv/bin/python" -m app.content_migration_audit --require-baseline-reset-eligible
+(cd "${source_root}/backend" && sudo -u akuru .venv/bin/python -m app.content_migration_audit --require-baseline-reset-eligible)
 pass "current and legacy educational-content tables satisfy the baseline-reset policy"
 
-sudo -u akuru "${source_root}/backend/.venv/bin/alembic" heads | tee /tmp/akuru-alembic-heads.txt
+(cd "${source_root}/backend" && sudo -u akuru .venv/bin/alembic heads) | tee /tmp/akuru-alembic-heads.txt
 [[ "$(wc -l < /tmp/akuru-alembic-heads.txt | tr -d ' ')" == "1" ]] || fail "repository must have exactly one Alembic migration head"
 rm -f /tmp/akuru-alembic-heads.txt
 pass "one Alembic migration head in reviewed release"

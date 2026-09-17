@@ -11,6 +11,8 @@ if [[ ! -f /etc/akuru/akuru.env ]]; then
   install -o root -g akuru -m 0640 /opt/akuru/source-code/backend/.env.example /etc/akuru/akuru.env
   echo "Edit /etc/akuru/akuru.env before starting AKURU." >&2
 fi
+ln -sfn /etc/akuru/akuru.env /opt/akuru/source-code/backend/.env
+chown -h root:akuru /opt/akuru/source-code/backend/.env
 for unit in /opt/akuru/deploy/ubuntu/systemd/*; do install -o root -g root -m 0644 "${unit}" /etc/systemd/system/; done
 sed "s/AKURU_DOMAIN/${domain}/g" /opt/akuru/deploy/ubuntu/nginx-akuru.conf > /etc/nginx/sites-available/akuru
 ln -sfn /etc/nginx/sites-available/akuru /etc/nginx/sites-enabled/akuru

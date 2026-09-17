@@ -24,6 +24,7 @@ evidence_root="${AKURU_RELEASE_EVIDENCE_ROOT:-/data/akuru/release-evidence}"
 "${app_root}/deploy/ubuntu/release-preflight.sh" "$release_sha"
 # shellcheck disable=SC1090
 source "$env_file"
+cd "${source_root}/backend"
 [[ "${AKURU_DATABASE_NAME:-}" == "akuru" ]] || { echo "Refusing: database name must be exactly akuru." >&2; exit 1; }
 [[ "${AKURU_DATABASE_HOST:-}" == "127.0.0.1" || "${AKURU_DATABASE_HOST:-}" == "localhost" ]] || { echo "Refusing: database must be local." >&2; exit 1; }
 [[ "${AKURU_DATABASE_USER:-}" =~ ^[a-z_][a-z0-9_]*$ && "${AKURU_DATABASE_USER}" != "postgres" ]] || { echo "Refusing: invalid least-privilege database owner." >&2; exit 1; }
@@ -75,7 +76,14 @@ fi
 
 systemctl restart akuru-api akuru-worker akuru-web
 systemctl is-active --quiet akuru-api akuru-worker akuru-web
-curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/health >/dev/null
+ready=false
+for _ in {1..30}; do
+  if curl --fail --silent --show-error --max-time 3 --header "Host: ${AKURU_PUBLIC_HOST}" http://127.0.0.1:8000/health >/dev/null 2>&1; then
+    ready=true; break
+  fi
+  sleep 1
+done
+[[ "$ready" == "true" ]] || { echo "API did not become ready within 30 seconds." >&2; exit 1; }
 curl --fail --silent --show-error --max-time 15 "https://${AKURU_PUBLIC_HOST:?Set AKURU_PUBLIC_HOST in /etc/akuru/akuru.env}/health" >/dev/null
 
 install -d -o root -g akuru -m 0750 "$evidence_root"

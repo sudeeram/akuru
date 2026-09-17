@@ -34,7 +34,7 @@ manifest="${BACKUP_ROOT}/akuru-${stamp}.manifest"
   echo "plaintext_database_list=passed"
   echo "plaintext_document_list=passed"
 } > "${manifest}"
-find "${BACKUP_ROOT}" -type f -name 'akuru-*.dump.age' -mtime +30 -delete
-find "${BACKUP_ROOT}" -type f -name 'akuru-documents-*.tar.age' -mtime +30 -delete
-find "${BACKUP_ROOT}" -type f -name 'akuru-*.manifest' -mtime +30 -delete
+find "${BACKUP_ROOT}" -maxdepth 1 -type f -name 'akuru-*.dump.age' -mtime +30 -delete
+find "${BACKUP_ROOT}" -maxdepth 1 -type f -name 'akuru-documents-*.tar.age' -mtime +30 -delete
+find "${BACKUP_ROOT}" -maxdepth 1 -type f -name 'akuru-*.manifest' -mtime +30 -delete
 echo "Encrypted database and document backups created and validated for ${stamp}. Evidence: ${manifest}"

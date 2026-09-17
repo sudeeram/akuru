@@ -143,21 +143,25 @@ window before Step 6.
 
 **Goal:** Install the baseline without affecting server infrastructure or persistent file storage.
 
-- [ ] Put AKURU into maintenance mode and stop API, worker and frontend services.
-- [ ] Run the production content audit again immediately before backup and record its output.
-- [ ] Run the encrypted database and document backup and copy the backup evidence off-host.
-- [ ] Verify the dump can be listed and the document archive can be read before proceeding.
-- [ ] Record existing Alembic revision, database owner and pgvector availability.
-- [ ] Terminate only active connections to the configured AKURU database.
-- [ ] Drop and recreate only the AKURU application database using the existing least-privilege owner.
-- [ ] Apply the single baseline migration from the exact reviewed release SHA.
-- [ ] Confirm one Alembic head, current revision and no metadata drift.
-- [ ] Bootstrap the production Admin account interactively.
-- [ ] Restart API, worker and frontend services.
+- [x] Put AKURU into maintenance mode and stop API, worker and frontend services.
+- [x] Run the production content audit again immediately before backup and record its output.
+- [x] Run the encrypted database and document backup and copy the backup evidence off-host.
+- [x] Verify the dump can be listed and the document archive can be read before proceeding.
+- [x] Record existing Alembic revision, database owner and pgvector availability.
+- [x] Terminate only active connections to the configured AKURU database.
+- [x] Drop and recreate only the AKURU application database using the existing least-privilege owner.
+- [x] Apply the single baseline migration from the exact reviewed release SHA.
+- [x] Confirm one Alembic head, current revision and no metadata drift.
+- [x] Bootstrap the production Admin account interactively.
+- [x] Restart API, worker and frontend services.
 
 **Rollback decision:** If recreation, migration or Admin bootstrap fails, keep services stopped. Restore the encrypted pre-reset database, check out the pre-squash release, verify its migration revision, then restart.
 
 **Done when:** Production runs the new baseline with a recreated Admin and no unexpected data or infrastructure changes.
+
+**Completed:** Production runs release `2e2950354b5e275aa102d58684a9023aa94a697e`
+from baseline `0001_initial_akuru_schema`. See the
+[Step 6 production reset evidence](../backend/docs/database-baseline-step-06-production-reset.md).
 
 ## Step 7 — Production acceptance and evidence
 
