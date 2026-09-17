@@ -167,28 +167,41 @@ from baseline `0001_initial_akuru_schema`. See the
 
 **Goal:** Prove identity, security and the new hierarchy work before content onboarding.
 
-- [ ] Complete the production Admin's forced password change.
-- [ ] Verify Admin login, logout, session revocation, CSRF, role enforcement and rate limiting.
-- [ ] Verify HTTPS, security headers, public health and loopback-only database, Redis, API and frontend bindings.
-- [ ] Verify API, worker and frontend logs contain no startup, migration or queue errors.
-- [ ] Verify encrypted backup and retention timers remain enabled.
-- [ ] Create the Chemistry textbook using Unit terminology.
-- [ ] Define Units 1–4 and Topics 1–29 without uploading files.
-- [ ] Upload and review only Chemistry Topics 1 and 2 as the pilot.
-- [ ] Verify topic quality reports, publication, exact citations, coverage, question eligibility and retrieval isolation.
-- [ ] Record release evidence and the decision to proceed or roll back.
+- [x] Complete the production Admin's forced password change.
+- [x] Verify Admin login, logout, session revocation, CSRF, role enforcement and rate limiting.
+- [x] Verify HTTPS, security headers, public health and loopback-only database, Redis, API and frontend bindings.
+- [x] Verify API, worker and frontend logs contain no startup, migration or queue errors.
+- [x] Verify encrypted backup and retention timers remain enabled.
+- [x] Create the Chemistry textbook using Unit terminology.
+- [x] Define Units 1–4 and Topics 1–29 without uploading files.
+- [ ] Upload and review only Chemistry Topics 1 and 2 as the pilot. *(Deferred to Chemistry textbook onboarding by the project owner.)*
+- [ ] Verify topic quality reports, publication, exact citations, coverage, question eligibility and retrieval isolation. *(Deferred with the Chemistry pilot.)*
+- [x] Record release evidence and the decision to proceed or roll back.
 
-**Done when:** The fresh production baseline supports the complete Chemistry pilot and all operational/security checks pass.
+**Done when:** All operational/security checks pass. The Chemistry pilot may be
+deferred by the project owner and tracked as later textbook-onboarding work.
+
+**Completed:** Identity, authorization, perimeter, service, timer and hierarchy
+acceptance passed. The project owner deferred the Chemistry Unit 1 content
+pilot and its quality/retrieval checks to later textbook onboarding. See the
+[Step 7 production acceptance evidence](../backend/docs/database-baseline-step-07-production-acceptance.md).
 
 ## Step 8 — Close the reset window
 
 **Goal:** Return AKURU to normal forward-only database evolution.
 
-- [ ] Mark the baseline revision and production deployment date in architecture and operations documentation.
-- [ ] Update developer setup so a new contributor creates the database from the new baseline.
-- [ ] Retain the pre-squash Git tag and encrypted backup according to the approved retention period.
-- [ ] Remove any temporary maintenance access or reset-only scripts that should not remain callable.
-- [ ] Resume parent/student account creation and content uploads.
-- [ ] Record that all future schema changes require additive or explicitly reviewed forward migrations.
+- [x] Mark the baseline revision and production deployment date in architecture and operations documentation.
+- [x] Update developer setup so a new contributor creates the database from the new baseline.
+- [x] Retain the pre-squash Git tag and encrypted backup according to the approved retention period.
+- [x] Remove any temporary maintenance access or reset-only scripts that should not remain callable.
+- [x] Resume parent/student account creation and content uploads.
+- [x] Record that all future schema changes require additive or explicitly reviewed forward migrations.
 
 **Done when:** The reset is closed, normal operations resume, and the baseline is the only supported starting point for new installations.
+
+**Completed:** The reset-only production deployment mode and empty-content
+preflight were removed. New environments start at
+`0001_initial_akuru_schema`; populated environments advance only through
+reviewed forward migrations. Recovery tags and the verified encrypted off-host
+bundle remain retained. See the
+[Step 8 reset closeout](../backend/docs/database-baseline-step-08-reset-closeout.md).

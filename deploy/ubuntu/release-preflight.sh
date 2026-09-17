@@ -47,8 +47,6 @@ sudo -u akuru test -w "${source_root}/backend/.venv" || fail "akuru must own the
 pass "runtime environment link and build-directory ownership"
 
 "${app_root}/deploy/ubuntu/security-check.sh"
-(cd "${source_root}/backend" && sudo -u akuru .venv/bin/python -m app.content_migration_audit --require-baseline-reset-eligible)
-pass "current and legacy educational-content tables satisfy the baseline-reset policy"
 
 (cd "${source_root}/backend" && sudo -u akuru .venv/bin/alembic heads) | tee /tmp/akuru-alembic-heads.txt
 [[ "$(wc -l < /tmp/akuru-alembic-heads.txt | tr -d ' ')" == "1" ]] || fail "repository must have exactly one Alembic migration head"
@@ -61,7 +59,7 @@ report="$report_root/preflight-${actual}-$(date -u +%Y%m%dT%H%M%SZ).txt"
   echo "AKURU production release preflight"
   echo "release_sha=${actual}"
   echo "checked_at=$(date -u --iso-8601=seconds)"
-  echo "baseline_reset_content_audit=eligible"
+  echo "migration_policy=forward_only"
   echo "migration_heads=one"
   echo "next=take encrypted database and document backup, then execute deploy-reviewed-release.sh"
 } > "$report"

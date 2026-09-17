@@ -100,6 +100,11 @@ python3 -m venv .venv
 .venv/bin/python -m app.seed_catalog
 ```
 
+New databases are created from the single supported Alembic baseline,
+`0001_initial_akuru_schema`, followed by any later forward migrations. The
+archived pre-baseline chain is recovery history and must not be configured as an
+Alembic version location.
+
 AI is disabled by default, so local setup and tests do not require an OpenAI key or make paid calls. Follow the [Step 5 AI provider guide](source-code/backend/docs/step-05-ai-provider.md) and [Step 5A account-routing guide](source-code/backend/docs/step-05a-ai-account-routing.md) when you are ready to configure backend-only keys and models.
 
 Create the first Admin interactively. The password is read without echoing and is stored only as an Argon2 hash:

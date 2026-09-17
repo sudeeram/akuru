@@ -14,7 +14,7 @@ python3 -m venv .venv
 .venv/bin/python -m app.seed_catalog
 ```
 
-The private `.env` file contains the local connection settings and is ignored by Git. Commit `.env.example`, never `.env`. The settings code uses SQLAlchemy's structured URL builder, so special characters in passwords are handled safely.
+The private `.env` file contains the local connection settings and is ignored by Git. Commit `.env.example`, never `.env`. The settings code uses SQLAlchemy's structured URL builder, so special characters in passwords are handled safely. A new database starts at the single supported Alembic baseline, `0001_initial_akuru_schema`; `alembic upgrade head` then applies every later forward migration.
 
 The safeguards for clean-checkout verification, configuration and recovery are documented in [Step 0 foundation protection](docs/step-00-foundation-protection.md). The router, schema, service, repository and permission responsibilities are documented in [Step 1 module boundaries](docs/step-01-module-boundaries.md).
 
@@ -62,19 +62,16 @@ Before public deployment, set `AKURU_ENVIRONMENT=production`, `AKURU_COOKIE_SECU
 
 ## Database changes
 
-Before applying the clean Textbook → Unit/Module → Topic migration, prove that no migration-sensitive educational content exists:
-
-```bash
-.venv/bin/python -m app.content_migration_audit --require-empty
-```
-
-The command is read-only, prints counts by domain and exits with status `2` if any document, textbook, curriculum, official material, mapping, assessment, mastery, study-plan, Tutor-learning or evaluation-content record exists. It intentionally preserves and does not count identity, authentication, family/enrolment, catalogue, provider, quota, audit and operational records. Run it again immediately before the production migration and retain the report with release evidence.
-
-Edit SQLAlchemy models, generate a reviewed migration, and apply it:
+The one-time empty-database reset has closed. Edit SQLAlchemy models, generate a
+reviewed forward migration, and apply it:
 
 ```bash
 .venv/bin/python -m alembic revision --autogenerate -m "describe change"
 .venv/bin/python -m alembic upgrade head
 ```
 
-Schema changes must be explicit, reviewable migrations. See [docs/architecture.md](docs/architecture.md) for boundaries and constraints.
+Prefer additive changes. Any destructive transformation needs an explicitly
+reviewed, data-preserving forward migration, tested backup and restore evidence,
+and a rollback plan. Never restore the archived pre-baseline migration chain or
+recreate a populated database for a routine upgrade. See
+[docs/architecture.md](docs/architecture.md) for boundaries and constraints.

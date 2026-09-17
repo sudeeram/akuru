@@ -1,10 +1,21 @@
 # AKURU FastAPI backend architecture
 
-Status: Steps 0–16 implemented. This folder contains the FastAPI application, SQLAlchemy domain tables, Alembic migration configuration, Redis document worker, deterministic PDF/image extractor, structured AI provider boundary, reviewed textbook and official-material publication workflows, weighted question-to-unit mapping, versioned curriculum coverage, assessment, mastery, recommendation and adaptive study-plan services, generated API contracts and local tests. The [overall architecture](../../docs/architecture.md) defines mandatory domain constraints and takes precedence over implementation choices here.
+Status: the production database was recreated from baseline revision
+`0001_initial_akuru_schema` on 17 September 2026. This is the only supported
+starting revision for new installations. This folder contains the FastAPI
+application, SQLAlchemy domain tables, Alembic migration configuration, Redis
+document worker, deterministic PDF/image extractor, structured AI provider
+boundary, topic-based content workflows, assessment and Tutor services,
+generated API contracts and tests. The [overall architecture](../../docs/architecture.md)
+defines mandatory domain constraints and takes precedence over implementation
+choices here.
 
-## Planned textbook-topic authority
+## Textbook-topic authority
 
-The next content migration replaces the currently unused unit-only educational schema with **Textbook → Section Group → Topic → Textbook Part**. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/TODO-TEXTBOOK-TOPICS.md) controls delivery order. Older unit-based sections below describe the implemented baseline and must not be used to design new content relationships.
+The implemented educational schema is **Textbook → Section Group → Topic →
+Textbook Part**. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/TODO-TEXTBOOK-TOPICS.md)
+records its delivery history. Older unit-based descriptions below are historical
+design context and must not be used to design new content relationships.
 
 - `section_group` is one backend entity with a per-textbook presentation label of `unit` or `module`.
 - A topic belongs to one ordered section group and is the smallest coverage, question-mapping, retrieval, mastery, weakness, recommendation and study-plan scope.
@@ -14,7 +25,11 @@ The next content migration replaces the currently unused unit-only educational s
 - Published curriculum plans are immutable. Admin creates the next draft from the current plan and appends newly taught topics. Existing assessments keep their topic-set snapshots.
 - Topic mastery owns the evidence. Unit or Module mastery is calculated from its topics with visible evidence and confidence.
 
-Before the clean migration, `python -m app.content_migration_audit --require-empty` must report zero migration-sensitive records. The command is read-only and deliberately excludes users, authentication, family/enrolment, catalogues, provider configuration, quotas and audit/operations tables. Production database and document-storage backups are mandatory immediately before migration.
+The one-time baseline reset is closed. New schema changes must use additive
+forward migrations, or an explicitly reviewed data-preserving forward migration
+when an additive change is insufficient. Database and document-storage backups
+are mandatory immediately before every production migration. Never recreate a
+populated environment to apply an ordinary release.
 
 The implementation baseline and module rules are documented in [Step 0 foundation protection](step-00-foundation-protection.md) and [Step 1 backend module boundaries](step-01-module-boundaries.md). The Tutor Agent begins with separate [Tutor Step 0 assessment and release boundaries](tutor-step-00-foundation.md).
 
