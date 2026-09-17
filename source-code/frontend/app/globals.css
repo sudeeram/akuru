@@ -1527,14 +1527,25 @@ small {
 .extraction-review-stats span { color: #64748b; font-size: 12px; }
 .extraction-page-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .extraction-page-links a { padding: 5px 9px; border: 1px solid #d4dfed; border-radius: 7px; background: #fff; font-size: 12px; font-weight: 700; }
-.extraction-page-review { scroll-margin-top: 310px; }
+.extraction-page-review { scroll-margin-top: 310px; padding: 0; overflow: clip; }
+.extraction-page-header { display: grid; grid-template-columns: minmax(12rem, 1fr) auto auto; align-items: center; gap: 18px; padding: 18px; cursor: pointer; list-style-position: outside; }
+.extraction-page-header:hover { background: #f8fafd; }
+.extraction-page-header::marker { color: #426bc0; }
+.extraction-page-header p { margin: 3px 0 0; color: #64748b; font-size: 12px; }
+.extraction-page-body { padding: 0 18px 18px; border-top: 1px solid #e3e9f2; }
+.extraction-page-review-counts { display: flex; flex-wrap: wrap; gap: 8px; }
+.extraction-page-review-counts span { padding: 5px 8px; border-radius: 7px; background: #f2f5fa; color: #53657d; font-size: 11px; white-space: nowrap; }
+.extraction-page-review-counts strong { color: #203452; }
+.extraction-block-visibility { justify-content: space-between; padding-top: 14px; }
 .review-status-badge { display: inline-flex; width: fit-content; align-items: center; border: 1px solid; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
 .review-status-required { border-color: #e6a5af; background: #fff0f1; color: #a32239; }
+.review-status-partial { border-color: #e7c175; background: #fff7e7; color: #855c12; }
 .review-status-complete { border-color: #a9d5bd; background: #eaf7ef; color: #216b47; }
 @media (max-width: 800px) {
   .extraction-review-summary { position: static; }
   .extraction-review-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .extraction-page-review { scroll-margin-top: 150px; }
+  .extraction-page-header { grid-template-columns: 1fr; gap: 10px; }
 }
 .diagram-controls {
   padding: 10px;

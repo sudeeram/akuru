@@ -108,7 +108,15 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /extraction-page-\$\{page\.pageNumber\}/);
   assert.match(admin, /review-status-required/);
   assert.match(admin, /review-status-complete/);
+  assert.match(admin, /Partially reviewed/);
+  assert.match(admin, /Yet to be reviewed/);
+  assert.match(admin, /Fully reviewed/);
+  assert.match(admin, /Hide reviewed blocks/);
+  assert.match(admin, /Show reviewed blocks/);
+  assert.match(admin, /<details className="panel extraction-page-review"/);
+  assert.match(admin, /extraction-page-review-counts/);
   assert.match(styles, /\.review-status-required/);
+  assert.match(styles, /\.review-status-partial/);
   assert.match(styles, /\.review-status-complete/);
   assert.match(admin, /renderAssetId/);
   assert.match(admin, /block\.latex/);

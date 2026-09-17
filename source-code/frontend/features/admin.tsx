@@ -178,6 +178,7 @@ export function AdminWorkspace(p: Props) {
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
+  const [hideReviewedBlocks, setHideReviewedBlocks] = useState<Record<string, boolean>>({});
   const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
   const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
   const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
@@ -865,15 +866,45 @@ export function AdminWorkspace(p: Props) {
                       )}
                     </section>
                   )}
-                  {extraction?.pages.map((page) => (
-                    <article className="panel stack extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`}>
-                      <div className="spread small">
-                        <div><strong>Extracted page {page.pageNumber}</strong><p>{page.method} · {Math.round(page.confidence * 100)}% extraction confidence</p></div>
-                        <span className={`review-status-badge ${page.needsReview ? 'review-status-required' : 'review-status-complete'}`}>
-                          {page.needsReview
-                            ? `Review required · ${page.blocks.filter((block) => block.needsReview).length} block${page.blocks.filter((block) => block.needsReview).length === 1 ? '' : 's'} pending`
-                            : 'Reviewed'}
+                  {extraction?.pages.map((page) => {
+                    const pendingBlocks = page.blocks.filter((block) => block.needsReview).length;
+                    const completedReviews = page.blocks.filter(
+                      (block) => block.metadata.adminReviewed === true,
+                    ).length;
+                    const requiredReviews = pendingBlocks + completedReviews;
+                    const pageStatus = pendingBlocks === 0
+                      ? 'Fully reviewed'
+                      : completedReviews > 0 ? 'Partially reviewed' : 'Yet to be reviewed';
+                    const hideReviewed = Boolean(hideReviewedBlocks[page.id]);
+                    const visibleBlocks = hideReviewed
+                      ? page.blocks.filter((block) => block.needsReview)
+                      : page.blocks;
+                    return (
+                    <details className="panel extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`} open>
+                      <summary className="extraction-page-header">
+                        <div>
+                          <strong>Extracted page {page.pageNumber}</strong>
+                          <p>{page.method} · {Math.round(page.confidence * 100)}% extraction confidence</p>
+                        </div>
+                        <div className="extraction-page-review-counts" aria-label={`Page ${page.pageNumber} review summary`}>
+                          <span><strong>{requiredReviews}</strong> required</span>
+                          <span><strong>{completedReviews}</strong> completed</span>
+                          <span><strong>{pendingBlocks}</strong> remaining</span>
+                        </div>
+                        <span className={`review-status-badge ${pendingBlocks === 0 ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}>
+                          {pageStatus}
                         </span>
+                      </summary>
+                      <div className="stack extraction-page-body">
+                      <div className="button-row extraction-block-visibility">
+                        <Button
+                          variant="outline"
+                          aria-pressed={hideReviewed}
+                          onClick={() => setHideReviewedBlocks((current) => ({ ...current, [page.id]: !hideReviewed }))}
+                        >
+                          {hideReviewed ? 'Show reviewed blocks' : 'Hide reviewed blocks'}
+                        </Button>
+                        <span className="small">Showing {visibleBlocks.length} of {page.blocks.length} extracted content blocks</span>
                       </div>
                       <div className="two-cols"><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></div>
                       <div className="extraction-review-grid"><div><strong className="small">Original page</strong><Image
@@ -889,7 +920,7 @@ export function AdminWorkspace(p: Props) {
                         alt={`Normalized review page ${page.pageNumber}`}
                         width={Math.max(1, Math.round(page.widthPoints))} height={Math.max(1, Math.round(page.heightPoints))}
                         unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
-                      /></div><div><strong className="small">Extracted content</strong>{page.blocks.map((block) => (
+                      /></div><div><strong className="small">Extracted content</strong>{visibleBlocks.map((block) => (
                         <div className="small stack" key={`${page.pageNumber}-${block.sequenceNumber}`}>
                           <div className="spread"><span><strong>{block.kind}</strong> · {block.method} · {Math.round(block.confidence * 100)}%</span><span className={`review-status-badge ${block.needsReview ? 'review-status-required' : 'review-status-complete'}`}>{block.needsReview ? 'Review required' : 'Reviewed'}</span></div>
                           <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
@@ -908,9 +939,10 @@ export function AdminWorkspace(p: Props) {
                           )}
                           <Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, sequenceNumber: block.sequenceNumber })); }, 'Extracted block reviewed and saved.')}>Save reviewed block</Button>
                         </div>
-                      ))}</div></div>
-                    </article>
-                  ))}
+                      ))}{!visibleBlocks.length && <p className="source-note">All extracted content blocks on this page have been reviewed.</p>}</div></div>
+                      </div>
+                    </details>
+                  );})}
                   <p className="small">
                     Editing extracted blocks, saving review notes, and publishing documents are part of the Step 6 Admin approval workflow.
                   </p>
