@@ -118,6 +118,7 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(styles, /\.review-status-required/);
   assert.match(styles, /\.review-status-partial/);
   assert.match(styles, /\.review-status-complete/);
+  assert.match(styles, /\.extraction-review-summary\s*\{[^}]*position:\s*static/s);
   assert.match(admin, /renderAssetId/);
   assert.match(admin, /block\.latex/);
   assert.match(admin, /block\.sourceAssetId/);
