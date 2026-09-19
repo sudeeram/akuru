@@ -4,6 +4,23 @@
 
 This plan is deliberately last because it adds another production runtime, Telegram identity, temporary Student assessment state, OpenAI usage outside AKURU's normal provider path and a separate security boundary. It must not block the web Student experience.
 
+## Deferred lowest-priority work — per-child AI quotas
+
+Per-child Tutor quota controls already exist in AKURU. The following extensions are intentionally deferred and must not block the Chemistry Topic 1 text-Tutor or flashcard pilot:
+
+- [ ] Decide whether deterministic flashcard generation and non-AI flashcard review sessions consume any allowance.
+- [ ] If AI flashcard drafting is enabled, reserve and settle its successful and failed provider usage against the correct child's reviewed quota policy.
+- [ ] Apply per-child quota accounting across Luna-to-Terra escalation, including both attempts without double settlement.
+- [ ] Ensure provider-account failover, quality escalation, concurrent requests and client retries cannot evade or double-settle a child's quota.
+- [ ] Add Admin-configurable flashcard allowance controls only if real usage evidence shows that a separate allowance is useful.
+- [ ] Show descriptive Student messages for exhausted or disabled allowances while preserving access to saved, non-AI study material.
+- [ ] Add quota dimensions to the cross-feature readiness matrix and authorized reporting.
+- [ ] Report usage and estimated cost by Student quota period without exposing another child's activity.
+- [ ] Add database-backed quota-boundary, renewal, concurrency, isolation and audit tests.
+- [ ] Document migration, default allowance, rollback and production monitoring before enabling flashcard quota enforcement.
+
+**Done when:** Optional per-child quota enforcement is auditable, idempotent, isolated by Student and proven under failover and escalation. Until then, quota extensions remain outside the high-priority Student launch gate.
+
 ## Future Step 7 — Add OpenClaw Telegram Quick Mock
 
 ### Purpose and boundary

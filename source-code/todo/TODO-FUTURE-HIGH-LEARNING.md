@@ -1,6 +1,6 @@
 # High priority — Chemistry Topic 1 readiness, text tutoring and flashcards
 
-**Status: Future work — not started.**
+**Status: In progress. Core flashcard persistence, review/release APIs, Student sessions and accessible interfaces are implemented locally.**
 
 This is the first delivery plan. Its immediate objective is to let Students use the reviewed `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` content through grounded text tutoring and accessible flashcards. Work in this file takes precedence over the medium, low and lowest-priority future plans.
 
@@ -79,7 +79,7 @@ The first Student release must work from one independently published topic. AKUR
 - [x] Provide an Admin readiness view confirming the pilot Student is active, enrolled in iGCSE, assigned Chemistry and associated with an eligible grade/term progression record.
 - [x] Calculate Student access from account, course, subject, progression, coverage and publication state; do not require a separate manual deck assignment for every child.
 - [x] Explain the exact missing prerequisite when a Student is ineligible, without exposing internal UUIDs.
-- [ ] Test Laura/Enya-style separation so an eligible child cannot read another child's flashcard history, Tutor transcript, quota or source authorization.
+- [ ] Test Laura/Enya-style separation so an eligible child cannot read another child's flashcard history, Tutor transcript or source authorization.
 
 ### Admin Step 7 — Verify retrieval and citations
 
@@ -91,7 +91,8 @@ The first Student release must work from one independently published topic. AKUR
 
 ### Admin Step 8 — Generate the Topic 1 flashcard deck
 
-- [ ] Add an Admin action to generate a deck for one selected published topic and an optional Unit 1 action that includes only eligible published topics.
+- [x] Add an Admin action to generate a deck for one selected published topic.
+- [ ] Optionally add a Unit 1 generation action that includes only eligible published topics.
 - [ ] Show the generation scope before confirmation, including course, subject, unit, included topics, source version and proposed card limit.
 - [x] Persist the generated deck and immutable card versions with front, back, source evidence, page citation, model/prompt version and generation status.
 - [x] Prevent generation from unpublished, superseded, rejected or visual-reference OCR text.
@@ -108,11 +109,11 @@ The first Student release must work from one independently published topic. AKUR
 ### Admin Step 10 — Enable and verify the Student experience
 
 - [ ] Enable the flashcard and text-Tutor release gates first for Admin testing, then the selected Student pilot, with an immediate rollback switch.
-- [ ] Confirm the child has sufficient Tutor/flashcard allowance and show a descriptive Student message when a quota or provider is unavailable.
+- [ ] Show a descriptive Student message when the required AI provider is unavailable.
 - [x] Add Student navigation to flashcards; deck visibility remains closed until Admin release and cumulative curriculum eligibility pass.
 - [ ] Show Unit 1 with the exact number of published eligible topics and never display an unavailable sibling topic as usable content.
 - [x] Let the Student select States of Matter, start or resume a flashcard session, reveal answers, rate recall, open exact sources and complete the session using keyboard and screen reader.
-- [ ] Let the Student start a grounded text Tutor session for the same topic, ask questions and receive exact reviewed citations.
+- [x] Let the Student start a grounded text Tutor session for the same eligible topic, ask questions and receive exact reviewed citations.
 - [ ] Run a production-like acceptance journey as the pilot Student and verify that an ineligible Student cannot see or call the same deck and Tutor context.
 - [ ] Record the release decision, evaluation evidence, active deck/content versions and rollback procedure for the first Student launch.
 
@@ -252,14 +253,14 @@ The intended configuration for this case is:
 
 ### End-to-end feature readiness inventory
 
-- [ ] Produce one reviewed matrix for every AI-backed feature showing its user role, frontend entry point, backend API, domain service, prompt, output schema, primary policy, escalation policy, quota dimension, release gate, audit evidence and automated tests.
+- [ ] Produce one reviewed matrix for every AI-backed feature showing its user role, frontend entry point, backend API, domain service, prompt, output schema, primary policy, escalation policy, release gate, audit evidence and automated tests.
 - [ ] Classify every feature as `ready`, `partially_ready`, `backend_only`, `frontend_only` or `not_started`; do not treat a prompt definition or API contract alone as a usable feature.
 - [ ] Cover at least flashcards, short revision questions, guided practice, Socratic practice, detailed explanations, misconception correction, repeated-error help, difficult calculations, assessment marking, study-plan wording, document classification, document interpretation and realtime voice delegation.
 - [ ] Record the existing Guided Practice workflow as implemented but requiring model-policy integration and regression verification.
 - [ ] Record short revision questions as partially ready because conversational `questions` and `revision` Tutor modes exist without a structured activity lifecycle.
-- [x] Record flashcards as implemented for persistence, deterministic scheduling, authenticated APIs, Admin review/release and the accessible Student experience; quotas, policy routing and controlled pilot gates remain pending.
+- [x] Record flashcards as implemented for persistence, deterministic scheduling, authenticated APIs, Admin review/release and the accessible Student experience; policy routing and controlled pilot gates remain pending.
 - [ ] Remove or update stale Student-interface text that says the Tutor backend is a future feature, and link legacy Practice surfaces to the active Tutor Room where appropriate.
-- [ ] Keep policy activation disabled for any feature whose required frontend, backend, evidence, quota or release-gate row is incomplete.
+- [ ] Keep policy activation disabled for any feature whose required frontend, backend, evidence or release-gate row is incomplete.
 
 ### Student flashcards — frontend and backend readiness
 
@@ -275,7 +276,9 @@ The intended configuration for this case is:
 - [x] Show an understandable empty state when no reviewed cards or published topic sources are available.
 - [ ] Add Parent progress summaries and Admin deck-quality/status views without exposing another family's activity.
 - [x] Ensure flashcard ratings do not directly change authoritative mastery unless a separately reviewed evidence-weighting rule explicitly permits it.
-- [ ] Add backend domain, authorization, idempotency, scheduling, grounding, quota and escalation tests plus frontend contract, keyboard and browser-flow tests.
+- [x] Add backend scheduling and API-contract tests plus frontend accessibility and feature-contract tests.
+- [ ] Add full database-backed domain, authorization, idempotency, grounding, cross-child isolation, keyboard and browser-flow tests.
+- [ ] Add model-routing and escalation tests when those capabilities are implemented.
 
 ### Guided and Socratic practice — completion and routing review
 
@@ -287,7 +290,7 @@ The intended configuration for this case is:
 - [ ] Prevent hints, Tutor voice and answer-revealing tools during mocks and official-paper attempts.
 - [ ] Retain an active question and its saved answer when switching tutors, and continue blocking topic changes until required submission rules are satisfied.
 - [ ] Show the final model/policy outcome only when useful to Admin audit; do not expose internal confidence, account identity or escalation mechanics to the child.
-- [ ] Regression-test published coverage eligibility, question-topic mapping, diagrams, progressive hints, answer persistence, assessment feedback, Tutor switching, quotas and release gates.
+- [ ] Regression-test published coverage eligibility, question-topic mapping, diagrams, progressive hints, answer persistence, assessment feedback, Tutor switching and release gates.
 
 ### Detailed teaching, misconceptions and difficult calculations
 
@@ -317,7 +320,6 @@ The intended configuration for this case is:
 - [ ] Show only the final accepted answer to the student and preserve both attempts for authorized audit and evaluation.
 - [ ] Prevent escalation loops and limit each logical request to the configured bounded attempt path.
 - [ ] Distinguish quality escalation from account failover: model escalation changes capability, while account failover retries the same required model on another healthy credential.
-- [ ] Charge all successful and failed provider usage attributable to the request to the correct child's quota according to the reviewed quota policy.
 
 ### Admin configuration and reporting
 
@@ -326,14 +328,14 @@ The intended configuration for this case is:
 - [ ] Let an Admin configure the primary model, optional escalation model, reasoning effort, maximum output tokens, escalation state and policy status.
 - [ ] Version policy changes, require a reason, write audit events and support rollback to a previously reviewed version.
 - [ ] Keep credential aliases and priorities in the provider-account interface; clearly explain the difference between account failover and model routing.
-- [ ] Report requests, input/output tokens, estimated cost, latency, failure rate and quality-escalation rate by feature, policy, model, account and student quota period as authorization permits.
+- [ ] Report requests, input/output tokens, estimated cost, latency, failure rate and quality-escalation rate by feature, policy, model and account as authorization permits.
 - [ ] Show why a request escalated and link the two provider attempts under one logical operation without exposing prompts, credentials or another student's data.
 
-### Usage, quota and cost accounting
+### Usage and cost accounting
 
 - [ ] Record selected policy, classifier version, routing reason, requested model, actual model, reasoning effort, escalation parent/child relationship and final disposition for every invocation.
-- [ ] Count both Luna and Terra usage when escalation occurs and settle reservations using provider-reported usage where available.
-- [ ] Ensure account retry attempts, quality escalations and client retries cannot double-settle or evade per-child quotas.
+- [ ] Count both Luna and Terra usage when escalation occurs using provider-reported usage where available.
+- [ ] Ensure account retry attempts, quality escalations and client retries cannot double-count provider usage.
 - [ ] Add configurable price metadata or a versioned cost catalogue for reporting estimates; do not hard-code current public prices into historical usage records.
 - [ ] Store the pricing version and calculated estimate so later price changes do not rewrite historical reports.
 - [ ] Alert Admins when escalation frequency or cost exceeds configured operational thresholds.
@@ -345,11 +347,11 @@ The intended configuration for this case is:
 - [ ] Define release thresholds before enabling automatic routing, including high recall for answers that genuinely require escalation and an acceptable false-escalation rate for routine work.
 - [ ] Start in shadow mode: calculate and record the proposed policy while retaining the currently approved model response.
 - [ ] Review shadow results, then enable the feature for controlled students or subjects with a one-switch rollback to the previous fixed-model behaviour.
-- [ ] Include provider unavailability, exhausted accounts, malformed structured output, timeouts, concurrent requests and quota-boundary tests.
+- [ ] Include provider unavailability, exhausted accounts, malformed structured output, timeouts and concurrent-request tests.
 - [ ] Run authorization, audit, privacy, prompt-injection, source-grounding and cross-family isolation tests for both the initial and escalated attempts.
 - [ ] Re-evaluate high-priority policies when model versions, provider prices, Tutor/flashcard prompts or published Chemistry evidence changes.
 
-**Done when:** AKURU independently selects reviewed text-Tutor and flashcard policies, routes routine learning work economically, sends complex learning work directly to the stronger model, escalates only validated exceptional cases, preserves account failover beneath model routing, accounts for every attempt against the correct child, and passes documented quality, cost, privacy and rollback gates. Each enabled high-priority feature must also have a complete accessible frontend, authenticated backend workflow, authoritative evidence boundary, quota treatment, release gate and automated end-to-end verification.
+**Done when:** AKURU independently selects reviewed text-Tutor and flashcard policies, routes routine learning work economically, sends complex learning work directly to the stronger model, escalates only validated exceptional cases, preserves account failover beneath model routing, records every provider attempt, and passes documented quality, cost, privacy and rollback gates. Each enabled high-priority feature must also have a complete accessible frontend, authenticated backend workflow, authoritative evidence boundary, release gate and automated end-to-end verification.
 
 ## High-priority completion gate
 
@@ -357,8 +359,7 @@ The intended configuration for this case is:
 - [ ] A Student can open Chemistry Topic 1 and receive a grounded text explanation with exact reviewed citations.
 - [ ] The Tutor can ask questions, run Guided Practice and explain misconceptions without using uncovered or cross-subject material.
 - [ ] A Student can complete an accessible flashcard review session and resume it safely.
-- [ ] Flashcard generation, Tutor responses and escalation usage are charged to the correct child.
 - [ ] Parent/Admin visibility, privacy, authorization, accessibility and release tests pass.
 - [ ] No medium, low or lowest-priority feature is required for the Student pilot to operate.
 
-**Done when:** Students can safely learn the published States of Matter topic through grounded text tutoring and flashcards, with one canonical source, exact citations, isolated child data, controlled AI costs and reviewed release evidence.
+**Done when:** Students can safely learn the published States of Matter topic through grounded text tutoring and flashcards, with one canonical source, exact citations, isolated child data, controlled provider behaviour and reviewed release evidence.
