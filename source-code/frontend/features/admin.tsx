@@ -44,6 +44,7 @@ import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';
 import { OperationsAdmin } from './operations-admin';
+import { FlashcardAdmin } from './flashcards';
 import { TutorPresetAdmin } from './tutor-profiles';
 import { TutorQuotaAdmin } from './tutor-quotas';
 import { TutorHistory } from './tutor-history';
@@ -592,6 +593,7 @@ export function AdminWorkspace(p: Props) {
         {p.view === 'media' && <MediaAdmin data={p.data} notify={p.notify} />}
         {p.view === 'evaluations' && <EvaluationAdmin data={p.data} notify={p.notify} />}
         {p.view === 'operations' && <OperationsAdmin />}
+        {p.view === 'flashcards' && <FlashcardAdmin notify={p.notify} />}
         {p.view === 'blueprints' && (
           <>
             <form className="panel stack" onSubmit={(event) => {

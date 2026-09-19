@@ -102,7 +102,8 @@ export function Status({ status }: { status: string }) {
   const labels: Record<string, string> = {
     "needs-review": "Awaiting review", checked: "Answer checked", reviewed: "Parent reviewed",
     approved: "Approved", pending: "Awaiting review", active: "In progress", submitted: "Submitted",
-    draft: "Draft", published: "Published", archived: "Archived", processing: "Processing", failed: "Needs attention",
+    draft: "Draft", review: "In review", review_required: "Needs review", released: "Released", rejected: "Rejected",
+    superseded: "Superseded", published: "Published", archived: "Archived", processing: "Processing", failed: "Needs attention",
   };
   const label = labels[status] || status.replaceAll('_', ' ');
   const symbol = status === 'approved' || status === 'published' || status === 'checked' ? '✓' :

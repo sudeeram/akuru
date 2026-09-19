@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (
     AssessmentCurriculumSnapshot, AuditEvent, Course, CurriculumPlan, CurriculumPlanTopic, Document, DocumentBlock,
-    DocumentJob, DocumentPage, DocumentVersion, ImprovementRecommendation, OfficialQuestionTopicMapping,
+    DocumentJob, DocumentPage, DocumentVersion, FlashcardDeck, ImprovementRecommendation, OfficialQuestionTopicMapping,
     RetrievalChunk, StudyPlanItem, Subject, Textbook, TextbookGroup, TextbookStructureVersion,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicDocument,
     TopicRetrievalPreflight,
@@ -294,6 +294,16 @@ def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
         chunk.document_version_id in canonical_versions and chunk.page_number > 0 and bool(chunk.content.strip())
         for chunk in chunks
     ) and len({chunk.content_hash for chunk in chunks}) == len(chunks)
+    generated_deck = db.scalar(select(FlashcardDeck).where(
+        FlashcardDeck.topic_id == topic.id,
+        FlashcardDeck.content_version_id == (published.id if published else None),
+        FlashcardDeck.status.in_(("review", "released")),
+    ).order_by(FlashcardDeck.created_at.desc()))
+    released_deck = db.scalar(select(FlashcardDeck).where(
+        FlashcardDeck.topic_id == topic.id,
+        FlashcardDeck.content_version_id == (published.id if published else None),
+        FlashcardDeck.status == "released",
+    ).order_by(FlashcardDeck.released_at.desc()))
     student_ok = False
     student_message = "Choose a pilot Student to verify enrolment and cumulative Grade/Term coverage."
     if student_id:
@@ -334,12 +344,15 @@ def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
         {"code": "retrieval_passed", "label": "Retrieval passed", "passed": retrieval_ok,
          "message": f"Passing preflight verified {len(chunks)} unique, page-cited canonical chunks." if retrieval_ok else "Run a passing retrieval preflight against the current published content version.",
          "href": "/#units"},
-        {"code": "deck_generated", "label": "Deck generated", "passed": False,
-         "message": "Flashcard deck generation is not implemented yet.", "href": "/#flashcards"},
-        {"code": "deck_released", "label": "Deck released", "passed": False,
-         "message": "No reviewed flashcard deck has been released.", "href": "/#flashcards"},
-        {"code": "student_access", "label": "Student access enabled", "passed": False,
-         "message": "Keep access disabled until Tutor and flashcard evaluations pass.", "href": "/#evaluations"},
+        {"code": "deck_generated", "label": "Deck generated", "passed": bool(generated_deck),
+         "message": "A deck exists for the current topic content version." if generated_deck else "Generate a grounded flashcard deck.",
+         "href": "/#flashcards"},
+        {"code": "deck_released", "label": "Deck released", "passed": bool(released_deck),
+         "message": "An Admin-reviewed deck is released." if released_deck else "Review every card and release the deck.",
+         "href": "/#flashcards"},
+        {"code": "student_access", "label": "Student access enabled", "passed": bool(released_deck and student_ok),
+         "message": "The selected Student can use the released deck." if released_deck and student_ok else "Release the deck and verify the selected Student's cumulative coverage.",
+         "href": "/#flashcards"},
     ]
     return TopicLaunchReadinessResponse(topicRef=topic.public_ref, topicTitle=topic.title,
         overallStatus="ready" if all(check["passed"] for check in checks) else "blocked", checks=checks)

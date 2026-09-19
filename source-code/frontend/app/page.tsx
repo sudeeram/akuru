@@ -26,6 +26,7 @@ import {
   Bot,
   MessageCircle,
   Gauge,
+  Layers3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,6 +51,7 @@ import { usePortalTools } from '@/features/use-portal-tools';
 import { TutorProfiles } from '@/features/tutor-profiles';
 import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
+import { StudentFlashcards } from '@/features/flashcards';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
@@ -57,6 +59,7 @@ const studentNav = [
   ['tutors', 'My tutors', Bot],
   ['tutor-room', 'Tutor room', MessageCircle],
   ['practice', 'Practice', ClipboardCheck],
+  ['flashcards', 'Flashcards', Layers3],
   ['exams', 'Mock exams', Clock3],
   ['progress', 'My progress', TrendingUp],
   ['plan', 'Study plan', CalendarDays],
@@ -78,6 +81,7 @@ const adminNav = [
   ['units', 'Textbook structure', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
   ['questions', 'Question mapping', ClipboardCheck],
+  ['flashcards', 'Flashcard release', Layers3],
   ['blueprints', 'Mock blueprints', Clock3],
   ['ai-accounts', 'OpenAI accounts', KeyRound],
   ['tutor-presets', 'Tutor presets', Bot],
@@ -420,6 +424,8 @@ export default function Portal() {
           <TutorSessions notify={notify} />
         ) : view === 'practice' && !parent ? (
           <Practice {...props} />
+        ) : view === 'flashcards' && !parent ? (
+          <StudentFlashcards />
         ) : view === 'exams' && !parent ? (
           <Exams {...props} />
         ) : view === 'plan' && !parent ? (

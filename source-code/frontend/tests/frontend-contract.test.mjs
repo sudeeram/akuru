@@ -39,6 +39,7 @@ const tutorProfiles = readFileSync(
 const tutorSignals = readFileSync(new URL('../features/tutor-signals.tsx', import.meta.url), 'utf8');
 const tutorHistory = readFileSync(new URL('../features/tutor-history.tsx', import.meta.url), 'utf8');
 const tutorVoice = readFileSync(new URL('../features/tutor-voice.tsx', import.meta.url), 'utf8');
+const flashcards = readFileSync(new URL('../features/flashcards.tsx', import.meta.url), 'utf8');
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
@@ -540,4 +541,18 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(textbookStructure, /View launch readiness/);
   assert.match(textbookStructure, /Detach from topic/);
   assert.match(textbookStructure, /Possible duplicate primary text/);
+});
+
+test('flashcards are Admin reviewed, source grounded and accessible to eligible Students', () => {
+  assert.match(page, /\['flashcards', 'Flashcards'/);
+  assert.match(page, /\['flashcards', 'Flashcard release'/);
+  assert.match(api, /flashcards\/admin\/decks\/generate/);
+  assert.match(api, /flashcards\/student\/sessions/);
+  assert.match(flashcards, /Exact textbook evidence/);
+  assert.match(flashcards, /Release approved deck/);
+  assert.match(flashcards, /Show approved answer/);
+  assert.match(flashcards, /How well did you remember it?/);
+  assert.match(flashcards, /aria-live="polite"/);
+  assert.match(flashcards, /<fieldset className="flashcard-face"/);
+  assert.match(flashcards, /View source details/);
 });

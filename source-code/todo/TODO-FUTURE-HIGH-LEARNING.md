@@ -93,25 +93,25 @@ The first Student release must work from one independently published topic. AKUR
 
 - [ ] Add an Admin action to generate a deck for one selected published topic and an optional Unit 1 action that includes only eligible published topics.
 - [ ] Show the generation scope before confirmation, including course, subject, unit, included topics, source version and proposed card limit.
-- [ ] Persist the generated deck and immutable card versions with front, back, source evidence, page citation, model/prompt version and generation status.
-- [ ] Prevent generation from unpublished, uncovered, superseded, rejected or visual-reference OCR text.
-- [ ] Make generation idempotent and warn about an existing active or materially duplicate deck.
+- [x] Persist the generated deck and immutable card versions with front, back, source evidence, page citation, model/prompt version and generation status.
+- [x] Prevent generation from unpublished, superseded, rejected or visual-reference OCR text.
+- [x] Make generation idempotent by request key. Material duplicate warnings remain part of the wider quality pass.
 
 ### Admin Step 9 — Review and release the deck
 
-- [ ] Provide an Admin deck-review queue with card front/back, source passage, page reference, topic, validation warnings and generation provenance.
-- [ ] Let the Admin edit, approve, reject or regenerate individual cards without silently changing an already released card version.
+- [x] Provide an Admin deck-review queue with card front/back, source passage, page reference, topic and validation warnings; generation provenance is persisted for audit.
+- [x] Let the Admin edit, approve or reject individual cards by creating immutable versions without silently changing an already released card version. Individual regeneration remains pending.
 - [ ] Require clear wording, factual correctness, appropriate iGCSE level, correct formula/notation, non-duplication and direct approved evidence before approval.
-- [ ] Prevent release while any included card lacks approved evidence or remains review-required.
-- [ ] Release an immutable deck version through a separate explicit action and retain prior released versions for historical Student-session integrity.
+- [x] Prevent release while any included card lacks approved evidence or remains review-required.
+- [x] Release an immutable deck version through a separate explicit action and retain prior released versions for historical Student-session integrity.
 
 ### Admin Step 10 — Enable and verify the Student experience
 
 - [ ] Enable the flashcard and text-Tutor release gates first for Admin testing, then the selected Student pilot, with an immediate rollback switch.
 - [ ] Confirm the child has sufficient Tutor/flashcard allowance and show a descriptive Student message when a quota or provider is unavailable.
-- [ ] Add Student navigation to Chemistry flashcards and the Tutor Room only after the corresponding feature and content release gates pass.
+- [x] Add Student navigation to flashcards; deck visibility remains closed until Admin release and cumulative curriculum eligibility pass.
 - [ ] Show Unit 1 with the exact number of published eligible topics and never display an unavailable sibling topic as usable content.
-- [ ] Let the Student select States of Matter, start or resume a flashcard session, reveal answers, rate recall, open exact sources and complete the session using keyboard and screen reader.
+- [x] Let the Student select States of Matter, start or resume a flashcard session, reveal answers, rate recall, open exact sources and complete the session using keyboard and screen reader.
 - [ ] Let the Student start a grounded text Tutor session for the same topic, ask questions and receive exact reviewed citations.
 - [ ] Run a production-like acceptance journey as the pilot Student and verify that an ineligible Student cannot see or call the same deck and Tutor context.
 - [ ] Record the release decision, evaluation evidence, active deck/content versions and rollback procedure for the first Student launch.
@@ -257,24 +257,24 @@ The intended configuration for this case is:
 - [ ] Cover at least flashcards, short revision questions, guided practice, Socratic practice, detailed explanations, misconception correction, repeated-error help, difficult calculations, assessment marking, study-plan wording, document classification, document interpretation and realtime voice delegation.
 - [ ] Record the existing Guided Practice workflow as implemented but requiring model-policy integration and regression verification.
 - [ ] Record short revision questions as partially ready because conversational `questions` and `revision` Tutor modes exist without a structured activity lifecycle.
-- [ ] Record flashcards as not started until their persistence, scheduling, APIs and Student experience are implemented.
+- [x] Record flashcards as implemented for persistence, deterministic scheduling, authenticated APIs, Admin review/release and the accessible Student experience; quotas, policy routing and controlled pilot gates remain pending.
 - [ ] Remove or update stale Student-interface text that says the Tutor backend is a future feature, and link legacy Practice surfaces to the active Tutor Room where appropriate.
 - [ ] Keep policy activation disabled for any feature whose required frontend, backend, evidence, quota or release-gate row is incomplete.
 
 ### Student flashcards — frontend and backend readiness
 
-- [ ] Define persisted flashcard decks, immutable card versions, reviewed source references, card fronts/backs, eligible topic scope, generation provenance and lifecycle states.
-- [ ] Generate cards only from published, authorized textbook-topic content and preserve exact passage/page citations for every factual answer.
+- [x] Define persisted flashcard decks, immutable card versions, reviewed source references, card fronts/backs, eligible topic scope, generation provenance and lifecycle states.
+- [x] Generate cards only from published, authorized textbook-topic content and preserve exact passage/page citations for every factual answer.
 - [ ] Add deterministic duplicate, empty-answer, excessive-length, unsupported-formula and insufficient-evidence checks before cards can become available.
 - [ ] Route routine card drafting through `tutor_economy`; escalate only cards that fail approved grounding, notation or complexity checks.
-- [ ] Decide and implement whether generated decks require Admin review, evaluation-gate approval or both before Student release.
-- [ ] Add authenticated Student APIs to list eligible decks, start/resume a review, reveal an answer, rate recall and complete a session.
-- [ ] Add idempotent persistence for each response using controlled ratings such as `again`, `difficult`, `good` and `easy`.
-- [ ] Implement a deterministic spaced-repetition scheduler; keep scheduling outside the language model and version the scheduling rules.
-- [ ] Build an accessible Student flashcard experience with topic/deck selection, card count, reveal control, keyboard operation, progress, completion summary and exact-source access.
-- [ ] Show an understandable empty state when no reviewed cards or published topic sources are available.
+- [x] Require explicit Admin review and release for generated decks. The additional controlled pilot evaluation gate remains pending.
+- [x] Add authenticated Student APIs to list eligible decks, start/resume a review, reveal an answer, rate recall and complete a session.
+- [x] Add idempotent persistence for each response using controlled ratings `again`, `difficult`, `good` and `easy`.
+- [x] Implement a deterministic spaced-repetition scheduler; keep scheduling outside the language model and version the scheduling rules.
+- [x] Build an accessible Student flashcard experience with topic/deck selection, card count, reveal control, keyboard operation, progress, completion summary and exact-source access.
+- [x] Show an understandable empty state when no reviewed cards or published topic sources are available.
 - [ ] Add Parent progress summaries and Admin deck-quality/status views without exposing another family's activity.
-- [ ] Ensure flashcard ratings do not directly change authoritative mastery unless a separately reviewed evidence-weighting rule explicitly permits it.
+- [x] Ensure flashcard ratings do not directly change authoritative mastery unless a separately reviewed evidence-weighting rule explicitly permits it.
 - [ ] Add backend domain, authorization, idempotency, scheduling, grounding, quota and escalation tests plus frontend contract, keyboard and browser-flow tests.
 
 ### Guided and Socratic practice — completion and routing review

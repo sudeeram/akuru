@@ -217,9 +217,9 @@ export async function api<P extends string>(
 ): Promise<ApiResult<P>> {
   return request(path, { method: body === undefined ? 'GET' : 'POST', body }) as Promise<ApiResult<P>>;
 }
-async function request(
+export async function request(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'DELETE'; body?: unknown } = {},
+  options: { method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'; body?: unknown } = {},
 ): Promise<unknown> {
   const csrf = csrfToken();
   const headers: Record<string, string> = {};
@@ -415,6 +415,19 @@ export type TextbookStructure = {
   status: string; structureVersion: number; groups: TextbookStructureGroup[];
 };
 export const getTextbookStructures = () => request('admin/textbooks') as Promise<{ textbooks: TextbookStructure[] }>;
+export type FlashcardSource = { chunkRef: string; documentTitle: string; page: number; printedPage?: string | null; passage: string; sourceUrl?: string | null };
+export type FlashcardCard = { cardRef: string; ordinal: number; version: number; front: string; back?: string | null; status: string; warnings: string[]; source: FlashcardSource };
+export type FlashcardDeck = { deckRef: string; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string; subjectId: string; title: string; status: string; contentVersion: number; cardCount: number; approvedCount: number; reviewRequiredCount: number; rejectedCount: number; cards: FlashcardCard[]; releasedAt?: string | null };
+export type FlashcardSession = { sessionRef: string; deck: FlashcardDeck; status: string; currentOrdinal: number; reviewedCount: number; totalCards: number; currentCard?: FlashcardCard | null; answerRevealed: boolean; schedulerVersion: string; message: string };
+export const getAdminFlashcardDecks = () => request('flashcards/admin/decks') as Promise<FlashcardDeck[]>;
+export const getAdminFlashcardDeck = (ref: string) => request(`flashcards/admin/decks/${ref}`) as Promise<FlashcardDeck>;
+export const generateFlashcardDeck = (topicRef: string, cardLimit: number, requestKey: string) => request('flashcards/admin/decks/generate', { method: 'POST', body: { topicRef, cardLimit, requestKey } }) as Promise<FlashcardDeck>;
+export const reviewFlashcard = (deckRef: string, cardRef: string, front: string, back: string, decision: 'review_required' | 'approved' | 'rejected') => request(`flashcards/admin/decks/${deckRef}/cards/${cardRef}`, { method: 'PATCH', body: { front, back, decision } }) as Promise<FlashcardDeck>;
+export const releaseFlashcardDeck = (deckRef: string) => request(`flashcards/admin/decks/${deckRef}/release`, { method: 'POST', body: {} }) as Promise<FlashcardDeck>;
+export const getStudentFlashcardDecks = () => request('flashcards/student/decks') as Promise<FlashcardDeck[]>;
+export const startFlashcardSession = (deckRef: string, requestKey: string) => request(`flashcards/student/decks/${deckRef}/sessions`, { method: 'POST', body: { requestKey } }) as Promise<FlashcardSession>;
+export const revealFlashcard = (sessionRef: string) => request(`flashcards/student/sessions/${sessionRef}/reveal`, { method: 'POST', body: {} }) as Promise<FlashcardSession>;
+export const rateFlashcard = (sessionRef: string, rating: 'again' | 'difficult' | 'good' | 'easy', requestKey: string) => request(`flashcards/student/sessions/${sessionRef}/rate`, { method: 'POST', body: { rating, requestKey } }) as Promise<FlashcardSession>;
 export const createTextbookStructure = (body: { courseId: 'igcse'; subjectId: string; title: string; edition: string; publisher: string; groupLabel: 'unit' | 'module' }) => request('admin/textbooks', { method: 'POST', body }) as Promise<TextbookStructure>;
 export const updateTextbookStructure = (ref: string, body: { title: string; edition: string; publisher: string; groupLabel: 'unit' | 'module' }) => request(`admin/textbooks/${ref}`, { method: 'POST', body }) as Promise<TextbookStructure>;
 export const archiveTextbookStructure = (ref: string) => request(`admin/textbooks/${ref}`, { method: 'DELETE' }) as Promise<TextbookStructure>;
