@@ -49,4 +49,4 @@ Edit `/etc/akuru/akuru.env` through privileged operator procedures. Validate own
 
 `.github/workflows/ci.yml` runs quality gates on GitHub-hosted runners. It does not install or update the OCI server. The deployment playbook job validates scripts and rejects committed secrets; frontend and backend jobs test the application against disposable dependencies.
 
-See `../../deploy/ubuntu/README.md` and `../backend/docs/step-20-production-security-operations.md` for command-level operator procedures.
+See `../deploy/ubuntu/README.md` and `../source-code/backend/docs/step-20-production-security-operations.md` for command-level operator procedures.

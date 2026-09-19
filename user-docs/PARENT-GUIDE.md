@@ -1,18 +1,19 @@
-AKURU PARENT GUIDE
-=======================
+# AKURU Parent Guide
 
 Your account gives access only to children linked to you by the Admin.
 Admin creates accounts, assigns courses/grades/terms/subjects and manages all
 learning documents. Parents no longer perform those administration tasks.
 
-AFTER LOGIN
+
+## After Login
 
 1. Open Family overview and check that the expected children appear.
 2. Open Children & courses to view each child's iGCSE current grade, current term and subjects. Ask Admin to maintain the full progression.
 3. Ask Admin to correct missing children or incorrect enrolments.
 4. Open Content library to read approved textbooks and reference materials.
 
-REVIEW ANSWERS
+
+## Review Answers
 
 Open Assessment reviews. Select a child or review the pending list. Confirm the
 child and question before reading the typed answer and attached working.
@@ -24,14 +25,16 @@ are retained. Exact numeric checking only checks a final answer; it does not
 prove the method or award all possible method marks. Written and handwritten
 answers need human review.
 
-ASSIGN PRACTICE
+
+## Assign Practice
 
 Open Assignments. Select your child, an available question and a due date.
 Add a useful title and create the assignment. The list is restricted to covered
 units for every Grade + Term combination that child has reached. If it is empty, ask Admin to
 finish coverage and approved question mappings. Do not use a sibling's account.
 
-FOLLOW PROGRESS
+
+## Follow Progress
 
 Use Learning progress to review each child separately. Look at attempts, marks,
 pending reviews and feedback. Scores describe assessed work, not predicted exam
@@ -53,18 +56,21 @@ and recalculates mastery. If a newer result exists, refresh before reviewing it.
 If saving fails, retry the unchanged form; it will not publish duplicate versions.
 Recommendation approval and decline remain separate tasks below the summaries.
 
-STEP 18: VISUAL EXPLANATIONS
+
+## Step 18: Visual Explanations
 Students see only Admin-published visuals connected to their assigned subjects
 and covered units. Each visual cites its official textbook source. Conceptual
 images are generated privately and reviewed by an Admin before students can
 see them. They are supporting explanations and do not replace exam evidence.
 Video is not enabled in Phase 1.
-PRIVACY AND DELETION
+
+## Privacy And Deletion
 
 AKURU keeps answers and learning history only for the configured retention period and removes handwritten working sooner. Ask the administrator if you want a copy of the applicable retention periods or want your child's answer and working artifacts deleted. The administrator must verify the request before applying it. Deletion also ages out of encrypted backups after the backup-retention window.
 YOUR CHILD'S TUTORS
 
 Open Tutors to see the tutor profiles created by each linked child. Tutor choices come from child-safe AKURU avatars, voices and teaching settings, so individual Parent approval is not required. Parent access is read-only and remains separate for each child.
-TUTOR OBSERVATIONS
+
+## Tutor Observations
 
 Each child's learning summary can show recent Tutor observations. These are clearly labelled non-authoritative and include a confidence level and supporting-evidence count. Use them as conversation prompts rather than assessment results. Tutor observations cannot change mastery scores, next-unit recommendations or study plans. Published guided-practice marks still come from the AKURU assessment workflow; feedback awaiting review is not shown to the Tutor as authoritative feedback.

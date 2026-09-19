@@ -293,10 +293,12 @@ Review [backend security details](source-code/backend/README.md#authentication-s
 - [Frontend architecture](source-code/frontend/docs/architecture.md)
 - [Backend architecture and security](source-code/backend/docs/architecture.md)
 - [Ubuntu installation playbook](deploy/ubuntu/README.md)
-- [Admin guide](user-docs/ADMIN-GUIDE.txt)
-- [Parent guide](user-docs/PARENT-GUIDE.txt)
-- [Student guide](user-docs/STUDENT-GUIDE.txt)
-- [Data and safety guide](user-docs/DATA-AND-SAFETY.txt)
+- [User guides](user-docs/README.md)
+- [Admin guide](user-docs/ADMIN-GUIDE.md)
+- [Parent guide](user-docs/PARENT-GUIDE.md)
+- [Student guide](user-docs/STUDENT-GUIDE.md)
+- [Data and safety guide](user-docs/DATA-AND-SAFETY.md)
+- [Developer handbook](developer-docs/README.md)
 
 ## Contributing
 

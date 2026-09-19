@@ -1,12 +1,12 @@
-AKURU STUDENT GUIDE
-========================
+# AKURU Student Guide
 
 Use your own account. Your work and reviews belong to you and are separate from
 other children. After login, check your name, current grade and term. Earlier
 completed terms are included in mock selection. Ask your parent or
 Admin to correct them if needed.
 
-MY SUBJECTS AND PRACTICE
+
+## My Subjects And Practice
 
 Open My subjects, choose a subject and an available question. Questions appear
 only after Admin approves them and all their required units are covered for
@@ -22,7 +22,8 @@ Try first before asking for hints. Submit when ready, then read the feedback.
 An exact numeric answer may be checked immediately. Awaiting review means a
 parent needs to assess it; it does not automatically mean your answer is wrong.
 
-MOCK EXAMS
+
+## Mock Exams
 
 Open Mock exams, choose your subject and Start mock exam. Find a quiet place and
 allow 15 minutes for the current local mini mock. Its questions use only covered
@@ -34,7 +35,8 @@ mock. When finished, choose Submit exam and then Submit paper. After time ends,
 you can submit already saved answers but cannot save more edits. Unanswered
 questions receive zero marks.
 
-FEEDBACK AND STUDY PLANS
+
+## Feedback And Study Plans
 
 Open My progress and select recent work to read feedback and explanations.
 Ask which marking point you missed and try the method again independently.
@@ -44,13 +46,15 @@ Open Study plan and Create my plan, or Refresh my plan after more practice.
 Suggestions use your own work and eligible questions. If a subject says it is
 awaiting curriculum setup, ask Admin to prepare its units and questions.
 
-APPROVED RESOURCES AND SIGN-OUT
+
+## Approved Resources And Sign-Out
 
 Read approved textbooks and reference material from your subject page. They may
 contain later units, but assessed practice remains limited to your covered units.
 Show your working, answer in your own words, and sign out on shared devices.
 
-STEP 17: UNDERSTANDING FEEDBACK
+
+## Step 17: Understanding Feedback
 Open My progress, then select a question. Read how each mark was decided,
 the evidence from your answer, what went well and the mistakes to fix.
 Compare your response with the improved answer and worked explanation.
@@ -63,16 +67,19 @@ Use Enlarge diagram to inspect images; Escape closes the enlarged view.
 Common equations are formatted mathematically; unusual notation retains its
 original source so you can compare it with the original question.
 
-STEP 18: VISUAL EXPLANATIONS
+
+## Step 18: Visual Explanations
 Approved visual explanations appear inside My subjects when they relate to a
 unit covered in your current or earlier terms. Enlarge an image when helpful
 and follow the official source citation shown under it. The textbook, question
 and marking scheme remain the authority; a generated illustration is only a
 supporting explanation reviewed by your Admin.
-PRIVACY
+
+## Privacy
 
 AKURU sends only the answer and approved subject context needed for AI feedback. It uses a pseudonymous learner reference rather than your name when calling the provider. Ask your parent or administrator if you want to understand how long answers and uploaded working are kept.
-MY TUTORS
+
+## My Tutors
 
 Open My tutors to build your tutor team. You can create more than one tutor, choose a child-safe AKURU hero, select how the tutor should explain things, and give the tutor your own name. Editing or renaming a tutor keeps earlier versions safely in AKURU. Removing a tutor hides it from your list.
 

@@ -1,6 +1,6 @@
 # AKURU developer handbook
 
-This handbook explains the current AKURU implementation for developers. It describes the running system rather than the historical order in which features were added. User instructions belong in `../../user-docs`; implementation-step records remain in `../backend/docs`, `../frontend/docs`, and `../todo`.
+This handbook explains the current AKURU implementation for developers. It describes the running system rather than the historical order in which features were added. User instructions belong in `../user-docs`; implementation-step records remain in `../source-code/backend/docs`, `../source-code/frontend/docs`, and `../source-code/todo`.
 
 ## Start here
 
@@ -29,13 +29,13 @@ This handbook explains the current AKURU implementation for developers. It descr
 
 | Concern | Source of truth |
 | --- | --- |
-| Runtime configuration | `backend/app/config.py` and `backend/.env.example` |
-| Database schema | `backend/app/models.py` plus `backend/migrations/versions` |
-| HTTP contract | FastAPI route/response schemas and `backend/docs/openapi.json` |
-| Generated frontend API types | `frontend/lib/generated/api-contract.ts` |
-| Browser API integration | `frontend/lib/api.ts` |
-| Authorization | `backend/app/security.py`, `backend/app/permissions.py`, and domain services |
-| Production services | `../../deploy/ubuntu` |
-| User procedures | `../../user-docs` |
+| Runtime configuration | `source-code/backend/app/config.py` and `source-code/backend/.env.example` |
+| Database schema | `source-code/backend/app/models.py` plus `source-code/backend/migrations/versions` |
+| HTTP contract | FastAPI route/response schemas and `source-code/backend/docs/openapi.json` |
+| Generated frontend API types | `source-code/frontend/lib/generated/api-contract.ts` |
+| Browser API integration | `source-code/frontend/lib/api.ts` |
+| Authorization | `source-code/backend/app/security.py`, `source-code/backend/app/permissions.py`, and domain services |
+| Production services | `deploy/ubuntu` |
+| User procedures | `user-docs` |
 
 The OpenAPI JSON and generated TypeScript contract are generated artifacts. Change the FastAPI schemas and routes first, then regenerate them.

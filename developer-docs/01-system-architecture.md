@@ -21,29 +21,29 @@ Locally, Vinext runs on `127.0.0.1:5180` and proxies `/api/v1` to FastAPI on por
 ## Repository layout
 
 ```text
-source-code/
-├── backend/                 FastAPI application, worker, models and migrations
-│   ├── app/api/v1/          HTTP adapters
-│   ├── app/schemas/         Pydantic request/response contracts
-│   ├── app/services/        Domain workflows and transaction rules
-│   ├── app/repositories/    Reusable persistence queries
-│   ├── app/ai/              AI providers, routing and prompts
-│   ├── app/storage/         Local and OCI object-storage adapters
-│   ├── app/queue/           Redis queue abstraction
-│   ├── app/workers/         Asynchronous document worker
-│   ├── migrations/          Forward Alembic migrations
-│   └── tests/               Unit, integration and schema tests
-├── frontend/                React 19, TypeScript, Vite/Vinext portal
-│   ├── app/                 Route entry points and global styles
-│   ├── features/            Role and domain feature modules
-│   ├── components/ui/       Shared UI primitives
-│   ├── lib/                 API boundary and generated contract
-│   ├── public/              AKURU BOT and static assets
-│   └── tests/               Frontend contract/behavior tests
-├── scripts/                 Root command adapters
-├── docs/                    Cross-cutting architecture and environment records
+project root/
 ├── developer-docs/          This handbook
-└── todo/                    Prioritized delivery plans
+├── user-docs/               Admin, Parent and Student guides
+├── deploy/ubuntu/           Production playbook and service definitions
+└── source-code/
+    ├── backend/             FastAPI application, worker, models and migrations
+    │   ├── app/api/v1/      HTTP adapters
+    │   ├── app/schemas/     Pydantic request/response contracts
+    │   ├── app/services/    Domain workflows and transaction rules
+    │   ├── app/ai/          AI providers, routing and prompts
+    │   ├── app/storage/     Local and OCI object-storage adapters
+    │   ├── migrations/      Forward Alembic migrations
+    │   └── tests/           Unit, integration and schema tests
+    ├── frontend/            React 19, TypeScript, Vite/Vinext portal
+    │   ├── app/             Route entry points and global styles
+    │   ├── features/        Role and domain feature modules
+    │   ├── components/ui/   Shared UI primitives
+    │   ├── lib/             API boundary and generated contract
+    │   ├── public/          AKURU BOT and static assets
+    │   └── tests/           Frontend contract/behavior tests
+    ├── scripts/             Root command adapters
+    ├── docs/                Cross-cutting architecture and environment records
+    └── todo/                Prioritized delivery plans
 ```
 
 Deployment assets live at repository root in `deploy/ubuntu`; user documentation lives in `user-docs`.
