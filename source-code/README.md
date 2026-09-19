@@ -37,6 +37,7 @@ The PostgreSQL-backed implementation covers authentication, secure sessions, fam
 - [Step 19: Evaluation and release gates](backend/docs/step-19-evaluation-release-gates.md)
 - [Step 20: Production security, privacy and operations](backend/docs/step-20-production-security-operations.md)
 - [User guides](../user-docs/README.txt)
+- [Developer handbook](developer-docs/README.md)
 
 ## Run locally
 
