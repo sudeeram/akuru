@@ -8,7 +8,8 @@ from app.permissions import require_csrf_roles, require_roles
 from app.schemas.textbook_structures import (
     GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest, TextbookCreateRequest,
     TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicDocumentRoleUpdateRequest,
-    TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicQualityReport, TopicSaveRequest,
+    TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicQualityReport, TopicRetrievalPreflightRequest,
+    TopicRetrievalPreflightResponse, TopicSaveRequest,
 )
 from app.security import Principal
 from app.services import textbook_structures
@@ -60,6 +61,15 @@ def topic_launch_readiness(textbook_ref: str, topic_ref: str,
                            db: Annotated[Session, Depends(get_db)],
                            student_id: Annotated[str | None, Query(alias="studentId")] = None):
     return textbook_structures.topic_launch_readiness(db, textbook_ref, topic_ref, student_id)
+
+
+@router.post("/{textbook_ref}/topics/{topic_ref}/retrieval-preflight",
+             response_model=TopicRetrievalPreflightResponse)
+def run_topic_retrieval_preflight(textbook_ref: str, topic_ref: str,
+                                  payload: TopicRetrievalPreflightRequest,
+                                  principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                                  db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.run_retrieval_preflight(db, principal, textbook_ref, topic_ref, payload.queries)
 
 
 @router.patch("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}",

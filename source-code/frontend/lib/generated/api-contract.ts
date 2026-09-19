@@ -162,6 +162,8 @@ export interface Schemas {
   "TopicQuestionMappingResponse": { "questionId": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "status": string; "sourceLocations": Array<{ [key: string]: unknown; }>; "mappings": Array<Schemas["TopicMapping"]>; "groupWeights"?: { [key: string]: number; }; };
   "TopicReadinessResponse": { "state": string; "ready": boolean; "contentVersion": number; "supersededVersionCount": number; "hasDraftChanges": boolean; "documentCount": number; "primaryDocumentCount": number; "processingCount": number; "needsReviewCount": number; "failedCount": number; "unresolvedPageCount": number; "unresolvedBlockCount": number; "averageConfidence": number; "checks": Array<{ [key: string]: unknown; }>; };
   "TopicResponse": { "topicRef": string; "code": string; "title": string; "sequence": number; "syllabusRef": string; "description": string; "status": string; "documentCount": number; "removable": boolean; "content": Schemas["TopicReadinessResponse"]; };
+  "TopicRetrievalPreflightRequest": { "queries"?: Array<string>; };
+  "TopicRetrievalPreflightResponse": { "preflightRef": string; "topicRef": string; "contentVersion": number; "passed": boolean; "queries": Array<string>; "results": Array<{ [key: string]: unknown; }>; "createdAt": string; };
   "TopicSaveRequest": { "code": string; "title": string; "sequence": number; "syllabusRef"?: string; "description"?: string; };
   "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
   "TutorAgentTurnRequest": { "message": string; "teachingMode"?: "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "requestKey": string; };
@@ -241,6 +243,7 @@ export interface ApiOperations {
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/launch-readiness": { request: unknown; response: Schemas["TopicLaunchReadinessResponse"] };
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/publish": { request: Schemas["PublishTopicContentRequest"]; response: Schemas["TextbookResponse"] };
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/quality": { request: unknown; response: Schemas["TopicQualityReport"] };
+  "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/retrieval-preflight": { request: Schemas["TopicRetrievalPreflightRequest"]; response: Schemas["TopicRetrievalPreflightResponse"] };
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "PATCH /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: Schemas["TopicDocumentRoleUpdateRequest"]; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "DELETE /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };

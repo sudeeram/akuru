@@ -439,6 +439,8 @@ export const updateTopicSourceRole = (bookRef: string, topicRef: string, documen
 export const detachTopicSource = (bookRef: string, topicRef: string, documentId: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}`, { method: 'DELETE' }) as Promise<TopicDocumentSource[]>;
 export type TopicLaunchReadiness = { topicRef: string; topicTitle: string; overallStatus: 'ready' | 'blocked'; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
 export const getTopicLaunchReadiness = (bookRef: string, topicRef: string, studentId?: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/launch-readiness${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ''}`) as Promise<TopicLaunchReadiness>;
+export type TopicRetrievalPreflight = { preflightRef: string; topicRef: string; contentVersion: number; passed: boolean; queries: string[]; results: { query: string; passed: boolean; reasons: string[]; page?: number | null; passage?: string | null; score: number }[]; createdAt: string };
+export const runTopicRetrievalPreflight = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/retrieval-preflight`, { method: 'POST', body: {} }) as Promise<TopicRetrievalPreflight>;
 export async function uploadTopicPart(bookRef: string, topicRef: string, file: File, role: TopicSourceRole = 'primary') {
   if (file.size > 50 * 1024 * 1024) throw new Error('Choose a file no larger than 50 MB.');
   const response = await fetch(`/api/v1/admin/textbooks/${bookRef}/topics/${topicRef}/documents?role=${role}`, {

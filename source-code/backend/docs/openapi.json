@@ -7477,6 +7477,71 @@
         "title": "TopicResponse",
         "type": "object"
       },
+      "TopicRetrievalPreflightRequest": {
+        "properties": {
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Queries",
+            "type": "array"
+          }
+        },
+        "title": "TopicRetrievalPreflightRequest",
+        "type": "object"
+      },
+      "TopicRetrievalPreflightResponse": {
+        "properties": {
+          "contentVersion": {
+            "title": "Contentversion",
+            "type": "integer"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "passed": {
+            "title": "Passed",
+            "type": "boolean"
+          },
+          "preflightRef": {
+            "title": "Preflightref",
+            "type": "string"
+          },
+          "queries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Queries",
+            "type": "array"
+          },
+          "results": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "preflightRef",
+          "topicRef",
+          "contentVersion",
+          "passed",
+          "queries",
+          "results",
+          "createdAt"
+        ],
+        "title": "TopicRetrievalPreflightResponse",
+        "type": "object"
+      },
       "TopicSaveRequest": {
         "properties": {
           "code": {
@@ -12669,6 +12734,119 @@
           }
         },
         "summary": "Topic Quality",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/retrieval-preflight": {
+      "post": {
+        "operationId": "run_topic_retrieval_preflight_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__retrieval_preflight_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicRetrievalPreflightRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicRetrievalPreflightResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Run Topic Retrieval Preflight",
         "tags": [
           "textbook structures"
         ]

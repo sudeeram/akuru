@@ -83,11 +83,11 @@ The first Student release must work from one independently published topic. AKUR
 
 ### Admin Step 7 — Verify retrieval and citations
 
-- [ ] Add an Admin preflight that runs representative States of Matter retrieval checks before Tutor or flashcard release.
-- [ ] Include checks for the three states of matter, particle arrangement, melting, diffusion and sublimation where the reviewed source supports them.
-- [ ] Require each accepted result to resolve to the canonical v2.1 document version, correct topic, exact page reference and authorized passage.
-- [ ] Fail the preflight for duplicate scan/v2.1 evidence, cross-subject results, unpublished passages, missing page provenance or insufficient evidence.
-- [ ] Save the preflight configuration and result as release evidence without treating generated answers as source truth.
+- [x] Add an Admin preflight that runs representative States of Matter retrieval checks before Tutor or flashcard release.
+- [x] Include checks for the three states of matter, particle arrangement, melting, diffusion and sublimation where the reviewed source supports them.
+- [x] Require each accepted result to resolve to the canonical v2.1 document version, correct topic, exact page reference and authorized passage.
+- [x] Fail the preflight for duplicate scan/v2.1 evidence, cross-subject results, unpublished passages, missing page provenance or insufficient evidence.
+- [x] Save the preflight configuration and result as release evidence without treating generated answers as source truth.
 
 ### Admin Step 8 — Generate the Topic 1 flashcard deck
 

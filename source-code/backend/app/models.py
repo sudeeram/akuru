@@ -919,6 +919,19 @@ class TextbookTopicContentSource(Base):
     __table_args__ = (CheckConstraint("role IN ('primary','supporting','reference','visual_reference')", name="ck_topic_content_source_role"),)
 
 
+class TopicRetrievalPreflight(Base):
+    __tablename__ = "topic_retrieval_preflights"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"preflight_{uuid.uuid4().hex}")
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
+    content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topic_content_versions.id", ondelete="RESTRICT"), index=True)
+    queries: Mapped[list] = mapped_column(JSON)
+    results: Mapped[list] = mapped_column(JSON)
+    passed: Mapped[bool] = mapped_column(Boolean, index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+
+
 class CurriculumPlan(Base):
     __tablename__ = "curriculum_plans"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

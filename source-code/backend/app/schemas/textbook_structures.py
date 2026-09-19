@@ -170,6 +170,29 @@ class TopicLaunchReadinessResponse(BaseModel):
     checks: list[dict]
 
 
+class TopicRetrievalPreflightRequest(BaseModel):
+    queries: list[str] = Field(default_factory=lambda: [
+        "three states of matter", "particle arrangement", "melting", "diffusion", "sublimation",
+    ], min_length=1, max_length=20)
+
+    @model_validator(mode="after")
+    def clean_queries(self):
+        self.queries = [" ".join(query.split()) for query in self.queries if query.strip()]
+        if not self.queries:
+            raise ValueError("At least one retrieval check is required.")
+        return self
+
+
+class TopicRetrievalPreflightResponse(BaseModel):
+    preflightRef: str
+    topicRef: str
+    contentVersion: int
+    passed: bool
+    queries: list[str]
+    results: list[dict]
+    createdAt: str
+
+
 class TopicResponse(BaseModel):
     topicRef: str
     code: str

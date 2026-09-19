@@ -17,12 +17,13 @@ from app.models import (
     DocumentJob, DocumentPage, DocumentVersion, ImprovementRecommendation, OfficialQuestionTopicMapping,
     RetrievalChunk, StudyPlanItem, Subject, Textbook, TextbookGroup, TextbookStructureVersion,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicDocument,
+    TopicRetrievalPreflight,
     TopicMastery, User, WeaknessDiagnosis,
 )
 from app.schemas.textbook_structures import (
     GroupResponse, GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest,
     TextbookCreateRequest, TextbookListResponse, TextbookResponse, TextbookUpdateRequest,
-    TopicDocumentSourceResponse, TopicLaunchReadinessResponse,
+    TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicRetrievalPreflightResponse,
     TopicReadinessResponse, TopicResponse, TopicSaveRequest,
 )
 from app.security import Principal
@@ -285,7 +286,11 @@ def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
         RetrievalChunk.topic_content_version_id == (published.id if published else None),
     )).all()
     canonical_versions = {uuid.UUID(source.documentVersionId) for source in primary}
-    retrieval_ok = bool(chunks) and all(
+    latest_preflight = db.scalar(select(TopicRetrievalPreflight).where(
+        TopicRetrievalPreflight.topic_id == topic.id,
+        TopicRetrievalPreflight.content_version_id == (published.id if published else None),
+    ).order_by(TopicRetrievalPreflight.created_at.desc()))
+    retrieval_ok = bool(latest_preflight and latest_preflight.passed) and bool(chunks) and all(
         chunk.document_version_id in canonical_versions and chunk.page_number > 0 and bool(chunk.content.strip())
         for chunk in chunks
     ) and len({chunk.content_hash for chunk in chunks}) == len(chunks)
@@ -327,7 +332,7 @@ def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
         {"code": "student_eligible", "label": "Student eligible", "passed": student_ok,
          "message": student_message, "href": "/#accounts"},
         {"code": "retrieval_passed", "label": "Retrieval passed", "passed": retrieval_ok,
-         "message": f"{len(chunks)} unique, page-cited canonical chunks are active." if retrieval_ok else "Publish and verify unique page-cited chunks from the canonical source.",
+         "message": f"Passing preflight verified {len(chunks)} unique, page-cited canonical chunks." if retrieval_ok else "Run a passing retrieval preflight against the current published content version.",
          "href": "/#units"},
         {"code": "deck_generated", "label": "Deck generated", "passed": False,
          "message": "Flashcard deck generation is not implemented yet.", "href": "/#flashcards"},
@@ -338,6 +343,72 @@ def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
     ]
     return TopicLaunchReadinessResponse(topicRef=topic.public_ref, topicTitle=topic.title,
         overallStatus="ready" if all(check["passed"] for check in checks) else "blocked", checks=checks)
+
+
+def run_retrieval_preflight(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
+                            queries: list[str]) -> TopicRetrievalPreflightResponse:
+    book = _book(db, textbook_ref)
+    topic = _topic(db, book, topic_ref)
+    content_version = db.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentVersion.status == "published",
+    ))
+    if not content_version:
+        raise DomainError("topic_content_not_published", "Publish the reviewed topic before running retrieval preflight.", 409)
+    canonical_versions = set(db.scalars(select(TextbookTopicContentSource.document_version_id).where(
+        TextbookTopicContentSource.content_version_id == content_version.id,
+        TextbookTopicContentSource.role == "primary",
+    )).all())
+    if not canonical_versions:
+        raise DomainError("canonical_topic_source_missing", "The published version has no canonical primary source.", 409)
+    settings = get_settings()
+    vectors = embed_texts(settings, queries)
+    results = []
+    active_chunks = db.scalars(select(RetrievalChunk).where(
+        RetrievalChunk.topic_content_version_id == content_version.id,
+        RetrievalChunk.status == "active",
+    )).all()
+    duplicate_hashes = {chunk.content_hash for chunk in active_chunks
+                        if sum(other.content_hash == chunk.content_hash for other in active_chunks) > 1}
+    for query, vector in zip(queries, vectors):
+        distance = RetrievalChunk.embedding.cosine_distance(vector)
+        row = db.execute(select(RetrievalChunk, distance.label("distance")).where(
+            RetrievalChunk.topic_id == topic.id,
+            RetrievalChunk.topic_content_version_id == content_version.id,
+            RetrievalChunk.status == "active",
+            RetrievalChunk.course_id == book.course_id,
+            RetrievalChunk.subject_id == book.subject_id,
+        ).order_by(distance).limit(1)).first()
+        reasons = []
+        chunk = row[0] if row else None
+        if not chunk:
+            reasons.append("No authorized published passage was found.")
+        else:
+            if chunk.document_version_id not in canonical_versions:
+                reasons.append("The result is not from the canonical primary document version.")
+            if chunk.page_number < 1 or not chunk.bounding_box:
+                reasons.append("Exact page or bounding-box provenance is missing.")
+            if chunk.content_hash in duplicate_hashes:
+                reasons.append("Duplicate active retrieval passages exist in the published version.")
+            if not chunk.content.strip():
+                reasons.append("The result passage is empty.")
+        passed = not reasons
+        results.append({"query": query, "passed": passed, "reasons": reasons,
+                        "documentVersionId": str(chunk.document_version_id) if chunk else None,
+                        "page": chunk.page_number if chunk else None,
+                        "passage": chunk.content[:500] if chunk else None,
+                        "score": round(max(0.0, 1.0 - float(row.distance)), 4) if row else 0.0})
+    preflight = TopicRetrievalPreflight(topic_id=topic.id, content_version_id=content_version.id,
+        queries=queries, results=results, passed=all(result["passed"] for result in results),
+        created_by=principal.user.id)
+    db.add(preflight); db.flush()
+    _audit(db, principal, "textbook_topic.retrieval_preflight_run", "textbook_topic", topic.public_ref,
+           {"preflightRef": preflight.public_ref, "contentVersion": content_version.version_number,
+            "passed": preflight.passed, "queryCount": len(queries)})
+    db.commit(); db.refresh(preflight)
+    return TopicRetrievalPreflightResponse(preflightRef=preflight.public_ref, topicRef=topic.public_ref,
+        contentVersion=content_version.version_number, passed=preflight.passed, queries=queries,
+        results=results, createdAt=preflight.created_at.isoformat())
 
 
 def detach_topic_source(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
