@@ -932,6 +932,88 @@ class TopicRetrievalPreflight(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
+class FlashcardDeck(Base):
+    __tablename__ = "flashcard_decks"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"deck_{uuid.uuid4().hex}")
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
+    content_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topic_content_versions.id", ondelete="RESTRICT"), index=True)
+    title: Mapped[str] = mapped_column(String(240))
+    status: Mapped[str] = mapped_column(String(24), default="draft", server_default="draft", index=True)
+    card_limit: Mapped[int] = mapped_column(Integer)
+    generation_key: Mapped[str] = mapped_column(String(100), unique=True)
+    generation_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    released_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    superseded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('draft','review','released','superseded')", name="ck_flashcard_deck_status"),
+        CheckConstraint("card_limit BETWEEN 1 AND 100", name="ck_flashcard_deck_limit"),
+    )
+
+
+class FlashcardVersion(Base):
+    __tablename__ = "flashcard_versions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"card_{uuid.uuid4().hex}")
+    deck_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_decks.id", ondelete="CASCADE"), index=True)
+    ordinal: Mapped[int] = mapped_column(Integer)
+    version_number: Mapped[int] = mapped_column(Integer)
+    front: Mapped[str] = mapped_column(Text)
+    back: Mapped[str] = mapped_column(Text)
+    source_chunk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("retrieval_chunks.id", ondelete="RESTRICT"))
+    source_snapshot: Mapped[dict] = mapped_column(JSON)
+    status: Mapped[str] = mapped_column(String(24), default="review_required", server_default="review_required", index=True)
+    validation_warnings: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    provider: Mapped[str] = mapped_column(String(40))
+    model: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("ordinal > 0 AND version_number > 0", name="ck_flashcard_version_numbers"),
+        CheckConstraint("status IN ('review_required','approved','rejected','superseded')", name="ck_flashcard_version_status"),
+        UniqueConstraint("deck_id", "ordinal", "version_number", name="uq_flashcard_version"),
+    )
+
+
+class FlashcardSession(Base):
+    __tablename__ = "flashcard_sessions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"cardsession_{uuid.uuid4().hex}")
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    deck_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_decks.id", ondelete="RESTRICT"), index=True)
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
+    current_ordinal: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    scheduler_version: Mapped[str] = mapped_column(String(40), default="akuru-sm2-v1", server_default="akuru-sm2-v1")
+    request_key: Mapped[str] = mapped_column(String(100), unique=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('active','completed','abandoned')", name="ck_flashcard_session_status"),
+        CheckConstraint("current_ordinal > 0", name="ck_flashcard_session_ordinal"),
+    )
+
+
+class FlashcardReview(Base):
+    __tablename__ = "flashcard_reviews"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_sessions.id", ondelete="CASCADE"), index=True)
+    card_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_versions.id", ondelete="RESTRICT"))
+    rating: Mapped[str] = mapped_column(String(16))
+    interval_days: Mapped[int] = mapped_column(Integer)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    request_key: Mapped[str] = mapped_column(String(100), unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        CheckConstraint("rating IN ('again','difficult','good','easy')", name="ck_flashcard_review_rating"),
+        CheckConstraint("interval_days >= 0", name="ck_flashcard_review_interval"),
+        UniqueConstraint("session_id", "card_version_id", name="uq_flashcard_session_card"),
+    )
+
+
 class CurriculumPlan(Base):
     __tablename__ = "curriculum_plans"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
