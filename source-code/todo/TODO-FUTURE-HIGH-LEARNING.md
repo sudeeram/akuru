@@ -1,6 +1,6 @@
 # High priority — Chemistry Topic 1 readiness, text tutoring and flashcards
 
-**Status: In progress. Core flashcard persistence, review/release APIs, Student sessions and accessible interfaces are implemented locally.**
+**Status: In progress. Core flashcard persistence, review/release APIs, Student sessions, source configuration and accessible interfaces are deployed. Production Chemistry content configuration and release checks remain.**
 
 This is the first delivery plan. Its immediate objective is to let Students use the reviewed `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` content through grounded text tutoring and accessible flashcards. Work in this file takes precedence over the medium, low and lowest-priority future plans.
 
@@ -16,15 +16,15 @@ This is the first delivery plan. Its immediate objective is to let Students use 
 
 ## Chemistry Topic 1 launch prerequisites
 
-Local implementation support completed on 19 September 2026 (not deployed):
+Implementation support was deployed to production on 19 September 2026 at Git revision `c662a35eeb16435673e23e4ee7898ab32da1c7e6`:
 
 - [x] One authoritative extraction-review completion transition now synchronizes the document version, Library review state and every active topic attachment.
 - [x] The Admin topic source manager supports `primary`, `supporting`, `reference` and `visual_reference` roles with clear retrieval effects.
 - [x] Visual-reference OCR is excluded from readiness, quality gating, publication manifests and normal retrieval indexing.
 - [x] Existing published source manifests remain immutable when an Admin changes the role used by the next topic publication.
-- [x] The migration, authenticated Admin APIs, frontend controls, API contract and regression checks are ready for a later reviewed deployment.
+- [x] The migration, authenticated Admin APIs, frontend controls, API contract and regression checks passed the reviewed production deployment and acceptance gates.
 
-The production-specific checks below remain open until this code is deployed and an Admin applies it to the two Chemistry files. No production record was changed by this implementation.
+The production-specific checks below remain open until an Admin applies the configuration to the two Chemistry files. The deployment changed the schema and application code but did not change either document's role or publish Chemistry content.
 
 - [ ] Confirm v2.1 has no unresolved required page or block reviews.
 - [ ] Confirm the document version, library review state and active topic-document link agree.
