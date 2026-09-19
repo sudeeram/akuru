@@ -20,30 +20,64 @@ progression combinations or subjects.
 Submit an active mock before changing the child's enrolment. Legacy learners
 need confirmation; do not infer an iGCSE grade from an old school-year label.
 
-2. TEXTBOOKS FIRST
+2. TEXTBOOK STRUCTURE AND TOPIC SOURCES
 
-Open Documents & textbooks. Choose the subject and Textbook, then select a PDF,
-PNG, JPEG or WebP file up to 5 MB. Select the uploaded document under Review
-documents, open its original, add notes and Approve document when correct.
+Open Textbook structure. Create or select the Edexcel iGCSE textbook for the
+correct subject. Create each Unit or Module as a group, then create its child
+topics. For Chemistry, Unit 1 is the group and States of Matter is Topic 1.
+Codes must be unique within their textbook. Later topics can be added and
+published independently without changing an already released Topic 1.
 
-Open Textbook units. Choose that subject and approved textbook. Add each unit
-using its code and title. Codes must be unique within that book.
+Upload each PDF or image to the child topic it describes. The subject is taken
+from the textbook and cannot be changed to another subject during upload. Open
+Documents & textbooks to monitor processing and complete every required page
+or extracted-content review. Finishing extraction review makes the source ready;
+it does not publish the topic.
+
+Open Manage topic sources for the topic. Every source has a role:
+
+- Primary text is the canonical reviewed source used for retrieval.
+- Supporting or reference text is included only when explicitly selected and
+  fully reviewed.
+- Visual reference retains a scan for provenance and selected illustrations,
+  while excluding its duplicate OCR text from normal retrieval.
+
+For the Chemistry States of Matter comparison, attach exactly the clean v2.1
+PDF and the original scan, then use Apply recommended v2.1 source roles. Confirm
+that v2.1 becomes Primary text and the original scan becomes Visual reference.
+The action changes no published content and is recorded in the Admin audit.
+
+Use the Topic review checklist to see unresolved pages, blocks, Chemistry
+notation, tables and selected visuals. Its Review links open the corresponding
+document work directly.
+
+For a Visual reference, open Select and review visual assets. For each diagram,
+image or table that should support learning, check the exact source page, correct
+its caption and write a useful accessible description. Save for review while it
+is unfinished, Approve when it is accurate, or Exclude it. A selected but
+unapproved visual blocks topic publication. Unselected OCR from the visual
+reference does not block an otherwise reviewed primary source.
+
+Before publishing, confirm the source preview contains only the intended text
+and approved visuals. Publication creates an immutable topic-content version.
+Visuals retain their source document, version, checksum, page and crop location.
 
 3. DEFINE TERM COVERAGE
 
 Open Grade & term coverage. Choose the subject, grade and term. Use Load saved
-coverage to see the existing selection. Select the complete set of units that
-the term exam covers and Save term coverage. Repeat for other grade/term pairs.
+coverage to see the existing selection. Select the complete set of published
+topics that the term exam covers and Save term coverage. Repeat for other
+grade/term pairs.
 
 Student coverage is cumulative across saved progression combinations. A Grade 10
 Term2 student receives the union of Grade 10 Term1 and Grade 10 Term2 coverage.
 Grade 11 does not inherit Grade 10 automatically. An empty union makes no
-questions eligible.
+questions, Tutor sources or flashcard decks eligible.
 
 4. PAST PAPERS AND SUPPORTING DOCUMENTS
 
-Return to Documents & textbooks. Select Past paper and choose an approved
-textbook in the same subject. The textbook must already have registered units.
+Return to Documents & textbooks. Select Past paper and choose a published
+textbook in the same subject. The textbook must already have published topics.
 Upload the paper. Then upload its Marking scheme and Examiner report, selecting
 the related same-subject past paper. Upload Reference material separately.
 
@@ -52,11 +86,11 @@ the related same-subject past paper. Upload Reference material separately.
 Open Question mapping. Select the subject and paper. Read the original document
 in Documents & textbooks and manually enter each question/subpart, title, text,
 marks, answer type, worked explanation and marking points. Add optional hints.
-Select every textbook unit required to answer it, then Save reviewed question.
+Select every textbook topic required to answer it, then Save reviewed question.
 
-Every question needs at least one unit. A multi-unit question is allowed only
-when all its units belong to the selected textbook and subject. Mathematics
-questions cannot use Chemistry units. Biology, Chemistry, Physics and Human
+Every question needs at least one topic. A multi-topic question is allowed only
+when all its topics belong to the selected textbook and subject. Mathematics
+questions cannot use Chemistry topics. Biology, Chemistry, Physics and Human
 Biology are separate subjects.
 
 The document worker extracts page text, equations and diagram evidence for Admin
@@ -70,9 +104,9 @@ mapped and approved, then Approve document. Question edits require this sign-off
 again. Confirm completeness against the original PDF; the local portal cannot
 automatically count its questions.
 
-A term mock includes a question only if EVERY required unit is covered for the
-student's current grade and term. With covered units 1 and 2, a question requiring
-units 2 and 3 is excluded. Missing material never triggers a full-syllabus fallback.
+A term mock includes a question only if EVERY required topic is covered for the
+student's current grade and term. With covered Topics 1 and 2, a question requiring
+Topics 2 and 3 is excluded. Missing material never triggers a full-syllabus fallback.
 
 Full papers, marking schemes and examiner reports stay in the Admin library.
 Students practise eligible questions. Approved textbooks and reference resources
