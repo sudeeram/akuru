@@ -114,7 +114,54 @@ class TopicDocumentSourceResponse(BaseModel):
     usedByPublishedVersion: bool
     publishableBlockCount: int
     visualAssetCount: int
+    selectedVisualCount: int = 0
+    approvedVisualCount: int = 0
+    pendingVisualCount: int = 0
     duplicateOf: list[str] = Field(default_factory=list)
+
+
+class TopicVisualAssetUpdateRequest(BaseModel):
+    status: Literal["selected", "approved", "rejected"]
+    caption: str = Field(default="", max_length=1000)
+    altText: str = Field(default="", max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_review(self):
+        self.caption = " ".join(self.caption.split())
+        self.altText = " ".join(self.altText.split())
+        if self.status == "approved" and not self.altText:
+            raise ValueError("Approved visual assets require a text alternative.")
+        return self
+
+
+class TopicVisualAssetResponse(BaseModel):
+    assetRef: str
+    documentId: str
+    documentVersionId: str
+    documentAssetId: str
+    filename: str
+    sourceRole: str
+    kind: str
+    page: int
+    printedPage: str | None = None
+    boundingBox: dict
+    extractedCaption: str
+    status: Literal["unselected", "selected", "approved", "rejected"]
+    caption: str
+    altText: str
+    contentUrl: str
+
+
+class TopicReviewChecklistResponse(BaseModel):
+    topicRef: str
+    topicTitle: str
+    remainingPages: int
+    remainingBlocks: int
+    notationBlocks: int
+    tableBlocks: int
+    visualBlocks: int
+    pendingVisualAssets: int
+    checks: list[dict]
 
 
 class TopicQualityCheck(BaseModel):

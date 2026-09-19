@@ -29,6 +29,7 @@ from app.services import assessment_marking
 from app.services import assessment_working
 from app.services import weaknesses
 from app.services import assessments
+from app.services import documents as document_service
 from app.services import tutor_agent
 from app.services import tutor_realtime
 from app.config import Settings, get_settings
@@ -152,6 +153,194 @@ def test_rejects_untrusted_origins(auth_client) -> None:
     assert response.json() == {
         "error": {"code": "origin_not_allowed", "message": "Origin not allowed.", "details": []}
     }
+
+
+@pytest.mark.integration
+def test_review_completion_handles_page_only_unattached_and_terminal_documents(auth_client) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    session = next(app.dependency_overrides[get_db]())
+    admin = session.scalar(select(User).where(User.username == username))
+
+    def document_version(label: str, review_state: str = "pending", status: str = "needs_review"):
+        token = uuid.uuid4().hex
+        document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+            title=label, original_filename=f"{label}.pdf", object_key=f"tests/{token}.pdf",
+            mime_type="application/pdf", sha256=(token * 2)[:64], review_state=review_state,
+            uploaded_by=admin.id, size_bytes=10)
+        session.add(document); session.flush()
+        version = DocumentVersion(document_id=document.id, version_number=1,
+            original_filename=f"{label}.pdf", object_key=f"tests/{token}-v1.pdf",
+            mime_type="application/pdf", sha256=((token[::-1]) * 2)[:64],
+            size_bytes=10, status=status, uploaded_by=admin.id)
+        session.add(version); session.flush()
+        asset = DocumentAsset(document_version_id=version.id, asset_kind="page_render",
+            object_key=f"tests/{token}.png", mime_type="image/png", sha256=(token * 2)[:64],
+            size_bytes=10, page_number=1, bounding_box={})
+        session.add(asset); session.flush()
+        page = DocumentPage(document_version_id=version.id, page_number=1,
+            width_points=100, height_points=100, render_asset_id=asset.id,
+            native_text="", extraction_method="native", confidence=1.0, needs_review=True,
+            page_metadata={})
+        session.add(page); session.commit()
+        return document, version, page
+
+    document, version, page = document_version("page-only")
+    response = client.post(f"/api/v1/documents/{document.id}/extraction/pages/{page.id}",
+                           headers=headers, json={"printedPageLabel": "1"})
+    assert response.status_code == 200
+    session.refresh(document); session.refresh(version)
+    assert document.review_state == "reviewed" and version.status == "completed"
+    assert session.scalar(select(DocumentEvent).where(
+        DocumentEvent.document_version_id == version.id,
+        DocumentEvent.event_type == "extraction_review_completed"))
+
+    for label, review_state, status in (
+        ("published-terminal", "published", "completed"),
+        ("rejected-terminal", "rejected", "completed"),
+        ("failed-terminal", "pending", "failed"),
+        ("removed-terminal", "pending", "removed"),
+    ):
+        terminal_document, terminal_version, terminal_page = document_version(
+            label, review_state, status)
+        terminal_page.needs_review = False; session.commit()
+        document_service._refresh_topic_document_readiness(session, terminal_version.id, admin.id)
+        session.commit(); session.refresh(terminal_document); session.refresh(terminal_version)
+        assert terminal_document.review_state == review_state
+        assert terminal_version.status == status
+
+
+@pytest.mark.integration
+def test_admin_configures_canonical_source_and_reviews_visual_assets(auth_client) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    session = next(app.dependency_overrides[get_db]())
+    admin = session.scalar(select(User).where(User.username == username))
+    token = uuid.uuid4().hex
+    book = Textbook(course_id="igcse", subject_id="chemistry", title=f"Visual test {token}",
+        edition="2026", publisher="AKURU", group_label="unit", status="published",
+        created_by=admin.id, published_by=admin.id, published_at=datetime.now(timezone.utc))
+    session.add(book); session.flush()
+    group = TextbookGroup(textbook_id=book.id, code="U1", title="Unit 1", summary="",
+        sequence=1, status="published")
+    session.add(group); session.flush()
+    topic = TextbookTopic(textbook_id=book.id, group_id=group.id, course_id="igcse",
+        subject_id="chemistry", code="1", title="States of Matter", sequence=1,
+        status="published", published_at=datetime.now(timezone.utc))
+    session.add(topic); session.flush()
+
+    def source(filename: str, sequence: int):
+        local = uuid.uuid4().hex
+        document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+            title=filename, original_filename=filename, object_key=f"tests/{local}.pdf",
+            mime_type="application/pdf", sha256=(local * 2)[:64], review_state="reviewed",
+            uploaded_by=admin.id, size_bytes=10)
+        session.add(document); session.flush()
+        version = DocumentVersion(document_id=document.id, version_number=1,
+            original_filename=filename, object_key=f"tests/{local}-v1.pdf",
+            mime_type="application/pdf", sha256=(local[::-1] * 2)[:64],
+            size_bytes=10, status="completed", uploaded_by=admin.id)
+        session.add(version); session.flush()
+        session.add(DocumentJob(document_id=document.id, document_version_id=version.id,
+            stage="complete", status="completed", progress=100, attempt_count=1,
+            extraction_version="test-v1", result_data={}, max_seconds=30, max_memory_mb=128,
+            max_pages=10, completed_at=datetime.now(timezone.utc)))
+        session.add(TextbookTopicDocument(topic_id=topic.id, document_version_id=version.id,
+            document_id=document.id, role="primary", sequence=sequence, review_status="ready",
+            created_by=admin.id))
+        session.flush()
+        return document, version
+
+    clean_document, clean_version = source(
+        "Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf", 1)
+    scan_document, scan_version = source(
+        "Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter.pdf", 2)
+    clean_render = DocumentAsset(document_version_id=clean_version.id, asset_kind="page_render",
+        object_key=f"tests/{token}-clean.png", mime_type="image/png", sha256=("c" * 64),
+        size_bytes=10, page_number=1, bounding_box={})
+    session.add(clean_render); session.flush()
+    clean_page = DocumentPage(document_version_id=clean_version.id, page_number=1,
+        printed_page_label="1", width_points=100, height_points=100,
+        render_asset_id=clean_render.id, native_text="Matter exists as solid, liquid and gas.",
+        extraction_method="native", confidence=1.0, needs_review=False, page_metadata={})
+    session.add(clean_page); session.flush()
+    session.add(DocumentBlock(document_version_id=clean_version.id, page_id=clean_page.id,
+        sequence_number=1, block_kind="paragraph",
+        text="Matter exists as solid, liquid and gas.", bounding_box={"x": 1},
+        extraction_method="native", confidence=1.0, needs_review=False, block_metadata={}))
+    render = DocumentAsset(document_version_id=scan_version.id, asset_kind="page_render",
+        object_key=f"tests/{token}-render.png", mime_type="image/png", sha256=("a" * 64),
+        size_bytes=10, page_number=1, bounding_box={})
+    crop = DocumentAsset(document_version_id=scan_version.id, asset_kind="diagram",
+        object_key=f"tests/{token}-diagram.png", mime_type="image/png", sha256=("b" * 64),
+        size_bytes=10, page_number=1, bounding_box={"x": 1})
+    session.add_all([render, crop]); session.flush()
+    page = DocumentPage(document_version_id=scan_version.id, page_number=1,
+        width_points=100, height_points=100, render_asset_id=render.id, native_text="",
+        extraction_method="ocr", confidence=.9, needs_review=True, page_metadata={})
+    session.add(page); session.flush()
+    block = DocumentBlock(document_version_id=scan_version.id, page_id=page.id,
+        sequence_number=1, block_kind="diagram", text="Particle arrangement",
+        bounding_box={"x": 1}, extraction_method="ocr", confidence=.9,
+        needs_review=False, source_asset_id=crop.id, block_metadata={})
+    session.add(block); session.commit()
+
+    roles = client.post(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/sources/apply-recommended-roles",
+        headers=headers)
+    assert roles.status_code == 200, roles.text
+    by_name = {row["filename"]: row for row in roles.json()}
+    assert by_name[clean_document.original_filename]["role"] == "primary"
+    assert by_name[scan_document.original_filename]["role"] == "visual_reference"
+    assert by_name[scan_document.original_filename]["includedInRetrieval"] is False
+
+    url = (f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}"
+           f"/sources/{scan_document.id}/visual-assets")
+    candidates = client.get(url)
+    assert candidates.status_code == 200 and len(candidates.json()) == 1
+    candidate = candidates.json()[0]
+    assert candidate["status"] == "unselected" and candidate["page"] == 1
+    missing_alt = client.patch(f"{url}/{candidate['assetRef']}", headers=headers,
+        json={"status": "approved", "caption": "Particles", "altText": ""})
+    assert missing_alt.status_code == 422
+    selected = client.patch(f"{url}/{candidate['assetRef']}", headers=headers,
+        json={"status": "selected", "caption": "Particles", "altText": ""})
+    assert selected.status_code == 200 and selected.json()[0]["status"] == "selected"
+    checklist = client.get(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/review-checklist")
+    assert checklist.status_code == 200 and checklist.json()["pendingVisualAssets"] == 1
+    blocked = client.post(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/publish",
+        headers=headers, json={"confirmSources": True, "confirmExtraction": True, "confirmTopic": True})
+    assert blocked.status_code == 409
+    assert blocked.json()["error"]["code"] == "topic_content_not_ready"
+    approved = client.patch(f"{url}/{selected.json()[0]['assetRef']}", headers=headers,
+        json={"status": "approved", "caption": "Particle arrangement",
+              "altText": "A labelled diagram comparing particle spacing in solids, liquids and gases."})
+    assert approved.status_code == 200 and approved.json()[0]["status"] == "approved"
+    checklist = client.get(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/review-checklist")
+    assert checklist.json()["pendingVisualAssets"] == 0
+    refreshed_sources = client.get(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/sources").json()
+    scan = next(row for row in refreshed_sources if row["documentId"] == str(scan_document.id))
+    assert scan["approvedVisualCount"] == 1 and scan["pendingVisualCount"] == 0
+    published = client.post(
+        f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/publish",
+        headers=headers, json={"confirmSources": True, "confirmExtraction": True, "confirmTopic": True})
+    assert published.status_code == 200, published.text
+    content = session.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentVersion.status == "published"))
+    assert content.extraction_manifest["visualAssets"][0]["documentVersionId"] == str(scan_version.id)
+    assert content.extraction_manifest["visualAssets"][0]["altText"].startswith("A labelled diagram")
+    assert any(row["role"] == "visual_reference" for row in content.source_manifest)
+    active_chunks = session.scalars(select(RetrievalChunk).where(
+        RetrievalChunk.topic_content_version_id == content.id,
+        RetrievalChunk.status == "active")).all()
+    assert active_chunks and {row.document_id for row in active_chunks} == {clean_document.id}
 
 
 @pytest.mark.integration

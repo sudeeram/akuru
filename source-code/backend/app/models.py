@@ -919,6 +919,27 @@ class TextbookTopicContentSource(Base):
     __table_args__ = (CheckConstraint("role IN ('primary','supporting','reference','visual_reference')", name="ck_topic_content_source_role"),)
 
 
+class TextbookTopicVisualAsset(Base):
+    __tablename__ = "textbook_topic_visual_assets"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"topicasset_{uuid.uuid4().hex}")
+    topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="CASCADE"), index=True)
+    document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"), index=True)
+    document_asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_assets.id", ondelete="RESTRICT"), index=True)
+    block_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_blocks.id", ondelete="RESTRICT"))
+    status: Mapped[str] = mapped_column(String(20), default="selected", server_default="selected", index=True)
+    caption: Mapped[str] = mapped_column(Text, default="", server_default="")
+    alt_text: Mapped[str] = mapped_column(Text, default="", server_default="")
+    selected_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    selected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('selected','approved','rejected')", name="ck_topic_visual_asset_status"),
+        UniqueConstraint("topic_id", "document_asset_id", name="uq_topic_visual_asset"),
+    )
+
+
 class TopicRetrievalPreflight(Base):
     __tablename__ = "topic_retrieval_preflights"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

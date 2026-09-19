@@ -17,6 +17,7 @@ from app.models import (
     DocumentJob, DocumentPage, DocumentVersion, FlashcardDeck, ImprovementRecommendation, OfficialQuestionTopicMapping,
     RetrievalChunk, StudyPlanItem, Subject, Textbook, TextbookGroup, TextbookStructureVersion,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicDocument,
+    TextbookTopicVisualAsset, DocumentAsset,
     TopicRetrievalPreflight,
     TopicMastery, User, WeaknessDiagnosis,
 )
@@ -24,6 +25,7 @@ from app.schemas.textbook_structures import (
     GroupResponse, GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest,
     TextbookCreateRequest, TextbookListResponse, TextbookResponse, TextbookUpdateRequest,
     TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicRetrievalPreflightResponse,
+    TopicReviewChecklistResponse, TopicVisualAssetResponse,
     TopicReadinessResponse, TopicResponse, TopicSaveRequest,
 )
 from app.security import Principal
@@ -137,12 +139,33 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
                                   "sequence": link.sequence,
                                   "extractionVersion": job.extraction_version if job else "",
                                   "reviewedContentHash": digest})
+    visual_links = {link.document_version_id: link for link in links if link.role == "visual_reference"}
+    for version_id, link in visual_links.items():
+        assets = db.scalars(select(TextbookTopicVisualAsset).where(
+            TextbookTopicVisualAsset.topic_id == topic.id,
+            TextbookTopicVisualAsset.document_version_id == version_id,
+            TextbookTopicVisualAsset.status == "approved",
+        ).order_by(TextbookTopicVisualAsset.public_ref)).all()
+        if not assets:
+            continue
+        job = db.scalar(select(DocumentJob).where(
+            DocumentJob.document_version_id == version_id,
+            DocumentJob.status.in_(("completed", "needs_review")),
+        ).order_by(DocumentJob.completed_at.desc().nullslast()))
+        live_fingerprints.append({"documentVersionId": str(version_id), "role": "visual_reference",
+            "sequence": link.sequence, "extractionVersion": job.extraction_version if job else "",
+            "reviewedContentHash": hashlib.sha256("|".join(
+                f"{asset.public_ref}:{asset.status}:{asset.caption}:{asset.alt_text}" for asset in assets
+            ).encode()).hexdigest()})
     published_fingerprints = [{key: row.get(key) for key in (
         "documentVersionId", "role", "sequence", "extractionVersion", "reviewedContentHash"
     )} for row in (published.source_manifest if published else [])]
     has_draft_changes = not published or live_fingerprints != published_fingerprints
     quality = topic_quality.report(db, topic)
-    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes
+    pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected",
+    )) or 0)
+    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes and not pending_visuals
     if published: state = "published"
     elif not links: state = "no_document"
     elif failed: state = "failed"
@@ -158,6 +181,8 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         {"code": "no_failures", "passed": failed == 0, "message": "Failed textbook parts must be retried or removed."},
         {"code": "quality_gate", "passed": quality["passed"],
          "message": "Every topic PDF must meet page, OCR, formula, diagram, printed-page and retrieval thresholds."},
+        {"code": "visual_review", "passed": pending_visuals == 0,
+         "message": "Every selected diagram, image or table needs approval and accessible text."},
         {"code": "new_version", "passed": has_draft_changes,
          "message": "A published topic needs reviewed changes before another version is created."},
     ]
@@ -215,6 +240,10 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
             DocumentBlock.block_kind.in_(("image", "diagram", "table")),
             DocumentBlock.source_asset_id.is_not(None),
         )) or 0)
+        visual_statuses = list(db.scalars(select(TextbookTopicVisualAsset.status).where(
+            TextbookTopicVisualAsset.topic_id == topic.id,
+            TextbookTopicVisualAsset.document_version_id == link.document_version_id,
+        )).all())
         own_tokens = source_tokens.get(link.document_version_id, set())
         duplicate_of = []
         if link.role == "primary" and own_tokens:
@@ -234,6 +263,9 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
             includedInRetrieval=link.role != "visual_reference",
             usedByPublishedVersion=link.document_version_id in published_source_ids,
             publishableBlockCount=publishable_blocks, visualAssetCount=visual_assets,
+            selectedVisualCount=len(visual_statuses),
+            approvedVisualCount=sum(value == "approved" for value in visual_statuses),
+            pendingVisualCount=sum(value == "selected" for value in visual_statuses),
             duplicateOf=duplicate_of,
         ))
     return result
@@ -263,6 +295,137 @@ def update_topic_source_role(db: Session, principal: Principal, textbook_ref: st
             "retrievalEffect": "excluded" if role == "visual_reference" else "included_on_next_publication"})
     db.commit()
     return list_topic_sources(db, textbook_ref, topic_ref)
+
+
+def apply_recommended_topic_source_roles(db: Session, principal: Principal, textbook_ref: str,
+                                         topic_ref: str) -> list[TopicDocumentSourceResponse]:
+    book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id).with_for_update()).all()
+    if len(links) != 2:
+        raise DomainError(
+            "source_comparison_required",
+            "Automatic configuration requires exactly the clean text PDF and its original scan. Choose roles manually for other source sets.",
+            409,
+        )
+    versions = {link.document_version_id: db.get(DocumentVersion, link.document_version_id) for link in links}
+    preferred = [link for link in links if re.search(r"(?:v2(?:\.1)?|clean|text)", versions[link.document_version_id].original_filename, re.I)]
+    if len(preferred) != 1:
+        raise DomainError("canonical_source_ambiguous",
+                          "AKURU could not identify exactly one clean v2.1 source. Choose the roles manually.", 409)
+    canonical = preferred[0]
+    changes = []
+    for link in links:
+        next_role = "primary" if link is canonical else "visual_reference"
+        if link.role != next_role:
+            changes.append({"documentId": str(link.document_id), "oldRole": link.role, "newRole": next_role})
+            link.role = next_role
+    _audit(db, principal, "textbook_topic_document.recommended_roles_applied", "textbook_topic",
+           topic.public_ref, {"textbookRef": book.public_ref, "changes": changes,
+                              "canonicalFilename": versions[canonical.document_version_id].original_filename})
+    db.commit()
+    return list_topic_sources(db, textbook_ref, topic_ref)
+
+
+def topic_review_checklist(db: Session, textbook_ref: str, topic_ref: str) -> TopicReviewChecklistResponse:
+    book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id)).all()
+    version_ids = [link.document_version_id for link in links if link.role != "visual_reference"]
+    remaining_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+        DocumentPage.document_version_id.in_(version_ids), DocumentPage.needs_review.is_(True))) or 0) if version_ids else 0
+    remaining_blocks = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
+        DocumentBlock.document_version_id.in_(version_ids), DocumentBlock.needs_review.is_(True))) or 0) if version_ids else 0
+    def count_kinds(kinds):
+        return int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
+            DocumentBlock.document_version_id.in_(version_ids), DocumentBlock.block_kind.in_(kinds))) or 0) if version_ids else 0
+    notation = count_kinds(("equation",)); tables = count_kinds(("table",))
+    visuals = count_kinds(("image", "diagram"))
+    pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected")) or 0)
+    checks = [
+        {"code": "reading_order", "label": "Page and block review", "passed": remaining_pages == 0 and remaining_blocks == 0,
+         "message": f"{remaining_pages} pages and {remaining_blocks} blocks remain.", "href": "/#library"},
+        {"code": "notation", "label": "Chemistry notation", "passed": remaining_blocks == 0,
+         "message": f"{notation} equation or formula blocks are included in reviewed content.", "href": "/#library"},
+        {"code": "tables", "label": "Tables", "passed": remaining_blocks == 0,
+         "message": f"{tables} table blocks are included in reviewed content.", "href": "/#library"},
+        {"code": "visual_assets", "label": "Selected visuals", "passed": pending_visuals == 0,
+         "message": f"{visuals} image or diagram blocks found; {pending_visuals} selected assets need approval.",
+         "href": "/#units"},
+    ]
+    return TopicReviewChecklistResponse(topicRef=topic.public_ref, topicTitle=topic.title,
+        remainingPages=remaining_pages, remainingBlocks=remaining_blocks, notationBlocks=notation,
+        tableBlocks=tables, visualBlocks=visuals, pendingVisualAssets=pending_visuals, checks=checks)
+
+
+def list_topic_visual_assets(db: Session, textbook_ref: str, topic_ref: str,
+                             document_id: str) -> list[TopicVisualAssetResponse]:
+    book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
+    try: parsed = uuid.UUID(document_id)
+    except ValueError as exc: raise DomainError("topic_source_not_found", "Topic source not found.", 404) from exc
+    link = db.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id, TextbookTopicDocument.document_id == parsed))
+    if not link: raise DomainError("topic_source_not_found", "Topic source not found.", 404)
+    version = db.get(DocumentVersion, link.document_version_id)
+    blocks = db.scalars(select(DocumentBlock).where(
+        DocumentBlock.document_version_id == link.document_version_id,
+        DocumentBlock.block_kind.in_(("image", "diagram", "table")),
+        DocumentBlock.source_asset_id.is_not(None),
+    ).order_by(DocumentBlock.page_id, DocumentBlock.sequence_number)).all()
+    selections = {row.document_asset_id: row for row in db.scalars(select(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == topic.id,
+        TextbookTopicVisualAsset.document_version_id == link.document_version_id)).all()}
+    result = []
+    seen_assets = set()
+    for block in blocks:
+        page = db.get(DocumentPage, block.page_id); asset = db.get(DocumentAsset, block.source_asset_id)
+        if not page or not asset or asset.id in seen_assets: continue
+        seen_assets.add(asset.id)
+        selected = selections.get(asset.id)
+        result.append(TopicVisualAssetResponse(
+            assetRef=selected.public_ref if selected else f"candidate_{asset.id.hex}",
+            documentId=str(link.document_id), documentVersionId=str(link.document_version_id),
+            documentAssetId=str(asset.id), filename=version.original_filename, sourceRole=link.role,
+            kind=block.block_kind, page=page.page_number, printedPage=page.printed_page_label,
+            boundingBox=block.bounding_box, extractedCaption=block.text or "",
+            status=selected.status if selected else "unselected",
+            caption=selected.caption if selected else block.text or "",
+            altText=selected.alt_text if selected else "",
+            contentUrl=f"/api/v1/documents/{link.document_id}/assets/{asset.id}/content"))
+    return result
+
+
+def update_topic_visual_asset(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
+                              document_id: str, asset_ref: str, status: str, caption: str,
+                              alt_text: str) -> list[TopicVisualAssetResponse]:
+    book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
+    candidates = list_topic_visual_assets(db, textbook_ref, topic_ref, document_id)
+    candidate = next((row for row in candidates if row.assetRef == asset_ref or
+                      f"candidate_{row.documentAssetId.replace('-', '')}" == asset_ref), None)
+    if not candidate: raise DomainError("topic_visual_asset_not_found", "Visual asset not found.", 404)
+    asset_id = uuid.UUID(candidate.documentAssetId)
+    block = db.scalar(select(DocumentBlock).where(
+        DocumentBlock.document_version_id == uuid.UUID(candidate.documentVersionId),
+        DocumentBlock.source_asset_id == asset_id))
+    row = db.scalar(select(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == topic.id,
+        TextbookTopicVisualAsset.document_asset_id == asset_id))
+    if not row:
+        row = TextbookTopicVisualAsset(topic_id=topic.id,
+            document_version_id=uuid.UUID(candidate.documentVersionId), document_asset_id=asset_id,
+            block_id=block.id, selected_by=principal.user.id)
+        db.add(row)
+    row.status=status; row.caption=caption; row.alt_text=alt_text
+    if status in {"approved", "rejected"}:
+        row.reviewed_by=principal.user.id; row.reviewed_at=datetime.now(timezone.utc)
+    else:
+        row.reviewed_by=None; row.reviewed_at=None
+    _audit(db, principal, "textbook_topic_visual_asset.reviewed", "textbook_topic", topic.public_ref,
+           {"assetRef": row.public_ref, "documentId": document_id, "status": status,
+            "page": candidate.page})
+    db.commit()
+    return list_topic_visual_assets(db, textbook_ref, topic_ref, document_id)
 
 
 def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
@@ -835,6 +998,7 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         TextbookTopicDocument.review_status.in_(("ready", "published")),
     ).order_by(TextbookTopicDocument.sequence).with_for_update()).all()
     source_manifest = []
+    text_source_manifest = []
     blocks_to_index = []
     for link in links:
         document = db.get(Document, link.document_id); version = db.get(DocumentVersion, link.document_version_id)
@@ -851,7 +1015,7 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         digest = hashlib.sha256("\n".join(
             f"{block.id}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}"
             for block in blocks).encode()).hexdigest()
-        source_manifest.append({"documentId": str(document.id), "documentVersionId": str(version.id),
+        text_source_manifest.append({"documentId": str(document.id), "documentVersionId": str(version.id),
                                 "documentVersion": version.version_number, "checksum": version.sha256,
                                 "role": link.role, "sequence": link.sequence,
                                 "extractionVersion": job.extraction_version, "reviewedContentHash": digest,
@@ -863,6 +1027,45 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
             page = page_map.get(block.page_id)
             if page and (block.text.strip() or block.latex):
                 blocks_to_index.append((document, version, page, block))
+    source_manifest.extend(text_source_manifest)
+    approved_visuals = db.scalars(select(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == topic.id,
+        TextbookTopicVisualAsset.status == "approved")).all()
+    visual_document_versions = {}
+    visual_manifest = []
+    for selected in approved_visuals:
+        asset = db.get(DocumentAsset, selected.document_asset_id)
+        block = db.get(DocumentBlock, selected.block_id)
+        page = db.get(DocumentPage, block.page_id) if block else None
+        version = db.get(DocumentVersion, selected.document_version_id)
+        link = db.scalar(select(TextbookTopicDocument).where(
+            TextbookTopicDocument.topic_id == topic.id,
+            TextbookTopicDocument.document_version_id == selected.document_version_id))
+        if not asset or not block or not page or not version or not link:
+            raise DomainError("topic_visual_source_unavailable", "A selected visual asset is unavailable.", 409)
+        visual_document_versions[selected.document_version_id] = link
+        visual_manifest.append({"assetRef": selected.public_ref, "documentId": str(link.document_id),
+            "documentVersionId": str(version.id), "documentAssetId": str(asset.id),
+            "checksum": asset.sha256, "kind": block.block_kind, "pageNumber": page.page_number,
+            "printedPageLabel": page.printed_page_label, "boundingBox": block.bounding_box,
+            "caption": selected.caption, "altText": selected.alt_text})
+    for version_id, link in visual_document_versions.items():
+        version = db.get(DocumentVersion, version_id)
+        job = db.scalar(select(DocumentJob).where(
+            DocumentJob.document_version_id == version_id,
+            DocumentJob.status.in_(("completed", "needs_review"))).order_by(
+            DocumentJob.completed_at.desc().nullslast()))
+        source_manifest.append({"documentId": str(link.document_id),
+            "documentVersionId": str(version_id), "documentVersion": version.version_number,
+            "checksum": version.sha256, "role": "visual_reference", "sequence": link.sequence,
+            "extractionVersion": job.extraction_version if job else "",
+            "reviewedContentHash": hashlib.sha256("|".join(
+                f"{row.public_ref}:{row.status}:{row.caption}:{row.alt_text}"
+                for row in sorted((item for item in approved_visuals
+                    if item.document_version_id == version_id), key=lambda item: item.public_ref)
+            ).encode()).hexdigest(),
+            "visualAssetRefs": [row["assetRef"] for row in visual_manifest
+                                if row["documentVersionId"] == str(version_id)]})
     if not blocks_to_index:
         raise DomainError("topic_content_empty", "The reviewed sources contain no publishable text or formulae.", 409)
     prior = db.scalar(select(TextbookTopicContentVersion).where(
@@ -879,17 +1082,23 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     content_version = TextbookTopicContentVersion(
         topic_id=topic.id, version_number=next_version, status="published", source_manifest=source_manifest,
         extraction_manifest={"blockCount": len(blocks_to_index), "averageConfidence": readiness.averageConfidence,
-                             "unresolvedPageCount": 0, "unresolvedBlockCount": 0},
+                             "unresolvedPageCount": 0, "unresolvedBlockCount": 0,
+                             "visualAssets": visual_manifest},
         published_by=principal.user.id, published_at=now,
     )
     db.add(content_version); db.flush()
-    for link, manifest in zip(links, source_manifest):
+    for link, manifest in zip(links, text_source_manifest):
         db.add(TextbookTopicContentSource(content_version_id=content_version.id,
             document_version_id=link.document_version_id, role=link.role,
             extraction_version=manifest["extractionVersion"]))
         link.review_status = "published"
         document = db.get(Document, link.document_id)
         if document: document.review_state = "published"
+    for version_id, link in visual_document_versions.items():
+        manifest = next(row for row in source_manifest if row["documentVersionId"] == str(version_id))
+        db.add(TextbookTopicContentSource(content_version_id=content_version.id,
+            document_version_id=version_id, role="visual_reference",
+            extraction_version=manifest["extractionVersion"]))
     settings = get_settings(); embeddings = embed_texts(settings, [block.text or block.latex or "" for _, _, _, block in blocks_to_index])
     for ordinal, ((document, version, page, block), embedding) in enumerate(zip(blocks_to_index, embeddings), 1):
         content = block.text.strip() or block.latex or ""
@@ -903,6 +1112,7 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
             embedding_version=next_version, embedding=embedding, status="active"))
     _audit(db, principal, "textbook_topic_content.published", "textbook_topic", topic.public_ref,
            {"textbookRef": book.public_ref, "contentVersion": next_version,
-            "sourceCount": len(links), "chunkCount": len(blocks_to_index)})
+            "sourceCount": len(source_manifest), "chunkCount": len(blocks_to_index),
+            "visualAssetCount": len(visual_manifest)})
     db.commit()
     return _response(db, book)

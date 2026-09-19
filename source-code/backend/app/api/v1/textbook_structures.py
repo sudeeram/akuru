@@ -9,7 +9,8 @@ from app.schemas.textbook_structures import (
     GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest, TextbookCreateRequest,
     TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicDocumentRoleUpdateRequest,
     TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicQualityReport, TopicRetrievalPreflightRequest,
-    TopicRetrievalPreflightResponse, TopicSaveRequest,
+    TopicRetrievalPreflightResponse, TopicSaveRequest, TopicReviewChecklistResponse,
+    TopicVisualAssetResponse, TopicVisualAssetUpdateRequest,
 )
 from app.security import Principal
 from app.services import textbook_structures
@@ -54,6 +55,23 @@ def topic_sources(textbook_ref: str, topic_ref: str,
     return textbook_structures.list_topic_sources(db, textbook_ref, topic_ref)
 
 
+@router.get("/{textbook_ref}/topics/{topic_ref}/review-checklist",
+            response_model=TopicReviewChecklistResponse)
+def review_checklist(textbook_ref: str, topic_ref: str,
+                     _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                     db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.topic_review_checklist(db, textbook_ref, topic_ref)
+
+
+@router.post("/{textbook_ref}/topics/{topic_ref}/sources/apply-recommended-roles",
+             response_model=list[TopicDocumentSourceResponse])
+def apply_recommended_roles(textbook_ref: str, topic_ref: str,
+                            principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                            db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.apply_recommended_topic_source_roles(
+        db, principal, textbook_ref, topic_ref)
+
+
 @router.get("/{textbook_ref}/topics/{topic_ref}/launch-readiness",
             response_model=TopicLaunchReadinessResponse)
 def topic_launch_readiness(textbook_ref: str, topic_ref: str,
@@ -89,6 +107,25 @@ def detach_topic_source(textbook_ref: str, topic_ref: str, document_id: str,
                         principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
                         db: Annotated[Session, Depends(get_db)]):
     return textbook_structures.detach_topic_source(db, principal, textbook_ref, topic_ref, document_id)
+
+
+@router.get("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets",
+            response_model=list[TopicVisualAssetResponse])
+def topic_visual_assets(textbook_ref: str, topic_ref: str, document_id: str,
+                        _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                        db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.list_topic_visual_assets(db, textbook_ref, topic_ref, document_id)
+
+
+@router.patch("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets/{asset_ref}",
+              response_model=list[TopicVisualAssetResponse])
+def review_topic_visual_asset(textbook_ref: str, topic_ref: str, document_id: str,
+                              asset_ref: str, payload: TopicVisualAssetUpdateRequest,
+                              principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                              db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.update_topic_visual_asset(
+        db, principal, textbook_ref, topic_ref, document_id, asset_ref,
+        payload.status, payload.caption, payload.altText)
 
 
 @router.post("/{textbook_ref}", response_model=TextbookResponse)

@@ -373,9 +373,11 @@ def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUI
     version = db.get(DocumentVersion, document_version_id)
     document = db.get(Document, version.document_id) if version else None
     was_complete = bool(version and version.status == "completed" and document and document.review_state in {"reviewed", "published"})
-    if version and version.status not in {"failed", "removed"}:
+    if version and version.status not in {"failed", "removed"} and not (document and document.review_state == "published"):
         version.status = "completed" if complete else "needs_review"
-    if document and document.review_state not in {"published", "rejected"}:
+    if document and document.review_state not in {"published", "rejected"} and not (
+        version and version.status in {"failed", "removed"}
+    ):
         document.review_state = "reviewed" if complete else "pending"
     for link in links:
         if link.review_status not in {"failed", "superseded", "published"}:

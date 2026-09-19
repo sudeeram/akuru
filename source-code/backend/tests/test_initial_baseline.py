@@ -25,7 +25,7 @@ def test_baseline_matches_topic_only_metadata_inventory():
     assert "pgvector.sqlalchemy" in text
     assert "group_label IN ('unit','module')" in text
     later_tables = {"topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
-                    "flashcard_sessions", "flashcard_reviews"}
+                    "flashcard_sessions", "flashcard_reviews", "textbook_topic_visual_assets"}
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 

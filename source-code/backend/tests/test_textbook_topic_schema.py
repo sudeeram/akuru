@@ -51,6 +51,11 @@ def test_topic_sources_support_non_retrievable_visual_references() -> None:
     ]
     assert len(constraints) == 1
     assert "visual_reference" in str(constraints[0].sqltext)
+    visual = Base.metadata.tables["textbook_topic_visual_assets"]
+    assert {"topic_id", "document_version_id", "document_asset_id", "block_id", "status",
+            "caption", "alt_text", "reviewed_by", "reviewed_at"} <= set(visual.c.keys())
+    assert "ck_topic_visual_asset_status" in _constraint_names(
+        "textbook_topic_visual_assets", CheckConstraint)
 
 
 def test_topic_identity_is_stable_and_scoped_to_its_textbook_subject() -> None:

@@ -6926,6 +6926,11 @@
       },
       "TopicDocumentSourceResponse": {
         "properties": {
+          "approvedVisualCount": {
+            "default": 0,
+            "title": "Approvedvisualcount",
+            "type": "integer"
+          },
           "documentId": {
             "title": "Documentid",
             "type": "string"
@@ -6957,6 +6962,11 @@
             "title": "Libraryreviewstate",
             "type": "string"
           },
+          "pendingVisualCount": {
+            "default": 0,
+            "title": "Pendingvisualcount",
+            "type": "integer"
+          },
           "publishableBlockCount": {
             "title": "Publishableblockcount",
             "type": "integer"
@@ -6974,6 +6984,11 @@
             ],
             "title": "Role",
             "type": "string"
+          },
+          "selectedVisualCount": {
+            "default": 0,
+            "title": "Selectedvisualcount",
+            "type": "integer"
           },
           "sequence": {
             "title": "Sequence",
@@ -7861,6 +7876,63 @@
         "title": "TopicRetrievalPreflightResponse",
         "type": "object"
       },
+      "TopicReviewChecklistResponse": {
+        "properties": {
+          "checks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "notationBlocks": {
+            "title": "Notationblocks",
+            "type": "integer"
+          },
+          "pendingVisualAssets": {
+            "title": "Pendingvisualassets",
+            "type": "integer"
+          },
+          "remainingBlocks": {
+            "title": "Remainingblocks",
+            "type": "integer"
+          },
+          "remainingPages": {
+            "title": "Remainingpages",
+            "type": "integer"
+          },
+          "tableBlocks": {
+            "title": "Tableblocks",
+            "type": "integer"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          },
+          "visualBlocks": {
+            "title": "Visualblocks",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "topicRef",
+          "topicTitle",
+          "remainingPages",
+          "remainingBlocks",
+          "notationBlocks",
+          "tableBlocks",
+          "visualBlocks",
+          "pendingVisualAssets",
+          "checks"
+        ],
+        "title": "TopicReviewChecklistResponse",
+        "type": "object"
+      },
       "TopicSaveRequest": {
         "properties": {
           "code": {
@@ -7900,6 +7972,132 @@
           "sequence"
         ],
         "title": "TopicSaveRequest",
+        "type": "object"
+      },
+      "TopicVisualAssetResponse": {
+        "properties": {
+          "altText": {
+            "title": "Alttext",
+            "type": "string"
+          },
+          "assetRef": {
+            "title": "Assetref",
+            "type": "string"
+          },
+          "boundingBox": {
+            "additionalProperties": true,
+            "title": "Boundingbox",
+            "type": "object"
+          },
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "contentUrl": {
+            "title": "Contenturl",
+            "type": "string"
+          },
+          "documentAssetId": {
+            "title": "Documentassetid",
+            "type": "string"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "documentVersionId": {
+            "title": "Documentversionid",
+            "type": "string"
+          },
+          "extractedCaption": {
+            "title": "Extractedcaption",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "printedPage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpage"
+          },
+          "sourceRole": {
+            "title": "Sourcerole",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unselected",
+              "selected",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetRef",
+          "documentId",
+          "documentVersionId",
+          "documentAssetId",
+          "filename",
+          "sourceRole",
+          "kind",
+          "page",
+          "boundingBox",
+          "extractedCaption",
+          "status",
+          "caption",
+          "altText",
+          "contentUrl"
+        ],
+        "title": "TopicVisualAssetResponse",
+        "type": "object"
+      },
+      "TopicVisualAssetUpdateRequest": {
+        "properties": {
+          "altText": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "selected",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "TopicVisualAssetUpdateRequest",
         "type": "object"
       },
       "TutorAdminPresetsResponse": {
@@ -13171,6 +13369,93 @@
         ]
       }
     },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/review-checklist": {
+      "get": {
+        "operationId": "review_checklist_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__review_checklist_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicReviewChecklistResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review Checklist",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
     "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources": {
       "get": {
         "operationId": "topic_sources_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__sources_get",
@@ -13257,6 +13542,113 @@
           }
         },
         "summary": "Topic Sources",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/apply-recommended-roles": {
+      "post": {
+        "operationId": "apply_recommended_roles_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__sources_apply_recommended_roles_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicDocumentSourceResponse"
+                  },
+                  "title": "Response Apply Recommended Roles Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Sources Apply Recommended Roles Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Apply Recommended Roles",
         "tags": [
           "textbook structures"
         ]
@@ -13497,6 +13889,241 @@
           }
         },
         "summary": "Update Topic Source",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets": {
+      "get": {
+        "operationId": "topic_visual_assets_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__sources__document_id__visual_assets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicVisualAssetResponse"
+                  },
+                  "title": "Response Topic Visual Assets Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Sources  Document Id  Visual Assets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Topic Visual Assets",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets/{asset_ref}": {
+      "patch": {
+        "operationId": "review_topic_visual_asset_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__sources__document_id__visual_assets__asset_ref__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_ref",
+            "required": true,
+            "schema": {
+              "title": "Asset Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicVisualAssetUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicVisualAssetResponse"
+                  },
+                  "title": "Response Review Topic Visual Asset Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Sources  Document Id  Visual Assets  Asset Ref  Patch",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review Topic Visual Asset",
         "tags": [
           "textbook structures"
         ]

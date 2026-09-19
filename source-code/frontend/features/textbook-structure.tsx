@@ -1,13 +1,17 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   archiveTextbookStructure, createTextbookStructure, errorMessage, getTextbookStructures, getTopicQualityReport,
   publishTextbookStructure, removeTextbookGroup, removeTextbookTopic, reorderTextbookGroups,
   reorderTextbookTopics, saveTextbookGroup, saveTextbookTopic, type Subject,
   type TextbookStructure, updateTextbookStructure, uploadTopicPart, suggestTopicParts, type Student,
   publishTextbookTopic, getTopicSources, updateTopicSourceRole, detachTopicSource, getTopicLaunchReadiness, runTopicRetrievalPreflight, type TopicDocumentSource, type TopicLaunchReadiness,
+  applyRecommendedTopicSourceRoles, getTopicReviewChecklist, getTopicVisualAssets,
+  reviewTopicVisualAsset, type TopicReviewChecklist, type TopicVisualAsset,
   type TopicSourceRole,
 } from '@/lib/api';
 import { Picker } from './shared';
@@ -24,12 +28,14 @@ function TopicSourceManager({ bookRef, topicRef, students, refreshBook, notify }
 }) {
   const [sources, setSources] = useState<TopicDocumentSource[]>([]);
   const [launch, setLaunch] = useState<TopicLaunchReadiness | null>(null);
+  const [checklist, setChecklist] = useState<TopicReviewChecklist | null>(null);
   const [pilotStudentId, setPilotStudentId] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (expanded) void getTopicSources(bookRef, topicRef).then(setSources)
+    if (expanded) void Promise.all([getTopicSources(bookRef, topicRef), getTopicReviewChecklist(bookRef, topicRef)])
+      .then(([nextSources, nextChecklist]) => { setSources(nextSources); setChecklist(nextChecklist); })
       .catch((cause) => setError(errorMessage(cause)));
   }, [expanded, bookRef, topicRef]);
   return <div className="stack topic-source-manager">
@@ -38,6 +44,17 @@ function TopicSourceManager({ bookRef, topicRef, students, refreshBook, notify }
     {expanded && <div className="source-note stack">
       <strong>Sources for the next topic publication</strong>
       <p className="small">Primary, supporting and reference text can enter retrieval after review. A visual reference is retained for provenance and selected diagrams, while its OCR text is excluded.</p>
+      {sources.length >= 2 && <Button variant="outline" disabled={busy} onClick={() => {
+        if (!window.confirm('Set the clean v2.1 file as canonical primary text and retain the other scan as a visual reference? Review the preview below before publishing.')) return;
+        setBusy(true); setError(''); void applyRecommendedTopicSourceRoles(bookRef, topicRef)
+          .then(setSources).then(refreshBook).then(() => notify('Recommended canonical and visual-reference roles applied.'))
+          .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
+      }}>Apply recommended v2.1 source roles</Button>}
+      {checklist && <section className="panel stack" aria-label="Topic extraction and visual review checklist">
+        <div className="spread"><strong>Authoritative review checklist</strong><span>{checklist.remainingPages + checklist.remainingBlocks + checklist.pendingVisualAssets} items need attention</span></div>
+        <div className="extraction-review-stats"><div><strong>{checklist.remainingPages}</strong><span>Pages remaining</span></div><div><strong>{checklist.remainingBlocks}</strong><span>Blocks remaining</span></div><div><strong>{checklist.notationBlocks}</strong><span>Formula blocks</span></div><div><strong>{checklist.tableBlocks}</strong><span>Tables</span></div><div><strong>{checklist.pendingVisualAssets}</strong><span>Visuals awaiting approval</span></div></div>
+        {checklist.checks.map(check => <div className="spread" key={check.code}><p><strong>{check.passed ? '✓' : '○'} {check.label}</strong><br/><span className="small">{check.message}</span></p>{!check.passed && <a href={check.href}>Review</a>}</div>)}
+      </section>}
       {error && <p className="error" role="alert">{error}</p>}
       {!sources.length && !error && <p>No sources are attached.</p>}
       {sources.map((source) => <article className="panel stack" key={source.documentVersionId}>
@@ -53,6 +70,7 @@ function TopicSourceManager({ bookRef, topicRef, students, refreshBook, notify }
         }}><option value="primary">Primary text</option><option value="supporting">Supporting text</option><option value="reference">Reference text</option><option value="visual_reference">Visual reference</option></select></label>
         <p className="small">Library: {source.libraryReviewState} · document: {source.documentStatus} · {source.unresolvedPageCount} pages and {source.unresolvedBlockCount} blocks unresolved.</p>
         <p className="small"><strong>{source.includedInRetrieval ? 'Included in next retrieval publication' : 'OCR text excluded from retrieval'}</strong> · {source.publishableBlockCount} reviewed text blocks · {source.visualAssetCount} visual assets{source.usedByPublishedVersion ? ' · Used by an existing immutable published version' : ''}</p>
+        {source.role === 'visual_reference' && <><p className="small"><strong>{source.approvedVisualCount} approved visuals</strong> · {source.pendingVisualCount} awaiting approval. Only approved selections enter the next Topic version.</p><VisualAssetManager bookRef={bookRef} topicRef={topicRef} documentId={source.documentId} notify={notify} changed={() => Promise.all([getTopicSources(bookRef, topicRef).then(setSources), getTopicReviewChecklist(bookRef, topicRef).then(setChecklist), refreshBook()]).then(() => undefined)} /></>}
         {!!source.duplicateOf.length && <p className="error" role="alert">Possible duplicate primary text: {source.duplicateOf.join(', ')}. Choose one canonical primary source before publishing.</p>}
         <Button variant="outline" disabled={busy} onClick={() => {
           if (!window.confirm(`Detach ${source.filename} from this topic? The document and historical published citations will be retained.`)) return;
@@ -63,6 +81,37 @@ function TopicSourceManager({ bookRef, topicRef, students, refreshBook, notify }
       </article>)}
     </div>}
   </div>;
+}
+
+function VisualAssetManager({ bookRef, topicRef, documentId, notify, changed }: {
+  bookRef: string; topicRef: string; documentId: string; notify: (message: string) => void; changed: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false), [assets, setAssets] = useState<TopicVisualAsset[]>([]);
+  const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  function load() { return getTopicVisualAssets(bookRef, topicRef, documentId).then(setAssets); }
+  return <div className="stack"><Button variant="outline" aria-expanded={open} onClick={() => {
+    const next = !open; setOpen(next); if (next) void load().catch(cause => setError(errorMessage(cause)));
+  }}>{open ? 'Hide visual assets' : 'Select and review visual assets'}</Button>
+    {error && <div className="error" role="alert">{error}</div>}
+    {open && <div className="visual-asset-grid">{assets.length ? assets.map(asset =>
+      <VisualAssetCard key={asset.documentAssetId} asset={asset} disabled={busy} save={(status, caption, altText) => {
+        setBusy(true); setError('');
+        void reviewTopicVisualAsset(bookRef, topicRef, documentId, asset.assetRef, status, caption, altText)
+          .then(setAssets).then(changed).then(() => notify(status === 'approved' ? 'Visual approved for the next Topic version.' : 'Visual selection updated.'))
+          .catch(cause => setError(errorMessage(cause))).finally(() => setBusy(false));
+      }}/>) : <p>No extracted diagrams, images or tables were found in this source.</p>}</div>}
+  </div>;
+}
+
+function VisualAssetCard({ asset, disabled, save }: { asset: TopicVisualAsset; disabled: boolean; save: (status: 'selected'|'approved'|'rejected', caption: string, altText: string) => void }) {
+  const [caption, setCaption] = useState(asset.caption), [altText, setAltText] = useState(asset.altText);
+  return <article className="panel stack visual-asset-card"><div className="spread"><strong>{asset.kind} · page {asset.printedPage || asset.page}</strong><span className={`review-status-badge ${asset.status === 'approved' ? 'review-status-complete' : 'review-status-required'}`}>{asset.status}</span></div>
+    <Image unoptimized width={640} height={420} src={asset.contentUrl} alt={altText || `Unreviewed ${asset.kind} candidate from page ${asset.printedPage || asset.page}`}/>
+    <label className="stack" htmlFor={`caption-${asset.documentAssetId}`}>Caption<Input id={`caption-${asset.documentAssetId}`} value={caption} onChange={event => setCaption(event.target.value)}/></label>
+    <label className="stack" htmlFor={`alt-${asset.documentAssetId}`}>Accessible text alternative<Textarea id={`alt-${asset.documentAssetId}`} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Describe the educational information shown in this visual."/></label>
+    {asset.extractedCaption && <p className="small">Extracted caption: {asset.extractedCaption}</p>}
+    <div className="button-row"><Button variant="outline" disabled={disabled} onClick={() => save('rejected', caption, altText)}>Exclude</Button><Button variant="outline" disabled={disabled} onClick={() => save('selected', caption, altText)}>Save for review</Button><Button className="primary" disabled={disabled || !altText.trim()} onClick={() => save('approved', caption, altText)}>Approve visual</Button></div>
+  </article>;
 }
 
 export function TextbookStructureAdmin({ subjects, students, notify, refreshPortal }: Props) {

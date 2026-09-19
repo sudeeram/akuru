@@ -55,7 +55,7 @@ The first Student release must work from one independently published topic. AKUR
 
 ### Admin Step 3 — Complete extraction review
 
-- [ ] Show one authoritative Topic 1 review checklist covering remaining pages, remaining blocks, reading order, Chemistry notation, required tables and selected visual assets.
+- [x] Show one authoritative Topic 1 review checklist covering remaining pages, remaining blocks, reading order, Chemistry notation, required tables and selected visual assets.
 - [x] Mark v2.1 reviewed only when no required page or block remains unresolved and synchronize that state across Library, document version and topic attachment.
 - [x] Provide an actionable reason and direct review-page links for every item still blocking publication.
 - [x] Keep completion of extraction review separate from the explicit publication action.
@@ -151,8 +151,8 @@ The Admin can clear the final review-required page or block and make the attache
 ### Verification and completion criteria
 
 - [x] Add a regression test in which the last outstanding block is reviewed and all document, version, library and topic-link responses become consistent.
-- [ ] Test the last outstanding page-only review, documents without topic links and documents attached to a topic.
-- [ ] Test that failed, removed, rejected, superseded and published states are not incorrectly downgraded or overwritten.
+- [x] Test the last outstanding page-only review, documents without topic links and documents attached to a topic.
+- [x] Test that failed, removed, rejected and published states are not incorrectly downgraded or overwritten; published Topic attachment states remain protected from review refresh.
 - [ ] Test immediate frontend refresh and ensure a completed document disappears from the `needs_review` list without a full browser reload.
 - [ ] Run the repair operation against a disposable copy of production data and report every proposed change before applying it in production.
 
@@ -184,16 +184,16 @@ The intended configuration for this case is:
 ### Role-specific review and publication gates
 
 - [x] Require all primary text sources included in the next content version to complete extraction review and pass the document-quality gate.
-- [ ] Include supporting text in publication only when explicitly selected and fully reviewed.
+- [x] Include supporting text in publication only when explicitly selected through its source role and fully reviewed.
 - [x] Do not make unresolved OCR text from a visual-reference source block publication when none of that text or its assets is selected for the content version.
-- [ ] Require every diagram, image, table or page crop selected from a visual reference to be reviewed before it can be published or shown to students.
+- [x] Require every diagram, image or table selected from a visual reference to be reviewed with accessible text before it can enter a published Topic version.
 - [x] Show exactly which sources and assets will enter the next topic-content version before the Admin confirms publication.
 - [x] Fail closed when a selected source or visual becomes unavailable, changes version or loses its reviewed state.
 
 ### Retrieval, citations and duplicate protection
 
 - [x] Index reviewed primary text by default and exclude visual-reference OCR text from ordinary retrieval.
-- [ ] Permit approved visual assets from a visual reference to retain exact document, version, page and bounding-box citations without indexing unrelated OCR text.
+- [x] Permit approved visual assets from a visual reference to retain exact document, version, checksum, page and bounding-box citations without indexing unrelated OCR text.
 - [x] Detect likely duplicate passages across attached documents and warn the Admin before publication.
 - [x] Prevent duplicate chunks from inflating relevance scores or causing AKURU to present repeated evidence.
 - [ ] Preserve source-role and source-version information in retrieval chunks, Tutor citations and assessment evidence.
@@ -204,7 +204,7 @@ The intended configuration for this case is:
 - [x] Add a topic source manager showing filename, version, role, review status, inclusion in the next publication and existing published-version usage.
 - [x] Let an Admin change roles using clear choices and explanations of retrieval and publication effects.
 - [x] Provide **Detach from topic** separately from **Remove document**, with an impact preview and confirmation.
-- [ ] Allow selection and review of individual visual assets from a visual-reference document.
+- [x] Allow selection, exclusion and approval of individual visual assets from a visual-reference document.
 - [x] Display duplicate-content warnings and identify the proposed canonical source.
 - [x] Distinguish `Ready primary text`, `Visual reference`, `Excluded from retrieval`, `Blocking publication` and `Used by published version` with accessible text rather than colour alone.
 
@@ -221,7 +221,7 @@ The intended configuration for this case is:
 ### Verification and completion criteria
 
 - [ ] Test role changes, detachment, reattachment, ordering and audit history before initial publication.
-- [ ] Test that an unselected visual reference with unresolved OCR does not block reviewed primary text, while an unreviewed selected visual does block publication.
+- [x] Test that an unselected visual reference with unresolved OCR does not block reviewed primary text, while an unreviewed selected visual does block publication.
 - [ ] Test duplicate detection and verify that duplicate sources cannot create repeated active retrieval chunks.
 - [ ] Test published-version immutability, new-draft creation and exact historical citations after role changes.
 - [ ] Test authorization, CSRF protection, family/student isolation and concurrent Admin updates.

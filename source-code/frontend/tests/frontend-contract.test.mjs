@@ -541,6 +541,14 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(textbookStructure, /View launch readiness/);
   assert.match(textbookStructure, /Detach from topic/);
   assert.match(textbookStructure, /Possible duplicate primary text/);
+  assert.match(textbookStructure, /Apply recommended v2\.1 source roles/);
+  assert.match(textbookStructure, /Authoritative review checklist/);
+  assert.match(textbookStructure, /Select and review visual assets/);
+  assert.match(textbookStructure, /Accessible text alternative/);
+  assert.match(textbookStructure, /Approve visual/);
+  assert.match(api, /applyRecommendedTopicSourceRoles/);
+  assert.match(api, /getTopicVisualAssets/);
+  assert.match(api, /reviewTopicVisualAsset/);
 });
 
 test('flashcards are Admin reviewed, source grounded and accessible to eligible Students', () => {

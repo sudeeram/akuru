@@ -152,7 +152,7 @@ export interface Schemas {
   "TextbookUpdateRequest": { "title": string; "edition": string; "publisher"?: string; "groupLabel": "unit" | "module"; };
   "TopicDocumentQualityReport": { "documentId": string; "filename": string; "role": string; "reviewStatus": string; "pageCount": number; "equationCount": number; "diagramCount": number; "passed": boolean; "checks": Array<Schemas["TopicQualityCheck"]>; };
   "TopicDocumentRoleUpdateRequest": { "role": "primary" | "supporting" | "reference" | "visual_reference"; };
-  "TopicDocumentSourceResponse": { "documentId": string; "documentVersionId": string; "filename": string; "role": "primary" | "supporting" | "reference" | "visual_reference"; "sequence": number; "reviewStatus": string; "documentStatus": string; "libraryReviewState": string; "unresolvedPageCount": number; "unresolvedBlockCount": number; "includedInRetrieval": boolean; "usedByPublishedVersion": boolean; "publishableBlockCount": number; "visualAssetCount": number; "duplicateOf"?: Array<string>; };
+  "TopicDocumentSourceResponse": { "documentId": string; "documentVersionId": string; "filename": string; "role": "primary" | "supporting" | "reference" | "visual_reference"; "sequence": number; "reviewStatus": string; "documentStatus": string; "libraryReviewState": string; "unresolvedPageCount": number; "unresolvedBlockCount": number; "includedInRetrieval": boolean; "usedByPublishedVersion": boolean; "publishableBlockCount": number; "visualAssetCount": number; "selectedVisualCount"?: number; "approvedVisualCount"?: number; "pendingVisualCount"?: number; "duplicateOf"?: Array<string>; };
   "TopicGroupOption": { "groupRef": string; "code": string; "title": string; "topics": Array<Schemas["TopicOption"]>; };
   "TopicLaunchReadinessResponse": { "topicRef": string; "topicTitle": string; "overallStatus": "ready" | "blocked"; "checks": Array<{ [key: string]: unknown; }>; };
   "TopicMapping": { "topicRef": string; "weight": number; "required"?: boolean; "rationale"?: string; "confidence"?: number | null; "method"?: string | null; };
@@ -171,7 +171,10 @@ export interface Schemas {
   "TopicResponse": { "topicRef": string; "code": string; "title": string; "sequence": number; "syllabusRef": string; "description": string; "status": string; "documentCount": number; "removable": boolean; "content": Schemas["TopicReadinessResponse"]; };
   "TopicRetrievalPreflightRequest": { "queries"?: Array<string>; };
   "TopicRetrievalPreflightResponse": { "preflightRef": string; "topicRef": string; "contentVersion": number; "passed": boolean; "queries": Array<string>; "results": Array<{ [key: string]: unknown; }>; "createdAt": string; };
+  "TopicReviewChecklistResponse": { "topicRef": string; "topicTitle": string; "remainingPages": number; "remainingBlocks": number; "notationBlocks": number; "tableBlocks": number; "visualBlocks": number; "pendingVisualAssets": number; "checks": Array<{ [key: string]: unknown; }>; };
   "TopicSaveRequest": { "code": string; "title": string; "sequence": number; "syllabusRef"?: string; "description"?: string; };
+  "TopicVisualAssetResponse": { "assetRef": string; "documentId": string; "documentVersionId": string; "documentAssetId": string; "filename": string; "sourceRole": string; "kind": string; "page": number; "printedPage"?: string | null; "boundingBox": { [key: string]: unknown; }; "extractedCaption": string; "status": "unselected" | "selected" | "approved" | "rejected"; "caption": string; "altText": string; "contentUrl": string; };
+  "TopicVisualAssetUpdateRequest": { "status": "selected" | "approved" | "rejected"; "caption"?: string; "altText"?: string; };
   "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
   "TutorAgentTurnRequest": { "message": string; "teachingMode"?: "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "requestKey": string; };
   "TutorAgentTurnResponse": { "operationRef": string; "turnRef": string; "content": string; "teachingMode": "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "citations"?: Array<Schemas["TutorCitation"]>; "followUpChoices"?: Array<string>; "toolResults"?: Array<Schemas["TutorToolResult"]>; "visuals"?: Array<Schemas["TutorVisual"]>; "proposedSignals"?: Array<Schemas["TutorSignalProposal"]>; "provider": string; "model": string; "promptName": string; "promptVersion": string; };
@@ -251,9 +254,13 @@ export interface ApiOperations {
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/publish": { request: Schemas["PublishTopicContentRequest"]; response: Schemas["TextbookResponse"] };
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/quality": { request: unknown; response: Schemas["TopicQualityReport"] };
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/retrieval-preflight": { request: Schemas["TopicRetrievalPreflightRequest"]; response: Schemas["TopicRetrievalPreflightResponse"] };
+  "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/review-checklist": { request: unknown; response: Schemas["TopicReviewChecklistResponse"] };
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
+  "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/apply-recommended-roles": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "PATCH /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: Schemas["TopicDocumentRoleUpdateRequest"]; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "DELETE /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
+  "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets": { request: unknown; response: Array<Schemas["TopicVisualAssetResponse"]> };
+  "PATCH /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets/{asset_ref}": { request: Schemas["TopicVisualAssetUpdateRequest"]; response: Array<Schemas["TopicVisualAssetResponse"]> };
   "GET /api/v1/admin/ui-features": { request: unknown; response: Schemas["UiFeaturesResponse"] };
   "GET /api/v1/assessments": { request: unknown; response: Schemas["AssessmentListResponse"] };
   "GET /api/v1/assessments/admin/audit": { request: unknown; response: Schemas["AssessmentAuditListResponse"] };

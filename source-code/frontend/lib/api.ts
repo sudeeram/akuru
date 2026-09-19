@@ -446,10 +446,17 @@ export type TopicDocumentSource = { documentId: string; documentVersionId: strin
   role: TopicSourceRole; sequence: number; reviewStatus: string; documentStatus: string;
   libraryReviewState: string; unresolvedPageCount: number; unresolvedBlockCount: number;
   includedInRetrieval: boolean; usedByPublishedVersion: boolean; publishableBlockCount: number;
-  visualAssetCount: number; duplicateOf: string[] };
+  visualAssetCount: number; selectedVisualCount: number; approvedVisualCount: number;
+  pendingVisualCount: number; duplicateOf: string[] };
 export const getTopicSources = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources`) as Promise<TopicDocumentSource[]>;
+export const applyRecommendedTopicSourceRoles = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/apply-recommended-roles`, { method: 'POST', body: {} }) as Promise<TopicDocumentSource[]>;
 export const updateTopicSourceRole = (bookRef: string, topicRef: string, documentId: string, role: TopicSourceRole) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}`, { method: 'PATCH', body: { role } }) as Promise<TopicDocumentSource[]>;
 export const detachTopicSource = (bookRef: string, topicRef: string, documentId: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}`, { method: 'DELETE' }) as Promise<TopicDocumentSource[]>;
+export type TopicReviewChecklist = { topicRef: string; topicTitle: string; remainingPages: number; remainingBlocks: number; notationBlocks: number; tableBlocks: number; visualBlocks: number; pendingVisualAssets: number; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
+export const getTopicReviewChecklist = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/review-checklist`) as Promise<TopicReviewChecklist>;
+export type TopicVisualAsset = { assetRef: string; documentId: string; documentVersionId: string; documentAssetId: string; filename: string; sourceRole: string; kind: string; page: number; printedPage?: string | null; boundingBox: Record<string, unknown>; extractedCaption: string; status: 'unselected'|'selected'|'approved'|'rejected'; caption: string; altText: string; contentUrl: string };
+export const getTopicVisualAssets = (bookRef: string, topicRef: string, documentId: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}/visual-assets`) as Promise<TopicVisualAsset[]>;
+export const reviewTopicVisualAsset = (bookRef: string, topicRef: string, documentId: string, assetRef: string, status: 'selected'|'approved'|'rejected', caption: string, altText: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}/visual-assets/${assetRef}`, { method: 'PATCH', body: { status, caption, altText } }) as Promise<TopicVisualAsset[]>;
 export type TopicLaunchReadiness = { topicRef: string; topicTitle: string; overallStatus: 'ready' | 'blocked'; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
 export const getTopicLaunchReadiness = (bookRef: string, topicRef: string, studentId?: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/launch-readiness${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ''}`) as Promise<TopicLaunchReadiness>;
 export type TopicRetrievalPreflight = { preflightRef: string; topicRef: string; contentVersion: number; passed: boolean; queries: string[]; results: { query: string; passed: boolean; reasons: string[]; page?: number | null; passage?: string | null; score: number }[]; createdAt: string };
