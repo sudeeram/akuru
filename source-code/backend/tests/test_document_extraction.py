@@ -8,7 +8,7 @@ import pymupdf as fitz
 import pytest
 from PIL import Image, ImageDraw
 
-from app.services.document_extraction import extract_document, text_to_latex
+from app.services.document_extraction import _layout_aware_order, extract_document, text_to_latex
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "extraction" / "subjects.json"
@@ -80,6 +80,28 @@ def test_scanned_page_uses_ocr_and_keeps_diagram() -> None:
 
 def test_equation_normalization_is_deterministic() -> None:
     assert text_to_latex("x² ≥ 4 × y") == r"x^{2} \\ge  4 \\times  y"
+
+
+def test_layout_aware_order_reads_each_textbook_column_before_the_next() -> None:
+    def block(text: str, x0: float, y0: float, x1: float, y1: float) -> dict:
+        return {"text": text, "bbox": {"x0": x0, "y0": y0, "x1": x1, "y1": y1}, "metadata": {}}
+
+    blocks = [
+        block("Right one", 0.56, 0.20, 0.93, 0.25),
+        block("Left two", 0.06, 0.30, 0.44, 0.35),
+        block("Heading", 0.05, 0.05, 0.95, 0.11),
+        block("Right two", 0.56, 0.30, 0.93, 0.35),
+        block("Left one", 0.06, 0.20, 0.44, 0.25),
+    ]
+    ordered, metadata = _layout_aware_order(blocks)
+
+    assert [item["text"] for item in ordered] == [
+        "Heading", "Left one", "Left two", "Right one", "Right two",
+    ]
+    assert metadata == {"layout": "multi_column", "columnCount": 2}
+    assert [item["metadata"]["layoutColumn"] for item in ordered] == [
+        "spanning", "left", "left", "right", "right",
+    ]
 
 
 def test_pdf_page_labels_preserve_front_matter_and_printed_page_numbers() -> None:

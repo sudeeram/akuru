@@ -29,7 +29,7 @@ Each stage run is unique by document version, stage and extraction version. A co
 
 Preflight executes in a spawned child process rather than the FastAPI or long-running worker process. It enforces `AKURU_DOCUMENT_JOB_TIMEOUT_SECONDS` and `AKURU_DOCUMENT_MAX_PAGES`. On Linux, including the OCI Ubuntu deployment target, it also applies `AKURU_DOCUMENT_JOB_MEMORY_MB` as an address-space limit. The reviewed default is 1536 MiB because OCR of image-only textbook PDFs needs substantially more working memory than native-text PDFs. macOS local development retains process and timeout isolation but does not apply the Linux resource limit. Retrying a failed job refreshes all three ceilings from the current configuration so an operator correction takes effect without re-uploading the source document.
 
-The `deterministic-v1` stage validates the stored bytes, renders source pages, extracts native text and coordinates, invokes OCR for sparse/scanned pages, and records diagram/equation crops behind the same queue and idempotency contract.
+The `deterministic-v1` stage validates the stored bytes, renders source pages, extracts native text and coordinates, invokes OCR for sparse/scanned pages, and records diagram/equation crops behind the same queue and idempotency contract. Scanned pages render at 240 DPI, receive deterministic contrast normalization, and use automatic page segmentation. OCR lines are assigned to left, right, spanning or single-column regions and persisted in layout-aware reading order. This supports textbook columns while retaining every original and normalized page for Admin comparison.
 
 ## Admin API
 
@@ -39,3 +39,20 @@ The `deterministic-v1` stage validates the stored bytes, renders source pages, e
 - `POST /api/v1/documents/{document_id}/retry` requeues a failed job.
 
 All routes require an authenticated Admin session. The Admin document library polls while a job is queued or processing and displays progress and useful failure text without exposing internal exceptions.
+
+### Repairing historical review-state mismatches
+
+Run the repair in report-only mode first:
+
+```bash
+cd backend
+PYTHONPATH=. .venv/bin/python -m app.reconcile_document_reviews
+```
+
+The JSON report contains every proposed document-version and Library-state change. After reviewing it, apply the same calculation with an existing Admin username so completion events remain attributable:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m app.reconcile_document_reviews --apply --actor-username ADMIN_USERNAME
+```
+
+The command never publishes topic content. It only reconciles extraction-review states from persisted pages and blocks.

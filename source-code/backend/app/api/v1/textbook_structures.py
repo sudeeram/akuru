@@ -7,7 +7,8 @@ from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.textbook_structures import (
     GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest, TextbookCreateRequest,
-    TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicQualityReport, TopicSaveRequest,
+    TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicDocumentRoleUpdateRequest,
+    TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicQualityReport, TopicSaveRequest,
 )
 from app.security import Principal
 from app.services import textbook_structures
@@ -43,6 +44,41 @@ def topic_quality(textbook_ref: str, topic_ref: str,
                   _principal: Annotated[Principal, Depends(require_roles("admin"))],
                   db: Annotated[Session, Depends(get_db)]):
     return textbook_structures.get_topic_quality(db, textbook_ref, topic_ref)
+
+
+@router.get("/{textbook_ref}/topics/{topic_ref}/sources", response_model=list[TopicDocumentSourceResponse])
+def topic_sources(textbook_ref: str, topic_ref: str,
+                  _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                  db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.list_topic_sources(db, textbook_ref, topic_ref)
+
+
+@router.get("/{textbook_ref}/topics/{topic_ref}/launch-readiness",
+            response_model=TopicLaunchReadinessResponse)
+def topic_launch_readiness(textbook_ref: str, topic_ref: str,
+                           _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                           db: Annotated[Session, Depends(get_db)],
+                           student_id: Annotated[str | None, Query(alias="studentId")] = None):
+    return textbook_structures.topic_launch_readiness(db, textbook_ref, topic_ref, student_id)
+
+
+@router.patch("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}",
+              response_model=list[TopicDocumentSourceResponse])
+def update_topic_source(textbook_ref: str, topic_ref: str, document_id: str,
+                        payload: TopicDocumentRoleUpdateRequest,
+                        principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                        db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.update_topic_source_role(
+        db, principal, textbook_ref, topic_ref, document_id, payload.role,
+    )
+
+
+@router.delete("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}",
+               response_model=list[TopicDocumentSourceResponse])
+def detach_topic_source(textbook_ref: str, topic_ref: str, document_id: str,
+                        principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                        db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.detach_topic_source(db, principal, textbook_ref, topic_ref, document_id)
 
 
 @router.post("/{textbook_ref}", response_model=TextbookResponse)

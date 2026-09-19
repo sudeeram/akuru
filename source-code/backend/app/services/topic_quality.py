@@ -24,7 +24,10 @@ def _ratio(numerator: int, denominator: int) -> float:
 
 
 def report(db: Session, topic: TextbookTopic) -> dict:
-    links = db.scalars(select(TextbookTopicDocument).where(TextbookTopicDocument.topic_id == topic.id)).all()
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.role != "visual_reference",
+    )).all()
     documents: list[dict] = []
     all_passed = bool(links)
     for link in links:

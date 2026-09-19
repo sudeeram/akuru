@@ -269,6 +269,17 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
         json={"printedPageLabel": "101"},
     )
     assert labelled.status_code == 200 and labelled.json()["pages"][0]["printedPageLabel"] == "101"
+    synchronized_document = client.get(f"/api/v1/documents/{upload.json()['document']['id']}")
+    assert synchronized_document.status_code == 200
+    assert synchronized_document.json()["status"] == "completed"
+    session.refresh(link)
+    assert link.review_status == "ready"
+    stored_document = session.get(Document, uuid.UUID(upload.json()["document"]["id"]))
+    assert stored_document.review_state == "reviewed"
+    assert session.scalar(select(DocumentEvent).where(
+        DocumentEvent.document_version_id == version_id,
+        DocumentEvent.event_type == "extraction_review_completed",
+    ))
     ready_book = client.get(f"/api/v1/admin/textbooks/{book_ref}").json()
     ready_topic = next(item for row in ready_book["groups"] for item in row["topics"] if item["topicRef"] == topic_ref)
     assert ready_topic["content"]["state"] == "ready" and ready_topic["content"]["ready"] is True

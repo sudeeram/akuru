@@ -510,3 +510,34 @@ test('topic PDFs have an Admin-only quality report and publication quality gate'
   assert.match(backendQuality, /topicRetrievalPrecision/);
   assert.match(textbookService, /quality_gate/);
 });
+
+test('admin can designate canonical text and non-retrievable visual references', () => {
+  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
+  const documentsService = readFileSync(new URL('../../backend/app/services/documents.py', import.meta.url), 'utf8');
+  assert.match(api, /getTopicSources/);
+  assert.match(api, /updateTopicSourceRole/);
+  assert.match(textbookStructure, /Manage topic sources/);
+  assert.match(textbookStructure, /Visual reference/);
+  assert.match(textbookStructure, /OCR text excluded from retrieval/);
+  assert.match(textbookService, /TextbookTopicDocument\.role != "visual_reference"/);
+  assert.match(documentsService, /version\.status = "completed" if complete else "needs_review"/);
+  assert.match(documentsService, /document\.review_state = "reviewed" if complete else "pending"/);
+});
+
+test('admin sees group-level Topic 1 launch readiness without coupling later topics', () => {
+  const textbookSchema = readFileSync(new URL('../../backend/app/schemas/textbook_structures.py', import.meta.url), 'utf8');
+  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
+  assert.match(textbookSchema, /totalTopicCount/);
+  assert.match(textbookSchema, /reviewedTopicCount/);
+  assert.match(textbookSchema, /publishedTopicCount/);
+  assert.match(textbookSchema, /studentEligibleTopicCount/);
+  assert.match(textbookService, /CurriculumPlan\.status == "published"/);
+  assert.match(textbookStructure, /Total topics/);
+  assert.match(textbookStructure, /Student eligible/);
+  assert.match(textbookStructure, /does not change existing topic identities or published versions/);
+  assert.match(textbookStructure, /Owned by iGCSE/);
+  assert.match(api, /getTopicLaunchReadiness/);
+  assert.match(textbookStructure, /View launch readiness/);
+  assert.match(textbookStructure, /Detach from topic/);
+  assert.match(textbookStructure, /Possible duplicate primary text/);
+});

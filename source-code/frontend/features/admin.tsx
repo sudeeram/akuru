@@ -952,7 +952,7 @@ export function AdminWorkspace(p: Props) {
           </>
         )}
         {p.view === 'units' && (
-          <TextbookStructureAdmin subjects={p.data.subjects} notify={p.notify} refreshPortal={p.refresh} />
+          <TextbookStructureAdmin subjects={p.data.subjects} students={p.data.students} notify={p.notify} refreshPortal={p.refresh} />
         )}
         {p.view === 'coverage' && (
           <section className="panel stack">

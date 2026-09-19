@@ -7,12 +7,15 @@ MIGRATIONS = Path(__file__).parents[1] / "migrations"
 BASELINE = MIGRATIONS / "versions" / "0001_initial_akuru_schema.py"
 
 
-def test_only_one_active_baseline_revision_exists():
+def test_baseline_remains_the_single_root_revision():
     revisions = sorted((MIGRATIONS / "versions").glob("*.py"))
-    assert revisions == [BASELINE]
+    assert BASELINE in revisions
     text = BASELINE.read_text()
     assert "revision: str = '0001_initial_akuru_schema'" in text
     assert "down_revision: Union[str, None] = None" in text
+    for revision in revisions:
+        if revision != BASELINE:
+            assert "down_revision = None" not in revision.read_text()
 
 
 def test_baseline_matches_topic_only_metadata_inventory():

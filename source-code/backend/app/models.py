@@ -869,7 +869,7 @@ class TextbookTopicDocument(Base):
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
-        CheckConstraint("role IN ('primary','supporting','reference')", name="ck_topic_document_role"),
+        CheckConstraint("role IN ('primary','supporting','reference','visual_reference')", name="ck_topic_document_role"),
         CheckConstraint("sequence > 0", name="ck_topic_document_sequence"),
         CheckConstraint("review_status IN ('pending','processing','needs_review','ready','published','failed','superseded')",
                         name="ck_topic_document_review_status"),
@@ -916,7 +916,7 @@ class TextbookTopicContentSource(Base):
     document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"), primary_key=True)
     role: Mapped[str] = mapped_column(String(24))
     extraction_version: Mapped[str] = mapped_column(String(80))
-    __table_args__ = (CheckConstraint("role IN ('primary','supporting','reference')", name="ck_topic_content_source_role"),)
+    __table_args__ = (CheckConstraint("role IN ('primary','supporting','reference','visual_reference')", name="ck_topic_content_source_role"),)
 
 
 class CurriculumPlan(Base):

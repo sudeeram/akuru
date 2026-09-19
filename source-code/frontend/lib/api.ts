@@ -406,7 +406,8 @@ export type TextbookStructureTopic = {
 };
 export type TextbookStructureGroup = {
   groupRef: string; code: string; title: string; summary: string; sequence: number;
-  status: string; removable: boolean; topics: TextbookStructureTopic[];
+  status: string; removable: boolean; topics: TextbookStructureTopic[]; totalTopicCount: number;
+  reviewedTopicCount: number; publishedTopicCount: number; studentEligibleTopicCount: number;
 };
 export type TextbookStructure = {
   textbookRef: string; courseId: string; subjectId: string; title: string; edition: string;
@@ -427,7 +428,18 @@ export const publishTextbookStructure = (bookRef: string) => request(`admin/text
 export const publishTextbookTopic = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/publish`, { method: 'POST', body: { confirmSources: true, confirmExtraction: true, confirmTopic: true } }) as Promise<TextbookStructure>;
 export type TopicQualityReport = { topicRef: string; topicCode: string; topicTitle: string; thresholds: Record<string, number>; passed: boolean; resolution: string; documents: { documentId: string; filename: string; role: string; reviewStatus: string; pageCount: number; equationCount: number; diagramCount: number; passed: boolean; checks: { code: string; threshold: number; value: number; passed: boolean }[] }[] };
 export const getTopicQualityReport = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/quality`) as Promise<TopicQualityReport>;
-export async function uploadTopicPart(bookRef: string, topicRef: string, file: File, role: 'primary' | 'supporting' | 'reference' = 'primary') {
+export type TopicSourceRole = 'primary' | 'supporting' | 'reference' | 'visual_reference';
+export type TopicDocumentSource = { documentId: string; documentVersionId: string; filename: string;
+  role: TopicSourceRole; sequence: number; reviewStatus: string; documentStatus: string;
+  libraryReviewState: string; unresolvedPageCount: number; unresolvedBlockCount: number;
+  includedInRetrieval: boolean; usedByPublishedVersion: boolean; publishableBlockCount: number;
+  visualAssetCount: number; duplicateOf: string[] };
+export const getTopicSources = (bookRef: string, topicRef: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources`) as Promise<TopicDocumentSource[]>;
+export const updateTopicSourceRole = (bookRef: string, topicRef: string, documentId: string, role: TopicSourceRole) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}`, { method: 'PATCH', body: { role } }) as Promise<TopicDocumentSource[]>;
+export const detachTopicSource = (bookRef: string, topicRef: string, documentId: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/sources/${documentId}`, { method: 'DELETE' }) as Promise<TopicDocumentSource[]>;
+export type TopicLaunchReadiness = { topicRef: string; topicTitle: string; overallStatus: 'ready' | 'blocked'; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
+export const getTopicLaunchReadiness = (bookRef: string, topicRef: string, studentId?: string) => request(`admin/textbooks/${bookRef}/topics/${topicRef}/launch-readiness${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ''}`) as Promise<TopicLaunchReadiness>;
+export async function uploadTopicPart(bookRef: string, topicRef: string, file: File, role: TopicSourceRole = 'primary') {
   if (file.size > 50 * 1024 * 1024) throw new Error('Choose a file no larger than 50 MB.');
   const response = await fetch(`/api/v1/admin/textbooks/${bookRef}/topics/${topicRef}/documents?role=${role}`, {
     method: 'POST', headers: { 'Content-Type': file.type, 'X-Filename': file.name,
@@ -443,7 +455,7 @@ async function fileBase64(file: File) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   return btoa(binary);
 }
-export async function uploadTopicPartsBatch(bookRef: string, topicRef: string, files: File[], role: 'primary' | 'supporting' | 'reference' = 'primary') {
+export async function uploadTopicPartsBatch(bookRef: string, topicRef: string, files: File[], role: TopicSourceRole = 'primary') {
   const items = await Promise.all(files.map(async (file) => ({ filename: file.name,
     contentType: file.type, contentBase64: await fileBase64(file), role,
     idempotencyKey: crypto.randomUUID() })));

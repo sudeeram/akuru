@@ -95,6 +95,28 @@ class PublishTopicContentRequest(BaseModel):
     confirmTopic: bool
 
 
+class TopicDocumentRoleUpdateRequest(BaseModel):
+    role: Literal["primary", "supporting", "reference", "visual_reference"]
+
+
+class TopicDocumentSourceResponse(BaseModel):
+    documentId: str
+    documentVersionId: str
+    filename: str
+    role: Literal["primary", "supporting", "reference", "visual_reference"]
+    sequence: int
+    reviewStatus: str
+    documentStatus: str
+    libraryReviewState: str
+    unresolvedPageCount: int
+    unresolvedBlockCount: int
+    includedInRetrieval: bool
+    usedByPublishedVersion: bool
+    publishableBlockCount: int
+    visualAssetCount: int
+    duplicateOf: list[str] = Field(default_factory=list)
+
+
 class TopicQualityCheck(BaseModel):
     code: str
     threshold: float
@@ -141,6 +163,13 @@ class TopicReadinessResponse(BaseModel):
     checks: list[dict]
 
 
+class TopicLaunchReadinessResponse(BaseModel):
+    topicRef: str
+    topicTitle: str
+    overallStatus: Literal["ready", "blocked"]
+    checks: list[dict]
+
+
 class TopicResponse(BaseModel):
     topicRef: str
     code: str
@@ -163,6 +192,10 @@ class GroupResponse(BaseModel):
     status: str
     topics: list[TopicResponse]
     removable: bool
+    totalTopicCount: int
+    reviewedTopicCount: int
+    publishedTopicCount: int
+    studentEligibleTopicCount: int
 
 
 class TextbookResponse(BaseModel):

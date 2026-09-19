@@ -13,15 +13,16 @@ from sqlalchemy.orm import Session
 
 from app.errors import DomainError
 from app.models import (
-    AssessmentCurriculumSnapshot, AuditEvent, Course, CurriculumPlanTopic, Document, DocumentBlock,
+    AssessmentCurriculumSnapshot, AuditEvent, Course, CurriculumPlan, CurriculumPlanTopic, Document, DocumentBlock,
     DocumentJob, DocumentPage, DocumentVersion, ImprovementRecommendation, OfficialQuestionTopicMapping,
     RetrievalChunk, StudyPlanItem, Subject, Textbook, TextbookGroup, TextbookStructureVersion,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicDocument,
-    TopicMastery, WeaknessDiagnosis,
+    TopicMastery, User, WeaknessDiagnosis,
 )
 from app.schemas.textbook_structures import (
     GroupResponse, GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest,
     TextbookCreateRequest, TextbookListResponse, TextbookResponse, TextbookUpdateRequest,
+    TopicDocumentSourceResponse, TopicLaunchReadinessResponse,
     TopicReadinessResponse, TopicResponse, TopicSaveRequest,
 )
 from app.security import Principal
@@ -32,6 +33,7 @@ from app.services import documents
 from app.config import get_settings
 from app.services.embeddings import embed_texts
 from app.services import topic_quality
+from app.services import curriculum_plans
 
 
 def _book(db: Session, textbook_ref: str, *, include_archived: bool = False) -> Textbook:
@@ -91,6 +93,7 @@ def _structure_version(db: Session, textbook_id: uuid.UUID) -> int:
 
 def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessResponse:
     links = db.scalars(select(TextbookTopicDocument).where(TextbookTopicDocument.topic_id == topic.id)).all()
+    text_links = [link for link in links if link.role != "visual_reference"]
     version = int(db.scalar(select(func.max(TextbookTopicContentVersion.version_number)).where(
         TextbookTopicContentVersion.topic_id == topic.id,
     )) or 0)
@@ -98,8 +101,8 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         TextbookTopicContentVersion.topic_id == topic.id,
         TextbookTopicContentVersion.status == "superseded",
     )) or 0)
-    statuses = [link.review_status for link in links]
-    version_ids = [link.document_version_id for link in links]
+    statuses = [link.review_status for link in text_links]
+    version_ids = [link.document_version_id for link in text_links]
     unresolved_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
         DocumentPage.document_version_id.in_(version_ids), DocumentPage.needs_review.is_(True),
     )) or 0) if version_ids else 0
@@ -109,7 +112,7 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
     average = float(db.scalar(select(func.avg(DocumentBlock.confidence)).where(
         DocumentBlock.document_version_id.in_(version_ids),
     )) or 0) if version_ids else 0
-    primary = sum(link.role == "primary" for link in links)
+    primary = sum(link.role == "primary" for link in text_links)
     processing = sum(value in {"pending", "processing"} for value in statuses)
     review = sum(value == "needs_review" for value in statuses)
     failed = sum(value == "failed" for value in statuses)
@@ -118,7 +121,7 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         TextbookTopicContentVersion.topic_id == topic.id, TextbookTopicContentVersion.status == "published",
     ))
     live_fingerprints = []
-    for link in links:
+    for link in text_links:
         job = db.scalar(select(DocumentJob).where(
             DocumentJob.document_version_id == link.document_version_id,
             DocumentJob.status.in_(("completed", "needs_review")),
@@ -165,7 +168,220 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         unresolvedBlockCount=unresolved_blocks, averageConfidence=round(average, 4), checks=checks)
 
 
+def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[TopicDocumentSourceResponse]:
+    book = _book(db, textbook_ref)
+    topic = _topic(db, book, topic_ref)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+    ).order_by(TextbookTopicDocument.sequence)).all()
+    published_source_ids = set(db.scalars(select(TextbookTopicContentSource.document_version_id).join(
+        TextbookTopicContentVersion,
+        TextbookTopicContentVersion.id == TextbookTopicContentSource.content_version_id,
+    ).where(TextbookTopicContentVersion.topic_id == topic.id)).all())
+    result = []
+    source_tokens: dict[uuid.UUID, set[str]] = {}
+    source_names: dict[uuid.UUID, str] = {}
+    for link in links:
+        version = db.get(DocumentVersion, link.document_version_id)
+        blocks = db.scalars(select(DocumentBlock).where(
+            DocumentBlock.document_version_id == link.document_version_id,
+            DocumentBlock.needs_review.is_(False),
+        )).all()
+        source_tokens[link.document_version_id] = set(re.findall(
+            r"[a-z0-9]+", " ".join(block.text.lower() for block in blocks if block.text),
+        ))
+        source_names[link.document_version_id] = version.original_filename if version else "Unavailable source"
+    for link in links:
+        document = db.get(Document, link.document_id)
+        version = db.get(DocumentVersion, link.document_version_id)
+        unresolved_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id,
+            DocumentPage.needs_review.is_(True),
+        )) or 0)
+        unresolved_blocks = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
+            DocumentBlock.document_version_id == link.document_version_id,
+            DocumentBlock.needs_review.is_(True),
+        )) or 0)
+        if not document or not version:
+            continue
+        publishable_blocks = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
+            DocumentBlock.document_version_id == link.document_version_id,
+            DocumentBlock.needs_review.is_(False),
+            (func.length(func.trim(DocumentBlock.text)) > 0) | DocumentBlock.latex.is_not(None),
+        )) or 0)
+        visual_assets = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
+            DocumentBlock.document_version_id == link.document_version_id,
+            DocumentBlock.block_kind.in_(("image", "diagram", "table")),
+            DocumentBlock.source_asset_id.is_not(None),
+        )) or 0)
+        own_tokens = source_tokens.get(link.document_version_id, set())
+        duplicate_of = []
+        if link.role == "primary" and own_tokens:
+            for other in links:
+                if other.document_version_id == link.document_version_id or other.role != "primary":
+                    continue
+                other_tokens = source_tokens.get(other.document_version_id, set())
+                union = own_tokens | other_tokens
+                if union and len(own_tokens & other_tokens) / len(union) >= 0.8:
+                    duplicate_of.append(source_names[other.document_version_id])
+        result.append(TopicDocumentSourceResponse(
+            documentId=str(document.id), documentVersionId=str(version.id),
+            filename=version.original_filename, role=link.role, sequence=link.sequence,
+            reviewStatus=link.review_status, documentStatus=version.status,
+            libraryReviewState=document.review_state,
+            unresolvedPageCount=unresolved_pages, unresolvedBlockCount=unresolved_blocks,
+            includedInRetrieval=link.role != "visual_reference",
+            usedByPublishedVersion=link.document_version_id in published_source_ids,
+            publishableBlockCount=publishable_blocks, visualAssetCount=visual_assets,
+            duplicateOf=duplicate_of,
+        ))
+    return result
+
+
+def update_topic_source_role(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
+                             document_id: str, role: str) -> list[TopicDocumentSourceResponse]:
+    book = _book(db, textbook_ref)
+    topic = _topic(db, book, topic_ref)
+    try:
+        parsed_document_id = uuid.UUID(document_id)
+    except ValueError as exc:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404) from exc
+    link = db.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.document_id == parsed_document_id,
+    ).with_for_update())
+    if not link:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404)
+    if link.role == role:
+        return list_topic_sources(db, textbook_ref, topic_ref)
+    old_role = link.role
+    link.role = role
+    _audit(db, principal, "textbook_topic_document.role_changed", "textbook_topic", topic.public_ref,
+           {"textbookRef": book.public_ref, "documentId": str(link.document_id),
+            "oldRole": old_role, "newRole": role,
+            "retrievalEffect": "excluded" if role == "visual_reference" else "included_on_next_publication"})
+    db.commit()
+    return list_topic_sources(db, textbook_ref, topic_ref)
+
+
+def topic_launch_readiness(db: Session, textbook_ref: str, topic_ref: str,
+                           student_id: str | None = None) -> TopicLaunchReadinessResponse:
+    book = _book(db, textbook_ref)
+    topic = _topic(db, book, topic_ref)
+    group = db.get(TextbookGroup, topic.group_id)
+    readiness = _topic_readiness(db, topic)
+    sources = list_topic_sources(db, textbook_ref, topic_ref)
+    primary = [source for source in sources if source.role == "primary"]
+    published = db.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentVersion.status == "published",
+    ))
+    covered = bool(db.scalar(select(CurriculumPlanTopic.topic_id).join(
+        CurriculumPlan, CurriculumPlan.id == CurriculumPlanTopic.plan_id,
+    ).where(CurriculumPlan.status == "published", CurriculumPlan.textbook_id == book.id,
+            CurriculumPlanTopic.topic_id == topic.id).limit(1)))
+    chunks = db.scalars(select(RetrievalChunk).where(
+        RetrievalChunk.topic_id == topic.id, RetrievalChunk.status == "active",
+        RetrievalChunk.topic_content_version_id == (published.id if published else None),
+    )).all()
+    canonical_versions = {uuid.UUID(source.documentVersionId) for source in primary}
+    retrieval_ok = bool(chunks) and all(
+        chunk.document_version_id in canonical_versions and chunk.page_number > 0 and bool(chunk.content.strip())
+        for chunk in chunks
+    ) and len({chunk.content_hash for chunk in chunks}) == len(chunks)
+    student_ok = False
+    student_message = "Choose a pilot Student to verify enrolment and cumulative Grade/Term coverage."
+    if student_id:
+        try:
+            parsed_student = uuid.UUID(student_id)
+            student = db.get(User, parsed_student)
+            if not student or student.role != "student":
+                student_message = "The selected Student account was not found."
+            elif not student.is_active:
+                student_message = "Activate the selected Student account before launch."
+            else:
+                coverage = curriculum_plans.student_coverage(db, parsed_student, topic.subject_id)
+                student_ok = coverage.status == "ready" and topic.public_ref in {row.topicRef for row in coverage.coveredTopics}
+                student_message = "The selected Student can access this topic." if student_ok else coverage.message
+        except (ValueError, DomainError) as exc:
+            student_message = exc.message if isinstance(exc, DomainError) else "The selected Student is invalid."
+    extraction_ok = next((check["passed"] for check in readiness.checks
+                          if check["code"] == "extraction_review"), False)
+    checks = [
+        {"code": "textbook_structure", "label": "Textbook structure", "passed": bool(group),
+         "message": f"{group.code} · {group.title} owns {topic.code} · {topic.title}." if group else "Attach the topic to its textbook group.",
+         "href": "/#units"},
+        {"code": "source_selected", "label": "Source selected",
+         "passed": len(primary) >= 1 and not any(source.duplicateOf for source in primary),
+         "message": "Canonical primary source selected." if primary else "Choose a reviewed primary text source.",
+         "href": "/#units"},
+        {"code": "extraction_reviewed", "label": "Extraction reviewed", "passed": extraction_ok,
+         "message": "All required primary-source reviews are complete." if extraction_ok else f"{readiness.unresolvedPageCount} pages and {readiness.unresolvedBlockCount} blocks remain.",
+         "href": "/#library"},
+        {"code": "topic_published", "label": "Topic published", "passed": bool(published),
+         "message": f"Published content version {published.version_number}." if published else "Publish this topic independently.",
+         "href": "/#units"},
+        {"code": "coverage_active", "label": "Coverage active", "passed": covered,
+         "message": "The topic is in active published Grade/Term coverage." if covered else "Add the published topic to Grade & term coverage.",
+         "href": "/#coverage"},
+        {"code": "student_eligible", "label": "Student eligible", "passed": student_ok,
+         "message": student_message, "href": "/#accounts"},
+        {"code": "retrieval_passed", "label": "Retrieval passed", "passed": retrieval_ok,
+         "message": f"{len(chunks)} unique, page-cited canonical chunks are active." if retrieval_ok else "Publish and verify unique page-cited chunks from the canonical source.",
+         "href": "/#units"},
+        {"code": "deck_generated", "label": "Deck generated", "passed": False,
+         "message": "Flashcard deck generation is not implemented yet.", "href": "/#flashcards"},
+        {"code": "deck_released", "label": "Deck released", "passed": False,
+         "message": "No reviewed flashcard deck has been released.", "href": "/#flashcards"},
+        {"code": "student_access", "label": "Student access enabled", "passed": False,
+         "message": "Keep access disabled until Tutor and flashcard evaluations pass.", "href": "/#evaluations"},
+    ]
+    return TopicLaunchReadinessResponse(topicRef=topic.public_ref, topicTitle=topic.title,
+        overallStatus="ready" if all(check["passed"] for check in checks) else "blocked", checks=checks)
+
+
+def detach_topic_source(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
+                        document_id: str) -> list[TopicDocumentSourceResponse]:
+    book = _book(db, textbook_ref)
+    topic = _topic(db, book, topic_ref)
+    try:
+        parsed_document_id = uuid.UUID(document_id)
+    except ValueError as exc:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404) from exc
+    link = db.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.document_id == parsed_document_id,
+    ).with_for_update())
+    if not link:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404)
+    historical_use = bool(db.scalar(select(TextbookTopicContentSource.content_version_id).join(
+        TextbookTopicContentVersion,
+        TextbookTopicContentVersion.id == TextbookTopicContentSource.content_version_id,
+    ).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentSource.document_version_id == link.document_version_id,
+    ).limit(1)))
+    details = {"textbookRef": book.public_ref, "documentId": str(link.document_id),
+               "documentVersionId": str(link.document_version_id), "role": link.role,
+               "historicalPublishedUsePreserved": historical_use}
+    db.delete(link)
+    _audit(db, principal, "textbook_topic_document.detached", "textbook_topic", topic.public_ref, details)
+    db.commit()
+    return list_topic_sources(db, textbook_ref, topic_ref)
+
+
 def _response(db: Session, book: Textbook) -> TextbookResponse:
+    published_topic_ids = set(db.scalars(select(TextbookTopicContentVersion.topic_id).where(
+        TextbookTopicContentVersion.status == "published",
+    )).all())
+    covered_topic_ids = set(db.scalars(select(CurriculumPlanTopic.topic_id).join(
+        CurriculumPlan, CurriculumPlan.id == CurriculumPlanTopic.plan_id,
+    ).where(
+        CurriculumPlan.course_id == book.course_id,
+        CurriculumPlan.subject_id == book.subject_id,
+        CurriculumPlan.textbook_id == book.id,
+        CurriculumPlan.status == "published",
+    )).all())
     groups = db.scalars(select(TextbookGroup).where(
         TextbookGroup.textbook_id == book.id, TextbookGroup.status != "archived",
     ).order_by(TextbookGroup.sequence, TextbookGroup.code)).all()
@@ -175,18 +391,28 @@ def _response(db: Session, book: Textbook) -> TextbookResponse:
             TextbookTopic.group_id == group.id, TextbookTopic.status != "archived",
         ).order_by(TextbookTopic.sequence, TextbookTopic.code)).all()
         topic_responses = []
+        reviewed_topic_count = 0
         for topic in topics:
             references = _topic_references(db, topic.id)
+            readiness = _topic_readiness(db, topic)
+            extraction_review = next((check for check in readiness.checks if check["code"] == "extraction_review"), None)
+            if readiness.primaryDocumentCount > 0 and extraction_review and extraction_review["passed"]:
+                reviewed_topic_count += 1
             topic_responses.append(TopicResponse(
                 topicRef=topic.public_ref, code=topic.code, title=topic.title, sequence=topic.sequence,
                 syllabusRef=topic.syllabus_ref, description=topic.description, status=topic.status,
                 documentCount=references["documents"], removable=not any(references.values()),
-                content=_topic_readiness(db, topic),
+                content=readiness,
             ))
+        topic_ids = {topic.id for topic in topics}
+        group_published_ids = topic_ids & published_topic_ids
         group_responses.append(GroupResponse(
             groupRef=group.public_ref, code=group.code, title=group.title, summary=group.summary,
             sequence=group.sequence, status=group.status, topics=topic_responses,
             removable=not topics,
+            totalTopicCount=len(topics), reviewedTopicCount=reviewed_topic_count,
+            publishedTopicCount=len(group_published_ids),
+            studentEligibleTopicCount=len(group_published_ids & covered_topic_ids),
         ))
     return TextbookResponse(
         textbookRef=book.public_ref, courseId=book.course_id, subjectId=book.subject_id,
@@ -428,8 +654,8 @@ def upload_topic_part(db: Session, storage: ObjectStorage, queue: DocumentQueue,
                       content_type: str, role: str, printed_start_page: str | None,
                       printed_end_page: str | None, idempotency_key: str) -> DocumentUploadResponse:
     book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
-    if role not in {"primary", "supporting", "reference"}:
-        raise DomainError("invalid_topic_document_role", "Choose primary, supporting or reference.", 422)
+    if role not in {"primary", "supporting", "reference", "visual_reference"}:
+        raise DomainError("invalid_topic_document_role", "Choose primary, supporting, reference or visual reference.", 422)
     scoped_key = f"topic-part:{topic.public_ref}:{idempotency_key.strip()}"
     response = documents.upload_document(
         db, storage, queue, principal, content=content, filename=filename, content_type=content_type,
@@ -513,8 +739,15 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     if not readiness.ready:
         raise DomainError("topic_content_not_ready", "Resolve every topic readiness check before publishing.", 409,
                           [check for check in readiness.checks if not check["passed"]])
+    duplicates = [source for source in list_topic_sources(db, textbook_ref, topic_ref)
+                  if source.role == "primary" and source.duplicateOf]
+    if duplicates:
+        raise DomainError("duplicate_primary_topic_sources",
+                          "Choose one canonical primary source before publishing duplicate textbook text.", 409,
+                          [{"filename": source.filename, "duplicates": source.duplicateOf} for source in duplicates])
     links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.role != "visual_reference",
         TextbookTopicDocument.review_status.in_(("ready", "published")),
     ).order_by(TextbookTopicDocument.sequence).with_for_update()).all()
     source_manifest = []
@@ -537,7 +770,11 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         source_manifest.append({"documentId": str(document.id), "documentVersionId": str(version.id),
                                 "documentVersion": version.version_number, "checksum": version.sha256,
                                 "role": link.role, "sequence": link.sequence,
-                                "extractionVersion": job.extraction_version, "reviewedContentHash": digest})
+                                "extractionVersion": job.extraction_version, "reviewedContentHash": digest,
+                                "pages": [{"pageNumber": page.page_number,
+                                           "printedPageLabel": page.printed_page_label,
+                                           "reviewedBlockCount": sum(block.page_id == page.id for block in blocks)}
+                                          for page in sorted(pages, key=lambda item: item.page_number)]})
         for block in blocks:
             page = page_map.get(block.page_id)
             if page and (block.text.strip() or block.latex):

@@ -1,5 +1,6 @@
 from enum import StrEnum
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -118,7 +119,7 @@ class TopicPartBatchItem(BaseModel):
     filename: str
     contentType: str
     contentBase64: str
-    role: str = "primary"
+    role: Literal["primary", "supporting", "reference", "visual_reference"] = "primary"
     printedStartPage: str | None = None
     printedEndPage: str | None = None
     idempotencyKey: str = Field(min_length=8, max_length=100)

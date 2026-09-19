@@ -18,7 +18,9 @@ QUESTION_RE = re.compile(r"^\s*(?:question\s+)?\d+[.)]\s+", re.IGNORECASE)
 SUBPART_RE = re.compile(r"^\s*(?:\([a-zivx]+\)|[a-z][.)])\s+", re.IGNORECASE)
 MATH_RE = re.compile(r"(?:[=±×÷√∑∫≤≥]|\b(?:sin|cos|tan|log)\b|\w\s*[²³]|\w\s*\^\s*\d)", re.IGNORECASE)
 ANSWER_RE = re.compile(r"(?:_{3,}|\.{5,}|\[\s*\d+\s*marks?\s*\])", re.IGNORECASE)
-SCIENCE_NOTATION_RE = re.compile(r"(?:[A-Z][a-z]?\d|[₀-₉⁰-⁹]|→|⇌|\b(?:acid|alkali|mole|ion)\b)", re.IGNORECASE)
+SCIENCE_NOTATION_RE = re.compile(
+    r"(?:\b(?:[A-Z][a-z]?\d*)*[A-Z][a-z]?\d+(?:[A-Z][a-z]?\d*)*\b|[₀-₉⁰-⁹]|→|⇌)"
+)
 
 
 def _normalize_render(png: bytes) -> tuple[bytes, dict]:
@@ -26,13 +28,13 @@ def _normalize_render(png: bytes) -> tuple[bytes, dict]:
     gray = ImageOps.grayscale(image)
     contrast = float(ImageStat.Stat(gray).stddev[0])
     extrema = gray.getextrema()
-    normalized = ImageOps.autocontrast(image, cutoff=1) if extrema[1] - extrema[0] < 220 else image.copy()
+    normalized = ImageOps.autocontrast(image, cutoff=1)
     stream = io.BytesIO(); normalized.save(stream, format="PNG")
     return stream.getvalue(), {
         "orientationDetectedDegrees": 0, "rotationAppliedDegrees": 0, "deskewAppliedDegrees": 0,
         "widthPixels": image.width, "heightPixels": image.height,
         "contrastScore": round(min(1.0, contrast / 64.0), 4),
-        "lowContrast": contrast < 22, "normalization": "exif-safe-autocontrast-v1",
+        "lowContrast": contrast < 22, "normalization": "exif-safe-autocontrast-v2",
     }
 
 
@@ -82,6 +84,44 @@ def _available_languages(command: str) -> set[str]:
     return {line.strip() for line in result.stdout.splitlines()[1:] if line.strip()}
 
 
+def _layout_aware_order(blocks: list[dict]) -> tuple[list[dict], dict]:
+    """Order OCR lines across textbook columns while preserving spanning headings."""
+    narrow = [block for block in blocks if block["bbox"]["x1"] - block["bbox"]["x0"] < 0.62]
+    left = [block for block in narrow if (block["bbox"]["x0"] + block["bbox"]["x1"]) / 2 < 0.44]
+    right = [block for block in narrow if (block["bbox"]["x0"] + block["bbox"]["x1"]) / 2 > 0.56]
+    two_columns = len(left) >= 2 and len(right) >= 2
+    if not two_columns:
+        ordered = sorted(blocks, key=lambda item: (item["bbox"]["y0"], item["bbox"]["x0"]))
+        for block in ordered:
+            block["metadata"]["layoutColumn"] = "single"
+        return ordered, {"layout": "single_column", "columnCount": 1}
+
+    spanning = [block for block in blocks if block not in narrow]
+    remaining = [block for block in blocks if block in narrow]
+
+    def column(block: dict) -> str:
+        center = (block["bbox"]["x0"] + block["bbox"]["x1"]) / 2
+        return "left" if center < 0.5 else "right"
+
+    def order_region(region: list[dict]) -> list[dict]:
+        return sorted(
+            region,
+            key=lambda item: (0 if column(item) == "left" else 1, item["bbox"]["y0"], item["bbox"]["x0"]),
+        )
+
+    ordered: list[dict] = []
+    for heading in sorted(spanning, key=lambda item: (item["bbox"]["y0"], item["bbox"]["x0"])):
+        before = [block for block in remaining if block["bbox"]["y0"] < heading["bbox"]["y0"]]
+        remaining = [block for block in remaining if block not in before]
+        ordered.extend(order_region(before))
+        heading["metadata"]["layoutColumn"] = "spanning"
+        ordered.append(heading)
+    ordered.extend(order_region(remaining))
+    for block in ordered:
+        block["metadata"].setdefault("layoutColumn", column(block))
+    return ordered, {"layout": "multi_column", "columnCount": 2}
+
+
 def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], dict]:
     available = _available_languages(command)
     wanted = ["fra", "eng"] if subject_id.lower() == "french" else ["eng"]
@@ -93,7 +133,7 @@ def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], 
         image_path.write_bytes(png)
         try:
             result = subprocess.run(
-                [command, str(image_path), "stdout", "-l", "+".join(selected), "--psm", "6", "tsv"],
+                [command, str(image_path), "stdout", "-l", "+".join(selected), "--psm", "3", "tsv"],
                 capture_output=True, text=True, timeout=60, check=True,
             )
         except (OSError, subprocess.SubprocessError) as exc:
@@ -128,12 +168,22 @@ def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], 
             "method": "ocr",
             "confidence": round(max(0, min(confidence, 1)), 4),
             "needsReview": confidence < 0.85 or notation_review,
-            "metadata": {"ocrLanguage": "+".join(selected), "notationReview": notation_review},
+            "metadata": {
+                "ocrLanguage": "+".join(selected), "notationReview": notation_review,
+                "ocrBlock": int(words[0]["block_num"]), "ocrParagraph": int(words[0]["par_num"]),
+                "ocrLine": int(words[0]["line_num"]),
+            },
         }
         blocks.append(block)
         if MATH_RE.search(text) and kind != "equation":
             blocks.append({**block, "kind": "equation", "needsReview": True})
-    return blocks, {"languagesRequested": wanted, "languagesUsed": selected, "languageFallback": selected != wanted}
+    blocks, layout = _layout_aware_order(blocks)
+    for reading_order, block in enumerate(blocks, 1):
+        block["metadata"]["layoutReadingOrder"] = reading_order
+    return blocks, {
+        "languagesRequested": wanted, "languagesUsed": selected,
+        "languageFallback": selected != wanted, "pageSegmentationMode": 3, **layout,
+    }
 
 
 def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:

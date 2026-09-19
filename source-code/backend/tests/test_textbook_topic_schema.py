@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 
 from app.database import Base
 from app import models  # noqa: F401
@@ -42,3 +42,19 @@ def test_identity_and_operational_tables_remain_present() -> None:
         "ai_provider_accounts", "student_ai_quotas", "audit_events",
     }
     assert preserved <= set(Base.metadata.tables)
+
+
+def test_topic_sources_support_non_retrievable_visual_references() -> None:
+    constraints = [
+        constraint for constraint in Base.metadata.tables["textbook_topic_documents"].constraints
+        if isinstance(constraint, CheckConstraint) and constraint.name == "ck_topic_document_role"
+    ]
+    assert len(constraints) == 1
+    assert "visual_reference" in str(constraints[0].sqltext)
+
+
+def test_topic_identity_is_stable_and_scoped_to_its_textbook_subject() -> None:
+    topic = Base.metadata.tables["textbook_topics"]
+    assert topic.c.public_ref.unique
+    assert "fk_textbook_topic_group_scope" in _constraint_names("textbook_topics", ForeignKeyConstraint)
+    assert "fk_textbook_topic_book_scope" in _constraint_names("textbook_topics", ForeignKeyConstraint)

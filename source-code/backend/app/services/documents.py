@@ -310,10 +310,14 @@ def update_extraction_page(db: Session, principal: Principal, document_id: uuid.
     if not page:
         raise DomainError("document_page_not_found", "The extracted page could not be found.", 404)
     page.printed_page_label = (printed_page_label or "").strip() or None
+    page.needs_review = bool(db.scalar(select(DocumentBlock.id).where(
+        DocumentBlock.page_id == page.id, DocumentBlock.needs_review.is_(True),
+    ).limit(1)))
+    page.page_metadata = {**page.page_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
     db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
                          event_type="page_reviewed", event_data={"pageNumber": page.page_number,
                                                                   "printedPageLabel": page.printed_page_label}))
-    _refresh_topic_document_readiness(db, version.id)
+    _refresh_topic_document_readiness(db, version.id, principal.user.id)
     db.commit()
     return extraction_response(db, document_id)
 
@@ -345,18 +349,17 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
     db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
                          event_type="extraction_block_corrected", event_data={"pageNumber": page.page_number if page else None,
                                                                               "blockId": str(block.id)}))
-    _refresh_topic_document_readiness(db, version.id)
+    _refresh_topic_document_readiness(db, version.id, principal.user.id)
     db.commit()
     return extraction_response(db, document_id)
 
 
-def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUID) -> None:
+def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUID,
+                                      actor_id: uuid.UUID | None = None) -> None:
     from app.models import TextbookTopicDocument
-    link = db.scalar(select(TextbookTopicDocument).where(
+    links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.document_version_id == document_version_id,
-    ))
-    if not link or link.review_status in {"failed", "superseded"}:
-        return
+    )).all()
     unresolved_pages = db.scalar(select(DocumentPage.id).where(
         DocumentPage.document_version_id == document_version_id, DocumentPage.needs_review.is_(True),
     ).limit(1))
@@ -366,7 +369,23 @@ def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUI
     page_exists = db.scalar(select(DocumentPage.id).where(
         DocumentPage.document_version_id == document_version_id,
     ).limit(1))
-    link.review_status = "ready" if page_exists and not unresolved_pages and not unresolved_blocks else "needs_review"
+    complete = bool(page_exists and not unresolved_pages and not unresolved_blocks)
+    version = db.get(DocumentVersion, document_version_id)
+    document = db.get(Document, version.document_id) if version else None
+    was_complete = bool(version and version.status == "completed" and document and document.review_state in {"reviewed", "published"})
+    if version and version.status not in {"failed", "removed"}:
+        version.status = "completed" if complete else "needs_review"
+    if document and document.review_state not in {"published", "rejected"}:
+        document.review_state = "reviewed" if complete else "pending"
+    for link in links:
+        if link.review_status not in {"failed", "superseded", "published"}:
+            link.review_status = "ready" if complete else "needs_review"
+    if complete and not was_complete and document and actor_id:
+        db.add(DocumentEvent(document_id=document.id, document_version_id=document_version_id,
+                             actor_id=actor_id, event_type="extraction_review_completed",
+                             event_data={"pageCount": len(db.scalars(select(DocumentPage.id).where(
+                                 DocumentPage.document_version_id == document_version_id)).all()),
+                                         "topicAttachmentCount": len(links)}))
 
 
 def download_asset(
