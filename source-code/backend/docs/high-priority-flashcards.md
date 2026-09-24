@@ -33,4 +33,4 @@ Authenticated endpoints are under `/api/v1/flashcards`:
 - Admin: list/get decks and withdraw a released deck.
 - Student: list eligible decks, inspect study options, start/resume a mode, reveal an answer and record a rating.
 
-Every revealed answer links back to the exact authorized textbook passage.
+Every revealed answer shows the exact authorized textbook passage. Extraction-only page-boundary markers are removed before display. When the passage mentions a figure, AKURU may show an approved primary-source visual whose reviewed caption matches the figure number; an explicit approved visual reference in the curated artifact takes precedence. The matching printed page is independently resolved from the published visual-reference source and served through a Student-owned session endpoint. The browser never receives a raw retrieval-evidence JSON link.

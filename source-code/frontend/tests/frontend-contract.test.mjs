@@ -576,7 +576,7 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(textbookStructure, /View launch readiness/);
   assert.match(textbookStructure, /Detach from topic/);
   assert.match(textbookStructure, /Possible duplicate primary text/);
-  assert.match(textbookStructure, /Apply recommended v2\.1 source roles/);
+  assert.match(textbookStructure, /Apply recommended source roles/);
   assert.match(textbookStructure, /Authoritative review checklist/);
   assert.match(textbookStructure, /Select and review visual assets/);
   assert.match(textbookStructure, /Accessible text alternative/);
@@ -601,5 +601,8 @@ test('curated flashcards are source grounded and offer deterministic Student stu
   assert.match(flashcards, /How well did you remember it?/);
   assert.match(flashcards, /aria-live="polite"/);
   assert.match(flashcards, /<fieldset className="flashcard-face"/);
-  assert.match(flashcards, /View source details/);
+  assert.match(flashcards, /View matching textbook page/);
+  assert.match(flashcards, /source\.visual\.contentUrl/);
+  assert.match(flashcards, /printed page/);
+  assert.doesNotMatch(flashcards, /source\.sourceUrl/);
 });

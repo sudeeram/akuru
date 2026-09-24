@@ -312,6 +312,8 @@ export interface ApiOperations {
   "GET /api/v1/flashcards/student/sessions/{session_ref}": { request: unknown; response: Schemas["FlashcardSessionResponse"] };
   "POST /api/v1/flashcards/student/sessions/{session_ref}/rate": { request: Schemas["FlashcardRatingRequest"]; response: Schemas["FlashcardSessionResponse"] };
   "POST /api/v1/flashcards/student/sessions/{session_ref}/reveal": { request: unknown; response: Schemas["FlashcardSessionResponse"] };
+  "GET /api/v1/flashcards/student/sessions/{session_ref}/textbook-pages/{page_id}": { request: unknown; response: unknown };
+  "GET /api/v1/flashcards/student/sessions/{session_ref}/visuals/{visual_ref}": { request: unknown; response: unknown };
   "GET /api/v1/mastery/students/{student_id}": { request: unknown; response: Schemas["MasteryResponse"] };
   "GET /api/v1/media": { request: unknown; response: Schemas["MediaListResponse"] };
   "POST /api/v1/media/admin/deterministic": { request: Schemas["DeterministicMediaCreate"]; response: Schemas["MediaResponse"] };

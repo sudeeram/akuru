@@ -7,14 +7,16 @@ from sqlalchemy.orm import Session
 
 from app.errors import DomainError
 from app.models import (
-    AuditEvent, Document, DocumentBlock, DocumentPage, FlashcardDeck, FlashcardLearningState,
+    AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, FlashcardDeck, FlashcardLearningState,
     FlashcardReview, FlashcardSession, FlashcardVersion, RetrievalChunk, TextbookGroup,
-    TextbookTopic, TextbookTopicContentVersion, TopicRetrievalPreflight, WeaknessDiagnosis,
+    TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicVisualAsset,
+    TopicRetrievalPreflight, WeaknessDiagnosis,
 )
 from app.schemas.flashcards import (FlashcardCardResponse, FlashcardDeckResponse, FlashcardSessionResponse,
     FlashcardStudyOption, FlashcardStudyOptionsResponse)
 from app.security import Principal
 from app.services.curriculum_plans import student_coverage
+from app.storage.base import ObjectStorage, StoredObject
 
 
 PROMPT_VERSION = "grounded-flashcards-v1"
@@ -61,24 +63,92 @@ def _latest_cards(db: Session, deck_id) -> list[FlashcardVersion]:
     return list(latest.values())
 
 
-def _source(db: Session, chunk: RetrievalChunk, student_id=None) -> dict:
+_PAGE_BOUNDARY = re.compile(
+    r"\b(?:start|end)\s+of\s+(?:printed\s+)?page\s+[a-z0-9._-]+\b\s*[:;,.\-–—]*",
+    re.IGNORECASE,
+)
+_FIGURE_REFERENCE = re.compile(r"\bfig(?:ure)?\s*(\d+(?:\.\d+)*)\b", re.IGNORECASE)
+
+
+def _clean_passage(value: str) -> str:
+    """Remove extraction navigation markers that are not textbook content."""
+    return " ".join(_PAGE_BOUNDARY.sub(" ", value).split())
+
+
+def _approved_visual(db: Session, card: FlashcardVersion, chunk: RetrievalChunk,
+                     page: DocumentPage | None) -> TextbookTopicVisualAsset | None:
+    if card.visual_asset_id:
+        visual = db.get(TextbookTopicVisualAsset, card.visual_asset_id)
+        return visual if visual and visual.status == "approved" else None
+    figure = _FIGURE_REFERENCE.search(chunk.content)
+    if not figure:
+        return None
+    content_sources = select(TextbookTopicContentSource.document_version_id).where(
+        TextbookTopicContentSource.content_version_id == chunk.topic_content_version_id,
+        TextbookTopicContentSource.role == "primary",
+    )
+    candidates = db.scalars(select(TextbookTopicVisualAsset).where(
+        TextbookTopicVisualAsset.topic_id == chunk.topic_id,
+        TextbookTopicVisualAsset.status == "approved",
+        TextbookTopicVisualAsset.document_version_id.in_(content_sources),
+    ).order_by(TextbookTopicVisualAsset.reviewed_at.desc())).all()
+    label = figure.group(1)
+    matching = [row for row in candidates if re.search(
+        rf"\bfig(?:ure)?\s*{re.escape(label)}\b", row.caption, re.IGNORECASE)]
+    if page:
+        same_page = [row for row in matching if (block := db.get(DocumentBlock, row.block_id))
+                     and block.page_id == page.id]
+        if same_page:
+            return same_page[0]
+    return matching[0] if len(matching) == 1 else None
+
+
+def _visual_reference_page(db: Session, chunk: RetrievalChunk,
+                           printed_page: str | None) -> DocumentPage | None:
+    if not printed_page:
+        return None
+    versions = select(TextbookTopicContentSource.document_version_id).where(
+        TextbookTopicContentSource.content_version_id == chunk.topic_content_version_id,
+        TextbookTopicContentSource.role == "visual_reference",
+    )
+    return db.scalar(select(DocumentPage).where(
+        DocumentPage.document_version_id.in_(versions),
+        DocumentPage.printed_page_label == printed_page,
+    ).order_by(DocumentPage.page_number))
+
+
+def _source(db: Session, chunk: RetrievalChunk, card: FlashcardVersion | None = None,
+            session_ref: str | None = None) -> dict:
     document = db.get(Document, chunk.document_id)
     block = db.get(DocumentBlock, chunk.source_item_id)
     page = db.get(DocumentPage, block.page_id) if block else None
-    return {
+    printed_page = page.printed_page_label if page else None
+    result = {
         "chunkRef": str(chunk.id), "documentTitle": document.title if document else "Textbook",
-        "page": chunk.page_number, "printedPage": page.printed_page_label if page else None,
-        "passage": chunk.content,
-        "sourceUrl": (f"/api/v1/retrieval/evidence/{chunk.id}?studentId={student_id}"
-                      if student_id else None),
+        "page": chunk.page_number, "printedPage": printed_page,
+        "passage": _clean_passage(chunk.content),
     }
+    if card and session_ref:
+        visual = _approved_visual(db, card, chunk, page)
+        if visual:
+            result["visual"] = {"caption": visual.caption,
+                "altText": visual.alt_text or card.card_metadata.get("visualAltText", ""),
+                "contentUrl": f"/api/v1/flashcards/student/sessions/{session_ref}/visuals/{visual.public_ref}"}
+        textbook_page = _visual_reference_page(db, chunk, printed_page)
+        if textbook_page:
+            result["textbookPageUrl"] = (
+                f"/api/v1/flashcards/student/sessions/{session_ref}/textbook-pages/{textbook_page.id}")
+    return result
 
 
-def _card_out(db: Session, card: FlashcardVersion, *, reveal=False, student_id=None):
+def _card_out(db: Session, card: FlashcardVersion, *, reveal=False, session_ref=None):
     chunk = db.get(RetrievalChunk, card.source_chunk_id)
     snapshot = dict(card.source_snapshot or {})
-    if chunk and student_id:
-        snapshot.update(_source(db, chunk, student_id))
+    if chunk and session_ref:
+        snapshot.update(_source(db, chunk, card, session_ref))
+    elif "passage" in snapshot:
+        snapshot["passage"] = _clean_passage(snapshot["passage"])
+    snapshot.pop("sourceUrl", None)
     return FlashcardCardResponse(cardRef=card.public_ref, ordinal=card.ordinal,
         version=card.version_number, front=card.front, back=card.back if reveal else None,
         status=card.status, warnings=card.validation_warnings or [], source=snapshot,
@@ -105,7 +175,7 @@ def _deck_out(db: Session, deck: FlashcardDeck, *, include_cards=True, reveal=Tr
         contentVersion=version.version_number, cardCount=len(cards),
         approvedCount=counts["approved"], reviewRequiredCount=counts["review_required"],
         rejectedCount=counts["rejected"],
-        cards=[_card_out(db, row, reveal=reveal, student_id=student_id) for row in cards]
+        cards=[_card_out(db, row, reveal=reveal) for row in cards]
               if include_cards else [],
         releasedAt=deck.released_at.isoformat() if deck.released_at else None,
         releaseId=deck.generation_metadata.get("releaseId"),
@@ -353,6 +423,56 @@ def _owned_session(db: Session, principal: Principal, session_ref: str):
     return row
 
 
+def _current_card(db: Session, session: FlashcardSession) -> FlashcardVersion:
+    ids = [str(value) for value in session.selected_card_version_ids]
+    if session.status != "active" or session.current_ordinal > len(ids):
+        raise DomainError("flashcard_not_found", "The current flashcard is unavailable.", 404)
+    card = db.get(FlashcardVersion, uuid.UUID(ids[session.current_ordinal - 1]))
+    if not card:
+        raise DomainError("flashcard_not_found", "The current flashcard is unavailable.", 404)
+    return card
+
+
+def _stored_asset(storage: ObjectStorage, asset: DocumentAsset, missing_code: str) -> StoredObject:
+    try:
+        return storage.get(asset.object_key, asset.mime_type)
+    except FileNotFoundError as error:
+        raise DomainError(missing_code, "The approved textbook image is unavailable.", 404) from error
+
+
+def open_visual(db: Session, principal: Principal, storage: ObjectStorage,
+                session_ref: str, visual_ref: str) -> StoredObject:
+    session = _owned_session(db, principal, session_ref)
+    card = _current_card(db, session)
+    chunk = db.get(RetrievalChunk, card.source_chunk_id)
+    block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
+    page = db.get(DocumentPage, block.page_id) if block else None
+    visual = _approved_visual(db, card, chunk, page) if chunk else None
+    if not visual or visual.public_ref != visual_ref:
+        raise DomainError("flashcard_visual_not_found", "The approved flashcard visual was not found.", 404)
+    asset = db.get(DocumentAsset, visual.document_asset_id)
+    if not asset:
+        raise DomainError("flashcard_visual_not_found", "The approved flashcard visual was not found.", 404)
+    return _stored_asset(storage, asset, "flashcard_visual_missing")
+
+
+def open_textbook_page(db: Session, principal: Principal, storage: ObjectStorage,
+                       session_ref: str, page_id: uuid.UUID) -> StoredObject:
+    session = _owned_session(db, principal, session_ref)
+    card = _current_card(db, session)
+    chunk = db.get(RetrievalChunk, card.source_chunk_id)
+    block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
+    source_page = db.get(DocumentPage, block.page_id) if block else None
+    expected = _visual_reference_page(
+        db, chunk, source_page.printed_page_label if source_page else None) if chunk else None
+    if not expected or expected.id != page_id:
+        raise DomainError("flashcard_textbook_page_not_found", "The matching textbook page was not found.", 404)
+    asset = db.get(DocumentAsset, expected.original_render_asset_id or expected.render_asset_id)
+    if not asset:
+        raise DomainError("flashcard_textbook_page_not_found", "The matching textbook page was not found.", 404)
+    return _stored_asset(storage, asset, "flashcard_textbook_page_missing")
+
+
 def _session_out(db: Session, session: FlashcardSession, reveal=False, message="Ready to study."):
     deck = db.get(FlashcardDeck, session.deck_id)
     reviews = db.scalars(select(FlashcardReview).where(FlashcardReview.session_id == session.id)).all()
@@ -363,7 +483,7 @@ def _session_out(db: Session, session: FlashcardSession, reveal=False, message="
     return FlashcardSessionResponse(sessionRef=session.public_ref,
         deck=_deck_out(db, deck, include_cards=False, student_id=session.student_id), status=session.status,
         currentOrdinal=session.current_ordinal, reviewedCount=len(reviews), totalCards=len(ids),
-        currentCard=_card_out(db, current, reveal=reveal, student_id=session.student_id) if current else None,
+        currentCard=_card_out(db, current, reveal=reveal, session_ref=session.public_ref) if current else None,
         answerRevealed=reveal, schedulerVersion=session.scheduler_version, message=message,
         mode=session.mode, selectionReasons=session.selection_reasons)
 

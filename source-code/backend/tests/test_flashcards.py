@@ -2,7 +2,7 @@ from app.main import app
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from app.services.flashcards import (INTERVALS, PROMPT_VERSION, SCHEDULER_VERSION, SELECTION_VERSION,
-    _question, _schedule, _selection_reason)
+    _clean_passage, _question, _schedule, _selection_reason)
 from app.schemas.flashcard_artifacts import FlashcardReleaseArtifact
 from app.services.flashcard_artifacts import _quality_errors, canonical_checksum
 
@@ -34,6 +34,15 @@ def test_openapi_exposes_role_scoped_flashcard_workflow():
     assert "/api/v1/flashcards/student/decks/{deck_ref}/study-options" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/reveal" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/rate" in paths
+    assert "/api/v1/flashcards/student/sessions/{session_ref}/visuals/{visual_ref}" in paths
+    assert "/api/v1/flashcards/student/sessions/{session_ref}/textbook-pages/{page_id}" in paths
+
+
+def test_student_source_excerpt_removes_extraction_page_boundaries():
+    assert _clean_passage("Start of page 4: Particles are close together. End of page 5") == \
+        "Particles are close together."
+    assert _clean_passage("A real textbook sentence remains unchanged.") == \
+        "A real textbook sentence remains unchanged."
 
 
 def test_curated_artifact_checksum_and_quality_rules_are_deterministic():

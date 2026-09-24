@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { BookOpen, CheckCircle2, Layers3, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Heading, Empty, Status } from './shared';
+import { LearningImage } from './learning-media';
 import { errorMessage, getAdminFlashcardDeck, getAdminFlashcardDecks, getFlashcardStudyOptions,
   getStudentFlashcardDecks, rateFlashcard, revealFlashcard, startFlashcardSession,
   withdrawFlashcardDeck, type FlashcardDeck, type FlashcardMode, type FlashcardSession,
@@ -99,7 +100,12 @@ export function StudentFlashcards() {
       <progress value={session.reviewedCount} max={session.totalCards} aria-label={`${progress}% complete`}/>
       {session.status === 'completed' ? <div className="flashcard-finished"><CheckCircle2 size={48}/><h2>Session complete</h2><p>{session.message}</p><Button onClick={() => { setSession(null); setSelectedDeck(null); }}><RotateCcw size={16}/>Choose another deck</Button></div>
       : session.currentCard && <><fieldset className="flashcard-face"><legend className="sr-only">Current flashcard</legend><span className="eyebrow">QUESTION</span><h2>{session.currentCard.front}</h2>
-        {session.answerRevealed && <div className="flashcard-answer"><span className="eyebrow">APPROVED ANSWER</span><p>{session.currentCard.back}</p><details><summary>Open exact textbook source</summary><blockquote>{session.currentCard.source.passage}</blockquote>{session.currentCard.source.sourceUrl && <a href={session.currentCard.source.sourceUrl} target="_blank" rel="noreferrer">View source details · page {session.currentCard.source.printedPage || session.currentCard.source.page}</a>}</details></div>}
+        {session.answerRevealed && <div className="flashcard-answer"><span className="eyebrow">APPROVED ANSWER</span><p>{session.currentCard.back}</p>
+          {session.currentCard.source.visual && <div className="stack"><p><strong>{session.currentCard.source.visual.caption || 'Textbook figure'}</strong></p><LearningImage src={session.currentCard.source.visual.contentUrl} description={session.currentCard.source.visual.altText} title={session.currentCard.source.visual.caption || 'Textbook figure'}/></div>}
+          <details><summary>Open exact textbook source</summary><p className="small"><strong>{session.currentCard.source.documentTitle}</strong> · printed page {session.currentCard.source.printedPage || session.currentCard.source.page}</p><blockquote>{session.currentCard.source.passage}</blockquote>
+            {session.currentCard.source.textbookPageUrl && <a href={session.currentCard.source.textbookPageUrl} target="_blank" rel="noreferrer">View matching textbook page {session.currentCard.source.printedPage || session.currentCard.source.page}</a>}
+          </details>
+        </div>}
       </fieldset>
       {!session.answerRevealed ? <Button className="primary" disabled={busy} onClick={() => void run(() => revealFlashcard(session.sessionRef))}>Show approved answer</Button>
       : <fieldset className="rating-buttons"><legend>How well did you remember it?</legend>{([['again','Again'],['difficult','Difficult'],['good','Good'],['easy','Easy']] as const).map(([value,label]) => <Button key={value} variant={value === 'good' ? 'default' : 'outline'} disabled={busy} onClick={() => void run(() => rateFlashcard(session.sessionRef, value, crypto.randomUUID()))}>{label}</Button>)}</fieldset>}</>}

@@ -62,6 +62,8 @@ Try to answer before selecting **Show approved answer**. Compare your idea with 
 
 You can leave an unfinished mode and resume it later. Flashcard study uses reviewed cards already stored in AKURU and does not generate new questions while you study.
 
+After revealing an answer, open **Exact textbook source** to read the approved excerpt and its familiar printed page number. If the excerpt refers to a reviewed figure, AKURU displays that figure with its caption and accessible description. **View matching textbook page** opens an image of the corresponding page from the original visual-reference textbook; it does not open technical JSON data.
+
 
 ## Step 17: Understanding Feedback
 Open My progress, then select a question. Read how each mark was decided,

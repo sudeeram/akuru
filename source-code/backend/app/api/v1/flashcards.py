@@ -1,6 +1,8 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+import uuid
+
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -10,6 +12,8 @@ from app.schemas.flashcards import (FlashcardDeckResponse, FlashcardRatingReques
     FlashcardWithdrawRequest)
 from app.security import Principal
 from app.services import flashcards
+from app.storage.base import ObjectStorage
+from app.storage.factory import get_storage
 
 router = APIRouter(prefix="/flashcards", tags=["flashcards"])
 
@@ -46,6 +50,24 @@ def session(session_ref: str, p: Annotated[Principal, Depends(require_roles("stu
 @router.post("/student/sessions/{session_ref}/reveal", response_model=FlashcardSessionResponse)
 def reveal(session_ref: str, p: Annotated[Principal, Depends(require_csrf_roles("student"))], db: Annotated[Session, Depends(get_db)]):
     return flashcards.get_session(db, p, session_ref, reveal=True)
+
+@router.get("/student/sessions/{session_ref}/visuals/{visual_ref}")
+def visual(session_ref: str, visual_ref: str,
+           p: Annotated[Principal, Depends(require_roles("student"))],
+           db: Annotated[Session, Depends(get_db)],
+           storage: Annotated[ObjectStorage, Depends(get_storage)]) -> Response:
+    stored = flashcards.open_visual(db, p, storage, session_ref, visual_ref)
+    return Response(content=stored.content, media_type=stored.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+@router.get("/student/sessions/{session_ref}/textbook-pages/{page_id}")
+def textbook_page(session_ref: str, page_id: uuid.UUID,
+                  p: Annotated[Principal, Depends(require_roles("student"))],
+                  db: Annotated[Session, Depends(get_db)],
+                  storage: Annotated[ObjectStorage, Depends(get_storage)]) -> Response:
+    stored = flashcards.open_textbook_page(db, p, storage, session_ref, page_id)
+    return Response(content=stored.content, media_type=stored.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
 
 @router.post("/student/sessions/{session_ref}/rate", response_model=FlashcardSessionResponse)
 def rate(session_ref: str, payload: FlashcardRatingRequest,

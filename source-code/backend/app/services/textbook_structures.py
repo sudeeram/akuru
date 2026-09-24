@@ -309,10 +309,10 @@ def apply_recommended_topic_source_roles(db: Session, principal: Principal, text
             409,
         )
     versions = {link.document_version_id: db.get(DocumentVersion, link.document_version_id) for link in links}
-    preferred = [link for link in links if re.search(r"(?:v2(?:\.1)?|clean|text)", versions[link.document_version_id].original_filename, re.I)]
+    preferred = [link for link in links if re.search(r"(?:v\d+(?:\.\d+)?|clean|text)", versions[link.document_version_id].original_filename, re.I)]
     if len(preferred) != 1:
         raise DomainError("canonical_source_ambiguous",
-                          "AKURU could not identify exactly one clean v2.1 source. Choose the roles manually.", 409)
+                          "AKURU could not identify exactly one clean text source. Choose the roles manually.", 409)
     canonical = preferred[0]
     changes = []
     for link in links:
@@ -1031,7 +1031,12 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     approved_visuals = db.scalars(select(TextbookTopicVisualAsset).where(
         TextbookTopicVisualAsset.topic_id == topic.id,
         TextbookTopicVisualAsset.status == "approved")).all()
-    visual_document_versions = {}
+    visual_reference_links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.role == "visual_reference",
+        TextbookTopicDocument.review_status.in_(("ready", "published")),
+    ).order_by(TextbookTopicDocument.sequence)).all()
+    visual_document_versions = {link.document_version_id: link for link in visual_reference_links}
     visual_manifest = []
     for selected in approved_visuals:
         asset = db.get(DocumentAsset, selected.document_asset_id)
@@ -1055,17 +1060,24 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
             DocumentJob.document_version_id == version_id,
             DocumentJob.status.in_(("completed", "needs_review"))).order_by(
             DocumentJob.completed_at.desc().nullslast()))
-        source_manifest.append({"documentId": str(link.document_id),
-            "documentVersionId": str(version_id), "documentVersion": version.version_number,
-            "checksum": version.sha256, "role": "visual_reference", "sequence": link.sequence,
-            "extractionVersion": job.extraction_version if job else "",
-            "reviewedContentHash": hashlib.sha256("|".join(
-                f"{row.public_ref}:{row.status}:{row.caption}:{row.alt_text}"
-                for row in sorted((item for item in approved_visuals
-                    if item.document_version_id == version_id), key=lambda item: item.public_ref)
-            ).encode()).hexdigest(),
-            "visualAssetRefs": [row["assetRef"] for row in visual_manifest
-                                if row["documentVersionId"] == str(version_id)]})
+        existing_manifest = next((row for row in source_manifest
+            if row["documentVersionId"] == str(version_id)), None)
+        visual_refs = [row["assetRef"] for row in visual_manifest
+                       if row["documentVersionId"] == str(version_id)]
+        visual_hash = hashlib.sha256("|".join(
+            f"{row.public_ref}:{row.status}:{row.caption}:{row.alt_text}"
+            for row in sorted((item for item in approved_visuals
+                if item.document_version_id == version_id), key=lambda item: item.public_ref)
+        ).encode()).hexdigest()
+        if existing_manifest:
+            existing_manifest["visualAssetRefs"] = visual_refs
+            existing_manifest["reviewedVisualHash"] = visual_hash
+        else:
+            source_manifest.append({"documentId": str(link.document_id),
+                "documentVersionId": str(version_id), "documentVersion": version.version_number,
+                "checksum": version.sha256, "role": link.role, "sequence": link.sequence,
+                "extractionVersion": job.extraction_version if job else "",
+                "reviewedContentHash": visual_hash, "visualAssetRefs": visual_refs})
     if not blocks_to_index:
         raise DomainError("topic_content_empty", "The reviewed sources contain no publishable text or formulae.", 409)
     prior = db.scalar(select(TextbookTopicContentVersion).where(
@@ -1094,10 +1106,13 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         link.review_status = "published"
         document = db.get(Document, link.document_id)
         if document: document.review_state = "published"
+    text_version_ids = {link.document_version_id for link in links}
     for version_id, link in visual_document_versions.items():
+        if version_id in text_version_ids:
+            continue
         manifest = next(row for row in source_manifest if row["documentVersionId"] == str(version_id))
         db.add(TextbookTopicContentSource(content_version_id=content_version.id,
-            document_version_id=version_id, role="visual_reference",
+            document_version_id=version_id, role=link.role,
             extraction_version=manifest["extractionVersion"]))
     settings = get_settings(); embeddings = embed_texts(settings, [block.text or block.latex or "" for _, _, _, block in blocks_to_index])
     for ordinal, ((document, version, page, block), embedding) in enumerate(zip(blocks_to_index, embeddings), 1):

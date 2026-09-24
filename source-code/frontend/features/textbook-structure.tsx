@@ -45,11 +45,11 @@ function TopicSourceManager({ bookRef, topicRef, students, refreshBook, notify }
       <strong>Sources for the next topic publication</strong>
       <p className="small">Primary, supporting and reference text can enter retrieval after review. A visual reference is retained for provenance and selected diagrams, while its OCR text is excluded.</p>
       {sources.length >= 2 && <Button variant="outline" disabled={busy} onClick={() => {
-        if (!window.confirm('Set the clean v2.1 file as canonical primary text and retain the other scan as a visual reference? Review the preview below before publishing.')) return;
+        if (!window.confirm('Set the clean text PDF as the primary source and retain the other scan as a visual reference? Review the preview below before publishing.')) return;
         setBusy(true); setError(''); void applyRecommendedTopicSourceRoles(bookRef, topicRef)
           .then(setSources).then(refreshBook).then(() => notify('Recommended canonical and visual-reference roles applied.'))
           .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-      }}>Apply recommended v2.1 source roles</Button>}
+      }}>Apply recommended source roles</Button>}
       {checklist && <section className="panel stack" aria-label="Topic extraction and visual review checklist">
         <div className="spread"><strong>Authoritative review checklist</strong><span>{checklist.remainingPages + checklist.remainingBlocks + checklist.pendingVisualAssets} items need attention</span></div>
         <div className="extraction-review-stats"><div><strong>{checklist.remainingPages}</strong><span>Pages remaining</span></div><div><strong>{checklist.remainingBlocks}</strong><span>Blocks remaining</span></div><div><strong>{checklist.notationBlocks}</strong><span>Formula blocks</span></div><div><strong>{checklist.tableBlocks}</strong><span>Tables</span></div><div><strong>{checklist.pendingVisualAssets}</strong><span>Visuals awaiting approval</span></div></div>

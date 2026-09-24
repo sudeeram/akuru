@@ -81,6 +81,8 @@ questions, Tutor sources or flashcard decks eligible.
 
 Flashcards are prepared as reviewed release packages after textbook topics are published. Admin users do not generate or rewrite cards in the portal. Open **Flashcard release** to inspect the release identity, validation status, category distribution, approved questions and exact textbook evidence.
 
+For a clean replacement PDF, attach and review it as **Primary text** and retain the original scan as **Visual reference**. Review figure candidates from the primary PDF, add the printed caption and a meaningful accessible text alternative, and approve only correct crops. Matching printed-page labels on both sources let Students open the familiar original textbook page while AKURU uses the cleaner primary text and figures for learning.
+
 Students see a released deck only when its topic is included in their cumulative Grade and Term coverage. If a release must be removed, enter a clear reason and choose **Withdraw release**. The withdrawal is audited and stops new Student access without deleting previous study history.
 
 

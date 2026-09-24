@@ -1,5 +1,6 @@
 /** Immutable flashcard deck, card, source and session contracts. */
-export type FlashcardSource = { chunkRef: string; documentTitle: string; page: number; printedPage?: string | null; passage: string; sourceUrl?: string | null };
+export type FlashcardSourceVisual = { caption: string; altText: string; contentUrl: string };
+export type FlashcardSource = { chunkRef: string; documentTitle: string; page: number; printedPage?: string | null; passage: string; visual?: FlashcardSourceVisual | null; textbookPageUrl?: string | null };
 export type FlashcardCard = { cardRef: string; ordinal: number; version: number; front: string; back?: string | null; status: string; warnings: string[]; source: FlashcardSource; conceptKey: string; category: string; variationType: string; difficulty: string };
 export type FlashcardDeck = { deckRef: string; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string; subjectId: string; title: string; status: string; contentVersion: number; cardCount: number; approvedCount: number; reviewRequiredCount: number; rejectedCount: number; cards: FlashcardCard[]; releasedAt?: string | null; releaseId?: string | null; artifactChecksum?: string | null; validationStatus?: string | null; categoryDistribution: Record<string, number>; validationSummary: Record<string, unknown> };
 export type FlashcardMode = 'quick'|'normal'|'full_topic'|'difficult'|'due_today'|'unit_mixed';

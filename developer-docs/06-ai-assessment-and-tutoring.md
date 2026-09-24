@@ -51,6 +51,8 @@ Tutor observations do not automatically rewrite mastery or study plans. They are
 
 Flashcards are delivered as curated, checksum-bound release artifacts prepared outside the production request path. A deterministic validator confirms hierarchy ownership, published content versions, exact evidence, wording, duplicates and scientific notation before a transactional, idempotent import. The Admin interface inspects or withdraws releases but does not generate or edit cards.
 
+Student flashcard citations return presentation metadata instead of linking to the retrieval JSON endpoint. Approved primary-source figures are resolved by an explicit artifact reference or an unambiguous reviewed caption match. Printed textbook pages are resolved separately by printed-page label from a published `visual_reference` source and served only through the owning Student session. This preserves source separation and prevents one child from requesting another child's learning assets.
+
 Student sessions use immutable card snapshots and deterministic Quick, Normal, Full topic, Difficult, Due today and Unit mixed modes. Per-child scheduling state changes future selection without calling an AI model or changing authoritative mastery. Citations link every factual answer back to approved topic evidence.
 
 ## Evaluation gates
