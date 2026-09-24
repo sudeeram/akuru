@@ -497,6 +497,14 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
               "sequenceNumber": block["sequenceNumber"]},
     )
     assert revised.status_code == 200
+    reviewed_block = session.get(DocumentBlock, uuid.UUID(block["id"]))
+    session.add(DocumentBlock(document_version_id=reviewed_block.document_version_id,
+        page_id=reviewed_block.page_id, sequence_number=reviewed_block.sequence_number + 100,
+        block_kind=reviewed_block.block_kind, text=reviewed_block.text, latex=reviewed_block.latex,
+        bounding_box=reviewed_block.bounding_box, extraction_method=reviewed_block.extraction_method,
+        confidence=reviewed_block.confidence, needs_review=False,
+        source_asset_id=reviewed_block.source_asset_id, block_metadata={"testDuplicate": True}))
+    session.commit()
     republished_content = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
                                       headers=headers, json=confirmation)
     assert republished_content.status_code == 200
@@ -504,7 +512,9 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
         TextbookTopicContentVersion.topic_id == link.topic_id).order_by(TextbookTopicContentVersion.version_number)).all()
     assert [row.status for row in versions] == ["superseded", "published"]
     assert session.query(RetrievalChunk).filter_by(topic_content_version_id=versions[0].id, status="superseded").count() >= 1
-    assert session.query(RetrievalChunk).filter_by(topic_content_version_id=versions[1].id, status="active").count() >= 1
+    active_chunks = session.query(RetrievalChunk).filter_by(
+        topic_content_version_id=versions[1].id, status="active").all()
+    assert active_chunks and len({row.content_hash for row in active_chunks}) == len(active_chunks)
     unchanged = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
                             headers=headers, json=confirmation)
     assert unchanged.status_code == 409 and unchanged.json()["error"]["code"] == "topic_content_not_ready"

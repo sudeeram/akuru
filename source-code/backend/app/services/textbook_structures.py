@@ -1025,6 +1025,12 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
                                            "printedPageLabel": page.printed_page_label,
                                            "reviewedBlockCount": sum(block.page_id == page.id for block in blocks)}
                                           for page in sorted(pages, key=lambda item: item.page_number)]})
+        # Supporting documents remain part of the immutable publication manifest,
+        # but retrieval must be built from the single canonical primary text.  If
+        # supporting text is indexed as well, the same passage can be returned
+        # twice and the preflight can select a non-canonical document.
+        if link.role != "primary":
+            continue
         for block in blocks:
             page = page_map.get(block.page_id)
             if page and (block.text.strip() or block.latex):
@@ -1082,6 +1088,17 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
                 "reviewedContentHash": visual_hash, "visualAssetRefs": visual_refs})
     if not blocks_to_index:
         raise DomainError("topic_content_empty", "The reviewed sources contain no publishable text or formulae.", 409)
+    unique_blocks = []
+    indexed_hashes: set[str] = set()
+    for row in blocks_to_index:
+        block = row[3]
+        content = block.text.strip() or block.latex or ""
+        content_hash = hashlib.sha256(content.encode()).hexdigest()
+        if content_hash in indexed_hashes:
+            continue
+        indexed_hashes.add(content_hash)
+        unique_blocks.append(row)
+    blocks_to_index = unique_blocks
     prior = db.scalar(select(TextbookTopicContentVersion).where(
         TextbookTopicContentVersion.topic_id == topic.id,
         TextbookTopicContentVersion.status == "published",
@@ -1119,17 +1136,18 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     settings = get_settings(); embeddings = embed_texts(settings, [block.text or block.latex or "" for _, _, _, block in blocks_to_index])
     for ordinal, ((document, version, page, block), embedding) in enumerate(zip(blocks_to_index, embeddings), 1):
         content = block.text.strip() or block.latex or ""
+        content_hash = hashlib.sha256(content.encode()).hexdigest()
         db.add(RetrievalChunk(document_id=document.id, document_version_id=version.id,
             official_material_version_id=None,
             group_id=topic.group_id, topic_id=topic.id, topic_content_version_id=content_version.id,
             course_id=topic.course_id, subject_id=topic.subject_id, source_type="textbook_section",
             source_item_id=block.id, source_ordinal=ordinal, content=content, page_number=page.page_number,
             bounding_box=block.bounding_box, source_asset_id=block.source_asset_id or page.render_asset_id,
-            content_hash=hashlib.sha256(content.encode()).hexdigest(), embedding_model=settings.embedding_model,
+            content_hash=content_hash, embedding_model=settings.embedding_model,
             embedding_version=next_version, embedding=embedding, status="active"))
     _audit(db, principal, "textbook_topic_content.published", "textbook_topic", topic.public_ref,
            {"textbookRef": book.public_ref, "contentVersion": next_version,
-            "sourceCount": len(source_manifest), "chunkCount": len(blocks_to_index),
+            "sourceCount": len(source_manifest), "chunkCount": len(indexed_hashes),
             "visualAssetCount": len(visual_manifest)})
     db.commit()
     return _response(db, book)
