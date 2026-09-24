@@ -54,6 +54,15 @@ contain later units, but assessed practice remains limited to your covered units
 Show your working, answer in your own words, and sign out on shared devices.
 
 
+## Flashcards
+
+Open **Flashcards** and choose a topic available in your current or earlier Grade and Term coverage. Choose Quick review for 10 cards, Normal review for 20, Full topic practice, Difficult cards, Due today or Unit mixed practice. A mode is unavailable when you have no matching cards yet.
+
+Try to answer before selecting **Show approved answer**. Compare your idea with the reviewed answer and open the exact textbook source when you want more context. Then choose Again, Difficult, Good or Easy. AKURU uses that rating to decide when and how often you should see the card again. Ratings are private to your account and are learning aids rather than examination marks.
+
+You can leave an unfinished mode and resume it later. Flashcard study uses reviewed cards already stored in AKURU and does not generate new questions while you study.
+
+
 ## Step 17: Understanding Feedback
 Open My progress, then select a question. Read how each mark was decided,
 the evidence from your answer, what went well and the mistakes to fix.

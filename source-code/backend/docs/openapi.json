@@ -3067,6 +3067,21 @@
             "title": "Cardref",
             "type": "string"
           },
+          "category": {
+            "default": "essential_knowledge",
+            "title": "Category",
+            "type": "string"
+          },
+          "conceptKey": {
+            "default": "",
+            "title": "Conceptkey",
+            "type": "string"
+          },
+          "difficulty": {
+            "default": "core",
+            "title": "Difficulty",
+            "type": "string"
+          },
           "front": {
             "title": "Front",
             "type": "string"
@@ -3082,6 +3097,11 @@
           },
           "status": {
             "title": "Status",
+            "type": "string"
+          },
+          "variationType": {
+            "default": "recall",
+            "title": "Variationtype",
             "type": "string"
           },
           "version": {
@@ -3108,43 +3128,22 @@
         "title": "FlashcardCardResponse",
         "type": "object"
       },
-      "FlashcardCardUpdateRequest": {
-        "properties": {
-          "back": {
-            "maxLength": 3000,
-            "minLength": 2,
-            "title": "Back",
-            "type": "string"
-          },
-          "decision": {
-            "enum": [
-              "review_required",
-              "approved",
-              "rejected"
-            ],
-            "title": "Decision",
-            "type": "string"
-          },
-          "front": {
-            "maxLength": 500,
-            "minLength": 2,
-            "title": "Front",
-            "type": "string"
-          }
-        },
-        "required": [
-          "front",
-          "back",
-          "decision"
-        ],
-        "title": "FlashcardCardUpdateRequest",
-        "type": "object"
-      },
       "FlashcardDeckResponse": {
         "properties": {
           "approvedCount": {
             "title": "Approvedcount",
             "type": "integer"
+          },
+          "artifactChecksum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artifactchecksum"
           },
           "cardCount": {
             "title": "Cardcount",
@@ -3156,6 +3155,13 @@
             },
             "title": "Cards",
             "type": "array"
+          },
+          "categoryDistribution": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Categorydistribution",
+            "type": "object"
           },
           "contentVersion": {
             "title": "Contentversion",
@@ -3176,6 +3182,17 @@
           "rejectedCount": {
             "title": "Rejectedcount",
             "type": "integer"
+          },
+          "releaseId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Releaseid"
           },
           "releasedAt": {
             "anyOf": [
@@ -3215,6 +3232,22 @@
           "topicTitle": {
             "title": "Topictitle",
             "type": "string"
+          },
+          "validationStatus": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Validationstatus"
+          },
+          "validationSummary": {
+            "additionalProperties": true,
+            "title": "Validationsummary",
+            "type": "object"
           }
         },
         "required": [
@@ -3234,35 +3267,6 @@
           "rejectedCount"
         ],
         "title": "FlashcardDeckResponse",
-        "type": "object"
-      },
-      "FlashcardGenerateRequest": {
-        "properties": {
-          "cardLimit": {
-            "default": 12,
-            "maximum": 40.0,
-            "minimum": 3.0,
-            "title": "Cardlimit",
-            "type": "integer"
-          },
-          "requestKey": {
-            "maxLength": 100,
-            "minLength": 8,
-            "title": "Requestkey",
-            "type": "string"
-          },
-          "topicRef": {
-            "maxLength": 80,
-            "minLength": 8,
-            "title": "Topicref",
-            "type": "string"
-          }
-        },
-        "required": [
-          "topicRef",
-          "requestKey"
-        ],
-        "title": "FlashcardGenerateRequest",
         "type": "object"
       },
       "FlashcardRatingRequest": {
@@ -3319,6 +3323,11 @@
             "title": "Message",
             "type": "string"
           },
+          "mode": {
+            "default": "full_topic",
+            "title": "Mode",
+            "type": "string"
+          },
           "reviewedCount": {
             "title": "Reviewedcount",
             "type": "integer"
@@ -3326,6 +3335,13 @@
           "schedulerVersion": {
             "title": "Schedulerversion",
             "type": "string"
+          },
+          "selectionReasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Selectionreasons",
+            "type": "array"
           },
           "sessionRef": {
             "title": "Sessionref",
@@ -3356,6 +3372,19 @@
       },
       "FlashcardSessionStartRequest": {
         "properties": {
+          "mode": {
+            "default": "normal",
+            "enum": [
+              "quick",
+              "normal",
+              "full_topic",
+              "difficult",
+              "due_today",
+              "unit_mixed"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
           "requestKey": {
             "maxLength": 100,
             "minLength": 8,
@@ -3367,6 +3396,95 @@
           "requestKey"
         ],
         "title": "FlashcardSessionStartRequest",
+        "type": "object"
+      },
+      "FlashcardStudyOption": {
+        "properties": {
+          "availableCount": {
+            "title": "Availablecount",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "mode": {
+            "enum": [
+              "quick",
+              "normal",
+              "full_topic",
+              "difficult",
+              "due_today",
+              "unit_mixed"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "sessionSize": {
+            "title": "Sessionsize",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mode",
+          "title",
+          "description",
+          "availableCount",
+          "sessionSize",
+          "enabled"
+        ],
+        "title": "FlashcardStudyOption",
+        "type": "object"
+      },
+      "FlashcardStudyOptionsResponse": {
+        "properties": {
+          "deckRef": {
+            "title": "Deckref",
+            "type": "string"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/components/schemas/FlashcardStudyOption"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "summary": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Summary",
+            "type": "object"
+          }
+        },
+        "required": [
+          "deckRef",
+          "options"
+        ],
+        "title": "FlashcardStudyOptionsResponse",
+        "type": "object"
+      },
+      "FlashcardWithdrawRequest": {
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 5,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "FlashcardWithdrawRequest",
         "type": "object"
       },
       "GroupMasteryResponse": {
@@ -18109,101 +18227,6 @@
         ]
       }
     },
-    "/api/v1/flashcards/admin/decks/generate": {
-      "post": {
-        "operationId": "generate_api_v1_flashcards_admin_decks_generate_post",
-        "parameters": [
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FlashcardGenerateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FlashcardDeckResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Generate",
-        "tags": [
-          "flashcards"
-        ]
-      }
-    },
     "/api/v1/flashcards/admin/decks/{deck_ref}": {
       "get": {
         "operationId": "admin_get_api_v1_flashcards_admin_decks__deck_ref__get",
@@ -18282,9 +18305,9 @@
         ]
       }
     },
-    "/api/v1/flashcards/admin/decks/{deck_ref}/cards/{card_ref}": {
-      "patch": {
-        "operationId": "review_api_v1_flashcards_admin_decks__deck_ref__cards__card_ref__patch",
+    "/api/v1/flashcards/admin/decks/{deck_ref}/withdraw": {
+      "post": {
+        "operationId": "withdraw_api_v1_flashcards_admin_decks__deck_ref__withdraw_post",
         "parameters": [
           {
             "in": "path",
@@ -18292,15 +18315,6 @@
             "required": true,
             "schema": {
               "title": "Deck Ref",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "card_ref",
-            "required": true,
-            "schema": {
-              "title": "Card Ref",
               "type": "string"
             }
           },
@@ -18341,7 +18355,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FlashcardCardUpdateRequest"
+                "$ref": "#/components/schemas/FlashcardWithdrawRequest"
               }
             }
           },
@@ -18389,101 +18403,7 @@
             "description": "Validation failed"
           }
         },
-        "summary": "Review",
-        "tags": [
-          "flashcards"
-        ]
-      }
-    },
-    "/api/v1/flashcards/admin/decks/{deck_ref}/release": {
-      "post": {
-        "operationId": "release_api_v1_flashcards_admin_decks__deck_ref__release_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "deck_ref",
-            "required": true,
-            "schema": {
-              "title": "Deck Ref",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "X-CSRF-Token",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Csrf-Token"
-            }
-          },
-          {
-            "in": "cookie",
-            "name": "akuru_session",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Akuru Session"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/FlashcardDeckResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Authentication required"
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Permission denied"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "description": "Validation failed"
-          }
-        },
-        "summary": "Release",
+        "summary": "Withdraw",
         "tags": [
           "flashcards"
         ]
@@ -18661,6 +18581,84 @@
           }
         },
         "summary": "Start",
+        "tags": [
+          "flashcards"
+        ]
+      }
+    },
+    "/api/v1/flashcards/student/decks/{deck_ref}/study-options": {
+      "get": {
+        "operationId": "options_api_v1_flashcards_student_decks__deck_ref__study_options_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deck_ref",
+            "required": true,
+            "schema": {
+              "title": "Deck Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardStudyOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Options",
         "tags": [
           "flashcards"
         ]

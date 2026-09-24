@@ -1,7 +1,7 @@
 # Flashcard interfaces
 
-Admins open **Flashcard release** from the horizontal navigation. The page lists published topics, prepares a grounded draft, shows review counts, and displays every card's question, best answer, exact textbook evidence, page and validation warnings. Release stays disabled until all cards are approved.
+Admins open **Flashcard release** to inspect imported curated releases. The page shows release identity, validation state, category distribution, approved cards and exact evidence. It contains no card-generation controls. A released deck can be withdrawn with an audited reason.
 
-Students open **Flashcards** from the horizontal navigation. Only released decks in their cumulative Grade and Term coverage appear. The study view supports keyboard navigation, announces session changes to assistive technology, shows progress, keeps the answer hidden until requested, and presents four plain-language recall ratings. Exact textbook evidence is available after reveal.
+Students open **Flashcards**, choose an eligible topic deck and then choose Quick review, Normal review, Full topic practice, Difficult cards, Due today or Unit mixed practice. Disabled modes show their zero available count. The study view supports keyboard navigation and screen readers, shows progress, hides the answer until requested, presents four recall ratings and exposes exact textbook evidence after reveal.
 
-An empty state explains when no eligible deck is available. Internal database identifiers are not shown.
+The UI sends only a deck, mode and idempotency key. The backend owns eligibility, adaptive selection, the immutable session snapshot and scheduling.

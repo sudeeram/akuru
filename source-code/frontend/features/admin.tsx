@@ -310,6 +310,7 @@ export function AdminWorkspace(p: Props) {
       label="Subject"
       value={subject}
       onChange={(v) => {
+        setError('');
         setSubject(v);
         setTextbookId('');
         setPaperId('');

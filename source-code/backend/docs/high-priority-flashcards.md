@@ -1,24 +1,36 @@
-# High-priority flashcard workflow
+# Curated flashcard library
 
-AKURU creates flashcard drafts from one published textbook topic content version. Generation requires a passing retrieval preflight and uses only active `textbook_section` retrieval chunks from that exact version. Every card stores an immutable front/back version, exact source chunk, page-aware evidence snapshot and generation metadata.
+AKURU serves curated flashcard releases built from published textbook-topic content. Production does not generate cards on demand, and Student study makes no language-model calls.
 
-The first generator is deterministic and source grounded. It recognizes definition-like passages and flags generic wording for Admin review. This keeps the initial Chemistry pilot usable without allowing generated wording to become source truth. Feature-specific OpenAI model routing, escalation and child quota charging remain separate high-priority tasks.
+## Release artifact
 
-Admins use `/#flashcards` to generate a draft, edit each card and approve or reject it. Every edit creates a new card version. A deck can be released only when it has at least three cards, every current card version is approved, all evidence still belongs to the pinned topic content version, and the latest retrieval preflight passes. Releasing a new deck supersedes the earlier released deck without deleting historical data.
+The versioned `akuru.flashcards.v1` JSON artifact declares the textbook, unit/module, topics, published content versions and reviewed cards. Each card has a stable key, concept key, category, variation type, difficulty, approved question and answer, one or more exact retrieval-chunk references, and optional approved visual provenance.
 
-Student APIs only return released decks whose topics are included in that Student's cumulative published Grade and Term coverage. Sessions are owned by one Student, resume while active, hide answers until reveal, and persist one idempotent rating per card. The versioned deterministic schedule is:
+Run the operator command from `backend`:
 
-| Rating | Next interval |
-| --- | --- |
-| Again | same day |
-| Difficult | 1 day |
-| Good | 3 days |
-| Easy | 7 days |
+```bash
+.venv/bin/python -m app.flashcard_release validate /secure/path/release.json
+.venv/bin/python -m app.flashcard_release import /secure/path/release.json --admin-username ADMIN --dry-run --release
+.venv/bin/python -m app.flashcard_release import /secure/path/release.json --admin-username ADMIN --release
+```
 
-Flashcard ratings do not change authoritative mastery. Each revealed answer includes the exact authorized textbook passage and source link.
+Validation checks the artifact checksum, subject and hierarchy ownership, published content-version checksum, active source evidence, approved visuals, required fields, duplicate wording, sentence quality and suspicious Chemistry OCR notation. Import is idempotent by release ID and checksum and writes the entire release transactionally. Release artifacts derived from copyrighted textbook material stay outside Git.
 
-The authenticated endpoints are under `/api/v1/flashcards`:
+## Student selection and scheduling
 
-- Admin: list/get decks, generate, version and review a card, release a deck.
-- Student: list eligible decks, start or resume a session, reveal the answer, and rate recall.
+Only released decks within the Student's cumulative Grade and Term coverage are visible. The modes are Quick review (10), Normal review (20), Full topic practice, Difficult cards, Due today and Unit mixed practice (20).
 
+Selection is deterministic and child-scoped. It prioritizes overdue cards, prior Again/Difficult ratings, recorded weak topics, unseen cards, learning cards and finally mastered variations. A session snapshots its immutable card-version IDs and selection reasons. Closely related concept variations are separated where possible.
+
+Ratings update a per-child card state with a versioned deterministic schedule. `Again` is due after ten minutes; later intervals depend on repetitions, rating and bounded ease factor. Ratings never update authoritative academic mastery.
+
+## Admin and API boundaries
+
+The Admin screen is read-only for content and shows release provenance, distribution and source evidence. Admins may withdraw a released deck with an audited reason. The browser generation, arbitrary card editing and manual release endpoints have been removed.
+
+Authenticated endpoints are under `/api/v1/flashcards`:
+
+- Admin: list/get decks and withdraw a released deck.
+- Student: list eligible decks, inspect study options, start/resume a mode, reveal an answer and record a rating.
+
+Every revealed answer links back to the exact authorized textbook passage.

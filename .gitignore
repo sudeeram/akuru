@@ -7,3 +7,7 @@ deploy/server/*.key.pub
 # Licensed textbook and reference materials stay local and are uploaded through
 # the authenticated AKURU Admin workflow. Never commit them to source control.
 /textbooks/
+
+# Local release preparation and production-derived evidence. Curated flashcard
+# artifacts contain textbook-derived material and are transferred securely.
+/tmp/

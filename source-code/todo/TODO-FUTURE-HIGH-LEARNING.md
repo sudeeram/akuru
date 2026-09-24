@@ -91,6 +91,8 @@ The first Student release must work from one independently published topic. AKUR
 
 ### Admin Step 8 — Generate the Topic 1 flashcard deck
 
+> **Superseded workflow:** Admin-triggered generation will be removed. Curated flashcard preparation, validated import and adaptive Student review are now planned in [`TODO-FLASHCARD-LIBRARY.md`](TODO-FLASHCARD-LIBRARY.md). The completed items below describe the existing pilot implementation and are retained as historical implementation status.
+
 - [x] Add an Admin action to generate a deck for one selected published topic.
 - [ ] Optionally add a Unit 1 generation action that includes only eligible published topics.
 - [ ] Show the generation scope before confirmation, including course, subject, unit, included topics, source version and proposed card limit.

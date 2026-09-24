@@ -49,7 +49,9 @@ Tutor observations do not automatically rewrite mastery or study plans. They are
 
 ## Flashcards
 
-Flashcard generation uses only published, Student-eligible topic content. Admin reviews individual cards and releases an immutable deck version. Student sessions use released versions so later edits do not rewrite learning history. Citations link every factual answer back to approved topic evidence.
+Flashcards are delivered as curated, checksum-bound release artifacts prepared outside the production request path. A deterministic validator confirms hierarchy ownership, published content versions, exact evidence, wording, duplicates and scientific notation before a transactional, idempotent import. The Admin interface inspects or withdraws releases but does not generate or edit cards.
+
+Student sessions use immutable card snapshots and deterministic Quick, Normal, Full topic, Difficult, Due today and Unit mixed modes. Per-child scheduling state changes future selection without calling an AI model or changing authoritative mastery. Citations link every factual answer back to approved topic evidence.
 
 ## Evaluation gates
 

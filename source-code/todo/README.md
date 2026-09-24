@@ -5,6 +5,7 @@ This folder is the single home for AKURU delivery backlogs.
 - [Core platform roadmap](TODO.md)
 - [Tutor Agent roadmap](TODO-TUTOR.md)
 - [Textbook groups, topics and incremental coverage](TODO-TEXTBOOK-TOPICS.md)
+- [Curated flashcard library and adaptive Student review](TODO-FLASHCARD-LIBRARY.md)
 - [Database baseline reset and migration squash](TODO-DATABASE-BASELINE.md)
 - [Future roadmap priority index](TODO-FUTURE-DOCUMENT-REVIEW.md)
   - [High: Chemistry Topic 1, text tutoring and flashcards](TODO-FUTURE-HIGH-LEARNING.md)

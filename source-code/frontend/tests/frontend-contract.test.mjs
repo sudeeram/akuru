@@ -586,13 +586,17 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(api, /reviewTopicVisualAsset/);
 });
 
-test('flashcards are Admin reviewed, source grounded and accessible to eligible Students', () => {
+test('curated flashcards are source grounded and offer deterministic Student study modes', () => {
   assert.match(page, /\['flashcards', 'Flashcards'/);
   assert.match(page, /\['flashcards', 'Flashcard release'/);
-  assert.match(api, /flashcards\/admin\/decks\/generate/);
+  assert.doesNotMatch(api, /flashcards\/admin\/decks\/generate/);
+  assert.match(api, /flashcards\/admin\/decks\/\$\{deckRef\}\/withdraw/);
+  assert.match(api, /study-options/);
   assert.match(api, /flashcards\/student\/sessions/);
   assert.match(flashcards, /Exact textbook evidence/);
-  assert.match(flashcards, /Release approved deck/);
+  assert.match(flashcards, /Curated releases/);
+  assert.match(flashcards, /getFlashcardStudyOptions/);
+  assert.match(flashcards, /selectedDeck/);
   assert.match(flashcards, /Show approved answer/);
   assert.match(flashcards, /How well did you remember it?/);
   assert.match(flashcards, /aria-live="polite"/);

@@ -77,6 +77,13 @@ Grade 11 does not inherit Grade 10 automatically. An empty union makes no
 questions, Tutor sources or flashcard decks eligible.
 
 
+## FLASHCARD RELEASES
+
+Flashcards are prepared as reviewed release packages after textbook topics are published. Admin users do not generate or rewrite cards in the portal. Open **Flashcard release** to inspect the release identity, validation status, category distribution, approved questions and exact textbook evidence.
+
+Students see a released deck only when its topic is included in their cumulative Grade and Term coverage. If a release must be removed, enter a clear reason and choose **Withdraw release**. The withdrawal is audited and stops new Student access without deleting previous study history.
+
+
 ## 4. PAST PAPERS AND SUPPORTING DOCUMENTS
 
 Return to Documents & textbooks. Select Past paper and choose a published
