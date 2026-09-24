@@ -75,7 +75,13 @@ const options = (items: string[]) =>
   items.map((value) => ({ value, label: value }));
 
 const isVisualBlock = (block: ExtractionBlock) => ['image', 'diagram'].includes(block.kind);
-const isFigureCaption = (block: ExtractionBlock) => /^(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.test(block.text.trim());
+const isFigureCaption = (block: ExtractionBlock) => {
+  const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(block.text.trim());
+  // OCR can prefix a caption with a panel label or diagram labels, and may
+  // classify the combined caption as a paragraph or equation. Keep the match
+  // conservative so later body references to figures are not joined.
+  return Boolean(match && match.index <= 80);
+};
 function groupExtractionBlocks(blocks: ExtractionBlock[]): ExtractionBlock[][] {
   const ordered = [...blocks].sort((left, right) => left.sequenceNumber - right.sequenceNumber);
   const groups: ExtractionBlock[][] = [];

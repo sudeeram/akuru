@@ -159,6 +159,7 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /block\.latex/);
   assert.match(admin, /block\.sourceAssetId/);
   assert.match(admin, /groupExtractionBlocks/);
+  assert.match(admin, /match\.index <= 80/);
   assert.match(admin, /Diagram and caption/);
   assert.match(admin, /Save reviewed diagram and caption/);
   assert.match(admin, /Caption preview/);
