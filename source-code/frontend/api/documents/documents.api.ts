@@ -33,7 +33,7 @@ export async function getDocumentExtraction(id: string): Promise<DocumentExtract
   return request<DocumentExtraction>(`documents/${id}/extraction`);
 }
 export const updateExtractionPage = (documentId: string, pageId: string, printedPageLabel: string) => request<DocumentExtraction>(`documents/${documentId}/extraction/pages/${pageId}`, { method: 'POST', body: { printedPageLabel } });
-export const updateExtractionBlock = (documentId: string, blockId: string, body: { kind: string; text: string; latex?: string | null; sequenceNumber: number }) => request<DocumentExtraction>(`documents/${documentId}/extraction/blocks/${blockId}`, { method: 'POST', body });
+export const updateExtractionBlock = (documentId: string, blockId: string, body: { kind: string; text: string; latex?: string | null; caption?: string | null; sequenceNumber: number }) => request<DocumentExtraction>(`documents/${documentId}/extraction/blocks/${blockId}`, { method: 'POST', body });
 export async function getLatestDocumentJob(id: string): Promise<DocumentJob> {
   return request<DocumentJob>(`documents/${id}/jobs/latest`);
 }

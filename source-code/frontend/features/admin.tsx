@@ -82,6 +82,17 @@ const isFigureCaption = (block: ExtractionBlock) => {
   // conservative so later body references to figures are not joined.
   return Boolean(match && match.index <= 80);
 };
+const extractFigureCaption = (value: string) => {
+  const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  for (const line of lines) {
+    const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(line);
+    if (match && match.index <= 80) return line.slice(match.index).trim();
+  }
+  const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(value);
+  if (!match || match.index > 80) return '';
+  const candidate = value.slice(match.index).trim();
+  return candidate.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() || candidate.slice(0, 1000);
+};
 function groupExtractionBlocks(blocks: ExtractionBlock[]): ExtractionBlock[][] {
   const ordered = [...blocks].sort((left, right) => left.sequenceNumber - right.sequenceNumber);
   const groups: ExtractionBlock[][] = [];
@@ -950,10 +961,13 @@ export function AdminWorkspace(p: Props) {
                         unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
                       /></div><div><strong className="small">Extracted content</strong>{visibleGroups.map((group) => {
                         const visual = group.find(isVisualBlock), caption = group.find(isFigureCaption);
+                        const reviewedCaption = visual && typeof visual.metadata.reviewedCaption === 'string'
+                          ? visual.metadata.reviewedCaption : caption ? extractFigureCaption(caption.text) : '';
                         const groupPending = group.some((block) => block.needsReview);
                         return <section className={`small stack extraction-block-group ${visual && caption ? 'extraction-visual-caption-group' : ''}`} key={`${page.pageNumber}-${group.map((block) => block.id).join('-')}`}>
                           <div className="spread"><span><strong>{visual && caption ? 'Diagram and caption' : group[0].kind}</strong> · {group.length} block{group.length === 1 ? '' : 's'}</span><span className={`review-status-badge ${groupPending ? 'review-status-required' : 'review-status-complete'}`}>{groupPending ? 'Review required' : 'Reviewed'}</span></div>
-                          {visual?.sourceAssetId && <figure className="stack"><Image src={`/api/v1/documents/${doc.id}/assets/${visual.sourceAssetId}/content`} alt={caption?.text || `Source crop for ${visual.kind} on page ${page.pageNumber}`} width={420} height={260} unoptimized loading="lazy" style={{ maxWidth: '26rem', height: 'auto', objectFit: 'contain' }}/>{caption?.text && <figcaption><strong>Caption preview:</strong> {caption.text}</figcaption>}</figure>}
+                          {visual?.sourceAssetId && <figure className="stack"><Image src={`/api/v1/documents/${doc.id}/assets/${visual.sourceAssetId}/content`} alt={reviewedCaption || `Source crop for ${visual.kind} on page ${page.pageNumber}`} width={420} height={260} unoptimized loading="lazy" style={{ maxWidth: '26rem', height: 'auto', objectFit: 'contain' }}/>{reviewedCaption && <figcaption><strong>Caption preview:</strong> {reviewedCaption}</figcaption>}</figure>}
+                          {visual && caption && <Field label="Reviewed figure caption" value={reviewedCaption} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === visual.id ? { ...item, metadata: { ...item.metadata, reviewedCaption: value } } : item) } : row) })}/>}
                           {group.map((block) => <div className="stack extraction-group-member" key={block.id}>
                             <div className="spread"><span><strong>{block === caption ? 'Figure caption' : block.kind}</strong> · {block.method} · {Math.round(block.confidence * 100)}%</span><span>Reading order {block.sequenceNumber}</span></div>
                             <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
@@ -963,7 +977,7 @@ export function AdminWorkspace(p: Props) {
                           </div>)}
                           <Button variant="outline" onClick={() => void run(async () => {
                             let next = extraction;
-                            for (const block of group) next = await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, sequenceNumber: block.sequenceNumber });
+                            for (const block of group) next = await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, caption: block === visual ? reviewedCaption : undefined, sequenceNumber: block.sequenceNumber });
                             setExtraction(next);
                           }, visual && caption ? 'Diagram and caption reviewed and saved.' : 'Extracted block reviewed and saved.')}>{visual && caption ? 'Save reviewed diagram and caption' : 'Save reviewed block'}</Button>
                         </section>;

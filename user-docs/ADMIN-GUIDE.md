@@ -83,6 +83,8 @@ Flashcards are prepared as reviewed release packages after textbook topics are p
 
 For a clean replacement PDF, attach and review it as **Primary text** and retain the original scan as **Visual reference**. Review figure candidates from the primary PDF, add the printed caption and a meaningful accessible text alternative, and approve only correct crops. Matching printed-page labels on both sources let Students open the familiar original textbook page while AKURU uses the cleaner primary text and figures for learning.
 
+On the document-review page, AKURU groups a diagram with an adjacent block containing a Figure number. When OCR combines diagram labels, the printed caption and later explanatory paragraphs, **Reviewed figure caption** contains only the text beginning with the Figure number. Correct that field if necessary and save the joined review box. Labels printed inside the diagram remain part of the image; the surrounding explanatory text remains available as textbook evidence.
+
 Students see a released deck only when its topic is included in their cumulative Grade and Term coverage. If a release must be removed, enter a clear reason and choose **Withdraw release**. The withdrawal is audited and stops new Student access without deleting previous study history.
 
 

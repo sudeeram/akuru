@@ -112,6 +112,7 @@ class ExtractionBlockUpdateRequest(BaseModel):
     kind: str
     text: str = Field(default="", max_length=100_000)
     latex: str | None = Field(default=None, max_length=20_000)
+    caption: str | None = Field(default=None, max_length=1000)
     sequenceNumber: int = Field(ge=1, le=10_000)
 
 

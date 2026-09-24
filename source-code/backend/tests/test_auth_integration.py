@@ -287,6 +287,14 @@ def test_admin_configures_canonical_source_and_reviews_visual_assets(auth_client
         needs_review=False, source_asset_id=crop.id, block_metadata={})
     session.add(block); session.commit()
 
+    saved_caption = client.post(f"/api/v1/documents/{scan_document.id}/extraction/blocks/{block.id}",
+        headers=headers, json={"kind": "diagram", "text": "", "latex": None,
+            "caption": "Figure 1.4 The arrangement of particles in different states of matter",
+            "sequenceNumber": 1})
+    assert saved_caption.status_code == 200, saved_caption.text
+    saved_block = saved_caption.json()["pages"][0]["blocks"][0]
+    assert saved_block["metadata"]["reviewedCaption"].startswith("Figure 1.4")
+
     roles = client.post(
         f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/sources/apply-recommended-roles",
         headers=headers)
@@ -302,6 +310,7 @@ def test_admin_configures_canonical_source_and_reviews_visual_assets(auth_client
     assert candidates.status_code == 200 and len(candidates.json()) == 1
     candidate = candidates.json()[0]
     assert candidate["status"] == "unselected" and candidate["page"] == 1
+    assert candidate["extractedCaption"].startswith("Figure 1.4")
     missing_alt = client.patch(f"{url}/{candidate['assetRef']}", headers=headers,
         json={"status": "approved", "caption": "Particles", "altText": ""})
     assert missing_alt.status_code == 422

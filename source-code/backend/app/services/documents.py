@@ -324,7 +324,7 @@ def update_extraction_page(db: Session, principal: Principal, document_id: uuid.
 
 def update_extraction_block(db: Session, principal: Principal, document_id: uuid.UUID,
                             block_id: uuid.UUID, *, kind: str, text: str, latex: str | None,
-                            sequence_number: int) -> DocumentExtractionResponse:
+                            sequence_number: int, caption: str | None = None) -> DocumentExtractionResponse:
     document, version = get_document(db, document_id)
     block = db.scalar(select(DocumentBlock).where(DocumentBlock.id == block_id,
                                                    DocumentBlock.document_version_id == version.id))
@@ -340,7 +340,16 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
         raise DomainError("duplicate_block_order", "Block reading order must be unique on the page.", 409)
     block.block_kind, block.text, block.latex = kind, text.strip(), (latex or "").strip() or None
     block.sequence_number = sequence_number; block.needs_review = False
-    block.block_metadata = {**block.block_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
+    metadata = {**block.block_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
+    if caption is not None:
+        if kind not in {"image", "diagram", "table"}:
+            raise DomainError("caption_requires_visual", "A reviewed caption can only be saved on a visual block.", 422)
+        cleaned_caption = " ".join(caption.split())
+        if cleaned_caption:
+            metadata["reviewedCaption"] = cleaned_caption
+        else:
+            metadata.pop("reviewedCaption", None)
+    block.block_metadata = metadata
     page = db.get(DocumentPage, block.page_id)
     if page:
         page.needs_review = bool(db.scalar(select(DocumentBlock.id).where(

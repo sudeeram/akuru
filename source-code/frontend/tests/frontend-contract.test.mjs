@@ -163,6 +163,9 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /Diagram and caption/);
   assert.match(admin, /Save reviewed diagram and caption/);
   assert.match(admin, /Caption preview/);
+  assert.match(admin, /Reviewed figure caption/);
+  assert.match(admin, /reviewedCaption/);
+  assert.match(admin, /extractFigureCaption/);
   assert.match(styles, /\.extraction-visual-caption-group/);
   assert.match(admin, /Retry processing/);
   assert.match(admin, /removeDocument/);

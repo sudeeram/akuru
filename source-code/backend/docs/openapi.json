@@ -2914,6 +2914,18 @@
       },
       "ExtractionBlockUpdateRequest": {
         "properties": {
+          "caption": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
           "kind": {
             "title": "Kind",
             "type": "string"

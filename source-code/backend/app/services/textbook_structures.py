@@ -383,14 +383,16 @@ def list_topic_visual_assets(db: Session, textbook_ref: str, topic_ref: str,
         if not page or not asset or asset.id in seen_assets: continue
         seen_assets.add(asset.id)
         selected = selections.get(asset.id)
+        reviewed_caption = str(block.block_metadata.get("reviewedCaption", "")).strip()
+        extracted_caption = reviewed_caption or block.text or ""
         result.append(TopicVisualAssetResponse(
             assetRef=selected.public_ref if selected else f"candidate_{asset.id.hex}",
             documentId=str(link.document_id), documentVersionId=str(link.document_version_id),
             documentAssetId=str(asset.id), filename=version.original_filename, sourceRole=link.role,
             kind=block.block_kind, page=page.page_number, printedPage=page.printed_page_label,
-            boundingBox=block.bounding_box, extractedCaption=block.text or "",
+            boundingBox=block.bounding_box, extractedCaption=extracted_caption,
             status=selected.status if selected else "unselected",
-            caption=selected.caption if selected else block.text or "",
+            caption=selected.caption if selected else extracted_caption,
             altText=selected.alt_text if selected else "",
             contentUrl=f"/api/v1/documents/{link.document_id}/assets/{asset.id}/content"))
     return result
