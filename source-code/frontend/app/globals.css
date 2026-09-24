@@ -1533,6 +1533,11 @@ small {
 .extraction-page-review-counts { display: flex; flex-wrap: wrap; gap: 8px; }
 .extraction-page-review-counts span { padding: 5px 8px; border-radius: 7px; background: #f2f5fa; color: #53657d; font-size: 11px; white-space: nowrap; }
 .extraction-page-review-counts strong { color: #203452; }
+.extraction-block-group { margin-top: .75rem; padding: 1rem; border: 1px solid #dbe5ec; border-radius: 14px; background: #fff; }
+.extraction-visual-caption-group { border-color: #9ddbe2; background: linear-gradient(145deg, #f4feff, #fff); }
+.extraction-visual-caption-group figure { margin: 0; padding: .75rem; border-radius: 12px; background: #eef9fb; }
+.extraction-visual-caption-group figcaption { color: #334b5f; line-height: 1.5; }
+.extraction-group-member { padding-top: .75rem; border-top: 1px solid #e6edf2; }
 .extraction-block-visibility { justify-content: space-between; padding-top: 14px; }
 .review-status-badge { display: inline-flex; width: fit-content; align-items: center; border: 1px solid; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; letter-spacing: .02em; white-space: nowrap; }
 .review-status-required { border-color: #e6a5af; background: #fff0f1; color: #a32239; }
