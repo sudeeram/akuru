@@ -39,7 +39,7 @@ import {
   reassessAssessment,
   updateExtractionBlock,
   updateExtractionPage,
-} from '@/lib/api';
+} from '@/api';
 import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';

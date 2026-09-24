@@ -19,7 +19,7 @@ import {
   type TutorOptions,
   type TutorProfile,
   type TutorProfileDraft,
-} from '@/lib/api';
+} from '@/api';
 import { Empty, Heading } from './shared';
 
 const initialDraft: TutorProfileDraft = {

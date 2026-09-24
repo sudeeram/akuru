@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { errorMessage, getTutorAdminQuotas, getTutorQuotaAudit, updateTutorAdminQuota, type TutorQuota, type TutorQuotaAudit } from '@/lib/api';
+import { errorMessage, getTutorAdminQuotas, getTutorQuotaAudit, updateTutorAdminQuota, type TutorQuota, type TutorQuotaAudit } from '@/api';
 import { Empty } from './shared';
 
 const number = (value: string) => Math.max(0, Number.parseInt(value, 10) || 0);

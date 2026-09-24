@@ -81,7 +81,7 @@ npm run contract:generate
 npm run contract:check
 ```
 
-Commit both `backend/docs/openapi.json` and `frontend/lib/generated/api-contract.ts`. Then update `frontend/lib/api.ts` and the feature consuming the endpoint.
+Commit both `backend/docs/openapi.json` and `frontend/lib/generated/api-contract.ts`. Then update the owning `frontend/api/<domain>` module, re-export its public contract from `frontend/api/index.ts`, and update the feature consuming the endpoint.
 
 ## Database workflow
 

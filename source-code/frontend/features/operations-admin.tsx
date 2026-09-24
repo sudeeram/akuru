@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable react/react-compiler */
 import { useCallback, useEffect, useState } from 'react';
-import { api, errorMessage } from '@/lib/api';
+import { api, errorMessage } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Empty } from './shared';
 

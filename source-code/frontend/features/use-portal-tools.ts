@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from "react";
-import { api, type State } from "@/lib/api";
+import { getState, type State } from "@/api";
 type Tool = {
   name: string;
   title: string;
@@ -40,7 +40,7 @@ export function usePortalTools(userId: string | undefined) {
           throw new Error("Expected an object with optional studentId.");
         if ("studentId" in input && typeof input.studentId !== "string")
           throw new Error("studentId must be a string.");
-        const state: State = await api("state");
+        const state: State = await getState();
         const id = "studentId" in input ? input.studentId : state.user.id;
         const child = state.students.find((s) => s.id === id);
         if (!child) throw new Error("Student is not available to this account.");

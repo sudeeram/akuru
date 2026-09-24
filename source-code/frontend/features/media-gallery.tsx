@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api, errorMessage, type EducationalMedia } from '@/lib/api';
+import { api, errorMessage, type EducationalMedia } from '@/api';
 import { LearningImage } from './learning-media';
 export function MediaGallery({studentId,subjectId}:{studentId:string;subjectId:string}){
  const [items,setItems]=useState<EducationalMedia[]>([]),[error,setError]=useState('');

@@ -1,6 +1,6 @@
 'use client';
 import { useId, useState } from 'react';
-import { api, errorMessage, type Attempt } from '@/lib/api';
+import { api, errorMessage, type Attempt } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';

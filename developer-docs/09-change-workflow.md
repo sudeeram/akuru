@@ -7,7 +7,7 @@
 3. Add or change backend schemas, service logic and route.
 4. Add meaningful backend integration tests, including denial paths.
 5. Regenerate the OpenAPI/TypeScript contract.
-6. Add typed functions in `frontend/lib/api.ts`.
+6. Add typed functions and types to the owning `frontend/api/<domain>` module.
 7. Build the role-specific feature with loading, empty, error and success states.
 8. Add frontend contract/accessibility coverage.
 9. Update developer and user documentation if behavior or an Admin procedure changed.

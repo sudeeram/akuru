@@ -9,7 +9,7 @@ import {
   saveRealtimeTranscriptTurn,
   updateRealtimeState,
   type RealtimeLanguageMode,
-} from '@/lib/api';
+} from '@/api';
 
 type Props = {
   sessionRef: string;

@@ -12,7 +12,8 @@ source-code/
   frontend/                     React/TypeScript application
     app/                        Portal shell and role navigation
     features/                   Admin, Parent and Student screens
-    lib/api.ts                  Frontend API boundary
+    api/                        Domain API operations, types and public barrel
+      core/client.ts            Shared frontend HTTP boundary
     tests/                      Frontend boundary tests
     docs/architecture.md        Frontend implementation and API contract
   backend/

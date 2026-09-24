@@ -1,8 +1,33 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const api = readFileSync(new URL('../lib/api.ts', import.meta.url), 'utf8');
+const apiFiles = [
+  '../api/core/client.ts',
+  '../api/core/errors.ts',
+  '../api/core/csrf.ts',
+  '../api/state/state.api.ts',
+  '../api/state/state.types.ts',
+  '../api/tutoring/tutor.api.ts',
+  '../api/tutoring/tutor.types.ts',
+  '../api/documents/documents.api.ts',
+  '../api/documents/documents.types.ts',
+  '../api/textbooks/textbooks.api.ts',
+  '../api/textbooks/textbooks.types.ts',
+  '../api/curriculum/curriculum.api.ts',
+  '../api/curriculum/curriculum.types.ts',
+  '../api/assessments/assessments.api.ts',
+  '../api/assessments/assessments.types.ts',
+  '../api/flashcards/flashcards.api.ts',
+  '../api/flashcards/flashcards.types.ts',
+  '../api/mastery/mastery.types.ts',
+];
+const api = apiFiles
+  .map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
+  .join('\n');
+const apiClient = readFileSync(new URL('../api/core/client.ts', import.meta.url), 'utf8');
+const documentApi = readFileSync(new URL('../api/documents/documents.api.ts', import.meta.url), 'utf8');
+const textbookApiClient = readFileSync(new URL('../api/textbooks/textbooks.api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
 const tutorSessions = readFileSync(new URL('../features/tutor-sessions.tsx', import.meta.url), 'utf8');
 const learningMedia = readFileSync(new URL('../features/learning-media.tsx', import.meta.url), 'utf8');
@@ -42,9 +67,19 @@ const tutorVoice = readFileSync(new URL('../features/tutor-voice.tsx', import.me
 const flashcards = readFileSync(new URL('../features/flashcards.tsx', import.meta.url), 'utf8');
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
-  assert.match(api, /fetch\('\/api\/v1\/' \+ path/);
+  assert.match(api, /fetch\(`\/api\/v1\/\$\{path\}`/);
   assert.match(vite, /'\/api\/v1'/);
   assert.match(vite, /127\.0\.0\.1:8000/);
+});
+
+test('frontend API is split by domain behind one typed public barrel', () => {
+  assert.equal(existsSync(new URL('../lib/api.ts', import.meta.url)), false);
+  assert.match(apiClient, /function request<T>/);
+  assert.doesNotMatch(api, /type ApiResult/);
+  assert.match(page, /from '@\/api'/);
+  assert.match(documentApi, /body: file/);
+  assert.doesNotMatch(documentApi, /contentBase64/);
+  assert.match(textbookApiClient, /contentBase64/);
 });
 
 test('account UUIDs remain internal identifiers', () => {
@@ -69,7 +104,7 @@ test('login submits from the keyboard', () => {
 
 test('admin UI reference is routed and API-authorized', () => {
   assert.match(page, /href="\/ui-features"/);
-  assert.match(uiFeatures, /api\('admin\/ui-features'\)/);
+  assert.match(uiFeatures, /getUiFeaturesAccess\(\)/);
   assert.match(uiFeatures, /Admin access required/);
   assert.match(uiFeatures, /AKURU-owned components/);
   assert.match(uiFeatures, /UI feature categories/);

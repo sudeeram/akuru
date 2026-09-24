@@ -8,7 +8,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
-import type { Subject, State, Student, Attempt } from "@/lib/api";
+import type { Subject, State, Student, Attempt } from "@/api";
 export const subjectIcons: Record<string, typeof BookOpen> = {
   maths: Calculator,
   science: FlaskConical,

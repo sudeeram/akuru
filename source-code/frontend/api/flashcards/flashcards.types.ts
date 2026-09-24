@@ -1,0 +1,5 @@
+/** Immutable flashcard deck, card, source and session contracts. */
+export type FlashcardSource = { chunkRef: string; documentTitle: string; page: number; printedPage?: string | null; passage: string; sourceUrl?: string | null };
+export type FlashcardCard = { cardRef: string; ordinal: number; version: number; front: string; back?: string | null; status: string; warnings: string[]; source: FlashcardSource };
+export type FlashcardDeck = { deckRef: string; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string; subjectId: string; title: string; status: string; contentVersion: number; cardCount: number; approvedCount: number; reviewRequiredCount: number; rejectedCount: number; cards: FlashcardCard[]; releasedAt?: string | null };
+export type FlashcardSession = { sessionRef: string; deck: FlashcardDeck; status: string; currentOrdinal: number; reviewedCount: number; totalCards: number; currentCard?: FlashcardCard | null; answerRevealed: boolean; schedulerVersion: string; message: string };

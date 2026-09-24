@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Heading } from './shared';
-import { errorMessage, getTutorHistorySummaries, getTutorSafetyEvents, getTutorSupportTranscript, previewTutorTranscriptPurge, purgeTutorTranscripts, reviewTutorSafetyEvent, type TutorHistorySummary, type TutorSafetyEvent } from '@/lib/api';
+import { errorMessage, getTutorHistorySummaries, getTutorSafetyEvents, getTutorSupportTranscript, previewTutorTranscriptPurge, purgeTutorTranscripts, reviewTutorSafetyEvent, type TutorHistorySummary, type TutorSafetyEvent } from '@/api';
 
 export function TutorHistory({ admin = false, notify }: { admin?: boolean; notify: (message: string) => void }) {
   const [summaries, setSummaries] = useState<TutorHistorySummary[]>([]), [events, setEvents] = useState<TutorSafetyEvent[]>([]);

@@ -13,7 +13,7 @@ import {
   applyRecommendedTopicSourceRoles, getTopicReviewChecklist, getTopicVisualAssets,
   reviewTopicVisualAsset, type TopicReviewChecklist, type TopicVisualAsset,
   type TopicSourceRole,
-} from '@/lib/api';
+} from '@/api';
 import { Picker } from './shared';
 
 type Props = { subjects: Subject[]; students: Student[]; notify: (message: string) => void; refreshPortal: () => Promise<void> };

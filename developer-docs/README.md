@@ -33,7 +33,7 @@ This handbook explains the current AKURU implementation for developers. It descr
 | Database schema | `source-code/backend/app/models.py` plus `source-code/backend/migrations/versions` |
 | HTTP contract | FastAPI route/response schemas and `source-code/backend/docs/openapi.json` |
 | Generated frontend API types | `source-code/frontend/lib/generated/api-contract.ts` |
-| Browser API integration | `source-code/frontend/lib/api.ts` |
+| Browser API integration | `source-code/frontend/api`, exported through `api/index.ts` |
 | Authorization | `source-code/backend/app/security.py`, `source-code/backend/app/permissions.py`, and domain services |
 | Production services | `deploy/ubuntu` |
 | User procedures | `user-docs` |

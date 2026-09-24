@@ -16,7 +16,7 @@ import {
   saveTutorPracticeAnswer, searchTutorSources, startTutorPractice, startTutorSession, submitTutorPractice,
   switchTutorProfile, switchTutorTopic, type NextTopicResult, type TutorCitationContext,
   type TutorAgentReply, type TutorOptions, type TutorPractice, type TutorQuota, type TutorSession, type TutorSessionOptions, type TutorSourceSearch,
-} from '@/lib/api';
+} from '@/api';
 
 const key = () => crypto.randomUUID();
 

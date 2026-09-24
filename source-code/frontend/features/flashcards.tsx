@@ -8,7 +8,7 @@ import { Heading, Empty, Status } from './shared';
 import { errorMessage, generateFlashcardDeck, getAdminFlashcardDeck, getAdminFlashcardDecks,
   getStudentFlashcardDecks, getTextbookStructures, rateFlashcard, releaseFlashcardDeck,
   revealFlashcard, reviewFlashcard, startFlashcardSession, type FlashcardDeck,
-  type FlashcardSession } from '@/lib/api';
+  type FlashcardSession } from '@/api';
 
 export function FlashcardAdmin({ notify }: { notify: (message: string) => void }) {
   const [decks, setDecks] = useState<FlashcardDeck[]>([]);

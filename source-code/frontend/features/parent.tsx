@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { api, errorMessage, type Attempt } from '@/lib/api';
+import { api, errorMessage, type Attempt } from '@/api';
 import { Heading, Picker, Empty, Status, type FeatureProps } from './shared';
 import { TutorSignals } from './tutor-signals';
 export function Reviews(p: FeatureProps) {

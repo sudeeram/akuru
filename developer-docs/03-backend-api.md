@@ -69,4 +69,4 @@ PostgreSQL is authoritative for job state. Redis loss must not turn queued work 
 
 ## Adding an endpoint
 
-Add or update the schema, service, route and tests. Include the router if it is a new domain. Regenerate the contract, update `frontend/lib/api.ts`, and build the corresponding role UI. Run the full verification gate before committing.
+Add or update the schema, service, route and tests. Include the router if it is a new domain. Regenerate the contract, update the matching `frontend/api/<domain>` operation and type files, and build the corresponding role UI. Run the full verification gate before committing.

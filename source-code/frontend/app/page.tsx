@@ -32,11 +32,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   api,
+  getState,
   errorMessage,
   ApiError,
   type State,
   type Student,
-} from '@/lib/api';
+} from '@/api';
 import { Heading, SubjectIcon } from '@/features/shared';
 import {
   Subjects,
@@ -106,7 +107,7 @@ export default function Portal() {
   usePortalTools(data?.user.id);
   async function refresh() {
     try {
-      const next = await api('state');
+      const next = await getState();
       setData(next);
       if (next.user.role === 'student') setSelected(next.user.id);
       const allowed =

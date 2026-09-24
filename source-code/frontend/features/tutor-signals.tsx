@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { Eye } from 'lucide-react';
-import { getTutorSignals, type TutorSignal } from '@/lib/api';
+import { getTutorSignals, type TutorSignal } from '@/api';
 
 export function TutorSignals({ studentId, refreshKey }: { studentId?: string; refreshKey?: string }) {
   const [signals, setSignals] = useState<TutorSignal[]>([]);

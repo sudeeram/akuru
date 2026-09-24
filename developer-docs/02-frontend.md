@@ -14,7 +14,9 @@ The shared route-loading overlay rotates AKURU BOT assets and respects reduced-m
 
 ## API boundary
 
-All HTTP access belongs in `lib/api.ts`. It:
+All HTTP access belongs under `api/`. Feature code imports the public barrel as
+`@/api`; domain operation files call the generic client in `api/core/client.ts`.
+The shared client:
 
 - prefixes requests with `/api/v1/`;
 - includes the browser's HttpOnly session cookie automatically;
@@ -25,7 +27,7 @@ All HTTP access belongs in `lib/api.ts`. It:
 
 Do not call FastAPI with absolute production URLs or expose backend secrets through frontend environment variables. Development proxying is configured in `vite.config.ts`.
 
-FastAPI's OpenAPI output generates `lib/generated/api-contract.ts`. Never edit it manually. Run `npm run contract:generate` at `source-code` after API contract changes. CI runs `contract:check` to reject drift.
+FastAPI's OpenAPI output generates `lib/generated/api-contract.ts`. Never edit it manually. Run `npm run contract:generate` at `source-code` after API contract changes. The API barrel re-exports its public generated types, and CI runs `contract:check` to reject drift.
 
 ## State and mutations
 

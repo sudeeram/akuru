@@ -2,7 +2,7 @@
 /* Effects load remote Admin media/source inventories when the selected subject changes. */
 /* eslint-disable react/react-compiler */
 import { useEffect, useState } from 'react';
-import { api, errorMessage, type EducationalMedia, type MediaSource, type State } from '@/lib/api';
+import { api, errorMessage, type EducationalMedia, type MediaSource, type State } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';

@@ -36,7 +36,7 @@ import {
   type Attempt,
   type Lesson,
   type AssessmentApiResponse,
-} from '@/lib/api';
+} from '@/api';
 import {
   Heading,
   SubjectIcon,
@@ -59,7 +59,7 @@ export function Subjects(p: FeatureProps) {
   async function open(q: Question) {
     setError('');
     try {
-      const content = await api(`lesson?question=${q.id}`);
+      const content = await api<Lesson>(`lesson?question=${q.id}`);
       setLesson(q);
       setExplain(content);
     } catch (e: unknown) {
@@ -523,7 +523,7 @@ export function Practice(p: FeatureProps) {
                   variant="outline"
                   onClick={async () => {
                     try {
-                      setExplanation(await api(`lesson?question=${q.id}`));
+                      setExplanation(await api<Lesson>(`lesson?question=${q.id}`));
                     } catch (e: unknown) {
                       setError(errorMessage(e));
                     }

@@ -25,7 +25,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
-import { api, ApiError, type UiFeaturesAccess } from '@/lib/api';
+import { ApiError, getUiFeaturesAccess, type UiFeaturesAccess } from '@/api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Avatar,
@@ -109,7 +109,7 @@ export default function UiFeaturesPage() {
   const [access, setAccess] = useState<UiFeaturesAccess | null>(null);
   const [denied, setDenied] = useState(false);
   useEffect(() => {
-    api('admin/ui-features')
+    getUiFeaturesAccess()
       .then(setAccess)
       .catch((error: unknown) => {
         if (

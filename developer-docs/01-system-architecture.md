@@ -50,7 +50,7 @@ Deployment assets live at repository root in `deploy/ubuntu`; user documentation
 
 ## Request flow
 
-1. The browser sends a same-origin request through `frontend/lib/api.ts`.
+1. The browser calls a domain operation exported by `source-code/frontend/api/index.ts`.
 2. Nginx routes `/api/v1/*` to FastAPI.
 3. Middleware validates host, origin, body size and request rate.
 4. A route dependency resolves the opaque session and role; mutations also validate CSRF.

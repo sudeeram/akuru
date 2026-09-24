@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable react/react-compiler */
 import { useCallback, useEffect, useState } from 'react';
-import { api, errorMessage, getTutorAdminPresets, type State, type TutorAdminPresets } from '@/lib/api';
+import { api, errorMessage, getTutorAdminPresets, type State, type TutorAdminPresets } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
