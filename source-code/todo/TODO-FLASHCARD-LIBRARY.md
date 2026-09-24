@@ -1,6 +1,6 @@
 # Curated flashcard library and adaptive Student review
 
-**Status: Planned**
+**Status: Completed and released to production on 24 September 2026**
 
 This roadmap replaces Admin-triggered flashcard generation with a curated, source-grounded release process. Flashcards are prepared after textbook topics are reviewed and published, validated outside the Student request path, imported into AKURU as a versioned release artifact, and then served using deterministic study and scheduling rules.
 
@@ -179,16 +179,16 @@ The first inventory contains 72 reviewed cards for the only currently published 
 
 ## Step 11 — Test and release incrementally
 
-- [ ] Test artifact schema, checksum, dry run, idempotency, invalid evidence, cross-subject evidence, stale content versions and transactional rollback.
-- [ ] Test duplicate detection, formula validation, variation limits and category coverage.
-- [ ] Test all six Student modes with zero, few and many eligible cards.
-- [ ] Test overdue, difficult, weak, unseen and alternate-variation selection order.
-- [ ] Test session resume, concurrent ratings, superseded cards and prior history.
-- [ ] Test Student isolation, cumulative Grade/Term eligibility and unavailable sibling topics.
-- [ ] Test keyboard operation, screen-reader announcements, small screens and 100-card library performance.
-- [ ] Import first into a disposable/local database and preserve the validation report.
-- [ ] Release Topic 1 to a selected pilot Student before expanding to all published Unit 1 topics.
-- [ ] Record production acceptance evidence and the rollback procedure.
+- [x] Test artifact schema, checksum, dry run, idempotency, invalid evidence, cross-subject evidence, stale content versions and transactional rollback.
+- [x] Test duplicate detection, formula validation, variation limits and category coverage.
+- [x] Test all six Student modes with zero, few and many eligible cards.
+- [x] Test overdue, difficult, weak, unseen and alternate-variation selection order.
+- [x] Test session resume, concurrent ratings, superseded cards and prior history.
+- [x] Test Student isolation, cumulative Grade/Term eligibility and unavailable sibling topics.
+- [x] Test keyboard operation, screen-reader announcements, responsive layouts and large-library performance up to the 100-card artifact limit.
+- [x] Import first into a disposable/local database and preserve the validation report.
+- [x] Release Topic 1 to the eligible production pilot Student before expanding to later Unit 1 topics.
+- [x] Record production acceptance evidence and the rollback procedure.
 
 **Done when:** the curated library passes quality, authorization, accessibility, scheduling and production acceptance gates.
 
@@ -204,13 +204,26 @@ The first usable release may use the existing sequential Student interface immed
 
 ## Completion gate
 
-- [ ] No Admin-facing flashcard generation remains.
-- [ ] The reviewed card count is justified by published Unit 1 concept coverage.
-- [ ] Every card has approved evidence and a meaningful category and variation type.
-- [ ] Import is validated, idempotent, audited and reversible.
-- [ ] Routine Student flashcard use consumes no OpenAI tokens.
-- [ ] Students can use all six study modes with deterministic child-scoped selection.
-- [ ] Ratings affect future reviews through a tested versioned scheduling policy.
-- [ ] The production pilot passes authorization, source-grounding, quality, accessibility and rollback checks.
+- [x] No Admin-facing flashcard generation remains.
+- [x] The reviewed card count is justified by published Unit 1 concept coverage.
+- [x] Every card has approved evidence and a meaningful category and variation type.
+- [x] Import is validated, idempotent, audited and reversible.
+- [x] Routine Student flashcard use consumes no OpenAI tokens.
+- [x] Students can use all six study modes with deterministic child-scoped selection.
+- [x] Ratings affect future reviews through a tested versioned scheduling policy.
+- [x] The production pilot passes authorization, source-grounding, quality, accessibility and rollback checks.
 
 **Done when:** AKURU provides a high-quality, maintainable Unit 1 flashcard library whose size follows syllabus coverage, whose questions remain tied to reviewed textbook evidence, and whose daily Student experience is adaptive without recurring AI cost.
+
+## Production release evidence
+
+- Release ID: `chemistry-u1-t01-states-v1`
+- Production deck reference: `deck_56a2819ba0ac4fe99e7644a9a0254855`
+- Artifact checksum: `eaf86a25f5292e7d282eac98af1ec37c1c2b913807bf6aba0df15ecf6051c510`
+- Released library: 72 cards across 26 concepts, with 20 essential knowledge, 22 explanation/comparison, 18 application/misconception and 12 calculation/interpretation cards.
+- The original 30-card pilot remains unavailable to Students.
+- Production validation, dry run, import and idempotent replay passed. Wrong-subject evidence, stale content and a changed artifact reusing the release ID were rejected.
+- The eligible pilot Student can start Quick review, Normal review, Full topic practice and Unit mixed practice. Difficult and Due today correctly remain unavailable until the Student creates matching learning history.
+- Local release gates passed with 43 frontend tests, 124 backend tests, contract verification, type checking, lint and a production build.
+- The baseline migration was proved from an empty disposable database through the current schema head before production release.
+- The operational rollback is the audited Admin withdraw/rollback action, which supersedes the current release and restores the previous eligible release when one exists.
