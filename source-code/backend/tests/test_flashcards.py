@@ -58,6 +58,8 @@ def test_curated_artifact_checksum_and_quality_rules_are_deterministic():
     artifact = FlashcardReleaseArtifact.model_validate(base)
     assert canonical_checksum(artifact) == canonical_checksum(artifact)
     assert _quality_errors(artifact) == []
+    base["decks"][0]["cards"][0]["question"] = "Explain diffusion using particle movement."
+    assert _quality_errors(FlashcardReleaseArtifact.model_validate(base)) == []
     base["decks"][0]["cards"][0]["question"] = "Figure 1.2"
     assert _quality_errors(FlashcardReleaseArtifact.model_validate(base))
 

@@ -41,7 +41,8 @@ def _quality_errors(artifact: FlashcardReleaseArtifact) -> list[str]:
             errors.append(f"{card.key}: answer merely repeats the question")
         if re.search(r"\b(?:hci|nh4ci)\b", card.question + " " + card.answer, re.I):
             errors.append(f"{card.key}: suspicious Chemistry OCR substitution (use HCl, not HCI)")
-        if not card.question.rstrip().endswith("?"):
+        command = re.match(r"^(calculate|compare|correct|define|describe|determine|explain|give|identify|name|plot|put|state|use|write)\b", card.question.strip(), re.I)
+        if not card.question.rstrip().endswith("?") and not command:
             errors.append(f"{card.key}: question is incomplete or lacks a question mark")
         if card.category == "calculation_interpretation_diagram" and card.variationType not in {"calculation", "interpretation", "diagram"}:
             errors.append(f"{card.key}: category and variation type disagree")
