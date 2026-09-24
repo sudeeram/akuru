@@ -882,7 +882,7 @@ export function AdminWorkspace(p: Props) {
                       ? page.blocks.filter((block) => block.needsReview)
                       : page.blocks;
                     return (
-                    <details className="panel extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`} open>
+                    <details className="panel extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`}>
                       <summary className="extraction-page-header">
                         <div>
                           <strong>Extracted page {page.pageNumber}</strong>
