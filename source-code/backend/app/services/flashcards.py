@@ -507,10 +507,12 @@ def report_card(db: Session, principal: Principal, session_ref: str, reason: str
         revealed = [value for value in (active.revealed_card_version_ids or []) if str(value) != str(card.id)]
         db.query(FlashcardReview).filter(FlashcardReview.session_id == active.id,
             FlashcardReview.card_version_id == card.id).delete()
+        if not ids:
+            db.delete(active)
+            continue
         active.selected_card_version_ids = ids; active.selection_reasons = reasons
         active.revealed_card_version_ids = revealed; active.target_count = len(ids)
-        active.current_ordinal = max(1, min(active.current_ordinal, len(ids))) if ids else 1
-        if not ids: active.status = "discarded"
+        active.current_ordinal = max(1, min(active.current_ordinal, len(ids)))
     db.add(report); db.add(AuditEvent(actor_id=principal.user.id, action="flashcard.reported",
         target_type="flashcard", target_id=card.public_ref, event_data={"reason": reason}))
     db.commit(); db.refresh(report)
