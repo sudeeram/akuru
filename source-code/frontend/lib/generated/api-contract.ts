@@ -63,6 +63,9 @@ export interface Schemas {
   "FlashcardMasteryResponse": { "deckRef": string; "totalCards": number; "toEvaluate": number; "needsReview": number; "good": number; "mastered": number; "coveragePercent": number; "masteryPercent": number; "categories": Array<Schemas["FlashcardMasteryCategory"]>; "completedSessions": number; "recentSessions"?: Array<Schemas["FlashcardMasterySession"]>; "recommendedMode": "review" | "difficult"; "recommendedDifficulty"?: "easy" | "difficult" | "mixed" | null; "recommendedCount"?: 20 | 30; "masteryVersion": string; "recalculatedAt"?: string | null; };
   "FlashcardMasterySession": { "sessionRef": string; "mode": "review" | "difficult"; "difficulty"?: "easy" | "difficult" | "mixed" | null; "cardCount": number; "completedAt": string; };
   "FlashcardRatingRequest": { "rating": "again" | "difficult" | "good" | "easy"; "requestKey": string; };
+  "FlashcardReportDecisionRequest": { "decision": "exclude" | "restore"; "note"?: string; };
+  "FlashcardReportRequest": { "reason": string; };
+  "FlashcardReportResponse": { "reportRef": string; "cardRef": string; "question": string; "reason": string; "status": string; "availability": string; "createdAt": string; "adminNote"?: string | null; };
   "FlashcardSessionResponse": { "sessionRef": string; "deck": Schemas["FlashcardDeckResponse"]; "status": string; "currentOrdinal": number; "reviewedCount": number; "totalCards": number; "currentCard": Schemas["FlashcardCardResponse"] | null; "answerRevealed"?: boolean; "masteryVersion": string; "selectionVersion": string; "message": string; "mode"?: "review" | "difficult"; "difficulty"?: "easy" | "difficult" | "mixed" | null; "selectionReasons"?: Array<string>; "viewedOrdinal": number; "firstUnattemptedOrdinal": number; "canGoPrevious"?: boolean; "canGoNext"?: boolean; "hasUncommittedResults"?: boolean; };
   "FlashcardSessionStartRequest": { "requestKey": string; "mode"?: "review" | "difficult"; "difficulty"?: "easy" | "difficult" | "mixed" | null; "requestedCount"?: 20 | 30; };
   "FlashcardStudyOption": { "mode": "review" | "difficult"; "title": string; "description": string; "availableCount": number; "sessionSize": number; "enabled": boolean; "supportedCounts"?: Array<number>; "difficulties"?: Array<string>; };
@@ -310,6 +313,8 @@ export interface ApiOperations {
   "GET /api/v1/flashcards/admin/decks": { request: unknown; response: Array<Schemas["FlashcardDeckResponse"]> };
   "GET /api/v1/flashcards/admin/decks/{deck_ref}": { request: unknown; response: Schemas["FlashcardDeckResponse"] };
   "POST /api/v1/flashcards/admin/decks/{deck_ref}/withdraw": { request: Schemas["FlashcardWithdrawRequest"]; response: Schemas["FlashcardDeckResponse"] };
+  "GET /api/v1/flashcards/admin/reports": { request: unknown; response: Array<Schemas["FlashcardReportResponse"]> };
+  "POST /api/v1/flashcards/admin/reports/{report_ref}/decision": { request: Schemas["FlashcardReportDecisionRequest"]; response: Schemas["FlashcardReportResponse"] };
   "GET /api/v1/flashcards/student/decks": { request: unknown; response: Array<Schemas["FlashcardDeckResponse"]> };
   "GET /api/v1/flashcards/student/decks/{deck_ref}/mastery": { request: unknown; response: Schemas["FlashcardMasteryResponse"] };
   "POST /api/v1/flashcards/student/decks/{deck_ref}/sessions": { request: Schemas["FlashcardSessionStartRequest"]; response: Schemas["FlashcardSessionResponse"] };
@@ -317,6 +322,7 @@ export interface ApiOperations {
   "GET /api/v1/flashcards/student/sessions/{session_ref}": { request: unknown; response: Schemas["FlashcardSessionResponse"] };
   "POST /api/v1/flashcards/student/sessions/{session_ref}/discard": { request: unknown; response: Schemas["FlashcardDiscardResponse"] };
   "POST /api/v1/flashcards/student/sessions/{session_ref}/rate": { request: Schemas["FlashcardRatingRequest"]; response: Schemas["FlashcardSessionResponse"] };
+  "POST /api/v1/flashcards/student/sessions/{session_ref}/report": { request: Schemas["FlashcardReportRequest"]; response: Schemas["FlashcardReportResponse"] };
   "POST /api/v1/flashcards/student/sessions/{session_ref}/reveal": { request: unknown; response: Schemas["FlashcardSessionResponse"] };
   "GET /api/v1/flashcards/student/sessions/{session_ref}/textbook-pages/{page_id}": { request: unknown; response: unknown };
   "GET /api/v1/flashcards/student/sessions/{session_ref}/visuals/{visual_ref}": { request: unknown; response: unknown };

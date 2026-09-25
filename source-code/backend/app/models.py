@@ -996,6 +996,7 @@ class FlashcardVersion(Base):
     category: Mapped[str] = mapped_column(String(40), default="essential_knowledge", server_default="essential_knowledge")
     variation_type: Mapped[str] = mapped_column(String(32), default="recall", server_default="recall")
     difficulty: Mapped[str] = mapped_column(String(16), default="easy", server_default="easy")
+    availability: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
     card_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     visual_asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topic_visual_assets.id", ondelete="RESTRICT"))
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
@@ -1008,6 +1009,7 @@ class FlashcardVersion(Base):
         CheckConstraint("category IN ('essential_knowledge','explanation_comparison','application_misconception','calculation_interpretation_diagram')", name="ck_flashcard_category"),
         CheckConstraint("variation_type IN ('recall','explanation','comparison','application','misconception','calculation','interpretation','diagram')", name="ck_flashcard_variation"),
         CheckConstraint("difficulty IN ('easy','difficult')", name="ck_flashcard_difficulty"),
+        CheckConstraint("availability IN ('active','reported','excluded')", name="ck_flashcard_availability"),
     )
 
 
@@ -1074,6 +1076,24 @@ class FlashcardLearningState(Base):
         CheckConstraint("mastery_status IN ('to_evaluate','needs_review','good','mastered')", name="ck_flashcard_mastery_status"),
         CheckConstraint("last_rating IS NULL OR last_rating IN ('again','difficult','good','easy')", name="ck_flashcard_learning_rating"),
         UniqueConstraint("student_id", "card_version_id", name="uq_flashcard_learning_student_card"),
+    )
+
+
+class FlashcardReport(Base):
+    __tablename__ = "flashcard_reports"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"cardreport_{uuid.uuid4().hex}")
+    card_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_versions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="open", server_default="open", index=True)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    admin_note: Mapped[str | None] = mapped_column(Text)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (
+        CheckConstraint("status IN ('open','excluded','restored')", name="ck_flashcard_report_status"),
+        UniqueConstraint("student_id", "card_version_id", name="uq_flashcard_report_student_card"),
     )
 
 

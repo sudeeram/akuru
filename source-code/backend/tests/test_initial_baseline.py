@@ -26,7 +26,7 @@ def test_baseline_matches_topic_only_metadata_inventory():
     assert "group_label IN ('unit','module')" in text
     later_tables = {"topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
-                    "textbook_topic_visual_assets"}
+                        "textbook_topic_visual_assets", "flashcard_reports"}
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 

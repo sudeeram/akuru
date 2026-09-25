@@ -36,6 +36,9 @@ def test_openapi_exposes_role_scoped_flashcard_workflow():
     assert "/api/v1/flashcards/student/sessions/{session_ref}/reveal" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/rate" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/discard" in paths
+    assert "/api/v1/flashcards/student/sessions/{session_ref}/report" in paths
+    assert "/api/v1/flashcards/admin/reports" in paths
+    assert "/api/v1/flashcards/admin/reports/{report_ref}/decision" in paths
     assert "/api/v1/flashcards/student/decks/{deck_ref}/mastery" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/visuals/{visual_ref}" in paths
     assert "/api/v1/flashcards/student/sessions/{session_ref}/textbook-pages/{page_id}" in paths

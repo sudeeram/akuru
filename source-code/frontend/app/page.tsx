@@ -180,7 +180,8 @@ export function Portal() {
     setTimeout(() => setNotice(''), 4500);
   };
   const navigateTo = (to: string, replace = false) => {
-    const proceed = () => { window.dispatchEvent(new Event('akuru:navigation')); void navigate({ to, replace }); };
+    const withinFlashcardSession = location.pathname.startsWith('/flashcards/sessions/') && to.startsWith('/flashcards/sessions/');
+    const proceed = () => { if (!withinFlashcardSession) window.dispatchEvent(new Event('akuru:navigation')); void navigate({ to, replace }); };
     const guard = new CustomEvent('akuru:before-navigation', { cancelable: true, detail: { to, proceed } });
     if (window.dispatchEvent(guard)) proceed();
   };

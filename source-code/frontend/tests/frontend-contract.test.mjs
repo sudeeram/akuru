@@ -620,6 +620,10 @@ test('curated flashcards are source grounded and offer mastery-based Student stu
   assert.match(flashcards, /Show explanation/);
   assert.match(flashcards, /getFlashcardMastery/);
   assert.match(flashcards, /discardFlashcardSession/);
+  assert.match(flashcards, /Report this flashcard/);
+  assert.match(flashcards, /Reported flashcards/);
+  assert.match(flashcards, /MasteryRing/);
+  assert.match(api, /flashcards\/student\/sessions\/\$\{sessionRef\}\/report/);
   assert.doesNotMatch(flashcards, /Due today/);
   assert.doesNotMatch(flashcards, /source\.sourceUrl/);
 });

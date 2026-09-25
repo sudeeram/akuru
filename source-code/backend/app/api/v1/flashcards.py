@@ -9,13 +9,23 @@ from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.flashcards import (FlashcardDeckResponse, FlashcardDiscardResponse,
     FlashcardMasteryResponse, FlashcardRatingRequest, FlashcardSessionResponse,
-    FlashcardSessionStartRequest, FlashcardStudyOptionsResponse, FlashcardWithdrawRequest)
+    FlashcardSessionStartRequest, FlashcardStudyOptionsResponse, FlashcardWithdrawRequest,
+    FlashcardReportRequest, FlashcardReportDecisionRequest, FlashcardReportResponse)
 from app.security import Principal
 from app.services import flashcards
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_storage
 
 router = APIRouter(prefix="/flashcards", tags=["flashcards"])
+
+@router.get("/admin/reports", response_model=list[FlashcardReportResponse])
+def reports(_p: Annotated[Principal, Depends(require_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return flashcards.admin_reports(db)
+
+@router.post("/admin/reports/{report_ref}/decision", response_model=FlashcardReportResponse)
+def report_decision(report_ref: str, payload: FlashcardReportDecisionRequest,
+                    p: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
+    return flashcards.decide_report(db, p, report_ref, payload.decision, payload.note)
 
 @router.get("/admin/decks", response_model=list[FlashcardDeckResponse])
 def admin_list(_p: Annotated[Principal, Depends(require_roles("admin"))], db: Annotated[Session, Depends(get_db)]):
@@ -63,6 +73,11 @@ def discard(session_ref: str,
             p: Annotated[Principal, Depends(require_csrf_roles("student"))],
             db: Annotated[Session, Depends(get_db)]):
     return flashcards.discard(db, p, session_ref)
+
+@router.post("/student/sessions/{session_ref}/report", response_model=FlashcardReportResponse)
+def report(session_ref: str, payload: FlashcardReportRequest,
+           p: Annotated[Principal, Depends(require_csrf_roles("student"))], db: Annotated[Session, Depends(get_db)]):
+    return flashcards.report_card(db, p, session_ref, payload.reason)
 
 @router.get("/student/sessions/{session_ref}/visuals/{visual_ref}")
 def visual(session_ref: str, visual_ref: str,

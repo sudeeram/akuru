@@ -44,6 +44,23 @@ class FlashcardRatingRequest(BaseModel):
 class FlashcardWithdrawRequest(BaseModel):
     reason: str = Field(min_length=5, max_length=500)
 
+class FlashcardReportRequest(BaseModel):
+    reason: str = Field(min_length=5, max_length=500)
+
+class FlashcardReportDecisionRequest(BaseModel):
+    decision: Literal["exclude", "restore"]
+    note: str = Field(default="", max_length=500)
+
+class FlashcardReportResponse(BaseModel):
+    reportRef: str
+    cardRef: str
+    question: str
+    reason: str
+    status: str
+    availability: str
+    createdAt: str
+    adminNote: str | None = None
+
 
 class FlashcardCardResponse(BaseModel):
     cardRef: str

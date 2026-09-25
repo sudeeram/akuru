@@ -12,11 +12,11 @@ from sqlalchemy import delete, func, inspect, select
 
 from app.database import SessionLocal
 from app.models import (AuditEvent, FlashcardDeck, FlashcardLearningState,
-                        FlashcardReview, FlashcardSession, FlashcardVersion, User)
+                        FlashcardReport, FlashcardReview, FlashcardSession, FlashcardVersion, User)
 
 
 CONFIRMATION = "RESET AKURU FLASHCARDS"
-MODELS = (FlashcardReview, FlashcardLearningState, FlashcardSession,
+MODELS = (FlashcardReport, FlashcardReview, FlashcardLearningState, FlashcardSession,
           FlashcardVersion, FlashcardDeck)
 DOMAIN_TABLES = {model.__tablename__ for model in MODELS}
 

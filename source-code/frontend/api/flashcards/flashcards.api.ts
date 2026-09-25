@@ -1,6 +1,6 @@
 /** Admin release and Student study-session flashcard operations. */
 import { request } from '../core/client';
-import type { FlashcardDeck, FlashcardDifficulty, FlashcardMastery, FlashcardMode, FlashcardRating, FlashcardSession, FlashcardStudyOptions } from './flashcards.types';
+import type { FlashcardDeck, FlashcardDifficulty, FlashcardMastery, FlashcardMode, FlashcardRating, FlashcardReport, FlashcardSession, FlashcardStudyOptions } from './flashcards.types';
 
 export const getAdminFlashcardDecks = () => request<FlashcardDeck[]>('flashcards/admin/decks');
 export const getAdminFlashcardDeck = (ref: string) => request<FlashcardDeck>(`flashcards/admin/decks/${ref}`);
@@ -13,3 +13,6 @@ export const getFlashcardSession = (sessionRef: string, position?: number) => re
 export const revealFlashcard = (sessionRef: string) => request<FlashcardSession>(`flashcards/student/sessions/${sessionRef}/reveal`, { method: 'POST', body: {} });
 export const rateFlashcard = (sessionRef: string, rating: FlashcardRating, requestKey: string) => request<FlashcardSession>(`flashcards/student/sessions/${sessionRef}/rate`, { method: 'POST', body: { rating, requestKey } });
 export const discardFlashcardSession = (sessionRef: string) => request<{sessionRef: string; status: 'discarded'; message: string}>(`flashcards/student/sessions/${sessionRef}/discard`, { method: 'POST', body: {} });
+export const reportFlashcard = (sessionRef: string, reason: string) => request<FlashcardReport>(`flashcards/student/sessions/${sessionRef}/report`, { method: 'POST', body: { reason } });
+export const getFlashcardReports = () => request<FlashcardReport[]>('flashcards/admin/reports');
+export const decideFlashcardReport = (reportRef: string, decision: 'exclude'|'restore', note = '') => request<FlashcardReport>(`flashcards/admin/reports/${reportRef}/decision`, { method: 'POST', body: { decision, note } });

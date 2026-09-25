@@ -10,13 +10,13 @@ from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, FlashcardDeck, FlashcardLearningState,
-    FlashcardReview, FlashcardSession, FlashcardVersion, RetrievalChunk, TextbookGroup,
+    FlashcardReport, FlashcardReview, FlashcardSession, FlashcardVersion, RetrievalChunk, TextbookGroup,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicVisualAsset,
     TopicRetrievalPreflight,
 )
 from app.schemas.flashcards import (FlashcardCardResponse, FlashcardDeckResponse, FlashcardDiscardResponse,
     FlashcardMasteryCategory, FlashcardMasteryResponse, FlashcardMasterySession, FlashcardSessionResponse,
-    FlashcardStudyOption, FlashcardStudyOptionsResponse)
+    FlashcardReportResponse, FlashcardStudyOption, FlashcardStudyOptionsResponse)
 from app.security import Principal
 from app.services.curriculum_plans import student_coverage
 from app.storage.base import ObjectStorage, StoredObject
@@ -361,7 +361,8 @@ def _eligible_deck_models(db: Session, principal: Principal) -> list[FlashcardDe
 def _cards_for_decks(db: Session, decks: list[FlashcardDeck]) -> list[FlashcardVersion]:
     cards = []
     for deck in decks:
-        cards.extend(card for card in _latest_cards(db, deck.id) if card.status == "approved")
+        cards.extend(card for card in _latest_cards(db, deck.id)
+                     if card.status == "approved" and card.availability == "active")
     return cards
 
 
@@ -477,6 +478,59 @@ def _session_card(db: Session, session: FlashcardSession, position: int) -> Flas
     if not card:
         raise DomainError("flashcard_not_found", "The flashcard is unavailable.", 404)
     return card
+
+def _report_out(db: Session, report: FlashcardReport) -> FlashcardReportResponse:
+    card = db.get(FlashcardVersion, report.card_version_id)
+    return FlashcardReportResponse(reportRef=report.public_ref, cardRef=card.public_ref,
+        question=card.front, reason=report.reason, status=report.status,
+        availability=card.availability, createdAt=report.created_at.isoformat(),
+        adminNote=report.admin_note)
+
+def report_card(db: Session, principal: Principal, session_ref: str, reason: str):
+    session = _owned_session(db, principal, session_ref, lock=True)
+    reviews = _reviews(db, session); position = _first_unattempted(session, reviews)
+    card = _session_card(db, session, position)
+    existing = db.scalar(select(FlashcardReport).where(
+        FlashcardReport.student_id == principal.user.id,
+        FlashcardReport.card_version_id == card.id))
+    if existing:
+        return _report_out(db, existing)
+    report = FlashcardReport(card_version_id=card.id, student_id=principal.user.id, reason=reason)
+    card.availability = "reported"
+    # Remove the card from every incomplete snapshot so it cannot reappear.
+    for active in db.scalars(select(FlashcardSession).where(FlashcardSession.status == "active")).all():
+        ids = [str(value) for value in active.selected_card_version_ids]
+        if str(card.id) not in ids: continue
+        index = ids.index(str(card.id)); ids.pop(index)
+        reasons = list(active.selection_reasons or [])
+        if index < len(reasons): reasons.pop(index)
+        revealed = [value for value in (active.revealed_card_version_ids or []) if str(value) != str(card.id)]
+        db.query(FlashcardReview).filter(FlashcardReview.session_id == active.id,
+            FlashcardReview.card_version_id == card.id).delete()
+        active.selected_card_version_ids = ids; active.selection_reasons = reasons
+        active.revealed_card_version_ids = revealed; active.target_count = len(ids)
+        active.current_ordinal = max(1, min(active.current_ordinal, len(ids))) if ids else 1
+        if not ids: active.status = "discarded"
+    db.add(report); db.add(AuditEvent(actor_id=principal.user.id, action="flashcard.reported",
+        target_type="flashcard", target_id=card.public_ref, event_data={"reason": reason}))
+    db.commit(); db.refresh(report)
+    return _report_out(db, report)
+
+def admin_reports(db: Session):
+    return [_report_out(db, row) for row in db.scalars(select(FlashcardReport).order_by(
+        FlashcardReport.created_at.desc())).all()]
+
+def decide_report(db: Session, principal: Principal, report_ref: str, decision: str, note: str):
+    report = db.scalar(select(FlashcardReport).where(FlashcardReport.public_ref == report_ref).with_for_update())
+    if not report: raise DomainError("flashcard_report_not_found", "Flashcard report not found.", 404)
+    card = db.get(FlashcardVersion, report.card_version_id)
+    report.status = "excluded" if decision == "exclude" else "restored"
+    card.availability = "excluded" if decision == "exclude" else "active"
+    report.reviewed_by = principal.user.id; report.reviewed_at = datetime.now(timezone.utc); report.admin_note = note or None
+    db.add(AuditEvent(actor_id=principal.user.id, action=f"flashcard.report_{report.status}",
+        target_type="flashcard_report", target_id=report.public_ref, event_data={"cardRef": card.public_ref, "note": note}))
+    db.commit(); db.refresh(report)
+    return _report_out(db, report)
 
 
 def _reviews(db: Session, session: FlashcardSession) -> list[FlashcardReview]:

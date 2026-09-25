@@ -60,6 +60,11 @@ test('navigation updates title and focus for keyboard and assistive technology u
   assert.match(page, /tabIndex=\{-1\}/);
 });
 
+test('card-to-card navigation does not show the feature transition loader', () => {
+  assert.match(page, /withinFlashcardSession/);
+  assert.match(page, /if \(!withinFlashcardSession\) window\.dispatchEvent/);
+});
+
 test('production routing keeps APIs, health and build assets outside application fallback', () => {
   assert.match(nginx, /location \/api\//);
   assert.match(nginx, /location = \/health/);
