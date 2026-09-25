@@ -20,7 +20,15 @@ The document, textbook-unit, coverage, question, practice, exam, recommendation-
 
 ## Planned textbook, group and topic experience
 
-The next content contract uses **Textbook → Section Group → Topic → Textbook Part**. `section_group` is the backend concept; the frontend must display the textbook's configured `Unit` or `Module` label everywhere. `Topic` remains consistent across books. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/TODO-TEXTBOOK-TOPICS.md) is the delivery backlog for this change.
+The next content contract uses **Textbook → Section Group → Topic → Textbook Part**. `section_group` is the backend concept; the frontend must display the textbook's configured `Unit` or `Module` label everywhere. `Topic` remains consistent across books. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/ongoing/TODO-TEXTBOOK-TOPICS.md) is the delivery backlog for this change.
+
+## Routing and server state
+
+TanStack Router owns browser-visible application routes. The Vinext catch-all page serves direct requests for those routes, while Nginx keeps `/api/`, `/health` and `/_next/` on their existing explicit boundaries. Existing `/#section` bookmarks are translated to role-appropriate paths after authentication.
+
+Admin, Parent and Student destinations use separate path namespaces. Flashcards are the first completely routed workflow: the library, deck, selected mode, session and current card have stable URLs containing opaque public references. FastAPI remains authoritative for ownership and role checks, so copying a URL never grants access.
+
+TanStack Query owns authenticated server state. Query keys come from `lib/query-keys.ts` and include the current actor for private Flashcard data. Logout and identity changes cancel requests and erase the in-memory cache. Authenticated data is not persisted in browser storage.
 
 Admin creates the logical textbook and edition, selects Unit or Module terminology, defines ordered groups and topics, and uploads one or more scanned PDF parts inside a selected topic. Upload, extraction review and topic publication are separate states. The review screen presents original and normalized pages beside OCR blocks, equations, formulae, tables, diagrams, confidence, reading order and printed-page labels. A topic cannot appear ready merely because its worker job completed.
 

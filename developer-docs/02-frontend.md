@@ -1,5 +1,22 @@
 # Frontend
 
+## Browser routing and server state
+
+AKURU uses TanStack Router for browser history and typed application routes. `source-code/frontend/lib/routes.ts` owns role destinations and Flashcard URL builders; `lib/app-router.tsx` owns the route tree. The Vinext `app/[...path]/page.tsx` entry admits only known application paths, allowing direct links and refresh while returning a real 404 for unknown routes and missing assets.
+
+Admin, Parent and Student paths have separate namespaces. Frontend role layouts improve navigation, but FastAPI authorization remains authoritative. Existing hash bookmarks are translated after authentication.
+
+TanStack Query owns routed server state. All query keys must be created in `lib/query-keys.ts`, and private keys include the authenticated actor when their response is identity-specific. The shared client in `lib/query-client.ts` uses bounded retries and memory-only storage. Logout and account changes must cancel outstanding requests before clearing the entire cache.
+
+Flashcards are the first fully routed workflow:
+
+- `/flashcards` — eligible deck library.
+- `/flashcards/decks/:deckRef` — deck and study-mode selection.
+- `/flashcards/decks/:deckRef/start?mode=...` — validated mode transition.
+- `/flashcards/sessions/:sessionRef/cards/:position` — resumable active session.
+
+URLs use opaque public references. Reloading a session retrieves its backend-owned current state; a position in the URL cannot expose a different card or bypass Student ownership.
+
 ## Stack and entry points
 
 The portal uses React 19, TypeScript, Vite 8 and Vinext. Tailwind CSS and reusable components under `components/ui` provide the visual foundation. `app/layout.tsx` supplies the document shell and `app/page.tsx` owns login restoration, role navigation and the active hash-based workspace. `/ui-features` is an authenticated Admin component reference.

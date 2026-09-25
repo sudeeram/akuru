@@ -147,6 +147,8 @@ sudo bash deploy/ubuntu/install-services.sh akuru.example.com
 sudo systemctl start akuru-api akuru-worker akuru-web
 sudo systemctl start akuru-retention.timer akuru-backup.timer
 sudo systemctl reload nginx
+
+AKURU's Nginx configuration proxies application paths to the Vinext server, whose catch-all page supports direct navigation and refresh for TanStack Router URLs. `/api/`, `/health` and `/_next/` remain explicit locations so API and missing asset responses cannot be replaced by application HTML. After a release, verify a nested Flashcard URL directly, an unknown API URL, and a missing `/_next/` asset.
 ```
 
 The services bind the application only to loopback. In OCI, permit inbound 22 only from administrator addresses and 80/443 from intended clients; never permit 5432, 6379, 8000 or 5181.

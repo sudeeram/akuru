@@ -1,5 +1,7 @@
 # AKURU Student Guide
 
+AKURU pages now have stable addresses. You can bookmark your Flashcard library, a permitted deck or your current Flashcard session. Reloading or using the browser Back and Forward buttons keeps you in the routed learning flow. A session link remains private to your account; sharing it does not give another Student access to your cards or progress.
+
 Use your own account. Your work and reviews belong to you and are separate from
 other children. After login, check your name, current grade and term. Earlier
 completed terms are included in mock selection. Ask your parent or

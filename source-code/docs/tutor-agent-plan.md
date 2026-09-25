@@ -1,6 +1,6 @@
 # AKURU Tutor Agent plan
 
-Status: approved product and architecture direction. Delivery work is tracked separately in [TODO-TUTOR.md](../todo/TODO-TUTOR.md).
+Status: approved product and architecture direction. Delivery work is tracked separately in [TODO-TUTOR.md](../todo/ongoing/TODO-TUTOR.md).
 
 ## 1. Purpose
 

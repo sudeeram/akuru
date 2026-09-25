@@ -1,8 +1,10 @@
 'use client';
-/* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
+/* React Compiler is not enabled here. Effects intentionally synchronise authentication, legacy links and document focus. */
 /* eslint-disable react/react-compiler */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { QueryClientProvider, useQuery } from '@tanstack/react-query';
+import { RouterProvider, useNavigate, useRouterState } from '@tanstack/react-router';
 import {
   ArrowRight,
   BookOpen,
@@ -53,6 +55,11 @@ import { TutorProfiles } from '@/features/tutor-profiles';
 import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
 import { StudentFlashcards } from '@/features/flashcards';
+import { AdminLayout, ParentLayout, PublicLayout, StudentLayout } from '@/components/portal-layouts';
+import { createAkuruRouter } from '@/lib/app-router';
+import { clearPrivateQueryState, queryClient } from '@/lib/query-client';
+import { queryKeys } from '@/lib/query-keys';
+import { flashcardRoute, pathForView, roleAllowsPath, viewForPath, type PortalRole } from '@/lib/routes';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
@@ -93,11 +100,32 @@ const adminNav = [
   ['evaluations', 'Evaluation gates', FlaskConical],
   ['operations', 'Operations', Activity],
 ] as const;
-export default function Portal() {
-  const [data, setData] = useState<State | null>(null),
-    [loading, setLoading] = useState(true),
-    [view, setView] = useState('today'),
-    [error, setError] = useState(''),
+const router = createAkuruRouter(Portal);
+
+export default function AkuruApplication() {
+  const browserReady = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  );
+  if (!browserReady)
+    return <div className="loading"><span className="brand-mark">A</span><p>Opening your learning space…</p></div>;
+  return <QueryClientProvider client={queryClient}><RouterProvider router={router} /></QueryClientProvider>;
+}
+
+export function Portal() {
+  const navigate = useNavigate();
+  const location = useRouterState({ select: state => state.location });
+  const [signedOut, setSignedOut] = useState(false);
+  const authQuery = useQuery({
+    queryKey: queryKeys.auth.state,
+    queryFn: getState,
+    enabled: !signedOut,
+    retry: false,
+  });
+  const data = authQuery.data ?? null;
+  const loading = authQuery.isPending && !signedOut;
+  const [error, setError] = useState(''),
     [notice, setNotice] = useState('');
   const [username, setUsername] = useState(''),
     [password, setPassword] = useState(''),
@@ -106,47 +134,57 @@ export default function Portal() {
     [subject, setSubject] = useState('maths');
   usePortalTools(data?.user.id);
   async function refresh() {
-    try {
-      const next = await getState();
-      setData(next);
-      if (next.user.role === 'student') setSelected(next.user.id);
-      const allowed =
-        next.user.role === 'admin'
-          ? adminNav
-          : next.user.role === 'parent'
-            ? parentNav
-            : studentNav;
-      const candidate = location.hash.slice(1);
-      if (!allowed.some((n) => n[0] === candidate)) setView('today');
-    } catch (e: unknown) {
-      if (e instanceof ApiError && e.status === 401) setData(null);
-      else setError(errorMessage(e));
-    } finally {
-      setLoading(false);
-    }
+    const result = await authQuery.refetch();
+    if (result.error) throw result.error;
   }
   useEffect(() => {
-    void refresh();
-    const update = () => {
-      const candidate = location.hash.slice(1);
-      if (
-        [...studentNav, ...parentNav, ...adminNav].some(
-          (n) => n[0] === candidate,
-        )
-      )
-        setView(candidate);
+    if (authQuery.error && !(authQuery.error instanceof ApiError && authQuery.error.status === 401))
+      setError(errorMessage(authQuery.error));
+  }, [authQuery.error]);
+  useEffect(() => {
+    const expire = () => {
+      setSignedOut(true);
+      void clearPrivateQueryState().finally(() => navigate({ to: '/login', replace: true }));
     };
-    update();
-    window.addEventListener('hashchange', update);
-    return () => window.removeEventListener('hashchange', update);
-  }, []);
+    window.addEventListener('akuru:unauthorized', expire);
+    return () => window.removeEventListener('akuru:unauthorized', expire);
+  }, [navigate]);
+  const role = data?.user.role as PortalRole | undefined;
+  const view = role ? viewForPath(role, location.pathname) : 'today';
+  useEffect(() => {
+    if (!data || !role) return;
+    if (data.user.role === 'student' && !selected) setSelected(data.user.id);
+    const legacy = window.location.hash.slice(1);
+    const legacyKnown = [...studentNav, ...parentNav, ...adminNav].some(([id]) => id === legacy);
+    if (legacyKnown) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      void navigate({ to: pathForView(role, legacy) });
+      return;
+    }
+    if (!roleAllowsPath(role, location.pathname)) void navigate({ to: pathForView(role, 'today'), replace: true });
+    else if (location.pathname === '/' || location.pathname === '/login') void navigate({ to: pathForView(role, 'today'), replace: true });
+  }, [data, role, location.pathname, navigate, selected]);
+  useEffect(() => {
+    if (!role) {
+      document.title = 'Sign in · AKURU';
+      return;
+    }
+    const roleNav = role === 'admin' ? adminNav : role === 'parent' ? parentNav : studentNav;
+    const activeView = viewForPath(role, location.pathname);
+    const label = roleNav.find(([id]) => id === activeView)?.[1] ?? 'Learning workspace';
+    document.title = `${label} · AKURU`;
+    window.requestAnimationFrame(() => document.getElementById('main-content')?.focus());
+  }, [role, location.pathname]);
   const notify = (message: string) => {
     setNotice(message);
     setTimeout(() => setNotice(''), 4500);
   };
+  const navigateTo = (to: string, replace = false) => {
+    window.dispatchEvent(new Event('akuru:navigation'));
+    void navigate({ to, replace });
+  };
   const go = (next: string, s?: string) => {
-    setView(next);
-    location.hash = next;
+    if (role) navigateTo(pathForView(role, next));
     if (s) setSubject(s);
     setError('');
     window.scrollTo({ top: 0 });
@@ -157,9 +195,16 @@ export default function Portal() {
     setError('');
     try {
       await api('auth/login', { username, password });
-      await refresh();
-      setView('today');
-      location.hash = 'today';
+      await clearPrivateQueryState();
+      setSignedOut(false);
+      const loginState = await authQuery.refetch();
+      if (!loginState.data) throw loginState.error ?? new Error('AKURU could not load your account.');
+      const next = loginState.data;
+      const nextRole = next.user.role as PortalRole;
+      const intended = roleAllowsPath(nextRole, location.pathname) && !['/', '/login'].includes(location.pathname)
+        ? `${location.pathname}${location.searchStr}`
+        : pathForView(nextRole, 'today');
+      navigateTo(intended, true);
       setPassword('');
     } catch (e: unknown) {
       setError(errorMessage(e));
@@ -180,7 +225,7 @@ export default function Portal() {
       </div>
     );
   if (!data)
-    return (
+    return <PublicLayout>
       <div className="login-page">
         <div className="login-story">
           <div className="brand">
@@ -263,11 +308,12 @@ export default function Portal() {
           </form>
         </div>
       </div>
-    );
+    </PublicLayout>;
   if (data.user.mustChangePassword)
-    return <PasswordChange data={data} refresh={refresh} />;
+    return <PublicLayout><PasswordChange data={data} refresh={refresh} /></PublicLayout>;
   const parent = data.user.role === 'parent';
   const admin = data.user.role === 'admin';
+  const RoleLayout = admin ? AdminLayout : parent ? ParentLayout : StudentLayout;
   const child = data.students.find((s) => s.id === selected) ||
     data.students[0] || {
       id: '',
@@ -296,7 +342,7 @@ export default function Portal() {
     selected,
     setSelected,
   };
-  return (
+  return <RoleLayout>
     <div className="portal-shell">
       <a className="skip-link" href="#main-content">Skip to page content</a>
       <header className="topbar">
@@ -339,8 +385,9 @@ export default function Portal() {
             aria-label="Sign out"
             onClick={async () => {
               await api('auth/logout', {});
-              setData(null);
-              setView('today');
+              setSignedOut(true);
+              await clearPrivateQueryState();
+              navigateTo('/login', true);
             }}
           >
             <LogOut size={18} />
@@ -426,7 +473,7 @@ export default function Portal() {
         ) : view === 'practice' && !parent ? (
           <Practice {...props} />
         ) : view === 'flashcards' && !parent ? (
-          <StudentFlashcards />
+          <StudentFlashcards actorRef={data.user.id} route={flashcardRoute(location.pathname, location.search)} navigate={navigateTo} />
         ) : view === 'exams' && !parent ? (
           <Exams {...props} />
         ) : view === 'plan' && !parent ? (
@@ -448,7 +495,7 @@ export default function Portal() {
         <span>iGCSE · Admin-reviewed learning material</span>
       </footer>
     </div>
-  );
+  </RoleLayout>;
 }
 
 function PasswordChange({

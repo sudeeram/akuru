@@ -4,7 +4,7 @@ This is the ordered delivery backlog for the document-ingestion, OpenAI tutoring
 
 The completed unit-based foundation is scheduled to evolve into the Textbook → Unit/Module → Topic model in [TODO-TEXTBOOK-TOPICS.md](TODO-TEXTBOOK-TOPICS.md). That roadmap is authoritative for new textbook structure, topic coverage, question mapping, mastery and retrieval work.
 
-The authoritative rules remain in [docs/architecture.md](../docs/architecture.md). Check a box only after the step's acceptance criteria and tests pass.
+The authoritative rules remain in [docs/architecture.md](../../docs/architecture.md). Check a box only after the step's acceptance criteria and tests pass.
 
 Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with the reason recorded beside it.
 

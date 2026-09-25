@@ -120,7 +120,8 @@ test('page transitions rotate through AKURU BOT loading scenes', () => {
     5,
   );
   assert.match(routeLoader, /route-loader/);
-  assert.match(routeLoader, /hashchange/);
+  assert.match(routeLoader, /akuru:navigation/);
+  assert.match(routeLoader, /popstate/);
   assert.match(styles, /prefers-reduced-motion/);
 });
 

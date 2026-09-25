@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import NextImage from 'next/image';
-import { usePathname } from 'next/navigation';
 
 const loadingScenes = [
   {
@@ -33,7 +32,6 @@ const loadingScenes = [
 ] as const;
 
 export function RouteLoadingOverlay() {
-  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
   const previousScene = useRef(0);
@@ -45,14 +43,6 @@ export function RouteLoadingOverlay() {
       image.src = scene.image;
     }
   }, []);
-
-  useEffect(() => {
-    if (!visible) return;
-    timeout.current = setTimeout(() => setVisible(false), 450);
-    return () => {
-      if (timeout.current) clearTimeout(timeout.current);
-    };
-  }, [pathname]);
 
   useEffect(() => {
     const show = (minimumDuration = 650) => {
@@ -88,15 +78,15 @@ export function RouteLoadingOverlay() {
         return;
       show(1200);
     };
-    const onHashChange = () => {
-      if (window.location.pathname === '/') show();
-    };
+    const onRouteChange = () => show();
 
     document.addEventListener('click', onClick, true);
-    window.addEventListener('hashchange', onHashChange);
+    window.addEventListener('popstate', onRouteChange);
+    window.addEventListener('akuru:navigation', onRouteChange);
     return () => {
       document.removeEventListener('click', onClick, true);
-      window.removeEventListener('hashchange', onHashChange);
+      window.removeEventListener('popstate', onRouteChange);
+      window.removeEventListener('akuru:navigation', onRouteChange);
       if (timeout.current) clearTimeout(timeout.current);
     };
   }, []);

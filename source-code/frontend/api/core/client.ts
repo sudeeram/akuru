@@ -28,7 +28,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       data = { detail: 'The server returned an unreadable response.' };
     }
   }
-  if (!response.ok) throw new ApiError(apiErrorMessage(data), response.status);
+  if (!response.ok) {
+    // Login and the initial auth probe handle an expected 401 locally so a
+    // requested deep link can survive until the user authenticates.
+    if (response.status === 401 && !['auth/login', 'state'].includes(path) && typeof window !== 'undefined')
+      window.dispatchEvent(new Event('akuru:unauthorized'));
+    throw new ApiError(apiErrorMessage(data), response.status);
+  }
   return data as T;
 }
 

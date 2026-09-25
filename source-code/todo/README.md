@@ -1,17 +1,30 @@
-# AKURU implementation roadmaps
+# AKURU delivery plans
 
-This folder is the single home for AKURU delivery backlogs.
+This directory separates active delivery work, future plans and finished implementation records.
 
-- [Core platform roadmap](TODO.md)
-- [Tutor Agent roadmap](TODO-TUTOR.md)
-- [Textbook groups, topics and incremental coverage](TODO-TEXTBOOK-TOPICS.md)
-- [Curated flashcard library and adaptive Student review](TODO-FLASHCARD-LIBRARY.md)
-- [Database baseline reset and migration squash](TODO-DATABASE-BASELINE.md)
-- [Future roadmap priority index](TODO-FUTURE-DOCUMENT-REVIEW.md)
-  - [High: Chemistry Topic 1, text tutoring and flashcards](TODO-FUTURE-HIGH-LEARNING.md)
-  - [Medium: low-cost learning and document-review improvements](TODO-FUTURE-MEDIUM-IMPROVEMENTS.md)
-  - [Low: advanced extraction, assessment routing and voice](TODO-FUTURE-LOW-ADVANCED-AI.md)
-  - [Lowest: OpenClaw Telegram Quick Mock](TODO-FUTURE-LOWEST-OPENCLAW.md)
+## Ongoing
+
+These roadmaps already contain completed work and still have outstanding actions. Finish or explicitly close them before starting another planned roadmap.
+
+- [Core assessment and learning roadmap](ongoing/TODO.md)
+- [Tutor Agent roadmap](ongoing/TODO-TUTOR.md)
+- [Textbook groups, topics and incremental coverage](ongoing/TODO-TEXTBOOK-TOPICS.md)
+- [Database baseline reset and migration squash](ongoing/TODO-DATABASE-BASELINE.md)
+- [High: Chemistry Topic 1, text tutoring and flashcards](ongoing/TODO-FUTURE-HIGH-LEARNING.md)
+
+## Planned
+
+- [TanStack Router and Query foundation](ongoing/TODO-TANSTACK-FOUNDATION.md) — the active routing work, including production fallback and acceptance tests.
+- [Future TanStack capabilities](planned/TODO-TANSTACK-FUTURE.md) — optional suite features to assess when their product use cases are built.
+- [Future roadmap priority index](planned/TODO-FUTURE-DOCUMENT-REVIEW.md)
+  - [Medium: low-cost learning and document-review improvements](planned/TODO-FUTURE-MEDIUM-IMPROVEMENTS.md)
+  - [Low: advanced extraction, assessment routing and voice](planned/TODO-FUTURE-LOW-ADVANCED-AI.md)
+  - [Lowest: OpenClaw Telegram Quick Mock](planned/TODO-FUTURE-LOWEST-OPENCLAW.md)
+
+## Completed
+
+- [Curated flashcard library and adaptive Student review](completed/TODO-FLASHCARD-LIBRARY.md)
+- [Manual `api.ts` refactor](completed/TODO-MANUAL-API-TS.md)
 
 Status markers used by the roadmaps:
 
@@ -20,4 +33,6 @@ Status markers used by the roadmaps:
 - `[x]` complete
 - `[!]` blocked, with the reason recorded beside the item
 
-Roadmaps describe delivery order and acceptance criteria. The authoritative product, security and data rules remain in the architecture documents under [`../docs`](../docs), [`../backend/docs`](../backend/docs) and [`../frontend/docs`](../frontend/docs).
+A roadmap starts in `planned`, moves to `ongoing` when implementation begins, and moves to `completed` only after its acceptance criteria pass and every intended action is closed. Complete or explicitly close ongoing work before starting another planned roadmap. Completed plans remain as implementation history.
+
+The authoritative product, security and data rules remain in the architecture documents under [`../docs`](../docs), [`../backend/docs`](../backend/docs) and [`../frontend/docs`](../frontend/docs).

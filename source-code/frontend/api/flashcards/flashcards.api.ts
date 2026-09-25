@@ -8,5 +8,6 @@ export const withdrawFlashcardDeck = (deckRef: string, reason: string) => reques
 export const getStudentFlashcardDecks = () => request<FlashcardDeck[]>('flashcards/student/decks');
 export const getFlashcardStudyOptions = (deckRef: string) => request<FlashcardStudyOptions>(`flashcards/student/decks/${deckRef}/study-options`);
 export const startFlashcardSession = (deckRef: string, mode: FlashcardMode, requestKey: string) => request<FlashcardSession>(`flashcards/student/decks/${deckRef}/sessions`, { method: 'POST', body: { requestKey, mode } });
+export const getFlashcardSession = (sessionRef: string) => request<FlashcardSession>(`flashcards/student/sessions/${sessionRef}`);
 export const revealFlashcard = (sessionRef: string) => request<FlashcardSession>(`flashcards/student/sessions/${sessionRef}/reveal`, { method: 'POST', body: {} });
 export const rateFlashcard = (sessionRef: string, rating: 'again' | 'difficult' | 'good' | 'easy', requestKey: string) => request<FlashcardSession>(`flashcards/student/sessions/${sessionRef}/rate`, { method: 'POST', body: { rating, requestKey } });

@@ -13,7 +13,7 @@ choices here.
 ## Textbook-topic authority
 
 The implemented educational schema is **Textbook → Section Group → Topic →
-Textbook Part**. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/TODO-TEXTBOOK-TOPICS.md)
+Textbook Part**. [`TODO-TEXTBOOK-TOPICS.md`](../../todo/ongoing/TODO-TEXTBOOK-TOPICS.md)
 records its delivery history. Older unit-based descriptions below are historical
 design context and must not be used to design new content relationships.
 

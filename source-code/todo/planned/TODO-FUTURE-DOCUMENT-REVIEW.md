@@ -6,7 +6,7 @@ The original combined document-review and AI backlog has been divided so AKURU c
 
 ## Priority order
 
-1. [High priority — Chemistry Topic 1 readiness, text tutoring and flashcards](TODO-FUTURE-HIGH-LEARNING.md)
+1. [High priority — Chemistry Topic 1 readiness, text tutoring and flashcards](../ongoing/TODO-FUTURE-HIGH-LEARNING.md)
    - Make the reviewed Chemistry v2.1 source usable and canonical.
    - Complete grounded text tutoring, Guided Practice, misconception support and flashcards.
    - Add the minimum model routing, quota, Admin and evaluation controls needed for release.

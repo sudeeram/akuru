@@ -32,7 +32,7 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 - [x] Confirm `/data/akuru/documents` contains no uploaded content or unexplained objects.
 - [ ] Privately record the production Admin username and display name immediately before recreation; do not commit it or its password/hash.
 
-**Current evidence:** See [Step 0 eligibility record](../backend/docs/database-baseline-step-00-eligibility.md). The current migration chain is preserved by the pushed tag `pre-baseline-squash-20260917`. No database rows, stored files or services were changed.
+**Current evidence:** See [Step 0 eligibility record](../../backend/docs/database-baseline-step-00-eligibility.md). The current migration chain is preserved by the pushed tag `pre-baseline-squash-20260917`. No database rows, stored files or services were changed.
 
 **Current blocker:** The owner must confirm that the Parent, Student, enrolment, quota and empty local study-plan records are disposable. Until then, the reset path is not authorized to delete them.
 
@@ -56,7 +56,7 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 - [x] Regenerate the OpenAPI frontend contract and remove compatibility-only tests.
 - [x] Add tests proving no runtime code writes to or reads from deprecated unit-only tables.
 
-**Evidence:** See [Step 1 topic-only schema record](../backend/docs/database-baseline-step-01-topic-only-schema.md). The non-integration backend suite, frontend tests, typecheck and generated-contract check pass. Database-backed integration tests await the clean baseline in Steps 2–3 because the protected local database still contains the pre-squash columns.
+**Evidence:** See [Step 1 topic-only schema record](../../backend/docs/database-baseline-step-01-topic-only-schema.md). The non-integration backend suite, frontend tests, typecheck and generated-contract check pass. Database-backed integration tests await the clean baseline in Steps 2–3 because the protected local database still contains the pre-squash columns.
 
 **Done when:** The application, tests and SQLAlchemy metadata contain only the intentional Textbook → Unit/Module Group → Topic model, with no hidden dependency on tables that will be absent from the baseline.
 
@@ -75,7 +75,7 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 - [x] Keep operational seed data separate and idempotent where practical; do not hide mutable production records inside the migration.
 - [x] Confirm there is exactly one Alembic head and one active baseline revision.
 
-**Evidence:** See [Step 2 initial schema review](../backend/docs/database-baseline-step-02-initial-schema.md). The baseline was generated and applied only to the disposable local database `akuru_baseline_build`; the existing local and production AKURU databases remain unchanged.
+**Evidence:** See [Step 2 initial schema review](../../backend/docs/database-baseline-step-02-initial-schema.md). The baseline was generated and applied only to the disposable local database `akuru_baseline_build`; the existing local and production AKURU databases remain unchanged.
 
 **Done when:** A reviewer can understand the complete AKURU schema from one baseline migration and it matches the final model metadata without drift.
 
@@ -116,7 +116,7 @@ Status: `[ ]` not started, `[~]` in progress, `[x]` complete, `[!]` blocked with
 
 **Completed:** The local database now runs from `0001_initial_akuru_schema`, the
 catalogue is seeded, one fresh Admin exists, and all verification gates pass.
-See [Step 4 local reset evidence](../backend/docs/database-baseline-step-04-local-reset.md).
+See [Step 4 local reset evidence](../../backend/docs/database-baseline-step-04-local-reset.md).
 
 ## Step 5 — Prepare the reviewed production release
 
@@ -161,7 +161,7 @@ window before Step 6.
 
 **Completed:** Production runs release `2e2950354b5e275aa102d58684a9023aa94a697e`
 from baseline `0001_initial_akuru_schema`. See the
-[Step 6 production reset evidence](../backend/docs/database-baseline-step-06-production-reset.md).
+[Step 6 production reset evidence](../../backend/docs/database-baseline-step-06-production-reset.md).
 
 ## Step 7 — Production acceptance and evidence
 
@@ -184,7 +184,7 @@ deferred by the project owner and tracked as later textbook-onboarding work.
 **Completed:** Identity, authorization, perimeter, service, timer and hierarchy
 acceptance passed. The project owner deferred the Chemistry Unit 1 content
 pilot and its quality/retrieval checks to later textbook onboarding. See the
-[Step 7 production acceptance evidence](../backend/docs/database-baseline-step-07-production-acceptance.md).
+[Step 7 production acceptance evidence](../../backend/docs/database-baseline-step-07-production-acceptance.md).
 
 ## Step 8 — Close the reset window
 
@@ -204,4 +204,4 @@ preflight were removed. New environments start at
 `0001_initial_akuru_schema`; populated environments advance only through
 reviewed forward migrations. Recovery tags and the verified encrypted off-host
 bundle remain retained. See the
-[Step 8 reset closeout](../backend/docs/database-baseline-step-08-reset-closeout.md).
+[Step 8 reset closeout](../../backend/docs/database-baseline-step-08-reset-closeout.md).

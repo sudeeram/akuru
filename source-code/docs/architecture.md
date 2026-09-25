@@ -1,6 +1,6 @@
 # AKURU overall architecture
 
-Status: authoritative Phase 1 domain specification, with the frontend connected to a FastAPI/PostgreSQL identity, account and enrolment foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. The textbook-topic update is tracked in [its implementation roadmap](../todo/TODO-TEXTBOOK-TOPICS.md). Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
+Status: authoritative Phase 1 domain specification, with the frontend connected to a FastAPI/PostgreSQL identity, account and enrolment foundation. This document supersedes the earlier parent-managed, mixed-qualification demo design. The textbook-topic update is tracked in [its implementation roadmap](../todo/ongoing/TODO-TEXTBOOK-TOPICS.md). Implementation details belong in [frontend architecture](../frontend/docs/architecture.md) and [backend architecture](../backend/docs/architecture.md).
 
 ## Repository boundaries
 
