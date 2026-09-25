@@ -3064,6 +3064,11 @@
       },
       "FlashcardCardResponse": {
         "properties": {
+          "attempted": {
+            "default": false,
+            "title": "Attempted",
+            "type": "boolean"
+          },
           "back": {
             "anyOf": [
               {
@@ -3090,9 +3095,20 @@
             "type": "string"
           },
           "difficulty": {
-            "default": "core",
+            "default": "easy",
             "title": "Difficulty",
             "type": "string"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
           },
           "front": {
             "title": "Front",
@@ -3101,6 +3117,17 @@
           "ordinal": {
             "title": "Ordinal",
             "type": "integer"
+          },
+          "selectedRating": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selectedrating"
           },
           "source": {
             "additionalProperties": true,
@@ -3281,6 +3308,244 @@
         "title": "FlashcardDeckResponse",
         "type": "object"
       },
+      "FlashcardDiscardResponse": {
+        "properties": {
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "sessionRef": {
+            "title": "Sessionref",
+            "type": "string"
+          },
+          "status": {
+            "const": "discarded",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionRef",
+          "status",
+          "message"
+        ],
+        "title": "FlashcardDiscardResponse",
+        "type": "object"
+      },
+      "FlashcardMasteryCategory": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "coveragePercent": {
+            "title": "Coveragepercent",
+            "type": "number"
+          },
+          "good": {
+            "title": "Good",
+            "type": "integer"
+          },
+          "mastered": {
+            "title": "Mastered",
+            "type": "integer"
+          },
+          "masteryPercent": {
+            "title": "Masterypercent",
+            "type": "number"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "integer"
+          },
+          "toEvaluate": {
+            "title": "Toevaluate",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "category",
+          "total",
+          "toEvaluate",
+          "needsReview",
+          "good",
+          "mastered",
+          "coveragePercent",
+          "masteryPercent"
+        ],
+        "title": "FlashcardMasteryCategory",
+        "type": "object"
+      },
+      "FlashcardMasteryResponse": {
+        "properties": {
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/FlashcardMasteryCategory"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "completedSessions": {
+            "title": "Completedsessions",
+            "type": "integer"
+          },
+          "coveragePercent": {
+            "title": "Coveragepercent",
+            "type": "number"
+          },
+          "deckRef": {
+            "title": "Deckref",
+            "type": "string"
+          },
+          "good": {
+            "title": "Good",
+            "type": "integer"
+          },
+          "mastered": {
+            "title": "Mastered",
+            "type": "integer"
+          },
+          "masteryPercent": {
+            "title": "Masterypercent",
+            "type": "number"
+          },
+          "masteryVersion": {
+            "title": "Masteryversion",
+            "type": "string"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "integer"
+          },
+          "recalculatedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recalculatedat"
+          },
+          "recentSessions": {
+            "items": {
+              "$ref": "#/components/schemas/FlashcardMasterySession"
+            },
+            "title": "Recentsessions",
+            "type": "array"
+          },
+          "recommendedCount": {
+            "default": 20,
+            "enum": [
+              20,
+              30
+            ],
+            "title": "Recommendedcount",
+            "type": "integer"
+          },
+          "recommendedDifficulty": {
+            "anyOf": [
+              {
+                "enum": [
+                  "easy",
+                  "difficult",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendeddifficulty"
+          },
+          "recommendedMode": {
+            "enum": [
+              "review",
+              "difficult"
+            ],
+            "title": "Recommendedmode",
+            "type": "string"
+          },
+          "toEvaluate": {
+            "title": "Toevaluate",
+            "type": "integer"
+          },
+          "totalCards": {
+            "title": "Totalcards",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deckRef",
+          "totalCards",
+          "toEvaluate",
+          "needsReview",
+          "good",
+          "mastered",
+          "coveragePercent",
+          "masteryPercent",
+          "categories",
+          "completedSessions",
+          "recommendedMode",
+          "masteryVersion"
+        ],
+        "title": "FlashcardMasteryResponse",
+        "type": "object"
+      },
+      "FlashcardMasterySession": {
+        "properties": {
+          "cardCount": {
+            "title": "Cardcount",
+            "type": "integer"
+          },
+          "completedAt": {
+            "title": "Completedat",
+            "type": "string"
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "enum": [
+                  "easy",
+                  "difficult",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty"
+          },
+          "mode": {
+            "enum": [
+              "review",
+              "difficult"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "sessionRef": {
+            "title": "Sessionref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sessionRef",
+          "mode",
+          "cardCount",
+          "completedAt"
+        ],
+        "title": "FlashcardMasterySession",
+        "type": "object"
+      },
       "FlashcardRatingRequest": {
         "properties": {
           "rating": {
@@ -3314,6 +3579,16 @@
             "title": "Answerrevealed",
             "type": "boolean"
           },
+          "canGoNext": {
+            "default": false,
+            "title": "Cangonext",
+            "type": "boolean"
+          },
+          "canGoPrevious": {
+            "default": false,
+            "title": "Cangoprevious",
+            "type": "boolean"
+          },
           "currentCard": {
             "anyOf": [
               {
@@ -3331,12 +3606,45 @@
           "deck": {
             "$ref": "#/components/schemas/FlashcardDeckResponse"
           },
+          "difficulty": {
+            "anyOf": [
+              {
+                "enum": [
+                  "easy",
+                  "difficult",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty"
+          },
+          "firstUnattemptedOrdinal": {
+            "title": "Firstunattemptedordinal",
+            "type": "integer"
+          },
+          "hasUncommittedResults": {
+            "default": false,
+            "title": "Hasuncommittedresults",
+            "type": "boolean"
+          },
+          "masteryVersion": {
+            "title": "Masteryversion",
+            "type": "string"
+          },
           "message": {
             "title": "Message",
             "type": "string"
           },
           "mode": {
-            "default": "full_topic",
+            "default": "review",
+            "enum": [
+              "review",
+              "difficult"
+            ],
             "title": "Mode",
             "type": "string"
           },
@@ -3344,16 +3652,16 @@
             "title": "Reviewedcount",
             "type": "integer"
           },
-          "schedulerVersion": {
-            "title": "Schedulerversion",
-            "type": "string"
-          },
           "selectionReasons": {
             "items": {
               "type": "string"
             },
             "title": "Selectionreasons",
             "type": "array"
+          },
+          "selectionVersion": {
+            "title": "Selectionversion",
+            "type": "string"
           },
           "sessionRef": {
             "title": "Sessionref",
@@ -3366,6 +3674,10 @@
           "totalCards": {
             "title": "Totalcards",
             "type": "integer"
+          },
+          "viewedOrdinal": {
+            "title": "Viewedordinal",
+            "type": "integer"
           }
         },
         "required": [
@@ -3376,23 +3688,38 @@
           "reviewedCount",
           "totalCards",
           "currentCard",
-          "schedulerVersion",
-          "message"
+          "masteryVersion",
+          "selectionVersion",
+          "message",
+          "viewedOrdinal",
+          "firstUnattemptedOrdinal"
         ],
         "title": "FlashcardSessionResponse",
         "type": "object"
       },
       "FlashcardSessionStartRequest": {
         "properties": {
+          "difficulty": {
+            "anyOf": [
+              {
+                "enum": [
+                  "easy",
+                  "difficult",
+                  "mixed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty"
+          },
           "mode": {
-            "default": "normal",
+            "default": "review",
             "enum": [
-              "quick",
-              "normal",
-              "full_topic",
-              "difficult",
-              "due_today",
-              "unit_mixed"
+              "review",
+              "difficult"
             ],
             "title": "Mode",
             "type": "string"
@@ -3402,6 +3729,15 @@
             "minLength": 8,
             "title": "Requestkey",
             "type": "string"
+          },
+          "requestedCount": {
+            "default": 20,
+            "enum": [
+              20,
+              30
+            ],
+            "title": "Requestedcount",
+            "type": "integer"
           }
         },
         "required": [
@@ -3420,18 +3756,21 @@
             "title": "Description",
             "type": "string"
           },
+          "difficulties": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Difficulties",
+            "type": "array"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
           },
           "mode": {
             "enum": [
-              "quick",
-              "normal",
-              "full_topic",
-              "difficult",
-              "due_today",
-              "unit_mixed"
+              "review",
+              "difficult"
             ],
             "title": "Mode",
             "type": "string"
@@ -3439,6 +3778,13 @@
           "sessionSize": {
             "title": "Sessionsize",
             "type": "integer"
+          },
+          "supportedCounts": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Supportedcounts",
+            "type": "array"
           },
           "title": {
             "title": "Title",
@@ -18494,6 +18840,84 @@
         ]
       }
     },
+    "/api/v1/flashcards/student/decks/{deck_ref}/mastery": {
+      "get": {
+        "operationId": "mastery_api_v1_flashcards_student_decks__deck_ref__mastery_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deck_ref",
+            "required": true,
+            "schema": {
+              "title": "Deck Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardMasteryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Mastery",
+        "tags": [
+          "flashcards"
+        ]
+      }
+    },
     "/api/v1/flashcards/student/decks/{deck_ref}/sessions": {
       "post": {
         "operationId": "start_api_v1_flashcards_student_decks__deck_ref__sessions_post",
@@ -18690,6 +19114,23 @@
             }
           },
           {
+            "in": "query",
+            "name": "position",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Position"
+            }
+          },
+          {
             "in": "cookie",
             "name": "akuru_session",
             "required": false,
@@ -18749,6 +19190,100 @@
           }
         },
         "summary": "Session",
+        "tags": [
+          "flashcards"
+        ]
+      }
+    },
+    "/api/v1/flashcards/student/sessions/{session_ref}/discard": {
+      "post": {
+        "operationId": "discard_api_v1_flashcards_student_sessions__session_ref__discard_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlashcardDiscardResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Discard",
         "tags": [
           "flashcards"
         ]

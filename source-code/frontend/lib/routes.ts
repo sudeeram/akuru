@@ -24,13 +24,16 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
   },
 };
 
-export const flashcardModes = ['quick', 'normal', 'full_topic', 'difficult', 'due_today', 'unit_mixed'] as const;
+export const flashcardModes = ['review', 'difficult'] as const;
+export const flashcardDifficulties = ['easy', 'difficult', 'mixed'] as const;
 
 export type FlashcardRoute = {
   deckRef?: string;
   sessionRef?: string;
   position?: number;
   mode?: FlashcardMode;
+  difficulty?: 'easy' | 'difficult' | 'mixed';
+  count?: 20 | 30;
 };
 
 export function pathForView(role: PortalRole, view: string) {
@@ -53,19 +56,23 @@ export function flashcardRoute(pathname: string, search: Record<string, unknown>
   const deck = pathname.match(/^\/flashcards\/decks\/([^/]+)(?:\/start)?$/);
   const session = pathname.match(/^\/flashcards\/sessions\/([^/]+)\/cards\/(\d+)$/);
   const rawMode = typeof search.mode === 'string' ? search.mode : undefined;
+  const rawDifficulty = typeof search.difficulty === 'string' ? search.difficulty : undefined;
+  const rawCount = Number(search.count);
   return {
     deckRef: deck ? decodeURIComponent(deck[1]) : undefined,
     sessionRef: session ? decodeURIComponent(session[1]) : undefined,
     position: session ? Math.max(1, Number(session[2])) : undefined,
     mode: flashcardModes.includes(rawMode as FlashcardMode) ? rawMode as FlashcardMode : undefined,
+    difficulty: flashcardDifficulties.includes(rawDifficulty as typeof flashcardDifficulties[number]) ? rawDifficulty as typeof flashcardDifficulties[number] : undefined,
+    count: rawCount === 20 || rawCount === 30 ? rawCount : undefined,
   };
 }
 
 export const flashcardPaths = {
   library: '/flashcards',
   deck: (deckRef: string) => `/flashcards/decks/${encodeURIComponent(deckRef)}`,
-  start: (deckRef: string, mode: FlashcardMode) =>
-    `/flashcards/decks/${encodeURIComponent(deckRef)}/start?mode=${mode}`,
+  start: (deckRef: string, mode: FlashcardMode, difficulty?: string, count: 20 | 30 = 20) =>
+    `/flashcards/decks/${encodeURIComponent(deckRef)}/start?mode=${mode}${difficulty ? `&difficulty=${difficulty}` : ''}&count=${count}`,
   card: (sessionRef: string, position: number) =>
     `/flashcards/sessions/${encodeURIComponent(sessionRef)}/cards/${Math.max(1, position)}`,
 };

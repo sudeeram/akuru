@@ -19,9 +19,9 @@
     "contentVersionRef": "topicver_replace_with_public_reference",
     "requiredConceptKeys": ["particles-solid"],
     "cards": [
-      {"key":"chem.u1.t01.particles-solid.recall","conceptKey":"particles-solid","category":"essential_knowledge","variationType":"recall","difficulty":"foundation","question":"How are particles arranged in a solid?","answer":"They are packed closely together, usually in a regular arrangement.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"},
-      {"key":"chem.u1.t01.particles-solid.explain","conceptKey":"particles-solid","category":"explanation_comparison","variationType":"explanation","difficulty":"core","question":"Why does a solid keep its shape?","answer":"Strong attractive forces hold its closely packed particles in fixed positions.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"},
-      {"key":"chem.u1.t01.particles-solid.apply","conceptKey":"particles-solid","category":"application_misconception","variationType":"application","difficulty":"core","question":"Why can you not walk through a solid wall?","answer":"Its particles are held in fixed positions by strong forces and cannot move out of the way.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"}
+      {"key":"chem.u1.t01.particles-solid.recall","conceptKey":"particles-solid","category":"essential_knowledge","variationType":"recall","difficulty":"easy","question":"How are particles arranged in a solid?","answer":"They are packed closely together, usually in a regular arrangement.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"},
+      {"key":"chem.u1.t01.particles-solid.explain","conceptKey":"particles-solid","category":"explanation_comparison","variationType":"explanation","difficulty":"difficult","question":"Why does a solid keep its shape?","answer":"Strong attractive forces hold its closely packed particles in fixed positions.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"},
+      {"key":"chem.u1.t01.particles-solid.apply","conceptKey":"particles-solid","category":"application_misconception","variationType":"application","difficulty":"difficult","question":"Why can you not walk through a solid wall?","answer":"Its particles are held in fixed positions by strong forces and cannot move out of the way.","sourceChunkRefs":["00000000-0000-0000-0000-000000000001"],"reviewer":"Example reviewer"}
     ]
   }]
 }

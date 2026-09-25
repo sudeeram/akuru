@@ -995,7 +995,7 @@ class FlashcardVersion(Base):
     concept_key: Mapped[str] = mapped_column(String(120), default="", server_default="", index=True)
     category: Mapped[str] = mapped_column(String(40), default="essential_knowledge", server_default="essential_knowledge")
     variation_type: Mapped[str] = mapped_column(String(32), default="recall", server_default="recall")
-    difficulty: Mapped[str] = mapped_column(String(16), default="core", server_default="core")
+    difficulty: Mapped[str] = mapped_column(String(16), default="easy", server_default="easy")
     card_metadata: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     visual_asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("textbook_topic_visual_assets.id", ondelete="RESTRICT"))
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
@@ -1007,7 +1007,7 @@ class FlashcardVersion(Base):
         UniqueConstraint("deck_id", "external_key", "version_number", name="uq_flashcard_external_version"),
         CheckConstraint("category IN ('essential_knowledge','explanation_comparison','application_misconception','calculation_interpretation_diagram')", name="ck_flashcard_category"),
         CheckConstraint("variation_type IN ('recall','explanation','comparison','application','misconception','calculation','interpretation','diagram')", name="ck_flashcard_variation"),
-        CheckConstraint("difficulty IN ('foundation','core','stretch')", name="ck_flashcard_difficulty"),
+        CheckConstraint("difficulty IN ('easy','difficult')", name="ck_flashcard_difficulty"),
     )
 
 
@@ -1019,19 +1019,24 @@ class FlashcardSession(Base):
     deck_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_decks.id", ondelete="RESTRICT"), index=True)
     status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
     current_ordinal: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
-    scheduler_version: Mapped[str] = mapped_column(String(40), default="akuru-sm2-v1", server_default="akuru-sm2-v1")
-    mode: Mapped[str] = mapped_column(String(24), default="full_topic", server_default="full_topic", index=True)
+    mastery_version: Mapped[str] = mapped_column(String(40), default="akuru-flashcard-mastery-v1", server_default="akuru-flashcard-mastery-v1")
+    selection_version: Mapped[str] = mapped_column(String(40), default="akuru-flashcard-selection-v2", server_default="akuru-flashcard-selection-v2")
+    mode: Mapped[str] = mapped_column(String(24), default="review", server_default="review", index=True)
+    difficulty_filter: Mapped[str | None] = mapped_column(String(16))
     target_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     selected_card_version_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     selection_reasons: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    revealed_card_version_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     request_key: Mapped[str] = mapped_column(String(100), unique=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
-        CheckConstraint("status IN ('active','completed','abandoned')", name="ck_flashcard_session_status"),
+        CheckConstraint("status IN ('active','completed','discarded')", name="ck_flashcard_session_status"),
         CheckConstraint("current_ordinal > 0", name="ck_flashcard_session_ordinal"),
         CheckConstraint("target_count >= 0", name="ck_flashcard_session_target"),
-        CheckConstraint("mode IN ('quick','normal','full_topic','difficult','due_today','unit_mixed')", name="ck_flashcard_session_mode"),
+        CheckConstraint("mode IN ('review','difficult')", name="ck_flashcard_session_mode"),
+        CheckConstraint("difficulty_filter IS NULL OR difficulty_filter IN ('easy','difficult','mixed')", name="ck_flashcard_session_difficulty"),
+        CheckConstraint("target_count BETWEEN 1 AND 30", name="ck_flashcard_session_target_size"),
     )
 
 
@@ -1041,13 +1046,11 @@ class FlashcardReview(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_sessions.id", ondelete="CASCADE"), index=True)
     card_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_versions.id", ondelete="RESTRICT"))
     rating: Mapped[str] = mapped_column(String(16))
-    interval_days: Mapped[int] = mapped_column(Integer)
-    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     request_key: Mapped[str] = mapped_column(String(100), unique=True)
+    committed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("rating IN ('again','difficult','good','easy')", name="ck_flashcard_review_rating"),
-        CheckConstraint("interval_days >= 0", name="ck_flashcard_review_interval"),
         UniqueConstraint("session_id", "card_version_id", name="uq_flashcard_session_card"),
     )
 
@@ -1058,16 +1061,17 @@ class FlashcardLearningState(Base):
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     card_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("flashcard_versions.id", ondelete="RESTRICT"), index=True)
     concept_key: Mapped[str] = mapped_column(String(120), index=True)
-    repetitions: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    lapses: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    interval_days: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
-    ease_factor: Mapped[float] = mapped_column(Float, default=2.5, server_default="2.5")
+    mastery_score: Mapped[float] = mapped_column(Float, default=0.0, server_default="0")
+    mastery_status: Mapped[str] = mapped_column(String(20), default="to_evaluate", server_default="to_evaluate", index=True)
+    consecutive_easy: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    evaluated_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    mastery_version: Mapped[str] = mapped_column(String(40), default="akuru-flashcard-mastery-v1", server_default="akuru-flashcard-mastery-v1")
     last_rating: Mapped[str | None] = mapped_column(String(16))
-    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     last_reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
-        CheckConstraint("repetitions >= 0 AND lapses >= 0 AND interval_days >= 0", name="ck_flashcard_learning_counts"),
-        CheckConstraint("ease_factor BETWEEN 1.3 AND 3.0", name="ck_flashcard_learning_ease"),
+        CheckConstraint("mastery_score BETWEEN 0 AND 1", name="ck_flashcard_mastery_score"),
+        CheckConstraint("consecutive_easy >= 0 AND evaluated_count >= 0", name="ck_flashcard_mastery_counts"),
+        CheckConstraint("mastery_status IN ('to_evaluate','needs_review','good','mastered')", name="ck_flashcard_mastery_status"),
         CheckConstraint("last_rating IS NULL OR last_rating IN ('again','difficult','good','easy')", name="ck_flashcard_learning_rating"),
         UniqueConstraint("student_id", "card_version_id", name="uq_flashcard_learning_student_card"),
     )

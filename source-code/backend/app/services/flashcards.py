@@ -1,8 +1,10 @@
 import re
+import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
@@ -10,9 +12,10 @@ from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, FlashcardDeck, FlashcardLearningState,
     FlashcardReview, FlashcardSession, FlashcardVersion, RetrievalChunk, TextbookGroup,
     TextbookTopic, TextbookTopicContentSource, TextbookTopicContentVersion, TextbookTopicVisualAsset,
-    TopicRetrievalPreflight, WeaknessDiagnosis,
+    TopicRetrievalPreflight,
 )
-from app.schemas.flashcards import (FlashcardCardResponse, FlashcardDeckResponse, FlashcardSessionResponse,
+from app.schemas.flashcards import (FlashcardCardResponse, FlashcardDeckResponse, FlashcardDiscardResponse,
+    FlashcardMasteryCategory, FlashcardMasteryResponse, FlashcardMasterySession, FlashcardSessionResponse,
     FlashcardStudyOption, FlashcardStudyOptionsResponse)
 from app.security import Principal
 from app.services.curriculum_plans import student_coverage
@@ -20,37 +23,38 @@ from app.storage.base import ObjectStorage, StoredObject
 
 
 PROMPT_VERSION = "grounded-flashcards-v1"
-SCHEDULER_VERSION = "akuru-spaced-review-v1"
-INTERVALS = {"again": 0, "difficult": 1, "good": 3, "easy": 7}
-SELECTION_VERSION = "akuru-adaptive-selection-v1"
+MASTERY_VERSION = "akuru-flashcard-mastery-v1"
+SELECTION_VERSION = "akuru-flashcard-selection-v2"
+RATING_VALUES = {"difficult": 0.0, "good": 0.65, "easy": 1.0}
+RECENCY_WEIGHTS = (1.0, 0.75, 0.5, 0.25, 0.125)
 
 
-def _selection_reason(state, weak_topic: bool, now: datetime) -> tuple[int, str]:
-    if state and state.due_at <= now: return 0, "overdue"
-    if state and state.last_rating in ("again", "difficult"): return 1, "difficult"
-    if weak_topic: return 2, "weak_topic"
-    if not state: return 3, "unseen"
-    if state.repetitions < 2: return 4, "learning"
-    return 5, "mastered_variation"
+def _mastery_from_ratings(ratings: list[str]) -> tuple[float, str, int, int]:
+    """Return score, status, Easy streak and evaluated rating count.
 
-
-def _schedule(state, rating: str, now: datetime) -> datetime:
-    if rating == "again":
-        state.repetitions = 0; state.lapses += 1; state.interval_days = 0
-        due = now + timedelta(minutes=10)
-    elif rating == "difficult":
-        state.repetitions += 1; state.ease_factor = max(1.3, state.ease_factor - .15)
-        state.interval_days = max(1, round(max(1, state.interval_days) * 1.2)); due = now + timedelta(days=state.interval_days)
-    elif rating == "good":
-        state.repetitions += 1
-        state.interval_days = 1 if state.repetitions == 1 else (3 if state.repetitions == 2 else max(4, round(state.interval_days * state.ease_factor)))
-        due = now + timedelta(days=state.interval_days)
+    Ratings are chronological and must come only from completed sessions. Again
+    adds no numeric value, resets the streak and forces Needs Review.
+    """
+    if not ratings:
+        return 0.0, "to_evaluate", 0, 0
+    streak = 0
+    for rating in reversed(ratings):
+        if rating != "easy":
+            break
+        streak += 1
+    meaningful = [RATING_VALUES[rating] for rating in ratings if rating in RATING_VALUES]
+    recent = list(reversed(meaningful[-len(RECENCY_WEIGHTS):]))
+    weights = RECENCY_WEIGHTS[:len(recent)]
+    score = round(sum(value * weight for value, weight in zip(recent, weights)) / sum(weights), 5) if recent else 0.0
+    if ratings[-1] == "again":
+        status = "needs_review"
+    elif streak >= 3:
+        status = "mastered"
+    elif score >= 0.55:
+        status = "good"
     else:
-        state.repetitions += 1; state.ease_factor = min(3.0, state.ease_factor + .15)
-        state.interval_days = 4 if state.repetitions == 1 else max(7, round(max(1, state.interval_days) * state.ease_factor))
-        due = now + timedelta(days=state.interval_days)
-    state.last_rating, state.due_at, state.last_reviewed_at = rating, due, now
-    return due
+        status = "needs_review"
+    return score, status, streak, len(ratings)
 
 
 def _latest_cards(db: Session, deck_id) -> list[FlashcardVersion]:
@@ -73,6 +77,18 @@ _FIGURE_REFERENCE = re.compile(r"\bfig(?:ure)?\s*(\d+(?:\.\d+)*)\b", re.IGNORECA
 def _clean_passage(value: str) -> str:
     """Remove extraction navigation markers that are not textbook content."""
     return " ".join(_PAGE_BOUNDARY.sub(" ", value).split())
+
+
+def _readable_paragraphs(value: str) -> list[str]:
+    cleaned = _PAGE_BOUNDARY.sub(" ", value).strip()
+    explicit = [" ".join(part.split()) for part in re.split(r"\n\s*\n", cleaned) if part.strip()]
+    if len(explicit) > 1:
+        return explicit
+    lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
+    if any(re.match(r"^(?:[-•]|\d+[.)])\s+", line) for line in lines):
+        return lines
+    sentences = re.split(r"(?<=[.!?])\s+", " ".join(cleaned.split()))
+    return [" ".join(sentences[index:index + 3]) for index in range(0, len(sentences), 3) if sentences[index:index + 3]]
 
 
 def _approved_visual(db: Session, card: FlashcardVersion, chunk: RetrievalChunk,
@@ -118,7 +134,7 @@ def _visual_reference_page(db: Session, chunk: RetrievalChunk,
 
 
 def _source(db: Session, chunk: RetrievalChunk, card: FlashcardVersion | None = None,
-            session_ref: str | None = None) -> dict:
+            session_ref: str | None = None, position: int | None = None) -> dict:
     document = db.get(Document, chunk.document_id)
     block = db.get(DocumentBlock, chunk.source_item_id)
     page = db.get(DocumentPage, block.page_id) if block else None
@@ -126,7 +142,7 @@ def _source(db: Session, chunk: RetrievalChunk, card: FlashcardVersion | None = 
     result = {
         "chunkRef": str(chunk.id), "documentTitle": document.title if document else "Textbook",
         "page": chunk.page_number, "printedPage": printed_page,
-        "passage": _clean_passage(chunk.content),
+        "passage": _clean_passage(chunk.content), "paragraphs": _readable_paragraphs(chunk.content),
     }
     if card and session_ref:
         visual = _approved_visual(db, card, chunk, page)
@@ -141,19 +157,22 @@ def _source(db: Session, chunk: RetrievalChunk, card: FlashcardVersion | None = 
     return result
 
 
-def _card_out(db: Session, card: FlashcardVersion, *, reveal=False, session_ref=None):
+def _card_out(db: Session, card: FlashcardVersion, *, reveal=False, session_ref=None,
+              selected_rating: str | None = None, attempted: bool = False,
+              position: int | None = None):
     chunk = db.get(RetrievalChunk, card.source_chunk_id)
     snapshot = dict(card.source_snapshot or {})
     if chunk and session_ref:
-        snapshot.update(_source(db, chunk, card, session_ref))
+        snapshot.update(_source(db, chunk, card, session_ref, position))
     elif "passage" in snapshot:
         snapshot["passage"] = _clean_passage(snapshot["passage"])
     snapshot.pop("sourceUrl", None)
     return FlashcardCardResponse(cardRef=card.public_ref, ordinal=card.ordinal,
         version=card.version_number, front=card.front, back=card.back if reveal else None,
+        explanation=(card.card_metadata or {}).get("explanation") if reveal else None,
         status=card.status, warnings=card.validation_warnings or [], source=snapshot,
         conceptKey=card.concept_key, category=card.category, variationType=card.variation_type,
-        difficulty=card.difficulty)
+        difficulty=card.difficulty, selectedRating=selected_rating, attempted=attempted)
 
 
 def _deck_out(db: Session, deck: FlashcardDeck, *, include_cards=True, reveal=True,
@@ -352,85 +371,132 @@ def _state_map(db: Session, student_id, cards: list[FlashcardVersion]):
         FlashcardLearningState.student_id == student_id, FlashcardLearningState.card_version_id.in_(ids))).all()} if ids else {}
 
 
-def _weak_topic_ids(db: Session, student_id):
-    return set(db.scalars(select(WeaknessDiagnosis.topic_id).where(
-        WeaknessDiagnosis.student_id == student_id, WeaknessDiagnosis.severity.in_(("moderate", "major")))).all())
-
-
 def study_options(db: Session, principal: Principal, deck_ref: str):
     decks = _eligible_deck_models(db, principal)
     deck = next((row for row in decks if row.public_ref == deck_ref), None)
     if not deck:
         raise DomainError("flashcard_deck_not_available", "This deck is not available in your current learning coverage.", 403)
-    topic = db.get(TextbookTopic, deck.topic_id)
-    group_decks = [row for row in decks if db.get(TextbookTopic, row.topic_id).group_id == topic.group_id]
-    cards, unit_cards = _cards_for_decks(db, [deck]), _cards_for_decks(db, group_decks)
-    states = _state_map(db, principal.user.id, unit_cards)
-    now = datetime.now(timezone.utc)
-    difficult = [c for c in cards if (states.get(c.id) and states[c.id].last_rating in ("again", "difficult"))]
-    due = [c for c in cards if states.get(c.id) and states[c.id].due_at <= now]
-    specs = [
-        ("quick", "Quick review", "A focused 10-card review.", len(cards), min(10, len(cards))),
-        ("normal", "Normal review", "A balanced 20-card review.", len(cards), min(20, len(cards))),
-        ("full_topic", "Full topic practice", "Review every card in this topic.", len(cards), len(cards)),
-        ("difficult", "Difficult cards", "Revisit cards rated Again or Difficult.", len(difficult), len(difficult)),
-        ("due_today", "Due today", "Review cards due from your learning schedule.", len(due), len(due)),
-        ("unit_mixed", "Unit mixed practice", "Mix eligible cards across published topics in this unit.", len(unit_cards), min(20, len(unit_cards))),
-    ]
-    unseen = sum(card.id not in states for card in cards)
-    learning = sum(bool(states.get(card.id) and states[card.id].repetitions < 2) for card in cards)
-    return FlashcardStudyOptionsResponse(deckRef=deck_ref, options=[FlashcardStudyOption(
-        mode=mode, title=title, description=description, availableCount=count,
-        sessionSize=size, enabled=count > 0) for mode, title, description, count, size in specs],
-        summary={"due": len(due), "difficult": len(difficult), "new": unseen, "learning": learning})
-
-
-def _select_cards(db: Session, principal: Principal, deck: FlashcardDeck, mode: str):
-    eligible = _eligible_deck_models(db, principal)
-    topic = db.get(TextbookTopic, deck.topic_id)
-    decks = ([row for row in eligible if db.get(TextbookTopic, row.topic_id).group_id == topic.group_id]
-             if mode == "unit_mixed" else [deck])
-    cards = _cards_for_decks(db, decks)
+    cards = _cards_for_decks(db, [deck])
     states = _state_map(db, principal.user.id, cards)
-    weak_topics = _weak_topic_ids(db, principal.user.id)
-    now = datetime.now(timezone.utc)
-    ranked = []
+    counts = Counter((states[card.id].mastery_status if card.id in states else "to_evaluate") for card in cards)
+    difficult_available = sum(
+        state.mastery_status == "needs_review" if (state := states.get(card.id))
+        else card.difficulty == "difficult" for card in cards
+    )
+    options = [
+        FlashcardStudyOption(mode="review", title="Review Flashcards",
+            description="Choose Easy, Difficult or Mixed cards, then study 20 or 30.",
+            availableCount=len(cards), sessionSize=min(20, len(cards)), enabled=bool(cards),
+            supportedCounts=[count for count in (20, 30) if len(cards) >= count] or ([len(cards)] if cards else []),
+            difficulties=["easy", "difficult", "mixed"]),
+        FlashcardStudyOption(mode="difficult", title="Difficult Flashcards",
+            description="Focus on cards needing review and unattempted Difficult cards.",
+            availableCount=difficult_available, sessionSize=min(20, difficult_available),
+            enabled=difficult_available > 0,
+            supportedCounts=[count for count in (20, 30) if difficult_available >= count] or
+                ([difficult_available] if difficult_available else []), difficulties=[]),
+    ]
+    return FlashcardStudyOptionsResponse(deckRef=deck_ref, options=options,
+        summary={"to_evaluate": counts["to_evaluate"], "needs_review": counts["needs_review"],
+                 "good": counts["good"], "mastered": counts["mastered"]})
+
+
+def _recent_card_ids(db: Session, student_id, deck_id) -> set[uuid.UUID]:
+    sessions = db.scalars(select(FlashcardSession).where(
+        FlashcardSession.student_id == student_id, FlashcardSession.deck_id == deck_id,
+        FlashcardSession.status == "completed").order_by(
+        FlashcardSession.completed_at.desc()).limit(3)).all()
+    return {uuid.UUID(value) for session in sessions for value in session.selected_card_version_ids}
+
+
+def _select_cards(db: Session, principal: Principal, deck: FlashcardDeck, mode: str,
+                  difficulty: str | None, requested_count: int):
+    cards = _cards_for_decks(db, [deck])
+    states = _state_map(db, principal.user.id, cards)
+    recent = _recent_card_ids(db, principal.user.id, deck.id)
+    candidates = []
     for card in cards:
         state = states.get(card.id)
-        card_deck = db.get(FlashcardDeck, card.deck_id)
-        rank, reason = _selection_reason(state, card_deck.topic_id in weak_topics, now)
-        if mode == "difficult" and reason not in ("overdue", "difficult"): continue
-        if mode == "due_today" and not (state and state.due_at <= now): continue
-        ranked.append((rank, state.due_at if state else now, card.concept_key, card.ordinal, card, reason))
-    ranked.sort(key=lambda row: (row[0], row[1], row[2], row[3]))
-    limit = {"quick": 10, "normal": 20, "unit_mixed": 20}.get(mode, len(ranked))
-    selected, deferred, previous, per_concept = [], [], None, {}
-    for row in ranked:
-        if row[2] == previous or (mode in ("quick", "normal", "unit_mixed") and per_concept.get(row[2], 0) >= 2):
-            deferred.append(row); continue
-        selected.append(row); previous = row[2]
-        per_concept[row[2]] = per_concept.get(row[2], 0) + 1
-        if len(selected) >= limit: break
-    if len(selected) < limit:
-        selected.extend(deferred[:limit - len(selected)])
-    return [(row[4], row[5]) for row in selected]
+        status = state.mastery_status if state else "to_evaluate"
+        if mode == "review":
+            if difficulty in ("easy", "difficult") and card.difficulty != difficulty:
+                continue
+        elif not (status == "needs_review" or (status == "to_evaluate" and card.difficulty == "difficult")):
+            continue
+        reason = status
+        priority = {"needs_review": 0, "to_evaluate": 1, "good": 2, "mastered": 3}[status]
+        if card.id in recent and status != "needs_review":
+            priority += 3
+            reason += "_recent"
+        candidates.append([priority, random.SystemRandom().random(), card, reason])
+    random.SystemRandom().shuffle(candidates)
+    candidates.sort(key=lambda row: (row[0], row[1]))
+    by_category = defaultdict(list)
+    for row in candidates:
+        by_category[row[2].category].append(row)
+    selected = []
+    category_names = list(by_category)
+    random.SystemRandom().shuffle(category_names)
+    concept_counts = Counter()
+    while category_names and len(selected) < requested_count:
+        remaining = []
+        for category in category_names:
+            if by_category[category] and len(selected) < requested_count:
+                # Prefer a concept not yet represented in this set. Priority and
+                # randomized tie-breaking remain authoritative within that choice.
+                rows = by_category[category]
+                best_index = min(range(len(rows)), key=lambda index: (
+                    concept_counts[rows[index][2].concept_key], rows[index][0], rows[index][1]
+                ))
+                chosen = rows.pop(best_index)
+                selected.append(chosen)
+                concept_counts[chosen[2].concept_key] += 1
+            if by_category[category]:
+                remaining.append(category)
+        category_names = remaining
+    return [(row[2], row[3]) for row in selected]
 
 
-def _owned_session(db: Session, principal: Principal, session_ref: str):
-    row = db.scalar(select(FlashcardSession).where(
-        FlashcardSession.public_ref == session_ref, FlashcardSession.student_id == principal.user.id))
-    if not row: raise DomainError("flashcard_session_not_found", "Flashcard session not found.", 404)
+def _owned_session(db: Session, principal: Principal, session_ref: str, *, lock=False):
+    statement = select(FlashcardSession).where(
+        FlashcardSession.public_ref == session_ref,
+        FlashcardSession.student_id == principal.user.id)
+    if lock:
+        statement = statement.with_for_update()
+    row = db.scalar(statement)
+    if not row:
+        raise DomainError("flashcard_session_not_found", "Flashcard session not found.", 404)
     return row
 
 
-def _current_card(db: Session, session: FlashcardSession) -> FlashcardVersion:
+def _session_card(db: Session, session: FlashcardSession, position: int) -> FlashcardVersion:
     ids = [str(value) for value in session.selected_card_version_ids]
-    if session.status != "active" or session.current_ordinal > len(ids):
-        raise DomainError("flashcard_not_found", "The current flashcard is unavailable.", 404)
-    card = db.get(FlashcardVersion, uuid.UUID(ids[session.current_ordinal - 1]))
+    if position < 1 or position > len(ids):
+        raise DomainError("flashcard_position_invalid", "That flashcard position is unavailable.", 404)
+    card = db.get(FlashcardVersion, uuid.UUID(ids[position - 1]))
     if not card:
-        raise DomainError("flashcard_not_found", "The current flashcard is unavailable.", 404)
+        raise DomainError("flashcard_not_found", "The flashcard is unavailable.", 404)
     return card
+
+
+def _reviews(db: Session, session: FlashcardSession) -> list[FlashcardReview]:
+    rows = db.scalars(select(FlashcardReview).where(
+        FlashcardReview.session_id == session.id).order_by(FlashcardReview.created_at)).all()
+    positions = {str(value): index + 1 for index, value in enumerate(session.selected_card_version_ids)}
+    return sorted(rows, key=lambda row: positions.get(str(row.card_version_id), 10**9))
+
+
+def _first_unattempted(session: FlashcardSession, reviews: list[FlashcardReview]) -> int:
+    return min(len(session.selected_card_version_ids), len(reviews) + 1)
+
+
+def _allowed_position(session: FlashcardSession, reviews: list[FlashcardReview], position: int | None) -> int:
+    total = len(session.selected_card_version_ids)
+    frontier = total if session.status == "completed" else _first_unattempted(session, reviews)
+    viewed = position or frontier
+    if viewed < 1 or viewed > total or (session.status == "active" and viewed > frontier):
+        raise DomainError("flashcard_position_locked", "Complete the current flashcard before opening a later card.", 409)
+    return viewed
 
 
 def _stored_asset(storage: ObjectStorage, asset: DocumentAsset, missing_code: str) -> StoredObject:
@@ -443,12 +509,19 @@ def _stored_asset(storage: ObjectStorage, asset: DocumentAsset, missing_code: st
 def open_visual(db: Session, principal: Principal, storage: ObjectStorage,
                 session_ref: str, visual_ref: str) -> StoredObject:
     session = _owned_session(db, principal, session_ref)
-    card = _current_card(db, session)
-    chunk = db.get(RetrievalChunk, card.source_chunk_id)
-    block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
-    page = db.get(DocumentPage, block.page_id) if block else None
-    visual = _approved_visual(db, card, chunk, page) if chunk else None
-    if not visual or visual.public_ref != visual_ref:
+    visual = None
+    revealed = set(session.revealed_card_version_ids or [])
+    for raw_id in session.selected_card_version_ids:
+        if str(raw_id) not in revealed:
+            continue
+        card = db.get(FlashcardVersion, uuid.UUID(str(raw_id)))
+        chunk = db.get(RetrievalChunk, card.source_chunk_id) if card else None
+        block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
+        page = db.get(DocumentPage, block.page_id) if block else None
+        candidate = _approved_visual(db, card, chunk, page) if card and chunk else None
+        if candidate and candidate.public_ref == visual_ref:
+            visual = candidate; break
+    if not visual:
         raise DomainError("flashcard_visual_not_found", "The approved flashcard visual was not found.", 404)
     asset = db.get(DocumentAsset, visual.document_asset_id)
     if not asset:
@@ -459,13 +532,20 @@ def open_visual(db: Session, principal: Principal, storage: ObjectStorage,
 def open_textbook_page(db: Session, principal: Principal, storage: ObjectStorage,
                        session_ref: str, page_id: uuid.UUID) -> StoredObject:
     session = _owned_session(db, principal, session_ref)
-    card = _current_card(db, session)
-    chunk = db.get(RetrievalChunk, card.source_chunk_id)
-    block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
-    source_page = db.get(DocumentPage, block.page_id) if block else None
-    expected = _visual_reference_page(
-        db, chunk, source_page.printed_page_label if source_page else None) if chunk else None
-    if not expected or expected.id != page_id:
+    expected = None
+    revealed = set(session.revealed_card_version_ids or [])
+    for raw_id in session.selected_card_version_ids:
+        if str(raw_id) not in revealed:
+            continue
+        card = db.get(FlashcardVersion, uuid.UUID(str(raw_id)))
+        chunk = db.get(RetrievalChunk, card.source_chunk_id) if card else None
+        block = db.get(DocumentBlock, chunk.source_item_id) if chunk else None
+        source_page = db.get(DocumentPage, block.page_id) if block else None
+        candidate = _visual_reference_page(
+            db, chunk, source_page.printed_page_label if source_page else None) if chunk else None
+        if candidate and candidate.id == page_id:
+            expected = candidate; break
+    if not expected:
         raise DomainError("flashcard_textbook_page_not_found", "The matching textbook page was not found.", 404)
     asset = db.get(DocumentAsset, expected.original_render_asset_id or expected.render_asset_id)
     if not asset:
@@ -473,75 +553,196 @@ def open_textbook_page(db: Session, principal: Principal, storage: ObjectStorage
     return _stored_asset(storage, asset, "flashcard_textbook_page_missing")
 
 
-def _session_out(db: Session, session: FlashcardSession, reveal=False, message="Ready to study."):
+def _session_out(db: Session, session: FlashcardSession, *, position: int | None = None,
+                 message="Ready to study."):
     deck = db.get(FlashcardDeck, session.deck_id)
-    reviews = db.scalars(select(FlashcardReview).where(FlashcardReview.session_id == session.id)).all()
+    reviews = _reviews(db, session)
+    viewed = _allowed_position(session, reviews, position)
     ids = [str(value) for value in session.selected_card_version_ids]
-    current = None
-    if session.status == "active" and session.current_ordinal <= len(ids):
-        current = db.get(FlashcardVersion, uuid.UUID(ids[session.current_ordinal - 1]))
+    card = _session_card(db, session, viewed) if ids else None
+    review_by_card = {str(row.card_version_id): row for row in reviews}
+    selected_review = review_by_card.get(ids[viewed - 1]) if ids else None
+    attempted = selected_review is not None
+    revealed = attempted or ids[viewed - 1] in (session.revealed_card_version_ids or [])
+    frontier = len(ids) if session.status == "completed" else _first_unattempted(session, reviews)
     return FlashcardSessionResponse(sessionRef=session.public_ref,
         deck=_deck_out(db, deck, include_cards=False, student_id=session.student_id), status=session.status,
-        currentOrdinal=session.current_ordinal, reviewedCount=len(reviews), totalCards=len(ids),
-        currentCard=_card_out(db, current, reveal=reveal, session_ref=session.public_ref) if current else None,
-        answerRevealed=reveal, schedulerVersion=session.scheduler_version, message=message,
-        mode=session.mode, selectionReasons=session.selection_reasons)
+        currentOrdinal=frontier, reviewedCount=len(reviews), totalCards=len(ids),
+        currentCard=_card_out(db, card, reveal=revealed, session_ref=session.public_ref,
+            selected_rating=selected_review.rating if selected_review else None,
+            attempted=attempted, position=viewed) if card else None,
+        answerRevealed=revealed, masteryVersion=session.mastery_version,
+        selectionVersion=session.selection_version, message=message, mode=session.mode,
+        difficulty=session.difficulty_filter, selectionReasons=session.selection_reasons,
+        viewedOrdinal=viewed, firstUnattemptedOrdinal=frontier,
+        canGoPrevious=viewed > 1, canGoNext=viewed < frontier,
+        hasUncommittedResults=session.status == "active" and bool(reviews))
 
 
-def start_session(db: Session, principal: Principal, deck_ref: str, request_key: str, mode: str = "normal"):
+def start_session(db: Session, principal: Principal, deck_ref: str, request_key: str,
+                  mode: str = "review", difficulty: str | None = None, requested_count: int = 20):
     existing = db.scalar(select(FlashcardSession).where(FlashcardSession.request_key == request_key))
     if existing:
-        if existing.student_id != principal.user.id: raise DomainError("request_key_conflict", "Request key is already in use.", 409)
+        if existing.student_id != principal.user.id:
+            raise DomainError("request_key_conflict", "Request key is already in use.", 409)
         return _session_out(db, existing)
     allowed = {row.deckRef for row in student_decks(db, principal)}
-    if deck_ref not in allowed: raise DomainError("flashcard_deck_not_available", "This deck is not available in your current learning coverage.", 403)
+    if deck_ref not in allowed:
+        raise DomainError("flashcard_deck_not_available", "This deck is not available in your current learning coverage.", 403)
     deck = db.scalar(select(FlashcardDeck).where(FlashcardDeck.public_ref == deck_ref))
-    active = db.scalar(select(FlashcardSession).where(FlashcardSession.student_id == principal.user.id,
-        FlashcardSession.deck_id == deck.id, FlashcardSession.mode == mode, FlashcardSession.status == "active"))
-    if active: return _session_out(db, active, message="Your earlier session is ready to continue.")
-    selected = _select_cards(db, principal, deck, mode)
+    active = db.scalar(select(FlashcardSession).where(
+        FlashcardSession.student_id == principal.user.id,
+        FlashcardSession.deck_id == deck.id, FlashcardSession.status == "active"))
+    if active:
+        return _session_out(db, active, message="Your incomplete session is ready to continue.")
+    selected = _select_cards(db, principal, deck, mode, difficulty, requested_count)
     if not selected:
-        raise DomainError("flashcard_mode_empty", "No cards are currently available for this study mode.", 409)
+        raise DomainError("flashcard_mode_empty", "No cards are currently available for this selection.", 409)
     session = FlashcardSession(student_id=principal.user.id, deck_id=deck.id, current_ordinal=1,
-        scheduler_version=SCHEDULER_VERSION, request_key=request_key, mode=mode,
+        mastery_version=MASTERY_VERSION, selection_version=SELECTION_VERSION,
+        request_key=request_key, mode=mode, difficulty_filter=difficulty,
         target_count=len(selected), selected_card_version_ids=[str(card.id) for card, _ in selected],
-        selection_reasons=[reason for _, reason in selected])
+        selection_reasons=[reason for _, reason in selected], revealed_card_version_ids=[])
     db.add(session); db.commit(); db.refresh(session)
-    return _session_out(db, session)
+    message = (f"Started with {len(selected)} available cards." if len(selected) < requested_count
+               else "Your flashcard session is ready.")
+    return _session_out(db, session, message=message)
 
 
-def get_session(db: Session, principal: Principal, session_ref: str, reveal=False):
-    return _session_out(db, _owned_session(db, principal, session_ref), reveal=reveal)
+def get_session(db: Session, principal: Principal, session_ref: str, position: int | None = None):
+    return _session_out(db, _owned_session(db, principal, session_ref), position=position)
+
+
+def reveal(db: Session, principal: Principal, session_ref: str):
+    session = _owned_session(db, principal, session_ref, lock=True)
+    if session.status != "active":
+        raise DomainError("flashcard_session_complete", "This session is already complete.", 409)
+    reviews = _reviews(db, session)
+    frontier = _first_unattempted(session, reviews)
+    card = _session_card(db, session, frontier)
+    revealed = list(session.revealed_card_version_ids or [])
+    if str(card.id) not in revealed:
+        revealed.append(str(card.id)); session.revealed_card_version_ids = revealed
+        db.commit(); db.refresh(session)
+    return _session_out(db, session, position=frontier, message="Approved answer shown.")
+
+
+def _apply_mastery(db: Session, session: FlashcardSession, reviews: list[FlashcardReview], now: datetime) -> None:
+    for review in reviews:
+        history = list(db.scalars(select(FlashcardReview.rating).join(
+            FlashcardSession, FlashcardReview.session_id == FlashcardSession.id).where(
+            FlashcardSession.student_id == session.student_id,
+            FlashcardReview.card_version_id == review.card_version_id,
+            FlashcardReview.committed_at.is_not(None)).order_by(FlashcardReview.committed_at)).all())
+        score, status, streak, evaluated = _mastery_from_ratings(history + [review.rating])
+        state = db.scalar(select(FlashcardLearningState).where(
+            FlashcardLearningState.student_id == session.student_id,
+            FlashcardLearningState.card_version_id == review.card_version_id).with_for_update())
+        card = db.get(FlashcardVersion, review.card_version_id)
+        if not state:
+            state = FlashcardLearningState(student_id=session.student_id,
+                card_version_id=review.card_version_id, concept_key=card.concept_key)
+            db.add(state)
+        state.mastery_score = score; state.mastery_status = status
+        state.consecutive_easy = streak; state.evaluated_count = evaluated
+        state.mastery_version = MASTERY_VERSION; state.last_rating = review.rating
+        state.last_reviewed_at = now; review.committed_at = now
 
 
 def rate(db: Session, principal: Principal, session_ref: str, rating: str, request_key: str):
-    session = _owned_session(db, principal, session_ref)
+    session = _owned_session(db, principal, session_ref, lock=True)
     existing = db.scalar(select(FlashcardReview).where(FlashcardReview.request_key == request_key))
     if existing:
         if existing.session_id != session.id:
             raise DomainError("request_key_conflict", "Request key is already in use.", 409)
         return _session_out(db, session, message="That rating was already saved.")
-    if session.status != "active": raise DomainError("flashcard_session_complete", "This session is already complete.", 409)
-    ids = [str(value) for value in session.selected_card_version_ids]
-    current = db.get(FlashcardVersion, uuid.UUID(ids[session.current_ordinal - 1])) if session.current_ordinal <= len(ids) else None
-    if not current: raise DomainError("flashcard_not_found", "The current flashcard is unavailable.", 409)
+    if session.status != "active":
+        raise DomainError("flashcard_session_complete", "This session is already complete.", 409)
+    reviews = _reviews(db, session)
+    frontier = _first_unattempted(session, reviews)
+    card = _session_card(db, session, frontier)
+    if str(card.id) not in (session.revealed_card_version_ids or []):
+        raise DomainError("flashcard_answer_required", "Show the approved answer before rating this card.", 409)
+    review = FlashcardReview(session_id=session.id, card_version_id=card.id,
+                             rating=rating, request_key=request_key)
+    db.add(review); db.flush(); reviews.append(review)
     now = datetime.now(timezone.utc)
-    state = db.scalar(select(FlashcardLearningState).where(
-        FlashcardLearningState.student_id == principal.user.id,
-        FlashcardLearningState.card_version_id == current.id).with_for_update())
-    if not state:
-        state = FlashcardLearningState(student_id=principal.user.id, card_version_id=current.id,
-            concept_key=current.concept_key, due_at=now)
-        db.add(state); db.flush()
-    due = _schedule(state, rating, now)
-    interval = state.interval_days
-    db.add(FlashcardReview(session_id=session.id, card_version_id=current.id, rating=rating,
-        interval_days=interval, due_at=due, request_key=request_key))
-    if session.current_ordinal < len(ids): session.current_ordinal += 1; message = "Rating saved. Here is the next card."
-    else:
+    if len(reviews) == len(session.selected_card_version_ids):
+        _apply_mastery(db, session, reviews, now)
         session.status = "completed"; session.completed_at = now
-        message = "You completed this flashcard session. Well done."
-    db.commit(); return _session_out(db, session, message=message)
+        session.current_ordinal = len(reviews)
+        message = "You completed this flashcard session. Your mastery has been updated."
+        viewed = len(reviews)
+    else:
+        session.current_ordinal = len(reviews) + 1
+        message = "Rating saved. Here is the next card."
+        viewed = session.current_ordinal
+    db.commit(); db.refresh(session)
+    return _session_out(db, session, position=viewed, message=message)
+
+
+def discard(db: Session, principal: Principal, session_ref: str) -> FlashcardDiscardResponse:
+    session = _owned_session(db, principal, session_ref, lock=True)
+    if session.status != "active":
+        raise DomainError("flashcard_session_not_active", "Only an incomplete session can be discarded.", 409)
+    review_count = len(_reviews(db, session))
+    deck = db.get(FlashcardDeck, session.deck_id)
+    db.add(AuditEvent(actor_id=principal.user.id, action="flashcard_session.discarded",
+        target_type="flashcard_session", target_id=session.public_ref,
+        event_data={"deckRef": deck.public_ref if deck else None,
+                    "provisionalRatingsDiscarded": review_count}))
+    db.delete(session); db.commit()
+    return FlashcardDiscardResponse(sessionRef=session_ref, status="discarded",
+                                    message="The incomplete attempt and its provisional results were discarded.")
+
+
+def mastery_summary(db: Session, principal: Principal, deck_ref: str) -> FlashcardMasteryResponse:
+    eligible = {deck.public_ref: deck for deck in _eligible_deck_models(db, principal)}
+    deck = eligible.get(deck_ref)
+    if not deck:
+        raise DomainError("flashcard_deck_not_available", "This deck is not available in your current learning coverage.", 403)
+    cards = _cards_for_decks(db, [deck]); states = _state_map(db, principal.user.id, cards)
+    totals = Counter(); by_category = defaultdict(Counter)
+    scores = []; latest = None
+    for card in cards:
+        state = states.get(card.id); status = state.mastery_status if state else "to_evaluate"
+        totals[status] += 1; by_category[card.category][status] += 1
+        if state:
+            scores.append(state.mastery_score)
+            if state.last_reviewed_at and (latest is None or state.last_reviewed_at > latest): latest = state.last_reviewed_at
+    categories = []
+    for category in sorted(by_category):
+        values = by_category[category]; total = sum(values.values()); evaluated = total - values["to_evaluate"]
+        category_states = [states.get(card.id) for card in cards if card.category == category and states.get(card.id)]
+        categories.append(FlashcardMasteryCategory(category=category, total=total,
+            toEvaluate=values["to_evaluate"], needsReview=values["needs_review"],
+            good=values["good"], mastered=values["mastered"],
+            coveragePercent=round(100 * evaluated / total, 1) if total else 0,
+            masteryPercent=round(100 * sum(state.mastery_score for state in category_states) / evaluated, 1) if evaluated else 0))
+    evaluated = len(cards) - totals["to_evaluate"]
+    completed = db.scalar(select(func.count()).select_from(FlashcardSession).where(
+        FlashcardSession.student_id == principal.user.id, FlashcardSession.deck_id == deck.id,
+        FlashcardSession.status == "completed")) or 0
+    recent_rows = db.scalars(select(FlashcardSession).where(
+        FlashcardSession.student_id == principal.user.id, FlashcardSession.deck_id == deck.id,
+        FlashcardSession.status == "completed").order_by(
+        FlashcardSession.completed_at.desc()).limit(5)).all()
+    recent = [FlashcardMasterySession(sessionRef=row.public_ref, mode=row.mode,
+        difficulty=row.difficulty_filter, cardCount=row.target_count,
+        completedAt=row.completed_at.isoformat()) for row in recent_rows if row.completed_at]
+    recommendation = "difficult" if totals["needs_review"] else "review"
+    return FlashcardMasteryResponse(deckRef=deck_ref, totalCards=len(cards),
+        toEvaluate=totals["to_evaluate"], needsReview=totals["needs_review"],
+        good=totals["good"], mastered=totals["mastered"],
+        coveragePercent=round(100 * evaluated / len(cards), 1) if cards else 0,
+        masteryPercent=round(100 * sum(scores) / evaluated, 1) if evaluated else 0,
+        categories=categories, completedSessions=completed, recentSessions=recent,
+        recommendedMode=recommendation,
+        recommendedDifficulty=None if recommendation == "difficult" else (
+            "difficult" if totals["to_evaluate"] and any(
+                card.difficulty == "difficult" and card.id not in states for card in cards) else "mixed"),
+        recommendedCount=30 if len(cards) >= 30 and evaluated >= 20 else 20,
+        masteryVersion=MASTERY_VERSION, recalculatedAt=latest.isoformat() if latest else None)
 
 
 def withdraw(db: Session, principal: Principal, deck_ref: str, reason: str):

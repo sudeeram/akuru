@@ -596,7 +596,7 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(api, /reviewTopicVisualAsset/);
 });
 
-test('curated flashcards are source grounded and offer deterministic Student study modes', () => {
+test('curated flashcards are source grounded and offer mastery-based Student study modes', () => {
   assert.match(page, /\['flashcards', 'Flashcards'/);
   assert.match(page, /\['flashcards', 'Flashcard release'/);
   assert.doesNotMatch(api, /flashcards\/admin\/decks\/generate/);
@@ -611,8 +611,15 @@ test('curated flashcards are source grounded and offer deterministic Student stu
   assert.match(flashcards, /How well did you remember it?/);
   assert.match(flashcards, /aria-live="polite"/);
   assert.match(flashcards, /<fieldset className="flashcard-face"/);
-  assert.match(flashcards, /View matching textbook page/);
+  assert.match(flashcards, /View matching textbook/);
   assert.match(flashcards, /source\.visual\.contentUrl/);
-  assert.match(flashcards, /printed page/);
+  assert.match(flashcards, /Page Number/);
+  assert.match(flashcards, /Review Flashcards/);
+  assert.match(flashcards, /Difficult Flashcards/);
+  assert.match(flashcards, /Exit and discard attempt/);
+  assert.match(flashcards, /Show explanation/);
+  assert.match(flashcards, /getFlashcardMastery/);
+  assert.match(flashcards, /discardFlashcardSession/);
+  assert.doesNotMatch(flashcards, /Due today/);
   assert.doesNotMatch(flashcards, /source\.sourceUrl/);
 });

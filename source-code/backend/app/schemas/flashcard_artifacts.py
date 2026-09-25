@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, model_validator
 
 Category = Literal["essential_knowledge", "explanation_comparison", "application_misconception", "calculation_interpretation_diagram"]
 Variation = Literal["recall", "explanation", "comparison", "application", "misconception", "calculation", "interpretation", "diagram"]
-Difficulty = Literal["foundation", "core", "stretch"]
+Difficulty = Literal["easy", "difficult"]
 
 
 class CuratedFlashcard(BaseModel):
@@ -11,9 +11,10 @@ class CuratedFlashcard(BaseModel):
     conceptKey: str = Field(pattern=r"^[a-z0-9][a-z0-9._-]{2,119}$")
     category: Category
     variationType: Variation
-    difficulty: Difficulty = "core"
+    difficulty: Difficulty
     question: str = Field(min_length=5, max_length=500)
     answer: str = Field(min_length=2, max_length=3000)
+    explanation: str = Field(default="", max_length=3000)
     sourceChunkRefs: list[str] = Field(min_length=1, max_length=5)
     visualAssetRef: str | None = Field(default=None, max_length=56)
     visualAltText: str | None = Field(default=None, max_length=500)

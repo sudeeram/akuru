@@ -1,12 +1,12 @@
-# Curated flashcard library
+# Curated Flashcard library and Student mastery
 
-AKURU serves curated flashcard releases built from published textbook-topic content. Production does not generate cards on demand, and Student study makes no language-model calls.
+AKURU serves reviewed Flashcard releases built from published textbook-topic content. Production does not generate cards on demand, and studying a released deck makes no language-model request.
 
 ## Release artifact
 
-The versioned `akuru.flashcards.v1` JSON artifact declares the textbook, unit/module, topics, published content versions and reviewed cards. Each card has a stable key, concept key, category, variation type, difficulty, approved question and answer, one or more exact retrieval-chunk references, and optional approved visual provenance.
+The versioned `akuru.flashcards.v1` JSON artifact declares the textbook, unit or module, topics, published content versions and reviewed cards. Every immutable card version has a stable key, concept key, category, variation type, reviewed intrinsic difficulty (`easy` or `difficult`), approved answer, optional explanation, exact retrieval-chunk references and optional approved visual provenance. Card totals and category ratios depend on the topic; AKURU does not enforce the historical 100-card Chemistry distribution.
 
-Run the operator command from `backend`:
+Run the operator commands from `backend`:
 
 ```bash
 .venv/bin/python -m app.flashcard_release validate /secure/path/release.json
@@ -14,23 +14,44 @@ Run the operator command from `backend`:
 .venv/bin/python -m app.flashcard_release import /secure/path/release.json --admin-username ADMIN --release
 ```
 
-Validation checks the artifact checksum, subject and hierarchy ownership, published content-version checksum, active source evidence, approved visuals, required fields, duplicate wording, sentence quality and suspicious Chemistry OCR notation. Import is idempotent by release ID and checksum and writes the entire release transactionally. Release artifacts derived from copyrighted textbook material stay outside Git.
+Validation checks the artifact checksum, hierarchy ownership, content-version checksum, source evidence, approved visuals, duplicate wording, sentence quality and suspicious Chemistry OCR notation. Import is transactional and idempotent by release ID and checksum. Release artifacts derived from copyrighted textbook material stay outside Git.
 
-## Student selection and scheduling
+## Student workflows and selection
 
-Only released decks within the Student's cumulative Grade and Term coverage are visible. The modes are Quick review (10), Normal review (20), Full topic practice, Difficult cards, Due today and Unit mixed practice (20).
+Only released decks within the Student's cumulative Grade and Term coverage are visible. New sessions support:
 
-Selection is deterministic and child-scoped. It prioritizes overdue cards, prior Again/Difficult ratings, recorded weak topics, unseen cards, learning cards and finally mastered variations. A session snapshots its immutable card-version IDs and selection reasons. Closely related concept variations are separated where possible.
+- **Review Flashcards:** Easy, Difficult or Mixed intrinsic difficulty; 20 or 30 requested cards.
+- **Difficult Flashcards:** cards in the Student's Needs Review state plus unattempted cards with intrinsic difficulty Difficult; 20 or 30 requested cards.
 
-Ratings update a per-child card state with a versioned deterministic schedule. `Again` is due after ten minutes; later intervals depend on repetitions, rating and bounded ease factor. Ratings never update authoritative academic mastery.
+When fewer cards qualify, AKURU clearly uses the smaller available set. Selection is randomized once, stored with the session, balanced across available categories and biased toward Needs Review, To Evaluate, Good and then Mastered. Recently completed cards have lower priority unless they need review. Refresh and permitted navigation preserve the selected card versions and order.
 
-## Admin and API boundaries
+## Student-owned mastery
 
-The Admin screen is read-only for content and shows release provenance, distribution and source evidence. Admins may withdraw a released deck with an audited reason. The browser generation, arbitrary card editing and manual release endpoints have been removed.
+Mastery is unique to `(student_id, card_version_id)`. This isolation rule applies to every present and future Student performance measurement in AKURU. Another Student's attempt can never alter or populate this state.
 
-Authenticated endpoints are under `/api/v1/flashcards`:
+`akuru-flashcard-mastery-v1` uses completed sessions only. Difficult contributes `0`, Good `0.65`, and Easy `1.0` to a recency-weighted score. Again is attempted but excluded from the numeric average; it resets the Easy streak and places the card in Needs Review. Three consecutive Easy ratings in three separately completed sessions promote a card to Mastered. A later Difficult rating resets the streak and can downgrade it according to recent evidence. Scores of at least `0.55` are Good unless the three-Easy Mastered rule applies; lower scores are Needs Review. Cards without completed evidence are To Evaluate.
 
-- Admin: list/get decks and withdraw a released deck.
-- Student: list eligible decks, inspect study options, start/resume a mode, reveal an answer and record a rating.
+Ratings remain provisional while a set is active. A rating is immutable once submitted. Completing the last card commits all reviews, learning states and the session in one transaction. Discarding an incomplete session deletes its provisional ratings and leaves all previously completed learning unchanged.
 
-Every revealed answer shows the exact authorized textbook passage. Extraction-only page-boundary markers are removed before display. When the passage mentions a figure, AKURU may show an approved primary-source visual whose reviewed caption matches the figure number; an explicit approved visual reference in the curated artifact takes precedence. The matching printed page is independently resolved from the published visual-reference source and served through a Student-owned session endpoint. The browser never receives a raw retrieval-evidence JSON link.
+The Student dashboard reports To Evaluate, Needs Review, Good and Mastered counts, coverage, mastery, category results, completed sessions and a recommended next mode. Coverage measures cards evaluated in completed sets. Mastery averages evaluated cards only.
+
+## Navigation, answers and sources
+
+Students can revisit attempted cards read-only, but cannot skip beyond the first unattempted card or change a rating. Internal exits and sign-out show an explicit discard choice; browser reload and external navigation use the browser leave warning.
+
+The approved answer appears first. An optional explanation has a separate toggle. Exact textbook evidence has its own remembered expand/collapse state, readable paragraphs, the document name, and `Page Number X` or `Page Numbers X–Y`. Approved visuals use a responsive container. Protected visuals and textbook pages are fetched once into an in-memory cache scoped to the active Student session. They are revoked on completion, discard, identity change or component teardown and are never written to browser storage. Server responses use `private, no-store`.
+
+## Reset before this schema
+
+The migration to the mastery experience requires the Flashcard tables to be empty. The reviewed command is dry-run by default:
+
+```bash
+.venv/bin/python -m app.flashcard_reset
+.venv/bin/python -m app.flashcard_reset --apply --admin-username ADMIN --confirm 'RESET AKURU FLASHCARDS'
+```
+
+Take and verify an encrypted database backup first. The command refuses unknown external dependencies, deletes only Flashcard decks, versions, sessions, reviews and learning states in a transaction, records a non-sensitive audit event, and preserves textbooks, extraction, retrieval, visuals, accounts, enrolments and all unrelated learning domains.
+
+## API boundaries
+
+Admins can list, inspect and withdraw releases. Students can list eligible decks, inspect options and personal mastery, start or resume a session, reveal, rate, navigate to an allowed position, discard an incomplete session, and fetch authorized protected sources. Every Student endpoint resolves ownership from the authenticated session; database UUIDs are not used as public learner identifiers.

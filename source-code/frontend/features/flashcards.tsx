@@ -1,16 +1,70 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, CheckCircle2, Layers3, RotateCcw } from 'lucide-react';
+import { AlertTriangle, BarChart3, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, Layers3, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Heading, Empty, Status } from './shared';
 import { LearningImage } from './learning-media';
-import { errorMessage, getAdminFlashcardDeck, getAdminFlashcardDecks, getFlashcardSession, getFlashcardStudyOptions,
+import { discardFlashcardSession, errorMessage, getAdminFlashcardDeck, getAdminFlashcardDecks, getFlashcardMastery, getFlashcardSession, getFlashcardStudyOptions,
   getStudentFlashcardDecks, rateFlashcard, revealFlashcard, startFlashcardSession,
-  withdrawFlashcardDeck, type FlashcardDeck, type FlashcardMode, type FlashcardSession,
+  withdrawFlashcardDeck, type FlashcardDeck, type FlashcardDifficulty, type FlashcardMode, type FlashcardRating, type FlashcardSession,
   type FlashcardStudyOption } from '@/api';
 import { queryKeys } from '@/lib/query-keys';
 import { flashcardPaths, type FlashcardRoute } from '@/lib/routes';
+
+const protectedAssetCache = new Map<string, Promise<string>>();
+const protectedAssetUrls = new Map<string, string>();
+
+function clearProtectedAssets(sessionRef?: string) {
+  for (const [key, url] of protectedAssetUrls) {
+    if (!sessionRef || key.startsWith(`${sessionRef}:`)) {
+      URL.revokeObjectURL(url); protectedAssetUrls.delete(key); protectedAssetCache.delete(key);
+    }
+  }
+}
+
+async function protectedAsset(sessionRef: string, sourceUrl: string) {
+  const key = `${sessionRef}:${sourceUrl}`;
+  const cached = protectedAssetCache.get(key);
+  if (cached) return cached;
+  const pending = fetch(sourceUrl, { credentials: 'same-origin', cache: 'no-store' }).then(async response => {
+    if (!response.ok) throw new Error('The textbook source could not be opened.');
+    const objectUrl = URL.createObjectURL(await response.blob());
+    protectedAssetUrls.set(key, objectUrl);
+    return objectUrl;
+  }).catch(error => { protectedAssetCache.delete(key); throw error; });
+  protectedAssetCache.set(key, pending);
+  return pending;
+}
+
+function ProtectedLearningImage({ sessionRef, src, description, title }: { sessionRef: string; src: string; description: string; title: string }) {
+  const [localUrl, setLocalUrl] = useState(protectedAssetUrls.get(`${sessionRef}:${src}`) ?? '');
+  const [loadError, setLoadError] = useState('');
+  useEffect(() => {
+    let live = true;
+    void protectedAsset(sessionRef, src).then(url => { if (live) setLocalUrl(url); }).catch(error => { if (live) setLoadError(errorMessage(error)); });
+    return () => { live = false; };
+  }, [sessionRef, src]);
+  if (loadError) return <p className="error" role="alert">{loadError}</p>;
+  if (!localUrl) return <p className="small" aria-live="polite">Loading approved textbook figure…</p>;
+  return <LearningImage src={localUrl} description={description} title={title}/>;
+}
+
+function ProtectedSourceLink({ sessionRef, src, label }: { sessionRef: string; src: string; label: string }) {
+  const [busy, setBusy] = useState(false), [loadError, setLoadError] = useState('');
+  async function open() {
+    setBusy(true); setLoadError('');
+    try { window.open(await protectedAsset(sessionRef, src), '_blank', 'noopener,noreferrer'); }
+    catch (error) { setLoadError(errorMessage(error)); }
+    finally { setBusy(false); }
+  }
+  return <div><Button type="button" variant="outline" disabled={busy} onClick={() => void open()}>{busy ? 'Opening textbook page…' : label}</Button>{loadError && <p className="error" role="alert">{loadError}</p>}</div>;
+}
+
+function pageLabel(value: string | number | undefined) {
+  const text = String(value ?? '').trim();
+  return /[,–-]/.test(text) ? `Page Numbers ${text.replace(/\s*,\s*/g, '–')}` : `Page Number ${text}`;
+}
 
 export function FlashcardAdmin({ notify }: { notify: (message: string) => void }) {
   const [decks, setDecks] = useState<FlashcardDeck[]>([]);
@@ -67,81 +121,98 @@ export function StudentFlashcards({ actorRef, route, navigate }: {
 }) {
   const cache = useQueryClient();
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [announcement, setAnnouncement] = useState('');
-  const decksQuery = useQuery({
-    queryKey: queryKeys.flashcards.studentDecks(actorRef),
-    queryFn: getStudentFlashcardDecks,
-  });
+  const [difficulty, setDifficulty] = useState<FlashcardDifficulty>('mixed');
+  const [requestedCount, setRequestedCount] = useState<20 | 30>(20);
+  const [explanationCardRef, setExplanationCardRef] = useState<string | null>(null);
+  const [sourceOpenByCard, setSourceOpenByCard] = useState<Record<string, boolean>>({});
+  const [pendingExit, setPendingExit] = useState<{to: string; proceed: () => void} | null>(null);
+  const bypassExitGuard = useRef(false);
+  const decksQuery = useQuery({ queryKey: queryKeys.flashcards.studentDecks(actorRef), queryFn: getStudentFlashcardDecks });
   const decks = decksQuery.data ?? [];
   const selectedDeck = route.deckRef ? decks.find(deck => deck.deckRef === route.deckRef) ?? null : null;
-  const optionsQuery = useQuery({
-    queryKey: queryKeys.flashcards.studyOptions(actorRef, route.deckRef ?? ''),
-    queryFn: () => getFlashcardStudyOptions(route.deckRef!),
-    enabled: Boolean(route.deckRef),
-  });
+  const optionsQuery = useQuery({ queryKey: queryKeys.flashcards.studyOptions(actorRef, route.deckRef ?? ''), queryFn: () => getFlashcardStudyOptions(route.deckRef!), enabled: Boolean(route.deckRef) });
+  const masteryQuery = useQuery({ queryKey: queryKeys.flashcards.mastery(actorRef, route.deckRef ?? ''), queryFn: () => getFlashcardMastery(route.deckRef!), enabled: Boolean(route.deckRef) });
   const options: FlashcardStudyOption[] = optionsQuery.data?.options ?? [];
-  const studySummary = optionsQuery.data?.summary ?? {};
-  const sessionQuery = useQuery({
-    queryKey: queryKeys.flashcards.session(actorRef, route.sessionRef ?? ''),
-    queryFn: () => getFlashcardSession(route.sessionRef!),
-    enabled: Boolean(route.sessionRef),
-    staleTime: 0,
-  });
+  const sessionQuery = useQuery({ queryKey: queryKeys.flashcards.session(actorRef, route.sessionRef ?? '', route.position), queryFn: () => getFlashcardSession(route.sessionRef!, route.position), enabled: Boolean(route.sessionRef), staleTime: 0 });
   const session = sessionQuery.data ?? null;
-  const queryError = decksQuery.error ?? optionsQuery.error ?? sessionQuery.error;
+  const queryError = decksQuery.error ?? optionsQuery.error ?? masteryQuery.error ?? sessionQuery.error;
   const visibleError = error || (queryError ? errorMessage(queryError) : '');
-  useEffect(() => {
-    if (session && route.position !== session.currentOrdinal)
-      navigate(flashcardPaths.card(session.sessionRef, session.currentOrdinal));
-  }, [session, route.position, navigate]);
   const progress = useMemo(() => session ? Math.round(100 * session.reviewedCount / Math.max(1, session.totalCards)) : 0, [session]);
+  const uncommitted = Boolean(session?.hasUncommittedResults && session.status === 'active');
+
+  useEffect(() => {
+    const ref = session?.sessionRef;
+    if (!ref) return;
+    if (session.status === 'completed') clearProtectedAssets(ref);
+    return () => clearProtectedAssets(ref);
+  }, [session?.sessionRef, session?.status]);
+  useEffect(() => {
+    if (!uncommitted) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [uncommitted]);
+  useEffect(() => {
+    const guard = (rawEvent: Event) => {
+      const event = rawEvent as CustomEvent<{to: string; proceed: () => void}>;
+      if (!uncommitted || bypassExitGuard.current || event.detail?.to.startsWith(`/flashcards/sessions/${session?.sessionRef}/`)) return;
+      event.preventDefault(); setPendingExit(event.detail ?? {to: flashcardPaths.library, proceed: () => navigate(flashcardPaths.library)});
+    };
+    window.addEventListener('akuru:before-navigation', guard);
+    return () => window.removeEventListener('akuru:before-navigation', guard);
+  }, [uncommitted, session?.sessionRef, navigate]);
+
   async function run(action: () => Promise<FlashcardSession>) {
     setBusy(true); setError('');
     try {
       const next = await action();
-      cache.setQueryData(queryKeys.flashcards.session(actorRef, next.sessionRef), next);
-      setAnnouncement(next.message);
-      navigate(flashcardPaths.card(next.sessionRef, next.currentOrdinal));
-    }
-    catch (cause) { setError(errorMessage(cause)); }
-    finally { setBusy(false); }
+      setExplanationCardRef(null);
+      cache.setQueryData(queryKeys.flashcards.session(actorRef, next.sessionRef, next.viewedOrdinal), next);
+      setAnnouncement(next.message); navigate(flashcardPaths.card(next.sessionRef, next.viewedOrdinal));
+      if (next.status === 'completed') { clearProtectedAssets(next.sessionRef); await cache.invalidateQueries({ queryKey: queryKeys.flashcards.all(actorRef) }); }
+    } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); }
   }
   function begin(mode: FlashcardMode) {
-    if (selectedDeck) {
-      navigate(flashcardPaths.start(selectedDeck.deckRef, mode));
-      void run(() => startFlashcardSession(selectedDeck.deckRef, mode, crypto.randomUUID()));
-    }
+    if (!selectedDeck) return;
+    const chosenDifficulty = mode === 'review' ? difficulty : null;
+    navigate(flashcardPaths.start(selectedDeck.deckRef, mode, chosenDifficulty ?? undefined, requestedCount));
+    void run(() => startFlashcardSession(selectedDeck.deckRef, mode, chosenDifficulty, requestedCount, crypto.randomUUID()));
   }
+  function requestExit(to: string) { if (uncommitted) setPendingExit({to, proceed: () => navigate(to)}); else navigate(to); }
+  async function confirmDiscard() {
+    if (!session || !pendingExit) return;
+    setBusy(true); setError('');
+    try {
+      const result = await discardFlashcardSession(session.sessionRef);
+      clearProtectedAssets(session.sessionRef);
+      cache.removeQueries({ queryKey: queryKeys.flashcards.session(actorRef, session.sessionRef) });
+      const proceed = pendingExit.proceed; bypassExitGuard.current = true; setPendingExit(null); setAnnouncement(result.message); proceed();
+    } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); }
+  }
+  function openPosition(position: number) { if (session) { setExplanationCardRef(null); navigate(flashcardPaths.card(session.sessionRef, position)); } }
+  const mastery = masteryQuery.data;
+  const paragraphs = session?.currentCard?.source.paragraphs?.length ? session.currentCard.source.paragraphs : session?.currentCard?.source.passage ? [session.currentCard.source.passage] : [];
+  const sourceOpen = Boolean(session?.currentCard && sourceOpenByCard[session.currentCard.cardRef]);
+  const explanationOpen = Boolean(session?.currentCard && explanationCardRef === session.currentCard.cardRef);
   return <>
-    <Heading eyebrow="STUDENT · ACTIVE RECALL" title="Flashcards">Remember ideas by trying the answer first, then compare it with the approved textbook answer.</Heading>
+    <Heading eyebrow="STUDENT · ACTIVE RECALL" title="Flashcards">Complete a set to update your personal mastery. Incomplete attempts never change your ranking.</Heading>
     {visibleError && <div className="error" role="alert">{visibleError}</div>}<p className="sr-only" aria-live="polite">{announcement}</p>
     {!session && !route.deckRef && !route.sessionRef && <div className="topic-list">
-      {decks.map(deck => <button className="panel topic-row" key={deck.deckRef} disabled={busy}
-        onClick={() => navigate(flashcardPaths.deck(deck.deckRef))}>
-        <span className="topic-number"><Layers3/></span><div><span className="eyebrow">{deck.subjectId} · {deck.groupCode}</span><h3>{deck.title}</h3><p>{deck.cardCount} approved cards · textbook content version {deck.contentVersion}</p></div><BookOpen/>
-      </button>)}
+      {decks.map(deck => <button className="panel topic-row" key={deck.deckRef} disabled={busy} onClick={() => navigate(flashcardPaths.deck(deck.deckRef))}><span className="topic-number"><Layers3/></span><div><span className="eyebrow">{deck.subjectId} · {deck.groupCode}</span><h3>{deck.title}</h3><p>{deck.cardCount} approved cards · textbook content version {deck.contentVersion}</p></div><BookOpen/></button>)}
       {!decksQuery.isPending && !decks.length && <Empty title="No flashcards are ready yet">Your Admin must release a deck for a topic included in your grade and term coverage.</Empty>}
     </div>}
     {!session && route.deckRef && !selectedDeck && !decksQuery.isPending && !visibleError && <Empty title="Flashcard deck unavailable">This deck may have been removed or is not available to this Student.</Empty>}
-    {!session && selectedDeck && <section className="panel stack"><div className="spread"><div><span className="eyebrow">CHOOSE A STUDY MODE</span><h2>{selectedDeck.title}</h2></div><Button variant="outline" onClick={() => navigate(flashcardPaths.library)}>Back to topics</Button></div>
-      {route.mode && <output>Ready to start {options.find(option => option.mode === route.mode)?.title ?? route.mode.replaceAll('_', ' ')}.</output>}
-      <div className="flashcard-stats">{Object.entries(studySummary).map(([label, count]) => <span key={label}>{label}: {count}</span>)}</div>
-      <div className="topic-list">{options.map(option => <button className="panel topic-row" key={option.mode} disabled={busy || !option.enabled} onClick={() => begin(option.mode)}><span className="topic-number"><Layers3/></span><div><h3>{option.title}</h3><p>{option.description}</p><small>{option.availableCount} available · {option.sessionSize} in this session</small></div><BookOpen/></button>)}</div>
+    {!session && selectedDeck && <section className="panel stack"><div className="spread"><div><span className="eyebrow">CHOOSE YOUR REVIEW</span><h2>{selectedDeck.title}</h2></div><Button variant="outline" onClick={() => navigate(flashcardPaths.library)}>Back to topics</Button></div>
+      {mastery && <section className="flashcard-mastery" aria-labelledby="mastery-title"><div className="spread"><h3 id="mastery-title"><BarChart3 size={18}/> Your mastery</h3><strong>{mastery.masteryPercent}%</strong></div><div className="flashcard-stats"><span>Mastered: {mastery.mastered}</span><span>Good: {mastery.good}</span><span>Needs review: {mastery.needsReview}</span><span>To evaluate: {mastery.toEvaluate}</span></div><p className="small">Coverage {mastery.coveragePercent}% · {mastery.completedSessions} completed set{mastery.completedSessions === 1 ? '' : 's'}</p><p><strong>Recommended next:</strong> {mastery.recommendedMode === 'difficult' ? 'Difficult Flashcards' : `${mastery.recommendedDifficulty ?? 'mixed'} Review Flashcards`} · {mastery.recommendedCount} cards</p><div className="mastery-categories">{mastery.categories.map(item => <div key={item.category}><div className="spread small"><strong>{item.category.replaceAll('_',' ')}</strong><span>{item.masteryPercent}% mastery · {item.coveragePercent}% evaluated</span></div><progress max="100" value={item.masteryPercent}>{item.masteryPercent}%</progress></div>)}</div>{mastery.recentSessions.length > 0 && <details><summary>Recent completed sets</summary><ul>{mastery.recentSessions.map(item => <li key={item.sessionRef}>{new Date(item.completedAt).toLocaleDateString()} · {item.mode === 'review' ? 'Review' : 'Difficult'} · {item.cardCount} cards</li>)}</ul></details>}</section>}
+      <fieldset className="flashcard-choice"><legend>Number of flashcards</legend>{([20,30] as const).map(count => <Button key={count} type="button" variant={requestedCount === count ? 'default' : 'outline'} aria-pressed={requestedCount === count} onClick={() => setRequestedCount(count)}>{count} cards</Button>)}</fieldset>
+      <div className="topic-list">{options.map(option => <article className="panel stack" key={option.mode}><div><h3>{option.title}</h3><p>{option.description}</p><small>{option.availableCount} available</small></div>{option.mode === 'review' && <fieldset className="flashcard-choice"><legend>Card difficulty</legend>{(['easy','difficult','mixed'] as const).map(value => <Button type="button" key={value} variant={difficulty === value ? 'default' : 'outline'} aria-pressed={difficulty === value} onClick={() => setDifficulty(value)}>{value[0].toUpperCase()+value.slice(1)}</Button>)}</fieldset>}<Button disabled={busy || !option.enabled} onClick={() => begin(option.mode)}>Start {option.title}</Button></article>)}</div>
     </section>}
     {!session && route.sessionRef && sessionQuery.isPending && <section className="panel stack" aria-live="polite"><h2>Opening your Flashcard session…</h2><p>AKURU is restoring your current card.</p></section>}
-    {session && <section className="flashcard-study panel">
-      <div className="spread"><span>{session.mode.replaceAll('_', ' ')} · Card {Math.min(session.reviewedCount + 1, session.totalCards)} of {session.totalCards}</span><strong>{progress}% complete</strong></div>
-      <progress value={session.reviewedCount} max={session.totalCards} aria-label={`${progress}% complete`}/>
-      {session.status === 'completed' ? <div className="flashcard-finished"><CheckCircle2 size={48}/><h2>Session complete</h2><p>{session.message}</p><Button onClick={() => navigate(flashcardPaths.library)}><RotateCcw size={16}/>Choose another deck</Button></div>
-      : session.currentCard && <><fieldset className="flashcard-face"><legend className="sr-only">Current flashcard</legend><span className="eyebrow">QUESTION</span><h2>{session.currentCard.front}</h2>
-        {session.answerRevealed && <div className="flashcard-answer"><span className="eyebrow">APPROVED ANSWER</span><p>{session.currentCard.back}</p>
-          {session.currentCard.source.visual && <div className="stack"><p><strong>{session.currentCard.source.visual.caption || 'Textbook figure'}</strong></p><LearningImage src={session.currentCard.source.visual.contentUrl} description={session.currentCard.source.visual.altText} title={session.currentCard.source.visual.caption || 'Textbook figure'}/></div>}
-          <details><summary>Open exact textbook source</summary><p className="small"><strong>{session.currentCard.source.documentTitle}</strong> · printed page {session.currentCard.source.printedPage || session.currentCard.source.page}</p><blockquote>{session.currentCard.source.passage}</blockquote>
-            {session.currentCard.source.textbookPageUrl && <a href={session.currentCard.source.textbookPageUrl} target="_blank" rel="noreferrer">View matching textbook page {session.currentCard.source.printedPage || session.currentCard.source.page}</a>}
-          </details>
-        </div>}
-      </fieldset>
-      {!session.answerRevealed ? <Button className="primary" disabled={busy} onClick={() => void run(() => revealFlashcard(session.sessionRef))}>Show approved answer</Button>
-      : <fieldset className="rating-buttons"><legend>How well did you remember it?</legend>{([['again','Again'],['difficult','Difficult'],['good','Good'],['easy','Easy']] as const).map(([value,label]) => <Button key={value} variant={value === 'good' ? 'default' : 'outline'} disabled={busy} onClick={() => void run(() => rateFlashcard(session.sessionRef, value, crypto.randomUUID()))}>{label}</Button>)}</fieldset>}</>}
+    {session && <section className="flashcard-study panel"><div className="spread"><span>{session.mode === 'review' ? 'Review Flashcards' : 'Difficult Flashcards'} · Card {session.viewedOrdinal} of {session.totalCards}</span><strong>{progress}% attempted</strong></div><progress value={session.reviewedCount} max={session.totalCards} aria-label={`${progress}% attempted`}/>
+      {session.status === 'completed' ? <div className="flashcard-finished"><CheckCircle2 size={48}/><h2>Session complete</h2><p>{session.message}</p><Button onClick={() => navigate(flashcardPaths.deck(session.deck.deckRef))}><RotateCcw size={16}/>View mastery and start another set</Button></div> : session.currentCard && <><nav className="flashcard-card-navigation" aria-label="Cards in this set"><Button variant="outline" disabled={!session.canGoPrevious || busy} onClick={() => openPosition(session.viewedOrdinal - 1)}><ChevronLeft size={16}/>Previous attempted card</Button><span>First unattempted card: {session.firstUnattemptedOrdinal}</span><Button variant="outline" disabled={!session.canGoNext || busy} onClick={() => openPosition(session.viewedOrdinal + 1)}>Next attempted card<ChevronRight size={16}/></Button></nav>
+        <fieldset className="flashcard-face"><legend className="sr-only">Current flashcard</legend><span className="eyebrow">QUESTION</span><h2>{session.currentCard.front}</h2>{session.answerRevealed && <div className="flashcard-answer stack"><section className="approved-answer"><span className="eyebrow">APPROVED ANSWER</span><p>{session.currentCard.back}</p></section>{session.currentCard.explanation && <section className="answer-explanation"><Button type="button" variant="outline" aria-expanded={explanationOpen} onClick={() => setExplanationCardRef(explanationOpen ? null : session.currentCard!.cardRef)}>{explanationOpen ? 'Hide explanation' : 'Show explanation'}</Button>{explanationOpen && <div><h3>Explanation</h3><p>{session.currentCard.explanation}</p></div>}</section>}{session.currentCard.source.visual && <div className="stack"><p><strong>{session.currentCard.source.visual.caption || 'Textbook figure'}</strong></p><ProtectedLearningImage sessionRef={session.sessionRef} src={session.currentCard.source.visual.contentUrl} description={session.currentCard.source.visual.altText} title={session.currentCard.source.visual.caption || 'Textbook figure'}/></div>}<section className="textbook-source"><Button type="button" variant="outline" aria-expanded={sourceOpen} aria-controls={`source-${session.currentCard.cardRef}`} onClick={() => setSourceOpenByCard(current => ({...current, [session.currentCard!.cardRef]: !sourceOpen}))}>{sourceOpen ? 'Hide exact textbook source' : 'Open exact textbook source'}</Button>{sourceOpen && <div id={`source-${session.currentCard.cardRef}`}><div className="source-identity"><strong>{session.currentCard.source.documentTitle}</strong><span>{pageLabel(session.currentCard.source.printedPage || session.currentCard.source.page)}</span></div><blockquote>{paragraphs.map((paragraph,index) => <p key={index}>{paragraph}</p>)}</blockquote>{session.currentCard.source.textbookPageUrl && <ProtectedSourceLink sessionRef={session.sessionRef} src={session.currentCard.source.textbookPageUrl} label={`View matching textbook ${pageLabel(session.currentCard.source.printedPage || session.currentCard.source.page).toLowerCase()}`}/>}</div>}</section></div>}</fieldset>
+        {!session.answerRevealed ? <Button className="primary" disabled={busy || session.currentCard.attempted} onClick={() => void run(() => revealFlashcard(session.sessionRef))}>Show approved answer</Button> : session.currentCard.attempted ? <p className="saved-rating"><CheckCircle2 size={18}/> You selected <strong>{session.currentCard.selectedRating}</strong>. This rating cannot be changed.</p> : <fieldset className="rating-buttons"><legend>How well did you remember it? Choose one to continue.</legend>{([['again','Again'],['difficult','Difficult'],['good','Good'],['easy','Easy']] as const satisfies readonly (readonly [FlashcardRating,string])[]).map(([value,label]) => <Button key={value} variant="outline" disabled={busy} onClick={() => void run(() => rateFlashcard(session.sessionRef, value, crypto.randomUUID()))}>{label}</Button>)}</fieldset>}<Button variant="ghost" disabled={busy} onClick={() => requestExit(flashcardPaths.deck(session.deck.deckRef))}>Exit this set</Button></>}
     </section>}
+    {pendingExit && <div className="modal-backdrop" role="presentation"><dialog className="confirm-dialog" open aria-labelledby="discard-title"><AlertTriangle size={32}/><h2 id="discard-title">Discard this flashcard attempt?</h2><p>Mastery is recorded only after every card is completed. Leaving now will discard this incomplete attempt and its provisional ratings. Earlier completed learning will not be deleted.</p><div className="button-row"><Button variant="outline" autoFocus onClick={() => setPendingExit(null)}>Continue studying</Button><Button disabled={busy} onClick={() => void confirmDiscard()}>Exit and discard attempt</Button></div></dialog></div>}
   </>;
 }

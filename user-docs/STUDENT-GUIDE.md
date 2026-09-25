@@ -58,13 +58,15 @@ Show your working, answer in your own words, and sign out on shared devices.
 
 ## Flashcards
 
-Open **Flashcards** and choose a topic available in your current or earlier Grade and Term coverage. Choose Quick review for 10 cards, Normal review for 20, Full topic practice, Difficult cards, Due today or Unit mixed practice. A mode is unavailable when you have no matching cards yet.
+Open **Flashcards** and choose a topic available in your current or earlier Grade and Term coverage. The mastery panel belongs only to your account and shows **To evaluate**, **Needs review**, **Good**, and **Mastered**. Coverage shows how much of the deck you have attempted in completed sets. Mastery shows how well you know the evaluated cards.
 
-Try to answer before selecting **Show approved answer**. Compare your idea with the reviewed answer and open the exact textbook source when you want more context. Then choose Again, Difficult, Good or Easy. AKURU uses that rating to decide when and how often you should see the card again. Ratings are private to your account and are learning aids rather than examination marks.
+Choose **Review Flashcards** to practise Easy, Difficult, or Mixed cards. Choose **Difficult Flashcards** to focus on cards that need review and difficult cards you have not tried. Select 20 or 30 cards. If fewer qualify, AKURU creates a smaller set and tells you how many were available.
 
-You can leave an unfinished mode and resume it later. Flashcard study uses reviewed cards already stored in AKURU and does not generate new questions while you study.
+Try to answer before choosing **Show approved answer**. No rating is selected for you. The approved answer appears first; use **Show explanation** when a separate explanation is available. Exact textbook evidence has its own open and close control, readable paragraphs, a familiar page number, and an approved figure when one is available.
 
-After revealing an answer, open **Exact textbook source** to read the approved excerpt and its familiar printed page number. If the excerpt refers to a reviewed figure, AKURU displays that figure with its caption and accessible description. **View matching textbook page** opens an image of the corresponding page from the original visual-reference textbook; it does not open technical JSON data.
+Select Again, Difficult, Good, or Easy to continue. Your choice cannot be edited. You may move back through attempted cards to review them, but you cannot skip an unanswered card. AKURU records mastery only after the whole set is complete. If you leave early, choose **Continue studying** or **Exit and discard attempt**. Discarding removes only that incomplete attempt and keeps all earlier completed results.
+
+A card becomes Mastered after you select Easy in three separately completed sessions in a row. Again places it in Needs Review and resets that streak. A later Difficult result can move a mastered card back to Good or Needs Review. Your results never affect another Student's mastery. Flashcard study uses reviewed cards already stored in AKURU and consumes no AI tokens while you study.
 
 
 ## Step 17: Understanding Feedback

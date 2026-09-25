@@ -24,6 +24,7 @@ design context and must not be used to design new content relationships.
 - Published topic content alone may enter retrieval or coverage. A question requiring multiple topics is eligible only when all are cumulatively covered.
 - Published curriculum plans are immutable. Admin creates the next draft from the current plan and appends newly taught topics. Existing assessments keep their topic-set snapshots.
 - Topic mastery owns the evidence. Unit or Module mastery is calculated from its topics with visible evidence and confidence.
+- Every learner-performance row and derived state is Student-owned. Shared content stores reviewed intrinsic properties; demonstrated performance uses a Student plus immutable content-version identity, enforced by database uniqueness, Student-scoped queries, authorization and isolation tests. No score, mastery, streak, weakness, recommendation or progress measure may be global to a card, question, topic, unit, subject or family, and siblings' evidence is never merged.
 
 The one-time baseline reset is closed. New schema changes must use additive
 forward migrations, or an explicitly reviewed data-preserving forward migration

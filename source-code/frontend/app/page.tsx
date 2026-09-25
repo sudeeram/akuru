@@ -180,8 +180,9 @@ export function Portal() {
     setTimeout(() => setNotice(''), 4500);
   };
   const navigateTo = (to: string, replace = false) => {
-    window.dispatchEvent(new Event('akuru:navigation'));
-    void navigate({ to, replace });
+    const proceed = () => { window.dispatchEvent(new Event('akuru:navigation')); void navigate({ to, replace }); };
+    const guard = new CustomEvent('akuru:before-navigation', { cancelable: true, detail: { to, proceed } });
+    if (window.dispatchEvent(guard)) proceed();
   };
   const go = (next: string, s?: string) => {
     if (role) navigateTo(pathForView(role, next));
@@ -384,10 +385,9 @@ export function Portal() {
             size="icon"
             aria-label="Sign out"
             onClick={async () => {
-              await api('auth/logout', {});
-              setSignedOut(true);
-              await clearPrivateQueryState();
-              navigateTo('/login', true);
+              const proceed = async () => { await api('auth/logout', {}); setSignedOut(true); await clearPrivateQueryState(); window.dispatchEvent(new Event('akuru:navigation')); await navigate({ to: '/login', replace: true }); };
+              const guard = new CustomEvent('akuru:before-navigation', { cancelable: true, detail: { to: '/login', proceed: () => void proceed() } });
+              if (window.dispatchEvent(guard)) await proceed();
             }}
           >
             <LogOut size={18} />

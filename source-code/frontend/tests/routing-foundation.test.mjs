@@ -45,8 +45,10 @@ test('private Query data is actor scoped and erased on identity changes', () => 
 test('Flashcard deep links cover decks, modes, sessions and current cards', () => {
   assert.ok(routes.includes('`/flashcards/decks/${encodeURIComponent(deckRef)}`'));
   assert.ok(routes.includes('`/flashcards/sessions/${encodeURIComponent(sessionRef)}/cards/${Math.max(1, position)}`'));
-  for (const mode of ['quick', 'normal', 'full_topic', 'difficult', 'due_today', 'unit_mixed'])
+  for (const mode of ['review', 'difficult'])
     assert.match(routes, new RegExp(`['"]${mode}['"]`));
+  for (const removedMode of ['quick', 'normal', 'full_topic', 'due_today', 'unit_mixed'])
+    assert.doesNotMatch(routes, new RegExp(`['"]${removedMode}['"]`));
   assert.match(flashcards, /getFlashcardSession/);
   assert.match(flashcards, /flashcardPaths\.card/);
   assert.match(flashcards, /Flashcard deck unavailable/);

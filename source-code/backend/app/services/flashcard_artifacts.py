@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.errors import DomainError
 from app.models import (AuditEvent, Document, DocumentBlock, DocumentPage, FlashcardDeck,
-    FlashcardLearningState, FlashcardVersion, RetrievalChunk, Textbook, TextbookGroup, TextbookTopic,
+    FlashcardVersion, RetrievalChunk, Textbook, TextbookGroup, TextbookTopic,
     TextbookTopicContentVersion, TextbookTopicVisualAsset, User)
 from app.schemas.flashcard_artifacts import FlashcardReleaseArtifact
 
@@ -170,22 +170,10 @@ def import_artifact(db: Session, artifact: FlashcardReleaseArtifact, admin: User
                     category=card.category, variation_type=card.variationType, difficulty=card.difficulty,
                     card_metadata={"reviewer": card.reviewer, "reviewedAt": artifact.createdAt,
                         "reviewNote": card.reviewNote,
+                        "explanation": card.explanation,
                         "allSourceChunkRefs": card.sourceChunkRefs, "visualAltText": card.visualAltText},
                     visual_asset_id=visual.id if visual else None, created_by=admin.id)
                 db.add(version_row); db.flush()
-                prior_card = db.scalar(select(FlashcardVersion).join(FlashcardDeck).where(
-                    FlashcardDeck.topic_id == topic.id, FlashcardDeck.id != deck.id,
-                    FlashcardVersion.external_key == card.key, FlashcardVersion.front == card.question,
-                    FlashcardVersion.back == card.answer).order_by(FlashcardVersion.created_at.desc()))
-                if prior_card:
-                    for old_state in db.scalars(select(FlashcardLearningState).where(
-                        FlashcardLearningState.card_version_id == prior_card.id)).all():
-                        db.add(FlashcardLearningState(student_id=old_state.student_id,
-                            card_version_id=version_row.id, concept_key=version_row.concept_key,
-                            repetitions=old_state.repetitions, lapses=old_state.lapses,
-                            interval_days=old_state.interval_days, ease_factor=old_state.ease_factor,
-                            last_rating=old_state.last_rating, due_at=old_state.due_at,
-                            last_reviewed_at=old_state.last_reviewed_at))
         db.add(AuditEvent(actor_id=admin.id, action="flashcard_release.imported", target_type="flashcard_release",
             target_id=artifact.releaseId, event_data={"artifactChecksum": report["checksum"], "deckRefs": deck_refs,
                 "cardCount": report["cardCount"], "released": release, "gitRevision": git_revision,

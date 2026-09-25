@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import NextImage from 'next/image';
 
 const loadingScenes = [
   {
@@ -34,6 +33,7 @@ const loadingScenes = [
 export function RouteLoadingOverlay() {
   const [visible, setVisible] = useState(false);
   const [sceneIndex, setSceneIndex] = useState(0);
+  const [imageFailed, setImageFailed] = useState(false);
   const previousScene = useRef(0);
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -51,6 +51,7 @@ export function RouteLoadingOverlay() {
       const next = (previousScene.current + offset) % loadingScenes.length;
       previousScene.current = next;
       setSceneIndex(next);
+      setImageFailed(false);
       setVisible(true);
       timeout.current = setTimeout(() => setVisible(false), minimumDuration);
     };
@@ -95,7 +96,7 @@ export function RouteLoadingOverlay() {
   return (
     <div className="route-loader" data-visible={visible} aria-hidden={!visible}>
       <div className="route-loader-card" role="status" aria-live="polite">
-        <NextImage src={scene.image} alt={scene.alt} width={210} height={210} />
+        {!imageFailed ? <img src={scene.image} alt={scene.alt} width="210" height="210" onError={() => setImageFailed(true)} /> : <span className="route-loader-fallback" aria-hidden="true">A</span>}
         <div className="route-loader-dots" aria-hidden="true">
           <span />
           <span />

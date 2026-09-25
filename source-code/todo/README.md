@@ -11,6 +11,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Textbook groups, topics and incremental coverage](ongoing/TODO-TEXTBOOK-TOPICS.md)
 - [Database baseline reset and migration squash](ongoing/TODO-DATABASE-BASELINE.md)
 - [High: Chemistry Topic 1, text tutoring and flashcards](ongoing/TODO-FUTURE-HIGH-LEARNING.md)
+- [Flashcard mastery and Student experience](ongoing/TODO-FLASHCARD-STUDENT-UX.md) — active end-to-end mastery and study-session redesign.
 
 ## Planned
 

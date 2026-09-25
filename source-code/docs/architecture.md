@@ -63,6 +63,14 @@ A parent has zero or more children. Each child belongs to exactly one parent acc
 
 Admin-created usernames must be unique. Password hashes belong to server storage. A child's client-supplied `studentId` or `parentId` never grants ownership. Every read, mutation, attachment retrieval, review and report checks the authenticated actor. If an Admin changes a child's parent, access follows the current parent relationship; historical actor/audit information remains. Family/enrolment changes are blocked during an active mock in the local implementation.
 
+## Mandatory Student-performance isolation
+
+Every performance measurement belongs to one specific Student. A score, mastery state, confidence value, streak, rating history, weakness, recommendation, progress summary or similar derived measure must never be stored as a global property of a question, flashcard, topic, unit, subject or family. Shared learning content may carry reviewed properties such as intrinsic difficulty, marks or category; demonstrated performance always includes the Student identity as part of its ownership and uniqueness boundary.
+
+For flashcards, intrinsic difficulty belongs to the immutable card version, while mastery belongs to the combination of Student and immutable card version. Database uniqueness, service queries, caches, APIs, background jobs, exports and frontend query keys must all retain that Student boundary. A new content version does not silently inherit mastery unless an explicit reviewed equivalence and migration rule permits it. Parent access is a read-only authorization over each linked child's separate measurements and must not merge siblings. Admin aggregate reporting may calculate de-identified summaries, but those summaries never replace or mutate an individual Student's evidence.
+
+This rule applies to every present and future AKURU performance feature, including flashcards, practice, mock exams, past papers, Tutor-guided practice, topic and unit mastery, weaknesses, recommendations and study plans. Automated tests must prove cross-Student isolation for every new measurement domain.
+
 ## Course and enrolment catalog
 
 There are exactly three course identifiers: `iPrimary`, `iLower Secondary`, `iGCSE`. Only `iGCSE` is active in Phase 1. Other course names remain in the catalog for future implementation; Phase 1 enrolment and ingestion reject them rather than silently converting them.

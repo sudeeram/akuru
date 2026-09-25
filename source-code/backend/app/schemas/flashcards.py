@@ -23,7 +23,17 @@ class FlashcardCardUpdateRequest(BaseModel):
 
 class FlashcardSessionStartRequest(BaseModel):
     requestKey: str = Field(min_length=8, max_length=100)
-    mode: Literal["quick", "normal", "full_topic", "difficult", "due_today", "unit_mixed"] = "normal"
+    mode: Literal["review", "difficult"] = "review"
+    difficulty: Literal["easy", "difficult", "mixed"] | None = None
+    requestedCount: Literal[20, 30] = 20
+
+    @model_validator(mode="after")
+    def valid_selection(self):
+        if self.mode == "review" and self.difficulty is None:
+            raise ValueError("Review Flashcards requires Easy, Difficult or Mixed difficulty.")
+        if self.mode == "difficult" and self.difficulty is not None:
+            raise ValueError("Difficult Flashcards determines eligibility from Student mastery.")
+        return self
 
 
 class FlashcardRatingRequest(BaseModel):
@@ -41,13 +51,16 @@ class FlashcardCardResponse(BaseModel):
     version: int
     front: str
     back: str | None = None
+    explanation: str | None = None
     status: str
     warnings: list[str]
     source: dict
     conceptKey: str = ""
     category: str = "essential_knowledge"
     variationType: str = "recall"
-    difficulty: str = "core"
+    difficulty: str = "easy"
+    selectedRating: str | None = None
+    attempted: bool = False
 
 
 class FlashcardDeckResponse(BaseModel):
@@ -83,22 +96,75 @@ class FlashcardSessionResponse(BaseModel):
     totalCards: int
     currentCard: FlashcardCardResponse | None
     answerRevealed: bool = False
-    schedulerVersion: str
+    masteryVersion: str
+    selectionVersion: str
     message: str
-    mode: str = "full_topic"
+    mode: Literal["review", "difficult"] = "review"
+    difficulty: Literal["easy", "difficult", "mixed"] | None = None
     selectionReasons: list[str] = Field(default_factory=list)
+    viewedOrdinal: int
+    firstUnattemptedOrdinal: int
+    canGoPrevious: bool = False
+    canGoNext: bool = False
+    hasUncommittedResults: bool = False
 
 
 class FlashcardStudyOption(BaseModel):
-    mode: Literal["quick", "normal", "full_topic", "difficult", "due_today", "unit_mixed"]
+    mode: Literal["review", "difficult"]
     title: str
     description: str
     availableCount: int
     sessionSize: int
     enabled: bool
+    supportedCounts: list[int] = Field(default_factory=list)
+    difficulties: list[str] = Field(default_factory=list)
 
 
 class FlashcardStudyOptionsResponse(BaseModel):
     deckRef: str
     options: list[FlashcardStudyOption]
     summary: dict[str, int] = Field(default_factory=dict)
+
+
+class FlashcardMasteryCategory(BaseModel):
+    category: str
+    total: int
+    toEvaluate: int
+    needsReview: int
+    good: int
+    mastered: int
+    coveragePercent: float
+    masteryPercent: float
+
+
+class FlashcardMasterySession(BaseModel):
+    sessionRef: str
+    mode: Literal["review", "difficult"]
+    difficulty: Literal["easy", "difficult", "mixed"] | None = None
+    cardCount: int
+    completedAt: str
+
+
+class FlashcardMasteryResponse(BaseModel):
+    deckRef: str
+    totalCards: int
+    toEvaluate: int
+    needsReview: int
+    good: int
+    mastered: int
+    coveragePercent: float
+    masteryPercent: float
+    categories: list[FlashcardMasteryCategory]
+    completedSessions: int
+    recentSessions: list[FlashcardMasterySession] = Field(default_factory=list)
+    recommendedMode: Literal["review", "difficult"]
+    recommendedDifficulty: Literal["easy", "difficult", "mixed"] | None = None
+    recommendedCount: Literal[20, 30] = 20
+    masteryVersion: str
+    recalculatedAt: str | None = None
+
+
+class FlashcardDiscardResponse(BaseModel):
+    sessionRef: str
+    status: Literal["discarded"]
+    message: str

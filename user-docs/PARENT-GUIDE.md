@@ -1,5 +1,9 @@
 # AKURU Parent Guide
 
+## Flashcard mastery
+
+Flashcard mastery is calculated separately for each child and immutable card version. An incomplete or discarded set does not change the child's permanent results. **To evaluate** means the child has not completed a set containing that card; it is not a failure. **Needs review**, **Good**, and **Mastered** use the child's completed rating history. A card reaches Mastered after three Easy ratings in three separately completed sessions, and later evidence can move it down again. Coverage and mastery are deliberately shown as separate measures.
+
 Your account gives access only to children linked to you by the Admin.
 Admin creates accounts, assigns courses/grades/terms/subjects and manages all
 learning documents. Parents no longer perform those administration tasks.
