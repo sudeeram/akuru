@@ -1042,7 +1042,6 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
     visual_reference_links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.topic_id == topic.id,
         TextbookTopicDocument.role == "visual_reference",
-        TextbookTopicDocument.review_status.in_(("ready", "published")),
     ).order_by(TextbookTopicDocument.sequence)).all()
     visual_document_versions = {link.document_version_id: link for link in visual_reference_links}
     visual_manifest = []
