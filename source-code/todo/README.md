@@ -11,7 +11,6 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Textbook groups, topics and incremental coverage](ongoing/TODO-TEXTBOOK-TOPICS.md)
 - [Database baseline reset and migration squash](ongoing/TODO-DATABASE-BASELINE.md)
 - [High: Chemistry Topic 1, text tutoring and flashcards](ongoing/TODO-FUTURE-HIGH-LEARNING.md)
-- [Flashcard mastery and Student experience](ongoing/TODO-FLASHCARD-STUDENT-UX.md) — active end-to-end mastery and study-session redesign.
 
 ## Planned
 
@@ -23,6 +22,7 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Completed
 
+- [Flashcard mastery and Student experience](completed/TODO-FLASHCARD-STUDENT-UX.md) — Student-owned mastery, randomized completed-set study and protected evidence experience.
 - [TanStack Router and Query foundation](completed/TODO-TANSTACK-FOUNDATION.md)
 - [Curated flashcard library and adaptive Student review](completed/TODO-FLASHCARD-LIBRARY.md)
 - [Manual `api.ts` refactor](completed/TODO-MANUAL-API-TS.md)
