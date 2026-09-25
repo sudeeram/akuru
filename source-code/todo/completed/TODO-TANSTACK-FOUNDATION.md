@@ -1,6 +1,6 @@
 # TanStack Router and Query foundation
 
-**Status:** Implementation complete locally; CI and production acceptance pending.
+**Status:** Completed, CI-approved, deployed and production-verified.
 
 This plan contains only the agreed foundation needed before AKURU grows its mock-exam, tutoring, study-plan and collaboration experiences. Flashcards will be the first fully routed feature. Server-side authentication, authorization and family separation remain authoritative.
 
@@ -78,13 +78,15 @@ This plan contains only the agreed foundation needed before AKURU grows its mock
 - [x] Test logout and account switching for Query cancellation and cache isolation.
 - [x] Test keyboard focus, page titles and loading/error announcements after navigation.
 - [x] Add a production-like smoke test that serves the built frontend behind the route fallback and verifies nested URLs, APIs, assets and protected downloads.
-- [ ] Run the frontend test suite, type check, lint, production build, generated API contract check and relevant backend authorization tests in CI.
+- [x] Run the frontend test suite, type check, lint, production build, generated API contract check and relevant backend authorization tests in CI.
 
 **Acceptance:** automated checks prove deep-link reliability, role isolation, cross-user cache isolation and correct production fallback behavior before deployment.
 
 ## Release gate
 
 - [x] Update user and developer documentation for the new URLs and navigation behavior.
-- [ ] Deploy only after all seven steps pass locally and in CI.
-- [ ] Run production smoke checks with Admin, Parent and Student accounts without altering learning records.
+- [x] Deploy only after all seven steps pass locally and in CI.
+- [x] Run production smoke checks with Admin, Parent and Student accounts without altering learning records.
 - [x] Keep a rollback path to the preceding frontend release and web-server configuration.
+
+**Production evidence:** commits `03e6725` and `48bcbc8` passed AKURU CI. Production runs `48bcbc8`. HTTPS, direct routed entry points, API and asset boundaries, services, timers and loopback bindings pass `release-acceptance.sh`. Admin navigation to `/admin/accounts` and direct refresh passed. Parent navigation between `/parent` and `/parent/students`, refresh and browser back/forward passed. Student navigation from `/student` to the Flashcard library and a 100-card deck, refresh and browser back/forward passed. A Student opening `/admin/accounts` was safely returned to `/student`. No learning session was started, no card was rated and no production learning record was changed.

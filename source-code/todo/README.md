@@ -14,7 +14,6 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Planned
 
-- [TanStack Router and Query foundation](ongoing/TODO-TANSTACK-FOUNDATION.md) — the active routing work, including production fallback and acceptance tests.
 - [Future TanStack capabilities](planned/TODO-TANSTACK-FUTURE.md) — optional suite features to assess when their product use cases are built.
 - [Future roadmap priority index](planned/TODO-FUTURE-DOCUMENT-REVIEW.md)
   - [Medium: low-cost learning and document-review improvements](planned/TODO-FUTURE-MEDIUM-IMPROVEMENTS.md)
@@ -23,6 +22,7 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Completed
 
+- [TanStack Router and Query foundation](completed/TODO-TANSTACK-FOUNDATION.md)
 - [Curated flashcard library and adaptive Student review](completed/TODO-FLASHCARD-LIBRARY.md)
 - [Manual `api.ts` refactor](completed/TODO-MANUAL-API-TS.md)
 
