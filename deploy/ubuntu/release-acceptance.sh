@@ -14,7 +14,8 @@ printf '%s\n' "$headers" | grep -qi '^x-content-type-options: nosniff'
 printf '%s\n' "$headers" | grep -qi '^x-frame-options: DENY'
 printf '%s\n' "$headers" | grep -qi '^content-security-policy:'
 for route in /login /flashcards /student/subjects /admin/accounts /parent/students; do
-  curl --fail --silent --show-error --max-time 15 "https://${host}${route}" | grep -q 'AKURU'
+  curl --fail --silent --show-error --max-time 15 --output "$tmp_body" "https://${host}${route}"
+  grep -q 'AKURU' "$tmp_body"
 done
 missing_asset_status="$(curl --silent --show-error --max-time 15 --output "$tmp_body" --write-out '%{http_code}' "https://${host}/_next/routing-acceptance-missing.js")"
 [[ "$missing_asset_status" == "404" ]] || { echo 'Missing build asset did not return 404.' >&2; exit 1; }
