@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.errors import DomainError
-from app.models import AuthSession, LoginThrottle, User
+from app.models import AuditEvent, AuthSession, LoginThrottle, User
 from app.repositories.users import UserRepository
 from app.schemas.auth import LoginRequest, LoginResponse, UserResponse
 from app.security import (
@@ -65,11 +65,22 @@ def login(db: Session, payload: LoginRequest, request: Request) -> tuple[LoginRe
         client_ip_hash=digest(request_ip(request)),
         user_agent=request.headers.get("user-agent", "")[:300],
     ))
+    user.last_login_at = now
     db.commit()
     return LoginResponse(user=public_user(user), csrfToken=csrf), token, csrf
 
 
-def change_password(db: Session, principal: Principal, new_password: str) -> None:
+def _replace_session(db: Session, principal: Principal, request: Request) -> tuple[str, str]:
+    db.query(AuthSession).filter(AuthSession.user_id == principal.user.id).delete()
+    token, csrf = new_secret(), new_secret()
+    db.add(AuthSession(user_id=principal.user.id, token_hash=digest(token), csrf_hash=digest(csrf),
+        expires_at=session_expiry(), client_ip_hash=digest(request_ip(request)),
+        user_agent=request.headers.get("user-agent", "")[:300]))
+    return token, csrf
+
+
+def change_password(db: Session, principal: Principal, new_password: str,
+                    request: Request) -> tuple[str, str]:
     if not principal.user.must_change_password:
         raise DomainError("password_already_changed", "The temporary password has already been replaced.", 409)
     if verify_password(new_password, principal.user.password_hash):
@@ -78,8 +89,34 @@ def change_password(db: Session, principal: Principal, new_password: str) -> Non
         )
     principal.user.password_hash = hash_password(new_password)
     principal.user.must_change_password = False
-    UserRepository(db).revoke_other_sessions(principal.user.id, principal.session.id)
+    token, csrf = _replace_session(db, principal, request)
+    db.add(AuditEvent(actor_id=principal.user.id, action="account.temporary_password_replaced",
+        target_type="user", target_id=principal.user.public_ref,
+        event_data={"allSessionsRevoked": True, "passwordStored": False}))
     db.commit()
+    return token, csrf
+
+
+def change_known_password(db: Session, principal: Principal, current_password: str,
+                          new_password: str, request: Request) -> tuple[str, str]:
+    if principal.user.must_change_password:
+        raise DomainError("temporary_password_change_required",
+            "Replace the temporary password before using account security settings.", 409)
+    if not verify_password(current_password, principal.user.password_hash):
+        db.add(AuditEvent(actor_id=principal.user.id, action="account.password_change_rejected",
+            target_type="user", target_id=principal.user.public_ref,
+            event_data={"reason": "current_password_incorrect", "passwordStored": False}))
+        db.commit()
+        raise DomainError("current_password_incorrect", "The current password is incorrect.", 400)
+    if verify_password(new_password, principal.user.password_hash):
+        raise DomainError("password_reused", "The new password cannot be same as the existing password.", 400)
+    principal.user.password_hash = hash_password(new_password)
+    token, csrf = _replace_session(db, principal, request)
+    db.add(AuditEvent(actor_id=principal.user.id, action="account.password_changed",
+        target_type="user", target_id=principal.user.public_ref,
+        event_data={"otherSessionsRevoked": True, "passwordStored": False}))
+    db.commit()
+    return token, csrf
 
 
 def logout(db: Session, principal: Principal) -> None:

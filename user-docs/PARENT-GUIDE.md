@@ -16,6 +16,13 @@ learning documents. Parents no longer perform those administration tasks.
 3. Ask Admin to correct missing children or incorrect enrolments.
 4. Open Content library to read approved textbooks and reference materials.
 
+The child summary shows the child's latest successful login in your local time,
+or **Never signed in**. Only you, linked to that child, and an Admin can see it.
+If you or your child forgets a password, ask the Admin for a one-time temporary
+password. Signing in with it opens the new-password screen immediately. You do
+not need to type the temporary password again there. Open **Account security**
+to change a password you still know; all other signed-in devices are logged out.
+
 
 ## Review Answers
 

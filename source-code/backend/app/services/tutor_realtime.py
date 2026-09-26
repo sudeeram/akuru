@@ -27,7 +27,8 @@ from app.services.assessment_access import TutorCapability, require_tutor_access
 
 
 CredentialCreator = Callable[[str, dict, int], dict]
-VOICE_MAP = {"clear-coach": "cedar", "warm-mentor": "marin", "bright-companion": "coral"}
+VOICE_MAP = {"clear-coach": "cedar", "warm-guide": "marin", "bright-companion": "coral",
+             "calm-scholar": "sage", "energetic-guide": "verse"}
 SPEED_MAP = {"low": 0.85, "medium": 1.0, "high": 1.15}
 
 

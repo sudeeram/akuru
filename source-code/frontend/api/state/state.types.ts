@@ -20,6 +20,8 @@ export type Subject = {
 };
 
 export type Student = {
+  accountRef: string;
+  lastLoginAt?: string | null;
   parentId: string;
   username: string;
   term: string;
@@ -78,7 +80,7 @@ export type State = {
     kinds: string[];
     progressionPairs: { grade: string; term: string }[];
   };
-  accounts: { id: string; username: string; name: string; role: string }[];
+  accounts: { id: string; publicRef: string; username: string; name: string; role: string; lastLoginAt?: string | null }[];
   drafts: Record<string, string>;
   user: {
     id: string;

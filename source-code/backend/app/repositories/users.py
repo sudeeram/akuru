@@ -33,6 +33,9 @@ class UserRepository:
             (AuthSession.user_id == user_id) & (AuthSession.id != current_session_id)
         ))
 
+    def revoke_all_sessions(self, user_id: uuid.UUID) -> int:
+        return self.db.execute(delete(AuthSession).where(AuthSession.user_id == user_id)).rowcount or 0
+
     def portal_accounts(self) -> list[User]:
         return list(self.db.execute(
             select(User).where(User.role.in_(("parent", "student"))).order_by(User.display_name)

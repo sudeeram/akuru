@@ -19,7 +19,7 @@ from app.models import (
     DocumentPage, DocumentVersion, StudentAIQuota, StudentAIUsage, StudentProfile,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion, OfficialQuestionTopicMapping, OfficialQuestionVersion,
     RetrievalChunk, CurriculumPlanTopic, StudentProgression, StudentSubject,
-    EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, StudyPlan, StudyPlanItem, Textbook, TextbookGroup, TextbookStructureVersion, TextbookTopic, TextbookTopicContentVersion, TextbookTopicDocument, TutorLearnerContextLog, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSafetyEvent, TutorSession, TutorSessionProfileEvent, TutorSessionSummary, TutorTurn, User, WeaknessDiagnosis,
+    AuthSession, EducationalMedia, EvaluationCorpus, EvaluationRelease, EvaluationRun, FamilyUsageEvent, ImprovementRecommendation, PasswordResetReceipt, StudyPlan, StudyPlanItem, Textbook, TextbookGroup, TextbookStructureVersion, TextbookTopic, TextbookTopicContentVersion, TextbookTopicDocument, TutorLearnerContextLog, TutorProfile, TutorProfileVersion, TutorRealtimeConnection, TutorSafetyEvent, TutorSession, TutorSessionProfileEvent, TutorSessionSummary, TutorTurn, User, WeaknessDiagnosis,
 )
 from app.security import hash_password
 from app.services.curriculum_plans import snapshot
@@ -153,6 +153,15 @@ def test_rejects_untrusted_origins(auth_client) -> None:
     assert response.json() == {
         "error": {"code": "origin_not_allowed", "message": "Origin not allowed.", "details": []}
     }
+
+    known = client.post("/api/v1/auth/login", json={
+        "username": username, "password": "wrong-password"})
+    unknown = client.post("/api/v1/auth/login", json={
+        "username": f"unknown-{uuid.uuid4().hex}", "password": "wrong-password"})
+    assert known.status_code == unknown.status_code == 401
+    assert known.json() == unknown.json() == {
+        "error": {"code": "invalid_credentials",
+                  "message": "The username or password is incorrect.", "details": []}}
 
 
 @pytest.mark.integration
@@ -791,6 +800,84 @@ def test_new_user_changes_temporary_password(auth_client) -> None:
 
 
 @pytest.mark.integration
+def test_admin_reset_one_time_disclosure_session_revocation_and_known_change(auth_client) -> None:
+    admin_client, admin_username, admin_password = auth_client
+    admin_login = admin_client.post("/api/v1/auth/login", json={
+        "username": admin_username, "password": admin_password}).json()
+    admin_headers = {"X-CSRF-Token": admin_login["csrfToken"]}
+    username = f"reset-parent-{uuid.uuid4().hex[:12]}"
+    original = "original secure password"
+    created = admin_client.post("/api/v1/admin/accounts", headers=admin_headers, json={
+        "username": username, "name": "Reset Parent", "password": original, "role": "parent",
+    })
+    assert created.status_code == 201
+    assert created.json()["publicRef"].startswith("account_")
+
+    target_client = TestClient(app, base_url="http://localhost")
+    first_login = target_client.post("/api/v1/auth/login", json={
+        "username": username, "password": original}).json()
+    assert first_login["user"]["mustChangePassword"] is True
+    request_key = f"reset-{uuid.uuid4().hex}"
+    reset = admin_client.post(
+        f"/api/v1/admin/accounts/{created.json()['publicRef']}/reset-password",
+        headers=admin_headers, json={"requestKey": request_key})
+    assert reset.status_code == 200
+    temporary = reset.json()["temporaryPassword"]
+    assert len(temporary) == 20 and reset.headers["cache-control"] == "no-store"
+    assert reset.json()["sessionsRevoked"] == 1
+    assert target_client.get("/api/v1/auth/me").status_code == 401
+    assert admin_client.post(
+        f"/api/v1/admin/accounts/{created.json()['publicRef']}/reset-password",
+        headers=admin_headers, json={"requestKey": request_key}).status_code == 409
+    assert target_client.post("/api/v1/auth/login", json={
+        "username": username, "password": original}).status_code == 401
+
+    temporary_login = target_client.post("/api/v1/auth/login", json={
+        "username": username, "password": temporary}).json()
+    replacement = "replacement secure password"
+    changed = target_client.post("/api/v1/auth/change-password",
+        headers={"X-CSRF-Token": temporary_login["csrfToken"]},
+        json={"newPassword": replacement})
+    assert changed.status_code == 204
+    assert target_client.get("/api/v1/auth/me").json()["mustChangePassword"] is False
+    assert target_client.post("/api/v1/auth/login", json={
+        "username": username, "password": temporary}).status_code == 401
+
+    second_device = TestClient(app, base_url="http://localhost")
+    assert second_device.post("/api/v1/auth/login", json={
+        "username": username, "password": replacement}).status_code == 200
+    csrf = target_client.cookies.get("akuru_csrf")
+    rejected = target_client.post("/api/v1/auth/change-known-password",
+        headers={"X-CSRF-Token": csrf}, json={
+            "currentPassword": "incorrect current password", "newPassword": "another secure password"})
+    assert rejected.status_code == 400
+    final_password = "final secure password"
+    normal = target_client.post("/api/v1/auth/change-known-password",
+        headers={"X-CSRF-Token": csrf}, json={
+            "currentPassword": replacement, "newPassword": final_password})
+    assert normal.status_code == 204
+    assert target_client.get("/api/v1/auth/me").status_code == 200
+    assert second_device.get("/api/v1/auth/me").status_code == 401
+    assert target_client.post(
+        f"/api/v1/admin/accounts/{created.json()['publicRef']}/reset-password",
+        headers={"X-CSRF-Token": target_client.cookies.get("akuru_csrf")},
+        json={"requestKey": f"forbidden-{uuid.uuid4().hex}"}).status_code == 403
+
+    session: Session = next(app.dependency_overrides[get_db]())
+    user = session.scalar(select(User).where(User.username == username))
+    assert user.last_login_at is not None
+    assert session.query(AuthSession).filter_by(user_id=user.id).count() == 1
+    assert session.query(PasswordResetReceipt).filter_by(request_key=request_key).count() == 1
+    events = session.scalars(select(AuditEvent).where(AuditEvent.target_id == user.public_ref)).all()
+    serialized = json.dumps([event.event_data for event in events])
+    assert temporary not in serialized and replacement not in serialized and final_password not in serialized
+    security_events = admin_client.get("/api/v1/admin/accounts/security-events")
+    assert security_events.status_code == 200
+    assert any(event["action"] == "account.password_reset" and
+               event["targetRef"] == user.public_ref for event in security_events.json())
+
+
+@pytest.mark.integration
 def test_tutor_profiles_are_versioned_role_scoped_and_use_curated_presets(auth_client) -> None:
     client, admin_username, admin_password = auth_client
     session: Session = next(app.dependency_overrides[get_db]())
@@ -815,7 +902,7 @@ def test_tutor_profiles_are_versioned_role_scoped_and_use_curated_presets(auth_c
     student_headers = {"X-CSRF-Token": student_login["csrfToken"]}
     options = client.get("/api/v1/tutoring/options")
     assert options.status_code == 200
-    assert len(options.json()["avatars"]) == 5 and len(options.json()["voices"]) == 3
+    assert len(options.json()["avatars"]) == 5 and len(options.json()["voices"]) == 5
     assert "providerVoice" not in options.text and '"id"' not in options.text
     assert all(row["enabled"] is True and "sortOrder" not in row for row in options.json()["avatars"])
     assert options.json()["communicationCharacters"] == ["childlike", "balanced", "authoritative"]

@@ -51,6 +51,8 @@ def student_rows(db: Session, principal: Principal) -> list[dict]:
                 for subject_id in subject_ids
             },
             "needsConfiguration": not bool(current and subject_ids),
+            "accountRef": user.public_ref,
+            "lastLoginAt": user.last_login_at.isoformat() if user.last_login_at else None,
         })
     return result
 
@@ -62,7 +64,9 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
     accounts = []
     if principal.user.role == "admin" and not principal.user.must_change_password:
         accounts = [
-            {"id": str(user.id), "username": user.username, "name": user.display_name, "role": user.role}
+            {"id": str(user.id), "publicRef": user.public_ref, "username": user.username,
+             "name": user.display_name, "role": user.role,
+             "lastLoginAt": user.last_login_at.isoformat() if user.last_login_at else None}
             for user in UserRepository(db).portal_accounts()
         ]
     document_kind_labels = {

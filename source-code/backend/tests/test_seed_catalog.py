@@ -8,4 +8,4 @@ def test_catalogue_seed_is_complete_and_has_unique_keys():
         "english", "maths", "ict", "biology", "chemistry", "physics", "french", "human-biology",
     }
     assert len({row["code"] for row in TUTOR_AVATARS}) == len(TUTOR_AVATARS) == 5
-    assert len({row["code"] for row in TUTOR_VOICES}) == len(TUTOR_VOICES) == 3
+    assert len({row["code"] for row in TUTOR_VOICES}) == len(TUTOR_VOICES) == 5

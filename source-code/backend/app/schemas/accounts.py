@@ -55,6 +55,26 @@ class UpdateStudentRequest(BaseModel):
 
 class AccountResponse(BaseModel):
     id: str
+    publicRef: str
     username: str
     name: str
     role: Literal["parent", "student"]
+    lastLoginAt: str | None = None
+
+class AdminPasswordResetRequest(BaseModel):
+    requestKey: str = Field(min_length=8, max_length=100)
+
+class AdminPasswordResetResponse(BaseModel):
+    accountRef: str
+    username: str
+    temporaryPassword: str
+    sessionsRevoked: int
+    mustChangePassword: Literal[True] = True
+
+
+class AccountSecurityEventResponse(BaseModel):
+    action: str
+    actorName: str
+    targetRef: str
+    occurredAt: str
+    details: dict

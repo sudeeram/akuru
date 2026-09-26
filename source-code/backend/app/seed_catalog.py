@@ -33,6 +33,8 @@ TUTOR_VOICES = (
     {"code": "clear-coach", "display_name": "Clear coach", "description": "A clear, steady masculine presentation.", "provider_voice_ref": None, "presentation": "masculine", "is_enabled": True, "sort_order": 10},
     {"code": "warm-guide", "display_name": "Warm guide", "description": "A warm, patient feminine presentation.", "provider_voice_ref": None, "presentation": "feminine", "is_enabled": True, "sort_order": 20},
     {"code": "bright-companion", "display_name": "Bright companion", "description": "A lively neutral presentation.", "provider_voice_ref": None, "presentation": "neutral", "is_enabled": True, "sort_order": 30},
+    {"code": "calm-scholar", "display_name": "Calm scholar", "description": "A calm, measured voice for careful explanations.", "provider_voice_ref": "sage", "presentation": "neutral", "is_enabled": True, "sort_order": 40},
+    {"code": "energetic-guide", "display_name": "Energetic guide", "description": "An energetic voice for active practice and revision.", "provider_voice_ref": "verse", "presentation": "neutral", "is_enabled": True, "sort_order": 50},
 )
 
 

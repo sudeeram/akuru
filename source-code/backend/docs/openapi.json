@@ -135,8 +135,23 @@
             "title": "Id",
             "type": "string"
           },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "publicRef": {
+            "title": "Publicref",
             "type": "string"
           },
           "role": {
@@ -154,11 +169,46 @@
         },
         "required": [
           "id",
+          "publicRef",
           "username",
           "name",
           "role"
         ],
         "title": "AccountResponse",
+        "type": "object"
+      },
+      "AccountSecurityEventResponse": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actorName": {
+            "title": "Actorname",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "occurredAt": {
+            "title": "Occurredat",
+            "type": "string"
+          },
+          "targetRef": {
+            "title": "Targetref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "actorName",
+          "targetRef",
+          "occurredAt",
+          "details"
+        ],
+        "title": "AccountSecurityEventResponse",
         "type": "object"
       },
       "AccountSummaryResponse": {
@@ -167,8 +217,23 @@
             "title": "Id",
             "type": "string"
           },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
+          },
           "name": {
             "title": "Name",
+            "type": "string"
+          },
+          "publicRef": {
+            "title": "Publicref",
             "type": "string"
           },
           "role": {
@@ -188,9 +253,59 @@
           "id",
           "username",
           "name",
-          "role"
+          "role",
+          "publicRef"
         ],
         "title": "AccountSummaryResponse",
+        "type": "object"
+      },
+      "AdminPasswordResetRequest": {
+        "properties": {
+          "requestKey": {
+            "maxLength": 100,
+            "minLength": 8,
+            "title": "Requestkey",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestKey"
+        ],
+        "title": "AdminPasswordResetRequest",
+        "type": "object"
+      },
+      "AdminPasswordResetResponse": {
+        "properties": {
+          "accountRef": {
+            "title": "Accountref",
+            "type": "string"
+          },
+          "mustChangePassword": {
+            "const": true,
+            "default": true,
+            "title": "Mustchangepassword",
+            "type": "boolean"
+          },
+          "sessionsRevoked": {
+            "title": "Sessionsrevoked",
+            "type": "integer"
+          },
+          "temporaryPassword": {
+            "title": "Temporarypassword",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accountRef",
+          "username",
+          "temporaryPassword",
+          "sessionsRevoked"
+        ],
+        "title": "AdminPasswordResetResponse",
         "type": "object"
       },
       "AdminQuotaListResponse": {
@@ -4905,6 +5020,28 @@
         "title": "NextTopicResponse",
         "type": "object"
       },
+      "NormalPasswordChangeRequest": {
+        "properties": {
+          "currentPassword": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Currentpassword",
+            "type": "string"
+          },
+          "newPassword": {
+            "maxLength": 200,
+            "minLength": 12,
+            "title": "Newpassword",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "title": "NormalPasswordChangeRequest",
+        "type": "object"
+      },
       "OfficialMaterialReview": {
         "properties": {
           "completenessConfirmed": {
@@ -6982,6 +7119,10 @@
       },
       "StudentResponse": {
         "properties": {
+          "accountRef": {
+            "title": "Accountref",
+            "type": "string"
+          },
           "courses": {
             "additionalProperties": {
               "$ref": "#/components/schemas/SubjectCourseResponse"
@@ -7000,6 +7141,17 @@
           "initial": {
             "title": "Initial",
             "type": "string"
+          },
+          "lastLoginAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lastloginat"
           },
           "level": {
             "title": "Level",
@@ -7052,7 +7204,8 @@
           "progression",
           "subjects",
           "courses",
-          "needsConfiguration"
+          "needsConfiguration",
+          "accountRef"
         ],
         "title": "StudentResponse",
         "type": "object"
@@ -10746,6 +10899,183 @@
           }
         },
         "summary": "Create Account",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/admin/accounts/security-events": {
+      "get": {
+        "operationId": "account_security_events_api_v1_admin_accounts_security_events_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountSecurityEventResponse"
+                  },
+                  "title": "Response Account Security Events Api V1 Admin Accounts Security Events Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Account Security Events",
+        "tags": [
+          "accounts"
+        ]
+      }
+    },
+    "/api/v1/admin/accounts/{account_ref}/reset-password": {
+      "post": {
+        "operationId": "reset_account_password_api_v1_admin_accounts__account_ref__reset_password_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_ref",
+            "required": true,
+            "schema": {
+              "title": "Account Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminPasswordResetResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reset Account Password",
         "tags": [
           "accounts"
         ]
@@ -16115,6 +16445,94 @@
         "summary": "Download Working",
         "tags": [
           "assessments"
+        ]
+      }
+    },
+    "/api/v1/auth/change-known-password": {
+      "post": {
+        "operationId": "change_known_password_api_v1_auth_change_known_password_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NormalPasswordChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Change Known Password",
+        "tags": [
+          "authentication"
         ]
       }
     },

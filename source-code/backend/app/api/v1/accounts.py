@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
-from app.schemas.accounts import AccountResponse, CreateAccountRequest, UpdateStudentRequest
+from app.schemas.accounts import (AccountResponse, AccountSecurityEventResponse,
+    AdminPasswordResetRequest, AdminPasswordResetResponse, CreateAccountRequest,
+    UpdateStudentRequest)
 from app.schemas.portal import PortalStateResponse, StudentResponse, UiFeaturesResponse
 from app.security import Principal, get_principal
 from app.services import accounts, portal
@@ -28,6 +30,23 @@ def create_account(
     db: Annotated[Session, Depends(get_db)],
 ) -> AccountResponse:
     return accounts.create_account(db, principal, payload)
+
+
+@router.post("/admin/accounts/{account_ref}/reset-password", response_model=AdminPasswordResetResponse)
+def reset_account_password(account_ref: str, payload: AdminPasswordResetRequest, response: Response,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]) -> AdminPasswordResetResponse:
+    result = accounts.reset_password(db, principal, account_ref, payload.requestKey)
+    response.headers["Cache-Control"] = "no-store"
+    return result
+
+
+@router.get("/admin/accounts/security-events", response_model=list[AccountSecurityEventResponse])
+def account_security_events(
+    principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> list[dict]:
+    return accounts.security_events(db)
 
 
 @router.post("/admin/students", response_model=StudentResponse)

@@ -14,6 +14,7 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Planned
 
+- [Future Parent-assisted and self-service account recovery](planned/TODO-FUTURE-ACCOUNT-RECOVERY.md) — Parent requests, verified recovery contacts and expiring one-time email tokens after the Admin-managed lifecycle is complete.
 - [Future TanStack capabilities](planned/TODO-TANSTACK-FUTURE.md) — optional suite features to assess when their product use cases are built.
 - [Future roadmap priority index](planned/TODO-FUTURE-DOCUMENT-REVIEW.md)
   - [Medium: low-cost learning and document-review improvements](planned/TODO-FUTURE-MEDIUM-IMPROVEMENTS.md)
@@ -22,6 +23,7 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Completed
 
+- [Account password lifecycle and login visibility](completed/TODO-ACCOUNT-PASSWORD-LIFECYCLE.md) — Admin resets, forced replacement, authenticated changes, session revocation, last-login visibility and audit controls.
 - [Flashcard mastery and Student experience](completed/TODO-FLASHCARD-STUDENT-UX.md) — Student-owned mastery, randomized completed-set study and protected evidence experience.
 - [TanStack Router and Query foundation](completed/TODO-TANSTACK-FOUNDATION.md)
 - [Curated flashcard library and adaptive Student review](completed/TODO-FLASHCARD-LIBRARY.md)

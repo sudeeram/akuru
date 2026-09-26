@@ -28,6 +28,8 @@ class StudentResponse(BaseModel):
     subjects: list[str]
     courses: dict[str, SubjectCourseResponse]
     needsConfiguration: bool
+    accountRef: str
+    lastLoginAt: str | None = None
 
 
 class AccountSummaryResponse(BaseModel):
@@ -35,6 +37,8 @@ class AccountSummaryResponse(BaseModel):
     username: str
     name: str
     role: Literal["parent", "student"]
+    publicRef: str
+    lastLoginAt: str | None = None
 
 
 class SubjectPresentationResponse(BaseModel):

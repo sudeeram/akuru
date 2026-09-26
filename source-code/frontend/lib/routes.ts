@@ -10,17 +10,17 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
     'ai-accounts': '/admin/ai-accounts', 'tutor-presets': '/admin/tutor-presets',
     'tutor-quotas': '/admin/tutor-quotas', 'tutor-history': '/admin/tutor-history',
     'assessment-audit': '/admin/assessment-audit', media: '/admin/media',
-    evaluations: '/admin/evaluations', operations: '/admin/operations',
+    evaluations: '/admin/evaluations', operations: '/admin/operations', security: '/admin/security',
   },
   parent: {
     today: '/parent', students: '/parent/students', tutors: '/parent/tutors',
     'tutor-history': '/parent/tutor-history', library: '/parent/library',
-    reviews: '/parent/reviews', assignments: '/parent/assignments', progress: '/parent/progress',
+    reviews: '/parent/reviews', assignments: '/parent/assignments', progress: '/parent/progress', security: '/parent/security',
   },
   student: {
     today: '/student', subjects: '/student/subjects', tutors: '/student/tutors',
     'tutor-room': '/student/tutor-room', practice: '/student/practice', flashcards: '/flashcards',
-    exams: '/student/exams', progress: '/student/progress', plan: '/student/study-plan',
+    exams: '/student/exams', progress: '/student/progress', plan: '/student/study-plan', security: '/student/security',
   },
 };
 
@@ -82,11 +82,11 @@ export const applicationPaths = [
   '/admin/coverage', '/admin/questions', '/admin/flashcards', '/admin/blueprints',
   '/admin/ai-accounts', '/admin/tutor-presets', '/admin/tutor-quotas',
   '/admin/tutor-history', '/admin/assessment-audit', '/admin/media',
-  '/admin/evaluations', '/admin/operations', '/parent', '/parent/students',
+  '/admin/evaluations', '/admin/operations', '/admin/security', '/parent', '/parent/students',
   '/parent/tutors', '/parent/tutor-history', '/parent/library', '/parent/reviews',
-  '/parent/assignments', '/parent/progress', '/student', '/student/subjects',
+  '/parent/assignments', '/parent/progress', '/parent/security', '/student', '/student/subjects',
   '/student/tutors', '/student/tutor-room', '/student/practice', '/student/exams',
-  '/student/progress', '/student/study-plan', '/flashcards',
+  '/student/progress', '/student/study-plan', '/student/security', '/flashcards',
 ] as const;
 
 export function isApplicationPath(pathname: string) {

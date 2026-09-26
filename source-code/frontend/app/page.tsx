@@ -55,6 +55,7 @@ import { TutorProfiles } from '@/features/tutor-profiles';
 import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
 import { StudentFlashcards } from '@/features/flashcards';
+import { AccountSecurity } from '@/features/account-security';
 import { AdminLayout, ParentLayout, PublicLayout, StudentLayout } from '@/components/portal-layouts';
 import { createAkuruRouter } from '@/lib/app-router';
 import { clearPrivateQueryState, queryClient } from '@/lib/query-client';
@@ -71,6 +72,7 @@ const studentNav = [
   ['exams', 'Mock exams', Clock3],
   ['progress', 'My progress', TrendingUp],
   ['plan', 'Study plan', CalendarDays],
+  ['security', 'Account security', KeyRound],
 ] as const;
 const parentNav = [
   ['today', 'Family overview', LayoutDashboard],
@@ -81,6 +83,7 @@ const parentNav = [
   ['reviews', 'Assessment reviews', ClipboardCheck],
   ['assignments', 'Assignments', CalendarDays],
   ['progress', 'Learning progress', TrendingUp],
+  ['security', 'Account security', KeyRound],
 ] as const;
 const adminNav = [
   ['today', 'Admin overview', LayoutDashboard],
@@ -99,6 +102,7 @@ const adminNav = [
   ['media', 'Visual media', Images],
   ['evaluations', 'Evaluation gates', FlaskConical],
   ['operations', 'Operations', Activity],
+  ['security', 'Account security', KeyRound],
 ] as const;
 const router = createAkuruRouter(Portal);
 
@@ -441,7 +445,9 @@ export function Portal() {
             {notice}
           </output>
         )}
-        {admin ? (
+        {view === 'security' ? (
+          <AccountSecurity notify={notify}/>
+        ) : admin ? (
           <AdminWorkspace
             key={view}
             data={data}

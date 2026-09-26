@@ -65,6 +65,20 @@ const tutorSignals = readFileSync(new URL('../features/tutor-signals.tsx', impor
 const tutorHistory = readFileSync(new URL('../features/tutor-history.tsx', import.meta.url), 'utf8');
 const tutorVoice = readFileSync(new URL('../features/tutor-voice.tsx', import.meta.url), 'utf8');
 const flashcards = readFileSync(new URL('../features/flashcards.tsx', import.meta.url), 'utf8');
+const accountSecurity = readFileSync(new URL('../features/account-security.tsx', import.meta.url), 'utf8');
+
+test('password lifecycle UI uses opaque references and one-time disclosure', () => {
+  assert.match(admin, /reset-password/);
+  assert.match(admin, /requestKey/);
+  assert.match(admin, /shown only once/);
+  assert.match(admin, /Copy password/);
+  assert.match(admin, /publicRef: s\.accountRef/);
+  assert.doesNotMatch(admin, /password.*localStorage|password.*sessionStorage/s);
+  assert.match(accountSecurity, /currentPassword/);
+  assert.match(accountSecurity, /newPassword/);
+  assert.match(accountSecurity, /The new passwords do not match/);
+  assert.match(accountSecurity, /auth\/change-known-password/);
+});
 
 test('frontend uses the FastAPI v1 boundary and local proxy', () => {
   assert.match(api, /fetch\(`\/api\/v1\/\$\{path\}`/);

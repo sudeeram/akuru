@@ -20,6 +20,18 @@ progression combinations or subjects.
 Submit an active mock before changing the child's enrolment. Legacy learners
 need confirmation; do not infer an iGCSE grade from an old school-year label.
 
+The account cards show each Parent or Student's last successful login in your
+browser's local time, or **Never signed in**. Choose **Reset password**, confirm
+the action, and securely give the generated temporary password to the user. It
+is visible once only. Copy it before choosing Done; AKURU cannot retrieve it.
+The reset signs the account out everywhere and the user must choose a new
+password at the next login. Never put a temporary password in notes or audit
+comments. Repeated reset attempts are temporarily limited.
+
+Use **Account security** in your own navigation when you know your current
+password and want to replace it. A successful change signs your other devices
+out while keeping this browser signed in.
+
 
 ## 2. TEXTBOOK STRUCTURE AND TOPIC SOURCES
 

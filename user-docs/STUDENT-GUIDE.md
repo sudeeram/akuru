@@ -7,6 +7,13 @@ other children. After login, check your name, current grade and term. Earlier
 completed terms are included in mock selection. Ask your parent or
 Admin to correct them if needed.
 
+If you forget your password, ask an Admin for a temporary password. It works
+only for signing in and choosing a new password. On the replacement screen,
+enter the new password twice; you do not need to enter the temporary one again.
+If you know your password and want to change it, open **Account security**. The
+change signs out your other devices. Never share your password with another
+Student.
+
 
 ## My Subjects And Practice
 

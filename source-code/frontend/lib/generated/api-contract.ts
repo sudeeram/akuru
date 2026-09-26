@@ -3,8 +3,11 @@
 export interface Schemas {
   "AIAccountResponse": { "name": string; "credentialAlias": string; "priority": number; "model": string; "enabled": boolean; "credentialConfigured": boolean; "healthStatus": string; "cooldownUntil"?: string | null; "lastErrorCode"?: string | null; "lastSuccessAt"?: string | null; "lastFailureAt"?: string | null; };
   "AIAccountWriteRequest": { "name": string; "credentialAlias": string; "priority": number; "model": string; "enabled"?: boolean; };
-  "AccountResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
-  "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; };
+  "AccountResponse": { "id": string; "publicRef": string; "username": string; "name": string; "role": "parent" | "student"; "lastLoginAt"?: string | null; };
+  "AccountSecurityEventResponse": { "action": string; "actorName": string; "targetRef": string; "occurredAt": string; "details": { [key: string]: unknown; }; };
+  "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; "publicRef": string; "lastLoginAt"?: string | null; };
+  "AdminPasswordResetRequest": { "requestKey": string; };
+  "AdminPasswordResetResponse": { "accountRef": string; "username": string; "temporaryPassword": string; "sessionsRevoked": number; "mustChangePassword"?: true; };
   "AdminQuotaListResponse": { "quotas": Array<Schemas["StudentQuotaResponse"]>; };
   "AdminQuotaUpdate": { "periodDays": number; "requestAllowance": number; "textTokenAllowance": number; "voiceMinuteAllowance": number; "enabled"?: boolean; "reason": string; };
   "AnswerSave": { "questionId": string; "answer"?: string; "fileId"?: string | null; "idempotencyKey": string; };
@@ -94,6 +97,7 @@ export interface Schemas {
   "NextTopicRecommendation": { "topic": Schemas["PlanTopicResponse"]; "reason": string; "evidenceRefs": Array<string>; "activity": Schemas["RecommendationActivity"]; "requiresStudentAction"?: boolean; "moveAction": { [key: string]: unknown; }; };
   "NextTopicRequest": { "subjectId": string; "requestKey": string; };
   "NextTopicResponse": { "status": "ready" | "no_evidence" | "no_eligible_topics"; "message": string; "algorithmVersion": string; "contextOperationRef"?: string | null; "contextVersion"?: string | null; "recommendation"?: Schemas["NextTopicRecommendation"] | null; "ranking"?: Array<Schemas["RankedTopic"]>; "tutorBrief"?: Schemas["TutorRecommendationBrief"] | null; };
+  "NormalPasswordChangeRequest": { "currentPassword": string; "newPassword": string; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds": Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
   "PlanChangeResponse": { "topicRef": string; "code": string; "title": string; "change": string; "fromPeriod"?: string | null; "toPeriod"?: string | null; };
@@ -146,7 +150,7 @@ export interface Schemas {
   "SaveTopicMappingsRequest": { "mappings": Array<Schemas["TopicMapping"]>; };
   "SourceLocation": { "page": number; "blockId": string; "boundingBox"?: { [key: string]: unknown; }; };
   "StudentQuotaResponse": { "studentRef": string; "studentName": string; "enabled": boolean; "state": "available" | "warning" | "exhausted" | "disabled" | "renewed"; "periodDays": number; "periodStartsAt": string; "renewsAt": string; "requests": Schemas["QuotaAmount"]; "textTokens": Schemas["QuotaAmount"]; "voiceMinutes": Schemas["QuotaAmount"]; "fallbackMessage": string; };
-  "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; };
+  "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; "accountRef": string; "lastLoginAt"?: string | null; };
   "StudyPlanResponse": { "id": string; "studentId": string; "version": number; "updatedAt": string; "generationReason": string; "items": Array<Schemas["PlanItemResponse"]>; };
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
   "SubjectPresentationResponse": { "id": string; "name": string; "symbol": string; "color": string; "topic": string; "topics": Array<string>; "course": string; };
@@ -231,6 +235,8 @@ export interface Schemas {
 
 export interface ApiOperations {
   "POST /api/v1/admin/accounts": { request: Schemas["CreateAccountRequest"]; response: Schemas["AccountResponse"] };
+  "GET /api/v1/admin/accounts/security-events": { request: unknown; response: Array<Schemas["AccountSecurityEventResponse"]> };
+  "POST /api/v1/admin/accounts/{account_ref}/reset-password": { request: Schemas["AdminPasswordResetRequest"]; response: Schemas["AdminPasswordResetResponse"] };
   "GET /api/v1/admin/ai-accounts": { request: unknown; response: Array<Schemas["AIAccountResponse"]> };
   "POST /api/v1/admin/ai-accounts": { request: Schemas["AIAccountWriteRequest"]; response: Schemas["AIAccountResponse"] };
   "POST /api/v1/admin/ai-accounts/{credential_alias}": { request: Schemas["AIAccountWriteRequest"]; response: Schemas["AIAccountResponse"] };
@@ -284,6 +290,7 @@ export interface ApiOperations {
   "POST /api/v1/assessments/{assessment_id}/questions/{question_id}/working": { request: unknown; response: Schemas["WorkingFileResponse"] };
   "POST /api/v1/assessments/{assessment_id}/submit": { request: Schemas["SubmissionRequest"]; response: Schemas["AssessmentResponse"] };
   "GET /api/v1/assessments/{assessment_id}/working/{file_id}": { request: unknown; response: unknown };
+  "POST /api/v1/auth/change-known-password": { request: Schemas["NormalPasswordChangeRequest"]; response: unknown };
   "POST /api/v1/auth/change-password": { request: Schemas["ChangePasswordRequest"]; response: unknown };
   "POST /api/v1/auth/login": { request: Schemas["LoginRequest"]; response: Schemas["LoginResponse"] };
   "POST /api/v1/auth/logout": { request: unknown; response: unknown };

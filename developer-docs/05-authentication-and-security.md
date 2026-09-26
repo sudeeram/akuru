@@ -15,6 +15,36 @@ Every state-changing authenticated endpoint must require `X-CSRF-Token` through 
 
 Login has persisted username/IP throttling. Production request limiting uses Redis and fails closed when the configured distributed limiter is unavailable.
 
+## Password lifecycle
+
+Admins can reset an active Parent or Student account by its opaque `public_ref`.
+AKURU generates a 20-character temporary password with a cryptographically
+secure random generator, stores only its Argon2 hash, revokes all sessions in
+the reset transaction, and returns the readable value in that response only.
+The request key prevents a browser retry from silently creating or redisplaying
+a password. The user can sign in with it only to reach the forced replacement
+screen; replacement rotates the session and does not ask for the temporary
+password again.
+
+Admin, Parent and Student accounts also have an authenticated Account security
+route. A normal change verifies the current password, rejects reuse, revokes
+other sessions and rotates the current session. Both workflows share the API's
+12–200 character password boundary. Passwords must never appear in audit data,
+logs, URLs, browser storage, query caches or account-list responses.
+
+Successful resets, forced replacements, normal changes, rejected known-password
+changes and reset rate limits are audited with public references and safe
+metadata. `GET /api/v1/admin/accounts/security-events` gives Admins the latest
+100 lifecycle events. Login uses the same response for an unknown username,
+wrong password, inactive account or wrong role and locks a username/IP digest
+temporarily after repeated failures. Support recovery is to wait for the stated
+lock period or have an Admin issue a new temporary password.
+
+`users.last_login_at` records the current successful login in UTC. It is not
+updated by ordinary requests or failed attempts. Admin sees every Student and
+Parent value; a Parent receives it only for linked Students. The browser renders
+the timestamp in its local timezone and shows `Never signed in` for null values.
+
 ## Authorization model
 
 There are three roles:

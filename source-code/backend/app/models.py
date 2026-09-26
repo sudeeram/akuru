@@ -43,12 +43,14 @@ class TimestampMixin:
 class User(TimestampMixin, Base):
     __tablename__ = "users"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f"account_{uuid.uuid4().hex}")
     username: Mapped[str] = mapped_column(String(80), unique=True)
     display_name: Mapped[str] = mapped_column(String(160))
     role: Mapped[str] = mapped_column(String(16))
     password_hash: Mapped[str] = mapped_column(Text)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     __table_args__ = (CheckConstraint("role IN ('admin','parent','student')", name="ck_users_role"),)
 
 
@@ -72,6 +74,16 @@ class LoginThrottle(Base):
     window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (CheckConstraint("failure_count >= 0", name="ck_login_failure_count"),)
+
+
+class PasswordResetReceipt(Base):
+    __tablename__ = "password_reset_receipts"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    request_key: Mapped[str] = mapped_column(String(100), unique=True)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    target_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    sessions_revoked: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
 
 
 class AuditEvent(Base):

@@ -192,6 +192,9 @@ export function AdminWorkspace(p: Props) {
     [password, setPassword] = useState('');
   const [parentId, setParentId] = useState(''),
     [editId, setEditId] = useState('');
+  const [resetTarget, setResetTarget] = useState<{ publicRef: string; name: string; username: string } | null>(null);
+  const [resetResult, setResetResult] = useState<{ username: string; temporaryPassword: string; sessionsRevoked: number } | null>(null);
+  const [securityEvents, setSecurityEvents] = useState<Array<{ action: string; actorName: string; targetRef: string; occurredAt: string; details: Record<string, unknown> }>>([]);
   const [grade, setGrade] = useState('Grade 10'),
     [term, setTerm] = useState('Term1'),
     [coverageTerm, setCoverageTerm] = useState('all'),
@@ -225,6 +228,17 @@ export function AdminWorkspace(p: Props) {
     [blueprintQuestions, setBlueprintQuestions] = useState('4'),
     [blueprintSkills, setBlueprintSkills] = useState('knowledge, application');
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
+  const lastLogin = (value?: string | null) => value ? new Date(value).toLocaleString() : 'Never signed in';
+  async function resetPassword() {
+    if (!resetTarget) return;
+    setBusy(true); setError('');
+    try {
+      const result = await api<{username: string; temporaryPassword: string; sessionsRevoked: number}>(
+        `admin/accounts/${resetTarget.publicRef}/reset-password`, { requestKey: crypto.randomUUID() });
+      setResetResult(result); setResetTarget(null); await p.refresh();
+    } catch (cause) { setError(errorMessage(cause)); }
+    finally { setBusy(false); }
+  }
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
   );
@@ -253,6 +267,14 @@ export function AdminWorkspace(p: Props) {
   );
   const currentView = p.view;
   const refreshPortal = p.refresh;
+  useEffect(() => {
+    if (currentView !== 'accounts') return;
+    let active = true;
+    void api<typeof securityEvents>('admin/accounts/security-events')
+      .then((events) => { if (active) setSecurityEvents(events); })
+      .catch((cause) => { if (active) setError(errorMessage(cause)); });
+    return () => { active = false; };
+  }, [currentView]);
   useEffect(() => {
     if (currentView !== 'library' || !processingDocuments) return;
     const timer = window.setInterval(() => void refreshPortal(), 2000);
@@ -591,6 +613,7 @@ export function AdminWorkspace(p: Props) {
                     {parents.find((account) => account.id === s.parentId)
                       ?.name || 'Not available'}
                   </p>
+                  <p><strong>Last login:</strong> {lastLogin(s.lastLoginAt)}</p>
                   <p>
                     {s.grade} · {s.term || 'Term not configured'} ·{' '}
                     {(s.progression || []).length} progression step(s)
@@ -607,17 +630,27 @@ export function AdminWorkspace(p: Props) {
                   >
                     Edit {s.name}
                   </Button>
+                  <Button className="spaced" variant="outline" onClick={() => setResetTarget({ publicRef: s.accountRef, name: s.name, username: s.username })}>Reset password</Button>
                 </section>
               ))}
             </div>
             <section className="panel spaced">
               <h2>Parent accounts</h2>
               {parents.map((a) => (
-                <p key={a.id}>
-                  {a.name} · @{a.username}
-                </p>
+                <div className="spread" key={a.id}><p>{a.name} · @{a.username}<br/><small>Last login: {lastLogin(a.lastLoginAt)}</small></p><Button variant="outline" onClick={() => setResetTarget(a)}>Reset password</Button></div>
               ))}
             </section>
+            <section className="panel spaced">
+              <h2>Recent account security activity</h2>
+              <p>Passwords are never included in this record.</p>
+              {!securityEvents.length && <p>No password lifecycle events yet.</p>}
+              {securityEvents.map((event, index) => <div className="spread" key={`${event.occurredAt}-${index}`}>
+                <p><strong>{event.action.replaceAll('.', ' ')}</strong><br/><small>{event.actorName} · {new Date(event.occurredAt).toLocaleString()}</small></p>
+                <span className="pill">{typeof event.details.sessionsRevoked === 'number' ? `${event.details.sessionsRevoked} sessions revoked` : 'Recorded'}</span>
+              </div>)}
+            </section>
+            <Dialog open={Boolean(resetTarget)} onOpenChange={(open) => { if (!open) setResetTarget(null); }}><DialogContent><DialogHeader><DialogTitle>Reset {resetTarget?.name}&apos;s password?</DialogTitle><DialogDescription>AKURU will revoke every active session and generate a temporary password. The password will be shown only once.</DialogDescription></DialogHeader><div className="button-row"><Button variant="outline" onClick={() => setResetTarget(null)}>Cancel</Button><Button disabled={busy} onClick={() => void resetPassword()}>{busy ? 'Resetting…' : 'Reset password'}</Button></div></DialogContent></Dialog>
+            <Dialog open={Boolean(resetResult)} onOpenChange={(open) => { if (!open) setResetResult(null); }}><DialogContent><DialogHeader><DialogTitle>Temporary password created</DialogTitle><DialogDescription>Give this password securely to @{resetResult?.username}. AKURU cannot show it again. The user must replace it at the next login.</DialogDescription></DialogHeader><div className="temporary-password" aria-label="Generated temporary password"><code>{resetResult?.temporaryPassword}</code></div><p>{resetResult?.sessionsRevoked || 0} existing session(s) revoked.</p><div className="button-row"><Button variant="outline" onClick={() => void navigator.clipboard.writeText(resetResult?.temporaryPassword || '').then(() => p.notify('Temporary password copied.'))}>Copy password</Button><Button onClick={() => setResetResult(null)}>Done</Button></div></DialogContent></Dialog>
           </>
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
@@ -1285,6 +1318,7 @@ export function FamilyCourses({ data }: { data: State }) {
             <p>
               {s.level} · {s.grade} · {s.term || 'Term not configured'}
             </p>
+            <p><strong>Last login:</strong> {s.lastLoginAt ? new Date(s.lastLoginAt).toLocaleString() : 'Never signed in'}</p>
             {s.needsConfiguration && (
               <p>Admin confirmation required before term practice.</p>
             )}
