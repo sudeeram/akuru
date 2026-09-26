@@ -619,6 +619,68 @@ def detach_topic_source(db: Session, principal: Principal, textbook_ref: str, to
     return list_topic_sources(db, textbook_ref, topic_ref)
 
 
+def move_topic_source(db: Session, principal: Principal, textbook_ref: str, topic_ref: str,
+                      document_id: str, target_topic_ref: str) -> list[TopicDocumentSourceResponse]:
+    book = _book(db, textbook_ref)
+    source_topic = _topic(db, book, topic_ref)
+    target_topic = _topic(db, book, target_topic_ref)
+    if source_topic.id == target_topic.id:
+        raise DomainError("topic_source_move_same_topic", "Choose a different destination Topic.", 422)
+    try:
+        parsed_document_id = uuid.UUID(document_id)
+    except ValueError as exc:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404) from exc
+    link = db.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == source_topic.id,
+        TextbookTopicDocument.document_id == parsed_document_id,
+    ).with_for_update())
+    if not link:
+        raise DomainError("topic_source_not_found", "The topic source could not be found.", 404)
+    dependency = db.scalar(select(TextbookTopicContentSource.document_version_id).join(
+        TextbookTopicContentVersion,
+        TextbookTopicContentVersion.id == TextbookTopicContentSource.content_version_id,
+    ).where(
+        TextbookTopicContentVersion.topic_id == source_topic.id,
+        TextbookTopicContentSource.document_version_id == link.document_version_id,
+    ).limit(1))
+    retrieval = db.scalar(select(RetrievalChunk.id).where(
+        RetrievalChunk.topic_id == source_topic.id,
+        RetrievalChunk.document_version_id == link.document_version_id,
+    ).limit(1))
+    visual = db.scalar(select(TextbookTopicVisualAsset.id).where(
+        TextbookTopicVisualAsset.topic_id == source_topic.id,
+        TextbookTopicVisualAsset.document_version_id == link.document_version_id,
+    ).limit(1))
+    if dependency or retrieval or visual:
+        raise DomainError("topic_source_move_blocked",
+                          "This source already has published, retrieval or reviewed visual dependencies. Detach or supersede it through the protected publication workflow instead.", 409)
+    duplicate = db.scalar(select(TextbookTopicDocument.document_version_id).where(
+        TextbookTopicDocument.topic_id == target_topic.id,
+        TextbookTopicDocument.document_version_id == link.document_version_id,
+    ).limit(1))
+    if duplicate:
+        raise DomainError("topic_source_move_duplicate", "The destination Topic already contains this source.", 409)
+    next_sequence = int(db.scalar(select(func.max(TextbookTopicDocument.sequence)).where(
+        TextbookTopicDocument.topic_id == target_topic.id)) or 0) + 1
+    document = db.get(Document, link.document_id)
+    source_ref = source_topic.public_ref
+    link.topic_id = target_topic.id
+    link.sequence = next_sequence
+    if document:
+        metadata = dict(document.source_metadata or {})
+        metadata.update({"textbookRef": book.public_ref, "topicRef": target_topic.public_ref})
+        target_group = db.get(TextbookGroup, target_topic.group_id)
+        if target_group:
+            metadata["groupRef"] = target_group.public_ref
+        document.source_metadata = metadata
+    _audit(db, principal, "textbook_topic_document.moved", "textbook_topic", target_topic.public_ref,
+           {"textbookRef": book.public_ref, "documentId": str(link.document_id),
+            "documentVersionId": str(link.document_version_id), "fromTopicRef": source_ref,
+            "toTopicRef": target_topic.public_ref})
+    db.commit()
+    return list_topic_sources(db, textbook_ref, target_topic_ref)
+
+
 def _response(db: Session, book: Textbook) -> TextbookResponse:
     published_topic_ids = set(db.scalars(select(TextbookTopicContentVersion.topic_id).where(
         TextbookTopicContentVersion.status == "published",

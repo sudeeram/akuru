@@ -7570,6 +7570,21 @@
         "title": "TextbookUpdateRequest",
         "type": "object"
       },
+      "TopicDocumentMoveRequest": {
+        "properties": {
+          "targetTopicRef": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Targettopicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetTopicRef"
+        ],
+        "title": "TopicDocumentMoveRequest",
+        "type": "object"
+      },
       "TopicDocumentQualityReport": {
         "properties": {
           "checks": {
@@ -14787,6 +14802,132 @@
           }
         },
         "summary": "Update Topic Source",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/move": {
+      "post": {
+        "operationId": "move_topic_source_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__sources__document_id__move_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopicDocumentMoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TopicDocumentSourceResponse"
+                  },
+                  "title": "Response Move Topic Source Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Sources  Document Id  Move Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Move Topic Source",
         "tags": [
           "textbook structures"
         ]

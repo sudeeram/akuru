@@ -4,7 +4,7 @@ export type PortalRole = 'admin' | 'parent' | 'student';
 
 const roleViews: Record<PortalRole, Record<string, string>> = {
   admin: {
-    today: '/admin', accounts: '/admin/accounts', library: '/admin/library',
+    today: '/admin', accounts: '/admin/accounts', library: '/admin/exam-documents',
     units: '/admin/textbooks', coverage: '/admin/coverage', questions: '/admin/questions',
     flashcards: '/admin/flashcards', blueprints: '/admin/blueprints',
     'ai-accounts': '/admin/ai-accounts', 'tutor-presets': '/admin/tutor-presets',
@@ -42,6 +42,8 @@ export function pathForView(role: PortalRole, view: string) {
 
 export function viewForPath(role: PortalRole, pathname: string) {
   if (role === 'student' && pathname.startsWith('/flashcards')) return 'flashcards';
+  if (role === 'admin' && pathname.startsWith('/admin/textbooks')) return 'units';
+  if (role === 'admin' && pathname.startsWith('/admin/exam-documents')) return 'library';
   const match = Object.entries(roleViews[role]).find(([, path]) => path === pathname);
   return match?.[0] ?? 'today';
 }
@@ -49,6 +51,7 @@ export function viewForPath(role: PortalRole, pathname: string) {
 export function roleAllowsPath(role: PortalRole, pathname: string) {
   if (pathname === '/' || pathname === '/login') return true;
   if (role === 'student' && pathname.startsWith('/flashcards')) return true;
+  if (role === 'admin' && (pathname.startsWith('/admin/textbooks') || pathname.startsWith('/admin/exam-documents'))) return true;
   return Object.values(roleViews[role]).includes(pathname);
 }
 
@@ -78,7 +81,7 @@ export const flashcardPaths = {
 };
 
 export const applicationPaths = [
-  '/', '/login', '/admin', '/admin/accounts', '/admin/library', '/admin/textbooks',
+  '/', '/login', '/admin', '/admin/accounts', '/admin/library', '/admin/textbooks', '/admin/textbooks/new', '/admin/textbooks/review', '/admin/exam-documents',
   '/admin/coverage', '/admin/questions', '/admin/flashcards', '/admin/blueprints',
   '/admin/ai-accounts', '/admin/tutor-presets', '/admin/tutor-quotas',
   '/admin/tutor-history', '/admin/assessment-audit', '/admin/media',
@@ -92,5 +95,8 @@ export const applicationPaths = [
 export function isApplicationPath(pathname: string) {
   return (applicationPaths as readonly string[]).includes(pathname) ||
     /^\/flashcards\/decks\/[^/]+(?:\/start)?$/.test(pathname) ||
-    /^\/flashcards\/sessions\/[^/]+\/cards\/\d+$/.test(pathname);
+    /^\/flashcards\/sessions\/[^/]+\/cards\/\d+$/.test(pathname) ||
+    /^\/admin\/textbooks\/book_[^/]+(?:\/topics\/topic_[^/]+)?$/.test(pathname) ||
+    /^\/admin\/textbooks\/review\/[^/]+$/.test(pathname) ||
+    /^\/admin\/exam-documents(?:\/[^/]+)?$/.test(pathname);
 }

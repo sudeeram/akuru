@@ -162,6 +162,7 @@ export interface Schemas {
   "TextbookListResponse": { "textbooks": Array<Schemas["TextbookResponse"]>; };
   "TextbookResponse": { "textbookRef": string; "courseId": string; "subjectId": string; "title": string; "edition": string; "publisher": string; "groupLabel": "unit" | "module"; "groupDisplayLabel": "Unit" | "Module"; "status": string; "structureVersion": number; "groups": Array<Schemas["GroupResponse"]>; };
   "TextbookUpdateRequest": { "title": string; "edition": string; "publisher"?: string; "groupLabel": "unit" | "module"; };
+  "TopicDocumentMoveRequest": { "targetTopicRef": string; };
   "TopicDocumentQualityReport": { "documentId": string; "filename": string; "role": string; "reviewStatus": string; "pageCount": number; "equationCount": number; "diagramCount": number; "passed": boolean; "checks": Array<Schemas["TopicQualityCheck"]>; };
   "TopicDocumentRoleUpdateRequest": { "role": "primary" | "supporting" | "reference" | "visual_reference"; };
   "TopicDocumentSourceResponse": { "documentId": string; "documentVersionId": string; "filename": string; "role": "primary" | "supporting" | "reference" | "visual_reference"; "sequence": number; "reviewStatus": string; "documentStatus": string; "libraryReviewState": string; "unresolvedPageCount": number; "unresolvedBlockCount": number; "includedInRetrieval": boolean; "usedByPublishedVersion": boolean; "publishableBlockCount": number; "visualAssetCount": number; "selectedVisualCount"?: number; "approvedVisualCount"?: number; "pendingVisualCount"?: number; "duplicateOf"?: Array<string>; };
@@ -273,6 +274,7 @@ export interface ApiOperations {
   "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/apply-recommended-roles": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "PATCH /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: Schemas["TopicDocumentRoleUpdateRequest"]; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "DELETE /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}": { request: unknown; response: Array<Schemas["TopicDocumentSourceResponse"]> };
+  "POST /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/move": { request: Schemas["TopicDocumentMoveRequest"]; response: Array<Schemas["TopicDocumentSourceResponse"]> };
   "GET /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets": { request: unknown; response: Array<Schemas["TopicVisualAssetResponse"]> };
   "PATCH /api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets/{asset_ref}": { request: Schemas["TopicVisualAssetUpdateRequest"]; response: Array<Schemas["TopicVisualAssetResponse"]> };
   "GET /api/v1/admin/ui-features": { request: unknown; response: Schemas["UiFeaturesResponse"] };

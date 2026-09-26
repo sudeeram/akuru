@@ -8,7 +8,7 @@ from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
 from app.security import Principal
 from app.services import assessments, mastery, study_plans, weaknesses
-from app.models import Assessment
+from app.models import Assessment, Textbook, TextbookGroup, TextbookTopic, TextbookTopicDocument
 
 
 GRADES = ("Grade 10", "Grade 11")
@@ -82,7 +82,15 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
         document_repository = DocumentRepository(db)
         for document, _version in document_repository.active_documents():
             job = document_repository.latest_job(document.id)
+            topic_context = db.execute(select(
+                Textbook.public_ref, Textbook.title, TextbookGroup.code, TextbookGroup.title,
+                TextbookTopic.public_ref, TextbookTopic.code, TextbookTopic.title,
+            ).join(TextbookGroup, TextbookGroup.textbook_id == Textbook.id)
+              .join(TextbookTopic, TextbookTopic.group_id == TextbookGroup.id)
+              .join(TextbookTopicDocument, TextbookTopicDocument.topic_id == TextbookTopic.id)
+              .where(TextbookTopicDocument.document_id == document.id).limit(1)).first()
             portal_documents.append({
+                "publicRef": f"document_{document.id.hex}",
                 "id": str(document.id),
                 "name": document.title,
                 "subject": document.subject_id,
@@ -94,6 +102,14 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "processingProgress": job.progress if job else 0,
                 "processingError": job.error_message if job else None,
                 "edition": document.edition,
+                "createdAt": document.created_at.isoformat(),
+                "textbookRef": topic_context[0] if topic_context else None,
+                "textbookTitle": topic_context[1] if topic_context else None,
+                "groupCode": topic_context[2] if topic_context else None,
+                "groupTitle": topic_context[3] if topic_context else None,
+                "topicRef": topic_context[4] if topic_context else None,
+                "topicCode": topic_context[5] if topic_context else None,
+                "topicTitle": topic_context[6] if topic_context else None,
             })
     visible_students = student_rows(db, principal) if not principal.user.must_change_password else []
     if principal.user.role == "student" and not principal.user.must_change_password:

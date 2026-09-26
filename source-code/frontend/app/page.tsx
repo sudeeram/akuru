@@ -88,8 +88,8 @@ const parentNav = [
 const adminNav = [
   ['today', 'Admin overview', LayoutDashboard],
   ['accounts', 'Accounts & enrolments', Users],
-  ['library', 'Documents & textbooks', Library],
-  ['units', 'Textbook structure', BookOpen],
+  ['library', 'Exam Documents', Library],
+  ['units', 'Textbooks', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
   ['questions', 'Question mapping', ClipboardCheck],
   ['flashcards', 'Flashcard release', Layers3],
@@ -163,6 +163,10 @@ export function Portal() {
     if (legacyKnown) {
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
       void navigate({ to: pathForView(role, legacy) });
+      return;
+    }
+    if (role === 'admin' && location.pathname === '/admin/library') {
+      void navigate({ to: '/admin/exam-documents', replace: true });
       return;
     }
     if (!roleAllowsPath(role, location.pathname)) void navigate({ to: pathForView(role, 'today'), replace: true });
@@ -454,6 +458,9 @@ export function Portal() {
             view={view}
             refresh={refresh}
             notify={notify}
+            pathname={location.pathname}
+            search={location.searchStr}
+            navigate={navigateTo}
           />
         ) : !child.id ? (
           <section className="panel">

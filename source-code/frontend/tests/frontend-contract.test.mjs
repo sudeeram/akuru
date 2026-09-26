@@ -29,6 +29,7 @@ const apiClient = readFileSync(new URL('../api/core/client.ts', import.meta.url)
 const documentApi = readFileSync(new URL('../api/documents/documents.api.ts', import.meta.url), 'utf8');
 const textbookApiClient = readFileSync(new URL('../api/textbooks/textbooks.api.ts', import.meta.url), 'utf8');
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
+const routes = readFileSync(new URL('../lib/routes.ts', import.meta.url), 'utf8');
 const tutorSessions = readFileSync(new URL('../features/tutor-sessions.tsx', import.meta.url), 'utf8');
 const learningMedia = readFileSync(new URL('../features/learning-media.tsx', import.meta.url), 'utf8');
 const admin = readFileSync(
@@ -182,7 +183,7 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /reviewedCaption/);
   assert.match(admin, /extractFigureCaption/);
   assert.match(styles, /\.extraction-visual-caption-group/);
-  assert.match(admin, /Retry processing/);
+  assert.match(admin, />Retry</);
   assert.match(admin, /removeDocument/);
   assert.doesNotMatch(admin, /api\('documents\/review'/);
   assert.match(admin, /TextbookStructureAdmin/);
@@ -205,7 +206,7 @@ test('admin attaches scanned textbook parts to a topic and reviews extraction ev
   assert.match(api, /uploadTopicPart/);
   assert.match(api, /uploadTopicPartsBatch/);
   assert.match(api, /suggestTopicParts/);
-  assert.match(textbookStructure, /Upload scanned textbook part PDFs or images/);
+  assert.match(textbookStructure, /UPLOAD DESTINATION/);
   assert.match(textbookStructure, /filename check suggests a different topic/);
   assert.match(admin, /Original page/);
   assert.match(admin, /Normalized review page/);
@@ -213,6 +214,31 @@ test('admin attaches scanned textbook parts to a topic and reviews extraction ev
   assert.match(admin, /Save reviewed block/);
   assert.match(api, /updateExtractionBlock/);
   assert.match(api, /updateExtractionPage/);
+});
+
+test('textbook structure distinguishes Unit and Topic creation and shows upload progress', () => {
+  assert.match(textbookStructure, /STEP 1 · TEXTBOOK ORGANISATION/);
+  assert.match(textbookStructure, /STEP 2 · LEARNING CONTENT/);
+  assert.match(textbookStructure, /group-create-form/);
+  assert.match(textbookStructure, /topic-create-form/);
+  assert.match(textbookStructure, /topic-upload-progress/);
+  assert.match(textbookStructure, /Uploading file/);
+  assert.match(textbookStructure, /queued for extraction/);
+  assert.match(textbookApiClient, /XMLHttpRequest/);
+  assert.match(textbookApiClient, /upload\.addEventListener\('progress'/);
+});
+
+test('textbook administration is routed, filterable and separated from exam documents', () => {
+  assert.match(routes, /\/admin\/textbooks\/new/);
+  assert.match(routes, /\/admin\/textbooks\/review/);
+  assert.match(routes, /\/admin\/exam-documents/);
+  assert.match(textbookStructure, /View Textbooks/);
+  assert.match(textbookStructure, /Apply filters/);
+  assert.match(textbookStructure, /Move source/);
+  assert.match(api, /moveTopicSource/);
+  assert.match(admin, /Review textbook documents/);
+  assert.match(admin, /Past Papers/);
+  assert.match(admin, /document\.publicRef/);
 });
 
 test('admin publishes reviewed topics independently with readiness and version history', () => {

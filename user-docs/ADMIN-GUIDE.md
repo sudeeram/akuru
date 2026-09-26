@@ -1,5 +1,13 @@
 # AKURU Admin Guide
 
+## Textbooks and exam documents
+
+Use **Textbooks** for the complete textbook workflow. **View Textbooks** provides filters and a Manage action, **Add Textbook** creates the textbook identity, and **Review Textbooks** lists uploaded textbook files with their textbook, Unit/Module and Topic destination. The Manage page is where you add Units or Modules, add Topics, upload files, review source roles, publish Topic content and publish the logical structure.
+
+Before choosing a file, confirm the upload destination shown above the picker. AKURU displays upload progress and then shows that the file was queued for extraction. If a file was attached to the wrong Topic, use **Manage topic sources → Move to another Topic**. AKURU refuses a move once the source has published, retrieval, or reviewed visual dependencies, protecting released learning evidence.
+
+Use **Exam Documents** for past papers, marking schemes, examiner reports and reference materials. Textbook upload and review controls no longer appear there. Existing private downloads, assessment relationships, review and retry actions remain available.
+
 Sign in with the Admin account created through the secure backend bootstrap
 command. AKURU contains no default Admin password.
 

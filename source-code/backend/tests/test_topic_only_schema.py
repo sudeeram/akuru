@@ -66,6 +66,9 @@ def test_openapi_exposes_topic_only_routes_and_contracts():
     assert "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/review-checklist" in paths
     assert "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/apply-recommended-roles" in paths
     assert "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets" in paths
+    move_path = "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/move"
+    assert move_path in paths
+    assert "TopicDocumentMoveRequest" in str(schema["paths"][move_path])
     serialized = str(schema)
     assert "UnitMasteryResponse" not in serialized
     assert "unitIds" not in serialized

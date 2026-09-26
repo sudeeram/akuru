@@ -1,5 +1,9 @@
 # Backend API
 
+## Textbook source moves
+
+`POST /api/v1/admin/textbooks/{textbookRef}/topics/{topicRef}/sources/{documentId}/move` moves an unreferenced source within the same textbook. It requires Admin authentication and CSRF protection, validates the destination through the textbook scope, rejects duplicates, and blocks sources used by published content, retrieval chunks, or reviewed visual assets. A successful move updates source metadata and writes a `textbook_topic_document.moved` audit event. No database migration is required for this UI release.
+
 ## Application composition
 
 `app/main.py` creates FastAPI, installs error handlers and security middleware, includes the v1 router, and exposes `/health` plus authenticated `/ready`. API documentation is available only in development.

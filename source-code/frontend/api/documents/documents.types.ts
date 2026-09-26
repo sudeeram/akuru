@@ -21,6 +21,7 @@ export type Doc = {
   paperId?: string;
   legacy?: boolean;
   id: string;
+  publicRef?: string;
   name: string;
   subject: string;
   kind: string;
@@ -29,6 +30,14 @@ export type Doc = {
   processingProgress?: number;
   processingError?: string | null;
   edition?: string | null;
+  createdAt?: string;
+  textbookRef?: string | null;
+  textbookTitle?: string | null;
+  groupCode?: string | null;
+  groupTitle?: string | null;
+  topicRef?: string | null;
+  topicCode?: string | null;
+  topicTitle?: string | null;
 };
 export type ExtractionBlock = {
   id: string;

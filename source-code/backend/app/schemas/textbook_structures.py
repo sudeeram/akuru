@@ -99,6 +99,10 @@ class TopicDocumentRoleUpdateRequest(BaseModel):
     role: Literal["primary", "supporting", "reference", "visual_reference"]
 
 
+class TopicDocumentMoveRequest(BaseModel):
+    targetTopicRef: str = Field(min_length=1, max_length=80)
+
+
 class TopicDocumentSourceResponse(BaseModel):
     documentId: str
     documentVersionId: str

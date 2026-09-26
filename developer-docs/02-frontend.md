@@ -1,5 +1,11 @@
 # Frontend
 
+## Routed textbook administration
+
+Admin textbook work uses `/admin/textbooks`, `/admin/textbooks/new`, `/admin/textbooks/{textbookRef}` and `/admin/textbooks/review/{documentRef}`. The route owns list, create, manage and review state, so browser navigation and deep links remain meaningful. Exam material lives under `/admin/exam-documents` and its type-specific subroutes. Legacy `/admin/library` links redirect to Exam Documents.
+
+The textbook list applies filters when the Admin selects **Apply filters**. Uploads use browser byte progress rather than a simulated timer. Review URLs use an opaque `document_...` reference; the internal UUID stays in API state.
+
 ## Browser routing and server state
 
 AKURU uses TanStack Router for browser history and typed application routes. `source-code/frontend/lib/routes.ts` owns role destinations and Flashcard URL builders; `lib/app-router.tsx` owns the route tree. The Vinext `app/[...path]/page.tsx` entry admits only known application paths, allowing direct links and refresh while returning a real 404 for unknown routes and missing assets.

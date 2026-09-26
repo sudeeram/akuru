@@ -8,6 +8,7 @@ from app.permissions import require_csrf_roles, require_roles
 from app.schemas.textbook_structures import (
     GroupSaveRequest, PublishStructureRequest, PublishTopicContentRequest, ReorderRequest, TextbookCreateRequest,
     TextbookListResponse, TextbookResponse, TextbookUpdateRequest, TopicDocumentRoleUpdateRequest,
+    TopicDocumentMoveRequest,
     TopicDocumentSourceResponse, TopicLaunchReadinessResponse, TopicQualityReport, TopicRetrievalPreflightRequest,
     TopicRetrievalPreflightResponse, TopicSaveRequest, TopicReviewChecklistResponse,
     TopicVisualAssetResponse, TopicVisualAssetUpdateRequest,
@@ -107,6 +108,16 @@ def detach_topic_source(textbook_ref: str, topic_ref: str, document_id: str,
                         principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
                         db: Annotated[Session, Depends(get_db)]):
     return textbook_structures.detach_topic_source(db, principal, textbook_ref, topic_ref, document_id)
+
+
+@router.post("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/move",
+             response_model=list[TopicDocumentSourceResponse])
+def move_topic_source(textbook_ref: str, topic_ref: str, document_id: str,
+                      payload: TopicDocumentMoveRequest,
+                      principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                      db: Annotated[Session, Depends(get_db)]):
+    return textbook_structures.move_topic_source(
+        db, principal, textbook_ref, topic_ref, document_id, payload.targetTopicRef)
 
 
 @router.get("/{textbook_ref}/topics/{topic_ref}/sources/{document_id}/visual-assets",

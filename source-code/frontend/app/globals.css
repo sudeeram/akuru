@@ -273,6 +273,20 @@ textarea:focus-visible,
 .catalogue-filters legend { padding: 0 5px; color: #314767; font-size: 14px; font-weight: 700; }
 .catalogue-filters .picker { min-width: 0; }
 .catalogue-filters label { margin-bottom: 0; }
+.structure-create-form { padding: 20px; border: 2px solid; border-radius: 16px; }
+.structure-create-form h3 { margin: 4px 0; font-size: 1.2rem; }
+.structure-create-form p { margin: 0; color: var(--muted); }
+.structure-create-form > button { justify-self: start; min-width: 180px; }
+.group-create-form { border-color: #8eb7e8; background: linear-gradient(135deg,#f3f8ff,#fff); }
+.topic-create-form { margin-top: 8px; border-color: #8ed6bd; background: linear-gradient(135deg,#f1fbf7,#fff); }
+.topic-record { padding: 18px; border: 1px solid #dbe4ee; border-left: 5px solid #5d89cf; border-radius: 14px; background: #fff; }
+.topic-upload-panel { display: grid; gap: 12px; padding: 16px; border: 1px dashed #8da5c5; border-radius: 12px; background: #f8fbff; }
+.topic-upload-picker { display: grid; gap: 7px; font-weight: 700; }
+.topic-upload-progress { display: grid; gap: 8px; padding: 12px; border-radius: 10px; background: #eef4ff; color: #294f8c; }
+.topic-upload-progress progress { width: 100%; height: 12px; accent-color: #2e65d5; }
+.topic-upload-progress.complete { background: #eaf8f0; color: #28724b; }
+.topic-upload-progress.complete progress { accent-color: #258257; }
+.topic-upload-progress.failed { background: #fff0f0; color: #a33434; }
 .status > span { display: inline-block; min-width: 0.8rem; font-weight: 800; text-align: center; }
 @media (max-width: 700px) {
   .catalogue-filters .three-cols { grid-template-columns: 1fr; }
@@ -2247,3 +2261,10 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .visual-asset-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 16px; }
 .visual-asset-card img { width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; background: #eef4f6; }
 .visual-asset-card textarea { min-height: 100px; }
+.secondary-nav { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; padding: 10px; border: 1px solid #dce8ee; border-radius: 14px; background: #f7fbfc; }
+.admin-table-wrap { width: 100%; overflow-x: auto; border: 1px solid #dce8ee; border-radius: 14px; }
+.admin-table { width: 100%; min-width: 820px; border-collapse: collapse; background: #fff; }
+.admin-table th, .admin-table td { padding: 12px 14px; border-bottom: 1px solid #e8eef2; text-align: left; vertical-align: top; }
+.admin-table th { background: #f3f8fa; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table progress { min-width: 110px; accent-color: #0f9fae; }

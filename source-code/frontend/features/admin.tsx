@@ -57,6 +57,9 @@ type Props = {
   view: string;
   refresh: () => Promise<void>;
   notify: (s: string) => void;
+  pathname: string;
+  search: string;
+  navigate: (to: string) => void;
 };
 type AIAccount = {
   name: string;
@@ -213,6 +216,7 @@ export function AdminWorkspace(p: Props) {
     [isbn, setIsbn] = useState(''),
     [sourceUrl, setSourceUrl] = useState('');
   const [docId, setDocId] = useState('');
+  const [reviewSearch, setReviewSearch] = useState(''), [reviewSubject, setReviewSubject] = useState('all'), [reviewStatus, setReviewStatus] = useState('all');
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
@@ -262,11 +266,31 @@ export function AdminWorkspace(p: Props) {
     'Marking scheme': 'mark_scheme',
     'Examiner report': 'examiner_report',
   } as const;
+  const textbookReviewMode = p.pathname.startsWith('/admin/textbooks/review');
+  const examSection = p.pathname.match(/^\/admin\/exam-documents\/([^/]+)$/)?.[1] || 'all';
+  const examKind = ({ 'past-papers': 'Past paper', 'mark-schemes': 'Marking scheme',
+    'examiner-reports': 'Examiner report', references: 'Reference material' } as Record<string, string>)[examSection];
+  const requestedTextbook = new URLSearchParams(p.search).get('textbook');
+  const visibleDocuments = textbookReviewMode
+    ? p.data.documents.filter((document) => document.kind === 'Textbook')
+    : p.data.documents.filter((document) => document.kind !== 'Textbook' && (!examKind || document.kind === examKind));
+  const filteredDocuments = visibleDocuments.filter((document) =>
+    (reviewSubject === 'all' || document.subject === reviewSubject) &&
+    (reviewStatus === 'all' || document.status === reviewStatus) &&
+    (!requestedTextbook || document.textbookRef === requestedTextbook) &&
+    (!reviewSearch.trim() || [document.name, document.textbookTitle, document.groupTitle,
+      document.topicTitle].filter(Boolean).join(' ').toLowerCase().includes(reviewSearch.trim().toLowerCase())));
   const processingDocuments = p.data.documents.some((document) =>
     ['queued', 'processing'].includes(document.status),
   );
-  const currentView = p.view;
+  const currentView = textbookReviewMode ? 'library' : p.view;
   const refreshPortal = p.refresh;
+  useEffect(() => {
+    if (!textbookReviewMode) return;
+    const documentRef = p.pathname.match(/^\/admin\/textbooks\/review\/([^/]+)$/)?.[1];
+    const selected = p.data.documents.find((document) => (document.publicRef || document.id) === documentRef);
+    if (selected) queueMicrotask(() => setDocId(selected.id));
+  }, [textbookReviewMode, p.pathname, p.data.documents]);
   useEffect(() => {
     if (currentView !== 'accounts') return;
     let active = true;
@@ -419,8 +443,8 @@ export function AdminWorkspace(p: Props) {
           {
             today: 'Curriculum administration',
             accounts: 'Accounts & enrolments',
-            library: 'Documents & textbooks',
-            units: 'Textbook structure',
+            library: 'Exam Documents',
+            units: 'Textbooks',
             coverage: 'Grade & term coverage',
             questions: 'Question mapping',
             blueprints: 'Mock paper blueprints',
@@ -442,6 +466,12 @@ export function AdminWorkspace(p: Props) {
           {error}
         </div>
       )}
+      {p.view === 'units' && <nav className="secondary-nav" aria-label="Textbook administration sections">
+        {[['/admin/textbooks', 'View Textbooks'], ['/admin/textbooks/new', 'Add Textbook'], ['/admin/textbooks/review', 'Review Textbooks']].map(([path, label]) => <Button key={path} variant={p.pathname === path || (path === '/admin/textbooks' && p.pathname.startsWith('/admin/textbooks/book_')) ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
+      </nav>}
+      {p.view === 'library' && <nav className="secondary-nav" aria-label="Exam document sections">
+        {[['/admin/exam-documents', 'All Exam Documents'], ['/admin/exam-documents/past-papers', 'Past Papers'], ['/admin/exam-documents/mark-schemes', 'Mark Schemes'], ['/admin/exam-documents/examiner-reports', 'Examiner Reports'], ['/admin/exam-documents/references', 'Reference Materials']].map(([path, label]) => <Button key={path} variant={p.pathname === path ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
+      </nav>}
       <fieldset
         disabled={busy}
         style={{ border: 0, padding: 0, minWidth: 0 }}
@@ -697,16 +727,16 @@ export function AdminWorkspace(p: Props) {
             </div>
           </>
         )}
-        {p.view === 'library' && (
+        {(p.view === 'library' || textbookReviewMode) && (
           <>
-            <section className="panel stack">
+            {!textbookReviewMode && <section className="panel stack">
               <h2>Upload a learning document</h2>
               {subjectPicker}
               <Picker
                 label="Document type"
                 value={kind}
                 onChange={setKind}
-                options={options(p.data.catalog.kinds)}
+                options={options(p.data.catalog.kinds.filter((item) => item !== 'Textbook'))}
               />
               {kind === 'Past paper' && (
                 <>
@@ -773,43 +803,12 @@ export function AdminWorkspace(p: Props) {
                   }}
                 />
               </label>
-            </section>
+            </section>}
             <section className="panel spaced stack">
-              <h2>Review documents</h2>
-              {p.data.documents.map((document) => (
-                <div className="stack" key={`processing-${document.id}`}>
-                  <div className="spread small">
-                    <span>{document.name}</span>
-                    <span>
-                      {document.status} · {document.processingProgress ?? 0}%
-                    </span>
-                  </div>
-                  {document.processingError && (
-                    <p className="error" role="alert">
-                      {document.processingError}
-                    </p>
-                  )}
-                  <div className="button-row">
-                    {document.status === 'failed' && (
-                      <Button
-                        variant="outline"
-                        onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}
-                      >
-                        Retry processing
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        if (window.confirm(`Remove ${document.name} from AKURU?`))
-                          void run(() => removeDocument(document.id), 'Document removed.');
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              <div className="spread"><h2>{textbookReviewMode ? 'Review textbook documents' : 'Review exam documents'}</h2>{textbookReviewMode && docId && <Button variant="outline" onClick={() => { setDocId(''); setExtraction(null); setDocumentJob(null); p.navigate(requestedTextbook ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}` : '/admin/textbooks/review'); }}>Return to review list</Button>}</div>
+              <fieldset className="catalogue-filters"><legend>Filter review work</legend><div className="three-cols"><label className="stack" htmlFor="review-document-search">Search<Input id="review-document-search" type="search" value={reviewSearch} onChange={(event) => setReviewSearch(event.target.value)} placeholder="Document, textbook, Unit or Topic"/></label><Picker label="Subject" value={reviewSubject} onChange={setReviewSubject} options={[{value:'all',label:'All subjects'},...p.data.subjects.map((item) => ({value:item.id,label:item.name}))]}/><Picker label="Status" value={reviewStatus} onChange={setReviewStatus} options={[{value:'all',label:'All statuses'},...Array.from(new Set(visibleDocuments.map((item) => item.status))).map((value) => ({value,label:value.replaceAll('_',' ')}))]}/></div><div className="button-row"><Button variant="outline" onClick={() => { setReviewSearch(''); setReviewSubject('all'); setReviewStatus('all'); }}>Clear filters</Button><span>{filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}</span></div></fieldset>
+              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>Review</Button>{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
+              {!filteredDocuments.length && <p>No documents match these filters.</p>}
               <Picker
                 label="Document to review"
                 value={docId}
@@ -819,7 +818,7 @@ export function AdminWorkspace(p: Props) {
                   setDocumentJob(null);
                   setExtractionError('');
                 }}
-                options={p.data.documents.map((d) => ({
+                options={filteredDocuments.map((d) => ({
                   value: d.id,
                   label: `${d.name} · ${d.subject} · ${d.kind} · ${d.status}`,
                 }))}
@@ -1026,8 +1025,8 @@ export function AdminWorkspace(p: Props) {
             </section>
           </>
         )}
-        {p.view === 'units' && (
-          <TextbookStructureAdmin subjects={p.data.subjects} students={p.data.students} notify={p.notify} refreshPortal={p.refresh} />
+        {p.view === 'units' && !textbookReviewMode && (
+          <TextbookStructureAdmin subjects={p.data.subjects} students={p.data.students} notify={p.notify} refreshPortal={p.refresh} pathname={p.pathname} navigate={p.navigate} />
         )}
         {p.view === 'coverage' && (
           <section className="panel stack">
