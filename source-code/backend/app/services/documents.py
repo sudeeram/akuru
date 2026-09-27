@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import uuid
 from pathlib import PurePath
 
@@ -15,10 +16,12 @@ from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (
     DocumentExtractionResponse, DocumentResponse, DocumentType, DocumentUploadResponse,
+    FinalDocumentBlockResponse, FinalDocumentPageResponse, FinalDocumentResponse,
     ExtractionBlockResponse, ExtractionPageResponse,
 )
 from app.security import Principal, utcnow
 from app.services.document_processing import enqueue_safely, job_response
+from app.services.paragraph_reconstruction import RECONSTRUCTION_VERSION, reconstruct_blocks
 from app.storage.base import ObjectStorage, StoredObject
 from app.malware import scan
 
@@ -374,6 +377,227 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
     _refresh_topic_document_readiness(db, version.id, principal.user.id)
     db.commit()
     return extraction_response(db, document_id)
+
+
+def _block_payload(block: DocumentBlock) -> dict:
+    return {"kind": block.block_kind, "text": block.text, "latex": block.latex,
+            "bbox": block.bounding_box, "bboxSpace": block.block_metadata.get("bboxSpace", "normalized"),
+            "method": block.extraction_method, "confidence": block.confidence,
+            "needsReview": block.needs_review, "metadata": block.block_metadata,
+            "sourceAssetId": str(block.source_asset_id) if block.source_asset_id else None}
+
+
+def reconstruction_preview(db: Session, document_id: uuid.UUID) -> dict:
+    document, version = get_document(db, document_id)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_version_id == version.id)).all()
+    if any(link.review_status in {"published", "superseded"} for link in links) or document.review_state == "published":
+        raise DomainError("published_document_immutable",
+                          "Published textbook evidence cannot be reconstructed. Upload a new source version instead.", 409)
+    if links and all(link.role == "visual_reference" for link in links):
+        raise DomainError("visual_reference_text_excluded",
+                          "Visual Reference OCR is excluded from required text reconstruction.", 409)
+    before = 0; after = 0; examples = []; reviewed = 0
+    pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number)).all()
+    for page in pages:
+        rows = db.scalars(select(DocumentBlock).where(DocumentBlock.page_id == page.id)
+                          .order_by(DocumentBlock.sequence_number)).all()
+        rebuilt = reconstruct_blocks([_block_payload(row) for row in rows])
+        before += len(rows); after += len(rebuilt)
+        reviewed += sum(row.block_metadata.get("adminReviewed") is True for row in rows)
+        for old, new in zip(rows, rebuilt):
+            if old.text != new["text"] and len(examples) < 10:
+                examples.append({"pageNumber": page.page_number, "before": old.text, "after": new["text"]})
+    return {"documentId": str(document.id), "version": RECONSTRUCTION_VERSION,
+            "pageCount": len(pages), "beforeBlockCount": before, "afterBlockCount": after,
+            "reviewedBlockCount": reviewed, "examples": examples}
+
+
+def reprocess_paragraphs(db: Session, principal: Principal, document_id: uuid.UUID,
+                         *, confirm_overwrite_reviewed: bool) -> DocumentExtractionResponse:
+    document, version = get_document(db, document_id)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_version_id == version.id)).all()
+    if any(link.review_status in {"published", "superseded"} for link in links) or document.review_state == "published":
+        raise DomainError("published_document_immutable",
+                          "Published textbook evidence cannot be reconstructed. Upload a new source version instead.", 409)
+    if links and all(link.role == "visual_reference" for link in links):
+        raise DomainError("visual_reference_text_excluded",
+                          "Visual Reference OCR is excluded from required text reconstruction.", 409)
+    pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number)).all()
+    reviewed = any(block.block_metadata.get("adminReviewed") is True for block in db.scalars(
+        select(DocumentBlock).where(DocumentBlock.document_version_id == version.id)).all())
+    if reviewed and not confirm_overwrite_reviewed:
+        raise DomainError("reviewed_blocks_confirmation_required",
+                          "This source contains manual review work. Confirm before reconstructing its draft.", 409)
+    before_count = 0; after_count = 0
+    for page in pages:
+        rows = db.scalars(select(DocumentBlock).where(DocumentBlock.page_id == page.id)
+                          .order_by(DocumentBlock.sequence_number)).all()
+        before_count += len(rows)
+        reconstructed = reconstruct_blocks([_block_payload(row) for row in rows])
+        after_count += len(reconstructed)
+        sequence_offset = (max((row.sequence_number for row in rows), default=0)
+                           + len(rows) + len(reconstructed) + 1)
+        for row in rows:
+            row.sequence_number += sequence_offset
+        db.flush()
+        keepers: set[uuid.UUID] = set()
+        for sequence, data in enumerate(reconstructed, 1):
+            raw_lines = data.get("metadata", {}).get("reconstruction", {}).get("rawLines", [])
+            indices = sorted({int(line["sourceIndex"]) for line in raw_lines if line.get("sourceIndex") is not None})
+            if not indices:
+                source = data.get("metadata", {}).get("sourceLine", {}).get("sourceIndex")
+                indices = [int(source)] if source is not None else [sequence - 1]
+            keeper = rows[min(indices)]
+            keepers.add(keeper.id)
+            keeper.sequence_number = sequence
+            keeper.text = data["text"]; keeper.bounding_box = data["bbox"]
+            keeper.confidence = data["confidence"]; keeper.needs_review = True
+            keeper.block_metadata = {**data.get("metadata", {}), "reprocessedBy": str(principal.user.id),
+                                     "reconstructionVersion": RECONSTRUCTION_VERSION,
+                                     "adminReviewed": False}
+        for row in rows:
+            if row.id not in keepers:
+                db.delete(row)
+        db.flush()
+        page.needs_review = True
+        page.page_metadata = {**page.page_metadata,
+                              "paragraphReconstructionVersion": RECONSTRUCTION_VERSION}
+    document.review_state = "pending"; version.status = "needs_review"
+    for link in links:
+        if link.review_status not in {"published", "superseded", "failed"}: link.review_status = "needs_review"
+    db.add(DocumentEvent(document_id=document.id, document_version_id=version.id,
+        actor_id=principal.user.id, event_type="paragraph_reconstruction_applied",
+        event_data={"version": RECONSTRUCTION_VERSION, "beforeBlockCount": before_count,
+                    "afterBlockCount": after_count, "overwroteReviewed": bool(reviewed)}))
+    db.commit()
+    return extraction_response(db, document_id)
+
+
+def paragraph_operation(db: Session, principal: Principal, document_id: uuid.UUID,
+                        block_id: uuid.UUID, *, action: str,
+                        split_offset: int | None = None) -> DocumentExtractionResponse:
+    document, version = get_document(db, document_id)
+    if document.review_state == "published":
+        raise DomainError("published_document_immutable", "Published textbook evidence cannot be edited.", 409)
+    block = db.scalar(select(DocumentBlock).where(
+        DocumentBlock.id == block_id, DocumentBlock.document_version_id == version.id))
+    if not block: raise DomainError("document_block_not_found", "The extracted block could not be found.", 404)
+    if block.block_kind in {"image", "diagram", "equation", "table"}:
+        raise DomainError("paragraph_operation_not_supported", "This structured block cannot be joined or split as a paragraph.", 422)
+    event_data = {"blockId": str(block.id), "action": action}
+    if action == "join_previous":
+        previous = db.scalar(select(DocumentBlock).where(
+            DocumentBlock.page_id == block.page_id,
+            DocumentBlock.sequence_number < block.sequence_number,
+        ).order_by(DocumentBlock.sequence_number.desc()))
+        if not previous or previous.block_kind in {"image", "diagram", "equation", "table"}:
+            raise DomainError("previous_paragraph_unavailable", "There is no compatible previous paragraph to join.", 409)
+        original = f"{previous.block_metadata.get('reconstruction', {}).get('rawText', previous.text)}\n{block.block_metadata.get('reconstruction', {}).get('rawText', block.text)}"
+        previous.text = f"{previous.text.rstrip()} {block.text.lstrip()}".strip()
+        previous.bounding_box = {"x0": min(previous.bounding_box["x0"], block.bounding_box["x0"]),
+            "y0": min(previous.bounding_box["y0"], block.bounding_box["y0"]),
+            "x1": max(previous.bounding_box["x1"], block.bounding_box["x1"]),
+            "y1": max(previous.bounding_box["y1"], block.bounding_box["y1"])}
+        previous.needs_review = True
+        clean_metadata = {key: value for key, value in previous.block_metadata.items()
+                          if key not in {"scientificContent", "searchAlias"}}
+        previous.block_metadata = {**clean_metadata, "adminReviewed": False,
+            "reconstruction": {"version": RECONSTRUCTION_VERSION, "rawText": original,
+                               "manualOperation": "join_previous"}}
+        db.delete(block); db.flush()
+    elif action == "split":
+        if split_offset is None or split_offset >= len(block.text):
+            raise DomainError("invalid_split_offset", "Choose a split point inside the paragraph.", 422)
+        left, right = block.text[:split_offset].strip(), block.text[split_offset:].strip()
+        if not left or not right: raise DomainError("invalid_split_offset", "Both split paragraphs must contain text.", 422)
+        later = db.scalars(select(DocumentBlock).where(
+            DocumentBlock.page_id == block.page_id,
+            DocumentBlock.sequence_number > block.sequence_number).order_by(DocumentBlock.sequence_number.desc())).all()
+        sequence_offset = max(
+            [block.sequence_number, *(row.sequence_number for row in later)],
+            default=block.sequence_number,
+        ) + len(later) + 1
+        for row in later: row.sequence_number += sequence_offset
+        db.flush()
+        for row in later: row.sequence_number = row.sequence_number - sequence_offset + 1
+        original = block.block_metadata.get("reconstruction", {}).get("rawText", block.text)
+        block.text = left; block.needs_review = True
+        clean_metadata = {key: value for key, value in block.block_metadata.items()
+                          if key not in {"scientificContent", "searchAlias"}}
+        block.block_metadata = {**clean_metadata, "adminReviewed": False,
+            "reconstruction": {"version": RECONSTRUCTION_VERSION, "rawText": original,
+                               "manualOperation": "split"}}
+        db.add(DocumentBlock(document_version_id=version.id, page_id=block.page_id,
+            sequence_number=block.sequence_number + 1, block_kind=block.block_kind, text=right,
+            latex=None, bounding_box=block.bounding_box, extraction_method=block.extraction_method,
+            confidence=block.confidence, needs_review=True, source_asset_id=block.source_asset_id,
+            block_metadata={**block.block_metadata, "splitFromBlockId": str(block.id)}))
+    elif action == "restore_extracted":
+        raw = block.block_metadata.get("reconstruction", {}).get("rawText")
+        if not raw: raise DomainError("raw_extraction_unavailable", "No original extracted text is available for this block.", 409)
+        block.text = raw; block.needs_review = True
+        clean_metadata = {key: value for key, value in block.block_metadata.items()
+                          if key not in {"scientificContent", "searchAlias"}}
+        block.block_metadata = {**clean_metadata, "adminReviewed": False,
+                                "restoredExtraction": True}
+    page = db.get(DocumentPage, block.page_id); page.needs_review = True
+    event_data["pageNumber"] = page.page_number
+    db.add(DocumentEvent(document_id=document.id, document_version_id=version.id,
+        actor_id=principal.user.id, event_type="paragraph_review_operation", event_data=event_data))
+    _refresh_topic_document_readiness(db, version.id, principal.user.id)
+    db.commit(); return extraction_response(db, document_id)
+
+
+def final_document(db: Session, document_id: uuid.UUID) -> FinalDocumentResponse:
+    document, version = get_document(db, document_id); pages_out = []; digest_rows = []; blockers = []
+    pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number)).all()
+    for page in pages:
+        if not page.printed_page_label: blockers.append(f"Page {page.page_number} needs a Printed page label.")
+        blocks_out = []
+        blocks = db.scalars(select(DocumentBlock).where(DocumentBlock.page_id == page.id)
+                            .order_by(DocumentBlock.sequence_number)).all()
+        for block in blocks:
+            if block.needs_review: blockers.append(f"Page {page.page_number}, block {block.sequence_number} needs review.")
+            raw = block.block_metadata.get("reconstruction", {}).get("rawText", block.text)
+            digest_rows.append(f"{page.page_number}:{page.printed_page_label}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}:{json.dumps(block.block_metadata.get('scientificContent'), sort_keys=True)}")
+            blocks_out.append(FinalDocumentBlockResponse(id=str(block.id), pageId=str(page.id),
+                pageNumber=page.page_number, printedPageLabel=page.printed_page_label,
+                sequenceNumber=block.sequence_number, kind=block.block_kind, text=block.text,
+                latex=block.latex, confidence=block.confidence, needsReview=block.needs_review,
+                rawText=raw, sourceAssetId=str(block.source_asset_id) if block.source_asset_id else None,
+                metadata=block.block_metadata))
+        pages_out.append(FinalDocumentPageResponse(id=str(page.id), pageNumber=page.page_number,
+            printedPageLabel=page.printed_page_label, renderAssetId=str(page.original_render_asset_id or page.render_asset_id),
+            blocks=blocks_out))
+    content_hash = hashlib.sha256("\n".join(digest_rows).encode()).hexdigest()
+    confirmation = document.source_metadata.get("finalDocumentReview", {})
+    return FinalDocumentResponse(documentId=str(document.id), versionId=str(version.id),
+        reconstructionVersion=RECONSTRUCTION_VERSION, contentHash=content_hash,
+        confirmed=confirmation.get("contentHash") == content_hash,
+        confirmedAt=confirmation.get("confirmedAt"), blockers=blockers, pages=pages_out)
+
+
+def confirm_final_document(db: Session, principal: Principal, document_id: uuid.UUID,
+                           *, confirm_complete: bool) -> FinalDocumentResponse:
+    if not confirm_complete: raise DomainError("final_document_confirmation_required", "Confirm the complete reviewed document.", 422)
+    document, version = get_document(db, document_id); result = final_document(db, document_id)
+    if result.blockers:
+        raise DomainError("final_document_not_ready", "Resolve every document review item before confirmation.", 409,
+                          [{"message": value} for value in result.blockers])
+    confirmed_at = utcnow().isoformat()
+    document.source_metadata = {**document.source_metadata, "finalDocumentReview": {
+        "contentHash": result.contentHash, "confirmedAt": confirmed_at,
+        "confirmedBy": str(principal.user.id), "reconstructionVersion": RECONSTRUCTION_VERSION,
+        "rendererVersion": 1}}
+    db.add(DocumentEvent(document_id=document.id, document_version_id=version.id,
+        actor_id=principal.user.id, event_type="final_reviewed_document_confirmed",
+        event_data={"contentHash": result.contentHash, "reconstructionVersion": RECONSTRUCTION_VERSION}))
+    db.commit(); return final_document(db, document_id)
 
 
 def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUID,

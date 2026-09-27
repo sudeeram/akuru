@@ -26,6 +26,17 @@ function formattedRuns(content: ScientificTextContent) {
   });
 }
 
+export function ScientificTextPreview({ content }: { content: ScientificTextContent }) {
+  return <p>{formattedRuns(content).map((run) => {
+    let node: ReactNode = run.text;
+    if (run.marks.includes('subscript')) node = <sub>{node}</sub>;
+    if (run.marks.includes('superscript')) node = <sup>{node}</sup>;
+    if (run.marks.includes('bold')) node = <strong>{node}</strong>;
+    if (run.marks.includes('italic')) node = <em>{node}</em>;
+    return <span key={`${run.start}-${run.text}`}>{node}</span>;
+  })}</p>;
+}
+
 export function ScientificTextEditor({ id, content, proposal, onChange }: {
   id: string;
   content: ScientificTextContent;
@@ -95,13 +106,6 @@ export function ScientificTextEditor({ id, content, proposal, onChange }: {
       if (event.key === ',') { event.preventDefault(); apply('subscript'); }
       if (event.key === '.') { event.preventDefault(); apply('superscript'); }
     }}/>
-    <div className="scientific-preview" aria-label="Student display preview"><strong>Student display preview</strong><p>{formattedRuns(content).map((run) => {
-      let node: ReactNode = run.text;
-      if (run.marks.includes('subscript')) node = <sub>{node}</sub>;
-      if (run.marks.includes('superscript')) node = <sup>{node}</sup>;
-      if (run.marks.includes('bold')) node = <strong>{node}</strong>;
-      if (run.marks.includes('italic')) node = <em>{node}</em>;
-      return <span key={`${run.start}-${run.text}`}>{node}</span>;
-    })}</p><small>Search alias: {content.plainText}</small></div>
+    <div className="scientific-preview" aria-label="Student display preview"><strong>Student display preview</strong><ScientificTextPreview content={content}/><small>Search alias: {content.plainText}</small></div>
   </div>;
 }

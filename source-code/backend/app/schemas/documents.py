@@ -136,6 +136,70 @@ class ExtractionBlockUpdateRequest(BaseModel):
     scientificContent: ScientificTextContent | None = None
 
 
+class ParagraphOperationRequest(BaseModel):
+    action: Literal["join_previous", "split", "restore_extracted"]
+    splitOffset: int | None = Field(default=None, ge=1, le=100_000)
+
+
+class ReconstructionApplyRequest(BaseModel):
+    confirmOverwriteReviewed: bool = False
+
+
+class ReconstructionPreviewExample(BaseModel):
+    pageNumber: int
+    before: str
+    after: str
+
+
+class ReconstructionPreviewResponse(BaseModel):
+    documentId: str
+    version: str
+    pageCount: int
+    beforeBlockCount: int
+    afterBlockCount: int
+    reviewedBlockCount: int
+    examples: list[ReconstructionPreviewExample] = Field(default_factory=list)
+
+
+class FinalDocumentConfirmRequest(BaseModel):
+    confirmComplete: bool
+
+
+class FinalDocumentBlockResponse(BaseModel):
+    id: str
+    pageId: str
+    pageNumber: int
+    printedPageLabel: str | None = None
+    sequenceNumber: int
+    kind: str
+    text: str
+    latex: str | None = None
+    confidence: float
+    needsReview: bool
+    rawText: str
+    sourceAssetId: str | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class FinalDocumentPageResponse(BaseModel):
+    id: str
+    pageNumber: int
+    printedPageLabel: str | None = None
+    renderAssetId: str
+    blocks: list[FinalDocumentBlockResponse] = Field(default_factory=list)
+
+
+class FinalDocumentResponse(BaseModel):
+    documentId: str
+    versionId: str
+    reconstructionVersion: str
+    contentHash: str
+    confirmed: bool
+    confirmedAt: str | None = None
+    blockers: list[str] = Field(default_factory=list)
+    pages: list[FinalDocumentPageResponse] = Field(default_factory=list)
+
+
 class TopicPartBatchItem(BaseModel):
     filename: str
     contentType: str

@@ -11,6 +11,8 @@ from app.queue import DocumentQueue, get_document_queue
 from app.schemas.documents import (
     DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
     DocumentType, DocumentUploadResponse, ExtractionBlockUpdateRequest, ExtractionPageUpdateRequest,
+    FinalDocumentConfirmRequest, FinalDocumentResponse, ParagraphOperationRequest,
+    ReconstructionApplyRequest, ReconstructionPreviewResponse,
 )
 from app.schemas.official_materials import OfficialMaterialReview, PublishOfficialMaterialRequest, SaveOfficialMaterialReview
 from app.security import Principal
@@ -132,6 +134,44 @@ def update_extraction_block(document_id: uuid.UUID, block_id: uuid.UUID, payload
                                              text=payload.text, latex=payload.latex,
                                              caption=payload.caption, sequence_number=payload.sequenceNumber,
                                              scientific_content=payload.scientificContent.model_dump() if payload.scientificContent else None)
+
+
+@router.post("/{document_id}/extraction/blocks/{block_id}/paragraph", response_model=DocumentExtractionResponse)
+def paragraph_review_operation(document_id: uuid.UUID, block_id: uuid.UUID, payload: ParagraphOperationRequest,
+                               principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                               db: Annotated[Session, Depends(get_db)]):
+    return documents.paragraph_operation(db, principal, document_id, block_id,
+        action=payload.action, split_offset=payload.splitOffset)
+
+
+@router.post("/{document_id}/extraction/reconstruct", response_model=DocumentExtractionResponse)
+def reconstruct_document_paragraphs(document_id: uuid.UUID, payload: ReconstructionApplyRequest,
+                                    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                                    db: Annotated[Session, Depends(get_db)]):
+    return documents.reprocess_paragraphs(db, principal, document_id,
+        confirm_overwrite_reviewed=payload.confirmOverwriteReviewed)
+
+
+@router.get("/{document_id}/extraction/reconstruct-preview", response_model=ReconstructionPreviewResponse)
+def preview_document_paragraph_reconstruction(document_id: uuid.UUID,
+                                              _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                                              db: Annotated[Session, Depends(get_db)]):
+    return documents.reconstruction_preview(db, document_id)
+
+
+@router.get("/{document_id}/final-review", response_model=FinalDocumentResponse)
+def get_final_reviewed_document(document_id: uuid.UUID,
+                                _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                                db: Annotated[Session, Depends(get_db)]):
+    return documents.final_document(db, document_id)
+
+
+@router.post("/{document_id}/final-review/confirm", response_model=FinalDocumentResponse)
+def confirm_final_reviewed_document(document_id: uuid.UUID, payload: FinalDocumentConfirmRequest,
+                                    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                                    db: Annotated[Session, Depends(get_db)]):
+    return documents.confirm_final_document(db, principal, document_id,
+        confirm_complete=payload.confirmComplete)
 
 
 @router.get("/{document_id}/official-review", response_model=OfficialMaterialReview)

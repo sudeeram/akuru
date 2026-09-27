@@ -12,6 +12,7 @@ import pymupdf as fitz
 from PIL import Image, ImageOps, ImageStat
 
 from app.services.document_processing_types import ProcessingFailure
+from app.services.paragraph_reconstruction import RECONSTRUCTION_VERSION, reconstruct_blocks
 
 
 QUESTION_RE = re.compile(r"^\s*(?:question\s+)?\d+[.)]\s+", re.IGNORECASE)
@@ -172,6 +173,12 @@ def _ocr_blocks(png: bytes, command: str, subject_id: str) -> tuple[list[dict], 
                 "ocrLanguage": "+".join(selected), "notationReview": notation_review,
                 "ocrBlock": int(words[0]["block_num"]), "ocrParagraph": int(words[0]["par_num"]),
                 "ocrLine": int(words[0]["line_num"]),
+                "ocrWords": [{"text": word["text"], "confidence": round(word["confidence"] / 100, 4),
+                    "wordNumber": int(word["word_num"]),
+                    "bbox": {"x0": int(word["left"]) / width, "y0": int(word["top"]) / height,
+                             "x1": (int(word["left"]) + int(word["width"])) / width,
+                             "y1": (int(word["top"]) + int(word["height"])) / height}}
+                    for word in words],
             },
         }
         blocks.append(block)
@@ -213,12 +220,20 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
                 crop = _render_page(page, dpi, fitz.Rect(block["bbox"]))
                 source_asset_index = len(assets)
                 assets.append({"kind": "equation_crop", "mimeType": "image/png", "content": crop, "bbox": bbox_dict(block["bbox"])})
+            native_lines = [{"text": "".join(span.get("text", "") for span in line.get("spans", [])).strip(),
+                "bbox": list(line.get("bbox", ())),
+                "spans": [{"text": span.get("text", ""), "bbox": list(span.get("bbox", ())),
+                    "origin": list(span.get("origin", ())), "size": float(span.get("size", 0)),
+                    "font": span.get("font", ""), "flags": int(span.get("flags", 0))}
+                    for span in line.get("spans", [])]}
+                for line in block.get("lines", [])]
             blocks.append({
                 "kind": kind, "text": text, "latex": text_to_latex(text) if kind == "equation" else None,
                 "bbox": bbox_dict(block["bbox"]), "bboxSpace": "pdf_points", "method": "native_pdf",
                 "confidence": 0.99, "needsReview": kind == "equation" or notation_review,
                 "sourceAssetIndex": source_asset_index,
-                "metadata": {"notationReview": notation_review},
+                "metadata": {"notationReview": notation_review, "nativeLines": native_lines,
+                             "medianFontSize": median},
             })
             if has_math and kind != "equation":
                 blocks.append({
@@ -340,6 +355,7 @@ def extract_document(
                 blocks = ocr_blocks + visual_blocks
                 blocks.sort(key=lambda item: (item["bbox"]["y0"], item["bbox"]["x0"]))
                 method = "ocr+native_pdf" if visual_blocks else "ocr"
+            blocks = reconstruct_blocks(blocks)
             page_review = not blocks or ocr_metadata.get("languageFallback", False) or any(
                 block["needsReview"] for block in blocks
             )
@@ -355,7 +371,8 @@ def extract_document(
                 "method": method,
                 "confidence": min((block["confidence"] for block in blocks), default=0),
                 "needsReview": page_review,
-                "metadata": {**ocr_metadata, **quality_metadata},
+                "metadata": {**ocr_metadata, **quality_metadata,
+                             "paragraphReconstructionVersion": RECONSTRUCTION_VERSION},
                 "originalRender": original_render,
                 "blocks": blocks,
                 "assets": assets,

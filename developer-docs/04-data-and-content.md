@@ -60,6 +60,15 @@ OCR text and geometry remain available for audit. The API validates mark types
 and ranges and rejects arbitrary HTML. Existing JSON metadata stores the feature,
 so there is no migration.
 
+Paragraph reconstruction also uses existing page and block metadata. New
+extractions preserve raw line text, OCR paragraph/line identities, geometry,
+layout column, confidence and versioned boundary decisions. Reconstructed block
+text is the editable draft; raw evidence remains available through comparison.
+Final-document confirmation is stored in `Document.source_metadata` with the
+exact content hash and is repeated in `DocumentEvent`. Any saved content change
+changes the computed hash and therefore invalidates the confirmation. Published
+content versions remain immutable and cannot be reprocessed.
+
 ## Document lifecycle
 
 1. Admin uploads a supported private file.

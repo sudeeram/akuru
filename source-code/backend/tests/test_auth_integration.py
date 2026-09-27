@@ -470,6 +470,16 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
     monkeypatch.setattr(document_processing, "SessionLocal", worker_session)
     storage = app.dependency_overrides[get_storage](); queue = app.dependency_overrides[get_document_queue]()
     assert document_processing.process_job(uuid.UUID(upload.json()["job"]["id"]), storage) == "needs_review"
+    preview = client.get(f"/api/v1/documents/{upload.json()['document']['id']}/extraction/reconstruct-preview")
+    assert preview.status_code == 200 and preview.json()["version"] == "paragraph-reconstruction-1.0.0"
+    reconstructed = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/extraction/reconstruct",
+        headers=headers, json={"confirmOverwriteReviewed": False})
+    assert reconstructed.status_code == 200
+    assert session.scalar(select(DocumentEvent).where(
+        DocumentEvent.document_version_id == version_id,
+        DocumentEvent.event_type == "paragraph_reconstruction_applied",
+    ))
     extraction = client.get(f"/api/v1/documents/{upload.json()['document']['id']}/extraction").json()
     page = extraction["pages"][0]
     assert page["originalRenderAssetId"] and page["renderAssetId"] != page["originalRenderAssetId"]
@@ -495,6 +505,17 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
     assert session.scalar(select(DocumentEvent).where(
         DocumentEvent.document_version_id == version_id,
         DocumentEvent.event_type == "extraction_review_completed",
+    ))
+    final_review = client.get(f"/api/v1/documents/{upload.json()['document']['id']}/final-review")
+    assert final_review.status_code == 200
+    assert final_review.json()["blockers"] == [] and final_review.json()["confirmed"] is False
+    confirmed_review = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/final-review/confirm",
+        headers=headers, json={"confirmComplete": True})
+    assert confirmed_review.status_code == 200 and confirmed_review.json()["confirmed"] is True
+    assert session.scalar(select(DocumentEvent).where(
+        DocumentEvent.document_version_id == version_id,
+        DocumentEvent.event_type == "final_reviewed_document_confirmed",
     ))
     ready_book = client.get(f"/api/v1/admin/textbooks/{book_ref}").json()
     ready_topic = next(item for row in ready_book["groups"] for item in row["topics"] if item["topicRef"] == topic_ref)
@@ -523,6 +544,10 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
         confidence=reviewed_block.confidence, needs_review=False,
         source_asset_id=reviewed_block.source_asset_id, block_metadata={"testDuplicate": True}))
     session.commit()
+    reconfirmed = client.post(
+        f"/api/v1/documents/{upload.json()['document']['id']}/final-review/confirm",
+        headers=headers, json={"confirmComplete": True})
+    assert reconfirmed.status_code == 200 and reconfirmed.json()["confirmed"] is True
     republished_content = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",
                                       headers=headers, json=confirmation)
     assert republished_content.status_code == 200
@@ -1076,6 +1101,7 @@ def test_admin_document_upload_validation_private_download_and_removal(auth_clie
         assert changed.status_code == 204
         assert parent_client.get(f"/api/v1/documents/{document['id']}/content").status_code == 403
         assert parent_client.get(f"/api/v1/documents/{document['id']}/extraction").status_code == 403
+        assert parent_client.get(f"/api/v1/documents/{document['id']}/final-review").status_code == 403
 
     session: Session = next(app.dependency_overrides[get_db]())
     stored_document = session.get(Document, uuid.UUID(document["id"]))

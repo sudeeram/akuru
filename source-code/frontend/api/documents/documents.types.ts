@@ -70,8 +70,21 @@ export type ExtractionPage = {
   blocks: ExtractionBlock[];
 };
 export type DocumentExtraction = {
+  documentId?: string;
+  versionId?: string;
   status: string;
   pages: ExtractionPage[];
+};
+export type FinalDocumentBlock = {
+  id: string; pageId: string; pageNumber: number; printedPageLabel?: string | null;
+  sequenceNumber: number; kind: string; text: string; latex?: string | null;
+  confidence: number; needsReview: boolean; rawText: string; sourceAssetId?: string | null;
+  metadata: Record<string, unknown>;
+};
+export type FinalDocumentPage = { id: string; pageNumber: number; printedPageLabel?: string | null; renderAssetId: string; blocks: FinalDocumentBlock[] };
+export type FinalDocumentReview = {
+  documentId: string; versionId: string; reconstructionVersion: string; contentHash: string;
+  confirmed: boolean; confirmedAt?: string | null; blockers: string[]; pages: FinalDocumentPage[];
 };
 export type DocumentJob = {
   stage: string;

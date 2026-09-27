@@ -170,11 +170,19 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         "documentVersionId", "role", "sequence", "extractionVersion", "reviewedContentHash"
     )} for row in (published.source_manifest if published else [])]
     has_draft_changes = not published or live_fingerprints != published_fingerprints
+    reconstruction_links = [link for link in text_links if any(
+        page.page_metadata.get("paragraphReconstructionVersion")
+        for page in db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id)).all()
+    )]
+    final_reviews_ready = (not has_draft_changes) or all(
+        documents.final_document(db, link.document_id).confirmed for link in reconstruction_links
+    )
     quality = topic_quality.report(db, topic)
     pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
         TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected",
     )) or 0)
-    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes and not pending_visuals and not visual_processing and not visual_failed and not visual_missing_labels
+    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes and final_reviews_ready and not pending_visuals and not visual_processing and not visual_failed and not visual_missing_labels
     if published: state = "published"
     elif not links: state = "no_document"
     elif failed: state = "failed"
@@ -190,6 +198,8 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         {"code": "no_failures", "passed": failed == 0, "message": "Failed textbook parts must be retried or removed."},
         {"code": "quality_gate", "passed": quality["passed"],
          "message": "Every topic PDF must meet page, OCR, formula, diagram, printed-page and retrieval thresholds."},
+        {"code": "final_document_review", "passed": final_reviews_ready,
+         "message": "Confirm the complete reviewed document that AKURU will publish."},
         {"code": "visual_review", "passed": pending_visuals == 0,
          "message": "Every selected diagram, image or table needs approval and accessible text."},
         {"code": "visual_page_labels", "passed": visual_missing_labels == 0,

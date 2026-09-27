@@ -209,6 +209,21 @@ superscript, bold and italic and a normalized search alias. Original OCR evidenc
 is unchanged. Reviewed-content hashes include the structure, so formatting
 corrections are traceable without accepting arbitrary HTML.
 
+Paragraph reconstruction runs after layout ordering and before extraction rows
+are persisted. `paragraph-reconstruction-1.0.0` records raw lines, coordinates,
+confidence, join or preserved-boundary reasons and dehyphenation evidence in
+existing JSON metadata. This needs no schema migration. Admin paragraph
+operations mutate only an unpublished review draft, create document audit events
+and invalidate final confirmation through a changed content hash. Reprocessing
+fails for published or Visual Reference sources and requires confirmation before
+reopening manually reviewed blocks.
+
+The final-review API assembles pages and blocks in reading order, reports every
+missing page label and unresolved block, and records reviewer, time, renderer,
+reconstruction version and content hash on confirmation. Topic readiness requires
+this confirmation for newly reconstructed text sources. Retrieval publication
+continues to index the reviewed block text with exact page provenance.
+
 ## API and migration strategy
 
 Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.

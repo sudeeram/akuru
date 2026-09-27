@@ -46,6 +46,8 @@ def test_subject_fixtures_preserve_blocks_and_coordinates(fixture) -> None:
     assert fixture["expected"] in kinds
     assert "subpart" in kinds
     assert "answer_space" in kinds
+    assert page["metadata"]["paragraphReconstructionVersion"] == "paragraph-reconstruction-1.0.0"
+    assert any(block.get("metadata", {}).get("nativeLines") for block in page["blocks"] if block["method"] == "native_pdf")
     assert all(block["bbox"] and block["method"] and 0 <= block["confidence"] <= 1 for block in page["blocks"])
     if fixture["subject"] == "Maths":
         equation = next(block for block in page["blocks"] if block["kind"] == "equation")
@@ -75,6 +77,7 @@ def test_scanned_page_uses_ocr_and_keeps_diagram() -> None:
     extracted = result["pages"][0]
     assert extracted["method"] == "ocr+native_pdf"
     assert any(block["method"] == "ocr" and "12" in block["text"] for block in extracted["blocks"])
+    assert any(block.get("metadata", {}).get("ocrWords") for block in extracted["blocks"] if block["method"] == "ocr")
     assert any(block["kind"] == "diagram" for block in extracted["blocks"])
 
 

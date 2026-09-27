@@ -52,6 +52,7 @@ import { TutorPresetAdmin } from './tutor-profiles';
 import { TutorQuotaAdmin } from './tutor-quotas';
 import { TutorHistory } from './tutor-history';
 import { TextbookStructureAdmin } from './textbook-structure';
+import { FinalDocumentReviewWorkspace } from './final-document-review';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -223,6 +224,7 @@ export function AdminWorkspace(p: Props) {
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
   const [hideReviewedBlocks, setHideReviewedBlocks] = useState<Record<string, boolean>>({});
+  const [showFinalDocument, setShowFinalDocument] = useState(false);
   const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
   const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
   const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
@@ -910,7 +912,12 @@ export function AdminWorkspace(p: Props) {
                     </section>
                   )}
                   {extractionError && <p className="error" role="alert">{extractionError}</p>}
-                  {extractionReview && (
+                  {textbookReviewMode && extraction && !visualReferenceReview && <div className="button-row">
+                    <Button className={showFinalDocument ? '' : 'primary'} variant={showFinalDocument ? 'outline' : 'default'} onClick={() => setShowFinalDocument(false)}>Review pages and blocks</Button>
+                    <Button className={showFinalDocument ? 'primary' : ''} variant={showFinalDocument ? 'default' : 'outline'} onClick={() => setShowFinalDocument(true)}>Review complete document</Button>
+                  </div>}
+                  {showFinalDocument && doc && extraction && !visualReferenceReview && <FinalDocumentReviewWorkspace documentId={doc.id} notify={p.notify} extractionChanged={setExtraction}/>}
+                  {!showFinalDocument && extractionReview && (
                     <section className="extraction-review-summary stack" aria-labelledby="extraction-review-summary-title">
                       <div className="spread">
                         <div>
@@ -938,7 +945,7 @@ export function AdminWorkspace(p: Props) {
                       )}
                     </section>
                   )}
-                  {extraction?.pages.map((page) => {
+                  {!showFinalDocument && extraction?.pages.map((page) => {
                     const pendingBlocks = visualReferenceReview ? 0 : page.blocks.filter((block) => block.needsReview).length;
                     const blockReviews = page.blocks.filter((block) => block.metadata.adminReviewed === true).length;
                     const pageLabelComplete = Boolean(page.printedPageLabel?.trim());

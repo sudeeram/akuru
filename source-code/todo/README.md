@@ -23,6 +23,8 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Completed
 
+- [Textbook paragraph reconstruction, newline normalization and final-document review](completed/TODO-TEXTBOOK-PARAGRAPH-RECONSTRUCTION.md) — deterministic reconstruction, Admin correction and final reviewed-document confirmation delivered.
+
 - [Visual Reference and scientific-text review](completed/TODO-VISUAL-REFERENCE-REVIEW.md) — explicit source roles, role-aware readiness, printed-page provenance and restricted scientific notation review.
 
 - [Textbook administration and Exam Documents experience](completed/TODO-TEXTBOOK-ADMIN-EXPERIENCE.md) — routed textbook list, create, manage and review workspaces with separated Exam Documents and protected source moves.

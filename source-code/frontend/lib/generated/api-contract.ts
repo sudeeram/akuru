@@ -59,6 +59,10 @@ export interface Schemas {
   "ExtractionBlockUpdateRequest": { "kind": string; "text"?: string; "latex"?: string | null; "caption"?: string | null; "sequenceNumber": number; "scientificContent"?: Schemas["ScientificTextContent"] | null; };
   "ExtractionPageResponse": { "id": string; "pageNumber": number; "widthPoints": number; "heightPoints": number; "renderAssetId": string; "originalRenderAssetId"?: string | null; "printedPageLabel"?: string | null; "method": string; "confidence": number; "needsReview": boolean; "metadata"?: { [key: string]: unknown; }; "blocks"?: Array<Schemas["ExtractionBlockResponse"]>; };
   "ExtractionPageUpdateRequest": { "printedPageLabel"?: string | null; };
+  "FinalDocumentBlockResponse": { "id": string; "pageId": string; "pageNumber": number; "printedPageLabel"?: string | null; "sequenceNumber": number; "kind": string; "text": string; "latex"?: string | null; "confidence": number; "needsReview": boolean; "rawText": string; "sourceAssetId"?: string | null; "metadata"?: { [key: string]: unknown; }; };
+  "FinalDocumentConfirmRequest": { "confirmComplete": boolean; };
+  "FinalDocumentPageResponse": { "id": string; "pageNumber": number; "printedPageLabel"?: string | null; "renderAssetId": string; "blocks"?: Array<Schemas["FinalDocumentBlockResponse"]>; };
+  "FinalDocumentResponse": { "documentId": string; "versionId": string; "reconstructionVersion": string; "contentHash": string; "confirmed": boolean; "confirmedAt"?: string | null; "blockers"?: Array<string>; "pages"?: Array<Schemas["FinalDocumentPageResponse"]>; };
   "FlashcardCardResponse": { "cardRef": string; "ordinal": number; "version": number; "front": string; "back"?: string | null; "explanation"?: string | null; "status": string; "warnings": Array<string>; "source": { [key: string]: unknown; }; "conceptKey"?: string; "category"?: string; "variationType"?: string; "difficulty"?: string; "selectedRating"?: string | null; "attempted"?: boolean; };
   "FlashcardDeckResponse": { "deckRef": string; "topicRef": string; "topicCode": string; "topicTitle": string; "groupCode": string; "groupTitle": string; "subjectId": string; "title": string; "status": string; "contentVersion": number; "cardCount": number; "approvedCount": number; "reviewRequiredCount": number; "rejectedCount": number; "cards"?: Array<Schemas["FlashcardCardResponse"]>; "releasedAt"?: string | null; "releaseId"?: string | null; "artifactChecksum"?: string | null; "validationStatus"?: string | null; "categoryDistribution"?: { [key: string]: number; }; "validationSummary"?: { [key: string]: unknown; }; };
   "FlashcardDiscardResponse": { "sessionRef": string; "status": "discarded"; "message": string; };
@@ -100,6 +104,7 @@ export interface Schemas {
   "NormalPasswordChangeRequest": { "currentPassword": string; "newPassword": string; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds": Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
+  "ParagraphOperationRequest": { "action": "join_previous" | "split" | "restore_extracted"; "splitOffset"?: number | null; };
   "PlanChangeResponse": { "topicRef": string; "code": string; "title": string; "change": string; "fromPeriod"?: string | null; "toPeriod"?: string | null; };
   "PlanGenerateRequest": { "studentId"?: string | null; };
   "PlanHistoryResponse": { "plans": Array<Schemas["StudyPlanResponse"]>; };
@@ -135,6 +140,9 @@ export interface Schemas {
   "RecommendationListResponse": { "recommendations": Array<Schemas["RecommendationResponse"]>; };
   "RecommendationResponse": { "id": string; "diagnosisId": string; "studentId": string; "subjectId": string; "topicRef": string; "topicCode": string; "topicTitle": string; "groupLabel": string; "groupCode": string; "groupTitle": string; "category": string; "description": string; "observedEvidence": Array<string>; "occurrenceCount": number; "activityType": string; "title": string; "reason": string; "action": string; "successCondition": string; "sourceTitle": string; "sourcePage": number; "sourceUrl": string; "questionId": string | null; "reviewStatus": string; "reviewReason": string; "createdAt": string; };
   "RecommendationReview": { "decision": string; "reason"?: string; };
+  "ReconstructionApplyRequest": { "confirmOverwriteReviewed"?: boolean; };
+  "ReconstructionPreviewExample": { "pageNumber": number; "before": string; "after": string; };
+  "ReconstructionPreviewResponse": { "documentId": string; "version": string; "pageCount": number; "beforeBlockCount": number; "afterBlockCount": number; "reviewedBlockCount": number; "examples"?: Array<Schemas["ReconstructionPreviewExample"]>; };
   "ReindexRequest": { "documentId": string; };
   "ReindexResponse": { "documentId": string; "indexedChunks": number; "supersededChunks": number; "embeddingModel": string; };
   "ReleaseResponse": { "subjectId": string; "workflow": string; "mode": string; "runId": string | null; "confidenceThreshold": number; "audience": string; "activatedAt": string; };
@@ -308,7 +316,12 @@ export interface ApiOperations {
   "GET /api/v1/documents/{document_id}/content": { request: unknown; response: unknown };
   "GET /api/v1/documents/{document_id}/extraction": { request: unknown; response: Schemas["DocumentExtractionResponse"] };
   "POST /api/v1/documents/{document_id}/extraction/blocks/{block_id}": { request: Schemas["ExtractionBlockUpdateRequest"]; response: Schemas["DocumentExtractionResponse"] };
+  "POST /api/v1/documents/{document_id}/extraction/blocks/{block_id}/paragraph": { request: Schemas["ParagraphOperationRequest"]; response: Schemas["DocumentExtractionResponse"] };
   "POST /api/v1/documents/{document_id}/extraction/pages/{page_id}": { request: Schemas["ExtractionPageUpdateRequest"]; response: Schemas["DocumentExtractionResponse"] };
+  "POST /api/v1/documents/{document_id}/extraction/reconstruct": { request: Schemas["ReconstructionApplyRequest"]; response: Schemas["DocumentExtractionResponse"] };
+  "GET /api/v1/documents/{document_id}/extraction/reconstruct-preview": { request: unknown; response: Schemas["ReconstructionPreviewResponse"] };
+  "GET /api/v1/documents/{document_id}/final-review": { request: unknown; response: Schemas["FinalDocumentResponse"] };
+  "POST /api/v1/documents/{document_id}/final-review/confirm": { request: Schemas["FinalDocumentConfirmRequest"]; response: Schemas["FinalDocumentResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/latest": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/{job_id}": { request: unknown; response: Schemas["DocumentJobResponse"] };
   "GET /api/v1/documents/{document_id}/official-review": { request: unknown; response: Schemas["OfficialMaterialReview"] };

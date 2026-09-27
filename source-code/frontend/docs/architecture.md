@@ -48,6 +48,16 @@ review workflow and the reusable `ScientificTextEditor`, with bounded subscript,
 superscript, emphasis and school-level symbols, a Student preview and a plain
 search alias. Status labels always include text as well as colour.
 
+Text-role review provides **Review pages and blocks** and **Review complete
+document** views. The continuous view keeps page boundaries and Printed page
+labels, displays the original page beside reviewed content, and links back to the
+page review. It reuses the restricted scientific editor and offers save, join,
+split, restore, extraction comparison, private print preview and final
+confirmation. Its reprocessing action first displays the algorithm version,
+before/after block counts and reviewed work that will be reopened. Unsaved edits
+remain local until explicitly saved; publication uses only saved and confirmed
+content.
+
 ## Authorization boundary
 
 The UI hides actions according to role for usability. FastAPI remains authoritative. A client-provided role, parent ID, student ID, subject, or progression never grants access. Parent and Student state is filtered by authenticated database identity.

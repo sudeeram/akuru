@@ -18,6 +18,23 @@ subscripts and superscripts such as H₂O and cm³. The preview shows the Studen
 rendering and the plain search form. An empty Printed page label never counts as
 Fully reviewed.
 
+For new text sources, AKURU joins confidently related printed lines into readable
+paragraphs before review. Open **Review pages and blocks** to correct individual
+items. Use **Join with previous**, **Split paragraph** or **Restore extracted
+version** when the automatic boundary is wrong.
+
+Then open **Review complete document**. Read the Topic as one paginated document
+beside the original textbook pages, compare uncertain paragraphs with their raw
+extraction and save any corrections. Resolve every page-label and block warning,
+then select **Confirm final reviewed document**. Topic publication remains
+blocked until this exact saved content is confirmed.
+
+**Re-run paragraph reconstruction** is available only for unpublished text
+sources. AKURU shows the algorithm version, before/after block totals and the
+number of manually reviewed blocks that would be reopened before applying it.
+Published sources and Visual References cannot use this action. Print or PDF
+preview remains private to the signed-in Admin.
+
 Use **Exam Documents** for past papers, marking schemes, examiner reports and reference materials. Textbook upload and review controls no longer appear there. Existing private downloads, assessment relationships, review and retry actions remain available.
 
 Sign in with the Admin account created through the secure backend bootstrap

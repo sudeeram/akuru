@@ -3187,6 +3187,209 @@
         "title": "ExtractionPageUpdateRequest",
         "type": "object"
       },
+      "FinalDocumentBlockResponse": {
+        "properties": {
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "latex": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latex"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "needsReview": {
+            "title": "Needsreview",
+            "type": "boolean"
+          },
+          "pageId": {
+            "title": "Pageid",
+            "type": "string"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          },
+          "printedPageLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpagelabel"
+          },
+          "rawText": {
+            "title": "Rawtext",
+            "type": "string"
+          },
+          "sequenceNumber": {
+            "title": "Sequencenumber",
+            "type": "integer"
+          },
+          "sourceAssetId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourceassetid"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pageId",
+          "pageNumber",
+          "sequenceNumber",
+          "kind",
+          "text",
+          "confidence",
+          "needsReview",
+          "rawText"
+        ],
+        "title": "FinalDocumentBlockResponse",
+        "type": "object"
+      },
+      "FinalDocumentConfirmRequest": {
+        "properties": {
+          "confirmComplete": {
+            "title": "Confirmcomplete",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmComplete"
+        ],
+        "title": "FinalDocumentConfirmRequest",
+        "type": "object"
+      },
+      "FinalDocumentPageResponse": {
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/FinalDocumentBlockResponse"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          },
+          "printedPageLabel": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpagelabel"
+          },
+          "renderAssetId": {
+            "title": "Renderassetid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "pageNumber",
+          "renderAssetId"
+        ],
+        "title": "FinalDocumentPageResponse",
+        "type": "object"
+      },
+      "FinalDocumentResponse": {
+        "properties": {
+          "blockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Blockers",
+            "type": "array"
+          },
+          "confirmed": {
+            "title": "Confirmed",
+            "type": "boolean"
+          },
+          "confirmedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confirmedat"
+          },
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/FinalDocumentPageResponse"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "reconstructionVersion": {
+            "title": "Reconstructionversion",
+            "type": "string"
+          },
+          "versionId": {
+            "title": "Versionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentId",
+          "versionId",
+          "reconstructionVersion",
+          "contentHash",
+          "confirmed"
+        ],
+        "title": "FinalDocumentResponse",
+        "type": "object"
+      },
       "FlashcardCardResponse": {
         "properties": {
           "attempted": {
@@ -5216,6 +5419,37 @@
         "title": "OfficialQuestionReview",
         "type": "object"
       },
+      "ParagraphOperationRequest": {
+        "properties": {
+          "action": {
+            "enum": [
+              "join_previous",
+              "split",
+              "restore_extracted"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "splitOffset": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Splitoffset"
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "title": "ParagraphOperationRequest",
+        "type": "object"
+      },
       "PlanChangeResponse": {
         "properties": {
           "change": {
@@ -6616,6 +6850,85 @@
           "decision"
         ],
         "title": "RecommendationReview",
+        "type": "object"
+      },
+      "ReconstructionApplyRequest": {
+        "properties": {
+          "confirmOverwriteReviewed": {
+            "default": false,
+            "title": "Confirmoverwritereviewed",
+            "type": "boolean"
+          }
+        },
+        "title": "ReconstructionApplyRequest",
+        "type": "object"
+      },
+      "ReconstructionPreviewExample": {
+        "properties": {
+          "after": {
+            "title": "After",
+            "type": "string"
+          },
+          "before": {
+            "title": "Before",
+            "type": "string"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "pageNumber",
+          "before",
+          "after"
+        ],
+        "title": "ReconstructionPreviewExample",
+        "type": "object"
+      },
+      "ReconstructionPreviewResponse": {
+        "properties": {
+          "afterBlockCount": {
+            "title": "Afterblockcount",
+            "type": "integer"
+          },
+          "beforeBlockCount": {
+            "title": "Beforeblockcount",
+            "type": "integer"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "examples": {
+            "items": {
+              "$ref": "#/components/schemas/ReconstructionPreviewExample"
+            },
+            "title": "Examples",
+            "type": "array"
+          },
+          "pageCount": {
+            "title": "Pagecount",
+            "type": "integer"
+          },
+          "reviewedBlockCount": {
+            "title": "Reviewedblockcount",
+            "type": "integer"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentId",
+          "version",
+          "pageCount",
+          "beforeBlockCount",
+          "afterBlockCount",
+          "reviewedBlockCount"
+        ],
+        "title": "ReconstructionPreviewResponse",
         "type": "object"
       },
       "ReindexRequest": {
@@ -18050,6 +18363,121 @@
         ]
       }
     },
+    "/api/v1/documents/{document_id}/extraction/blocks/{block_id}/paragraph": {
+      "post": {
+        "operationId": "paragraph_review_operation_api_v1_documents__document_id__extraction_blocks__block_id__paragraph_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "block_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Block Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParagraphOperationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Paragraph Review Operation",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
     "/api/v1/documents/{document_id}/extraction/pages/{page_id}": {
       "post": {
         "operationId": "update_extraction_page_api_v1_documents__document_id__extraction_pages__page_id__post",
@@ -18160,6 +18588,374 @@
           }
         },
         "summary": "Update Extraction Page",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/extraction/reconstruct": {
+      "post": {
+        "operationId": "reconstruct_document_paragraphs_api_v1_documents__document_id__extraction_reconstruct_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReconstructionApplyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reconstruct Document Paragraphs",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/extraction/reconstruct-preview": {
+      "get": {
+        "operationId": "preview_document_paragraph_reconstruction_api_v1_documents__document_id__extraction_reconstruct_preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReconstructionPreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Preview Document Paragraph Reconstruction",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/final-review": {
+      "get": {
+        "operationId": "get_final_reviewed_document_api_v1_documents__document_id__final_review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalDocumentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get Final Reviewed Document",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/final-review/confirm": {
+      "post": {
+        "operationId": "confirm_final_reviewed_document_api_v1_documents__document_id__final_review_confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalDocumentConfirmRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalDocumentResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Confirm Final Reviewed Document",
         "tags": [
           "documents"
         ]

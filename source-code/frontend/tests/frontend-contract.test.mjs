@@ -38,6 +38,7 @@ const admin = readFileSync(
 );
 const textbookStructure = readFileSync(new URL('../features/textbook-structure.tsx', import.meta.url), 'utf8');
 const scientificEditor = readFileSync(new URL('../components/scientific-text-editor.tsx', import.meta.url), 'utf8');
+const finalDocumentReview = readFileSync(new URL('../features/final-document-review.tsx', import.meta.url), 'utf8');
 const student = readFileSync(new URL('../features/student.tsx', import.meta.url), 'utf8');
 const vite = readFileSync(
   new URL('../vite.config.ts', import.meta.url),
@@ -622,6 +623,18 @@ test('source roles drive visual review and restricted scientific notation editin
   assert.match(scientificEditor, /Student display preview/);
   assert.match(scientificEditor, /Search alias/);
   assert.doesNotMatch(scientificEditor, /dangerouslySetInnerHTML/);
+});
+
+test('admins reconstruct paragraphs and confirm the exact continuous reviewed document', () => {
+  assert.match(admin, /Review complete document/);
+  assert.match(finalDocumentReview, /Compare with extracted version/);
+  assert.match(finalDocumentReview, /Join with previous/);
+  assert.match(finalDocumentReview, /Split paragraph/);
+  assert.match(finalDocumentReview, /Restore extracted version/);
+  assert.match(finalDocumentReview, /Confirm final reviewed document/);
+  assert.match(finalDocumentReview, /Re-run paragraph reconstruction/);
+  assert.match(finalDocumentReview, /content fingerprint/);
+  assert.match(finalDocumentReview, /Original textbook page/);
 });
 
 test('admin sees group-level Topic 1 launch readiness without coupling later topics', () => {

@@ -118,6 +118,22 @@ Reviewed scientific text uses a versioned restricted mark schema stored beside
 the original extraction, plain search alias, source geometry and confidence;
 AKURU stores no editor-generated HTML.
 
+### Paragraph reconstruction and final document confirmation
+
+Text-role extraction keeps immutable native PDF or OCR line evidence, then runs a
+versioned deterministic reconstruction stage before Admin review. Decisions use
+page, column, paragraph identity, coordinates, spacing, indentation, content
+type and punctuation. The stage never joins pages or columns and protects
+headings, lists, captions, tables, equations and visuals. Uncertain
+dehyphenation remains review-required. OpenAI is not used for ordinary paragraph
+reconstruction.
+
+AKURU retains raw extraction, the reconstructed draft and the Admin-reviewed
+text. New reconstructed sources require an Admin to confirm the assembled final
+document and its content hash before Topic publication. The complete-document
+view edits the underlying review blocks rather than a second copy. Reprocessing
+is Admin-only, previewed, audited and prohibited for published evidence.
+
 ## Document ingestion and publishing
 
 Supported learning document types are `Textbook`, `Past paper`, `Marking scheme`, `Examiner report`, `Reference material`. Only Admin can upload them. Student answer attachments are a separate permission and do not become learning documents.
