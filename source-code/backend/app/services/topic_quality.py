@@ -56,6 +56,22 @@ def report(db: Session, topic: TextbookTopic) -> dict:
                           "role": link.role, "reviewStatus": link.review_status, "pageCount": len(pages),
                           "equationCount": len(formulas), "diagramCount": len(diagrams), "passed": passed,
                           "checks": checks})
+    visual_links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.role == "visual_reference",
+    )).all()
+    for link in visual_links:
+        pages = db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id)).all()
+        printed_accuracy = _ratio(sum(bool(page.printed_page_label) for page in pages), len(pages))
+        checks = [{"code": "printedPageAccuracy", "threshold": 1.0,
+                   "value": printed_accuracy, "passed": printed_accuracy == 1.0}]
+        all_passed = all_passed and bool(pages) and printed_accuracy == 1.0
+        documents.append({"documentId": str(link.document_id), "filename": f"Visual reference {link.sequence}",
+                          "role": link.role, "reviewStatus": link.review_status,
+                          "pageCount": len(pages), "equationCount": 0, "diagramCount": 0,
+                          "passed": bool(pages) and printed_accuracy == 1.0,
+                          "checks": checks})
     return {"topicRef": topic.public_ref, "topicCode": topic.code, "topicTitle": topic.title,
             "thresholds": THRESHOLDS, "passed": all_passed, "documents": documents,
-            "resolution": "Review flagged pages and blocks in Documents & textbooks. Each saved review is recorded in the audit log."}
+            "resolution": "Review flagged text-source blocks and confirm every Visual Reference Printed page label. Each saved review is recorded in the audit log."}

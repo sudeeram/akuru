@@ -121,6 +121,9 @@ class TopicDocumentSourceResponse(BaseModel):
     selectedVisualCount: int = 0
     approvedVisualCount: int = 0
     pendingVisualCount: int = 0
+    pageCount: int = 0
+    confirmedPageLabelCount: int = 0
+    missingPageLabelCount: int = 0
     duplicateOf: list[str] = Field(default_factory=list)
 
 
@@ -165,6 +168,9 @@ class TopicReviewChecklistResponse(BaseModel):
     tableBlocks: int
     visualBlocks: int
     pendingVisualAssets: int
+    visualPageCount: int = 0
+    confirmedVisualPageCount: int = 0
+    missingVisualPageLabelCount: int = 0
     checks: list[dict]
 
 

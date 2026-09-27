@@ -40,7 +40,9 @@ import {
   reassessAssessment,
   updateExtractionBlock,
   updateExtractionPage,
+  type ScientificTextContent,
 } from '@/api';
+import { ScientificTextEditor, scientificPlainText } from '@/components/scientific-text-editor';
 import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';
@@ -250,11 +252,12 @@ export function AdminWorkspace(p: Props) {
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
   );
   const doc = p.data.documents.find((d) => d.id === docId);
+  const visualReferenceReview = doc?.sourceRole === 'visual_reference';
   const extractionReview = extraction ? {
     totalPages: extraction.pages.length,
-    pendingPages: extraction.pages.filter((page) => page.needsReview),
+    pendingPages: extraction.pages.filter((page) => visualReferenceReview ? !page.printedPageLabel?.trim() : page.needsReview || !page.printedPageLabel?.trim()),
     totalBlocks: extraction.pages.reduce((total, page) => total + page.blocks.length, 0),
-    pendingBlocks: extraction.pages.reduce(
+    pendingBlocks: visualReferenceReview ? 0 : extraction.pages.reduce(
       (total, page) => total + page.blocks.filter((block) => block.needsReview).length,
       0,
     ),
@@ -912,7 +915,7 @@ export function AdminWorkspace(p: Props) {
                       <div className="spread">
                         <div>
                           <strong id="extraction-review-summary-title">Extraction review progress</strong>
-                          <p className="small">Review every red item before publishing this textbook topic.</p>
+                          <p className="small">{visualReferenceReview ? 'Confirm every Printed page label. OCR text is excluded from retrieval and does not need correction.' : 'Review every red item and confirm every Printed page label before publishing this textbook topic.'}</p>
                         </div>
                         <span className={`review-status-badge ${extractionReview.pendingPages.length ? 'review-status-required' : 'review-status-complete'}`}>
                           {extractionReview.pendingPages.length ? 'Review required' : 'Reviewed'}
@@ -936,14 +939,13 @@ export function AdminWorkspace(p: Props) {
                     </section>
                   )}
                   {extraction?.pages.map((page) => {
-                    const pendingBlocks = page.blocks.filter((block) => block.needsReview).length;
-                    const completedReviews = page.blocks.filter(
-                      (block) => block.metadata.adminReviewed === true,
-                    ).length;
-                    const requiredReviews = pendingBlocks + completedReviews;
-                    const pageStatus = pendingBlocks === 0
-                      ? 'Fully reviewed'
-                      : completedReviews > 0 ? 'Partially reviewed' : 'Yet to be reviewed';
+                    const pendingBlocks = visualReferenceReview ? 0 : page.blocks.filter((block) => block.needsReview).length;
+                    const blockReviews = page.blocks.filter((block) => block.metadata.adminReviewed === true).length;
+                    const pageLabelComplete = Boolean(page.printedPageLabel?.trim());
+                    const completedReviews = visualReferenceReview ? Number(pageLabelComplete) : blockReviews + Number(pageLabelComplete);
+                    const requiredReviews = visualReferenceReview ? 1 : pendingBlocks + blockReviews + 1;
+                    const pageComplete = pageLabelComplete && pendingBlocks === 0;
+                    const pageStatus = pageComplete ? 'Fully reviewed' : completedReviews > 0 ? 'Partially reviewed' : 'Needs page label';
                     const hideReviewed = Boolean(hideReviewedBlocks[page.id]);
                     const reviewGroups = groupExtractionBlocks(page.blocks);
                     const visibleGroups = hideReviewed
@@ -962,12 +964,13 @@ export function AdminWorkspace(p: Props) {
                           <span><strong>{completedReviews}</strong> completed</span>
                           <span><strong>{pendingBlocks}</strong> remaining</span>
                         </div>
-                        <span className={`review-status-badge ${pendingBlocks === 0 ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}>
+                        <span className={`review-status-badge ${pageComplete ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}>
                           {pageStatus}
                         </span>
                       </summary>
                       <div className="stack extraction-page-body">
-                      <div className="button-row extraction-block-visibility">
+                      {visualReferenceReview && <div className="source-note"><strong>Visual reference review — OCR excluded from retrieval</strong><p>Confirm the Printed page label. Extracted OCR blocks remain available as read-only provenance and are not required review work.</p>{doc?.textbookRef && <Button variant="outline" onClick={() => p.navigate(`/admin/textbooks/${doc.textbookRef}`)}>Manage selected visuals</Button>}<details><summary>View OCR provenance</summary><pre className="source-note">{page.blocks.map((block) => block.text).filter(Boolean).join('\n\n') || 'No OCR text was extracted from this page.'}</pre></details></div>}
+                      {!visualReferenceReview && <div className="button-row extraction-block-visibility">
                         <Button
                           variant="outline"
                           aria-pressed={hideReviewed}
@@ -976,7 +979,7 @@ export function AdminWorkspace(p: Props) {
                           {hideReviewed ? 'Show reviewed blocks' : 'Hide reviewed blocks'}
                         </Button>
                         <span className="small">Showing {visibleBlockCount} of {page.blocks.length} extracted content blocks in {visibleGroups.length} review boxes</span>
-                      </div>
+                      </div>}
                       <div className="two-cols"><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></div>
                       <div className="extraction-review-grid"><div><strong className="small">Original page</strong><Image
                         src={`/api/v1/documents/${doc.id}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
@@ -991,7 +994,7 @@ export function AdminWorkspace(p: Props) {
                         alt={`Normalized review page ${page.pageNumber}`}
                         width={Math.max(1, Math.round(page.widthPoints))} height={Math.max(1, Math.round(page.heightPoints))}
                         unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
-                      /></div><div><strong className="small">Extracted content</strong>{visibleGroups.map((group) => {
+                      /></div>{!visualReferenceReview && <div><strong className="small">Extracted content</strong>{visibleGroups.map((group) => {
                         const visual = group.find(isVisualBlock), caption = group.find(isFigureCaption);
                         const reviewedCaption = visual && typeof visual.metadata.reviewedCaption === 'string'
                           ? visual.metadata.reviewedCaption : caption ? extractFigureCaption(caption.text) : '';
@@ -1003,17 +1006,17 @@ export function AdminWorkspace(p: Props) {
                           {group.map((block) => <div className="stack extraction-group-member" key={block.id}>
                             <div className="spread"><span><strong>{block === caption ? 'Figure caption' : block.kind}</strong> · {block.method} · {Math.round(block.confidence * 100)}%</span><span>Reading order {block.sequenceNumber}</span></div>
                             <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
-                            <Field label={block === caption ? 'Figure caption' : 'Extracted text'} multiline value={block.text} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value } : item) } : row) })}/>
+                            <ScientificTextEditor id={`scientific-text-${block.id}`} content={(block.metadata.scientificContent as ScientificTextContent | undefined) || { version: 1, text: block.text, plainText: scientificPlainText(block.text), marks: [] }} proposal={block.metadata.scientificProposal as { marks?: Array<{ type: string; start: number; end: number; confidence: number }>; ambiguousTokens?: string[] } | undefined} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value.text, metadata: { ...item.metadata, scientificContent: value, searchAlias: value.plainText } } : item) } : row) })}/>
                             <Field label="Equation or formula (LaTeX)" multiline value={block.latex || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, latex: value } : item) } : row) })}/>
                             {!visual && block.sourceAssetId && <Image src={`/api/v1/documents/${doc.id}/assets/${block.sourceAssetId}/content`} alt={`Source crop for ${block.kind} on page ${page.pageNumber}`} width={320} height={180} unoptimized loading="lazy" style={{ maxWidth: '20rem', height: 'auto', objectFit: 'contain' }}/>}
                           </div>)}
                           <Button variant="outline" onClick={() => void run(async () => {
                             let next = extraction;
-                            for (const block of group) next = await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, caption: block === visual ? reviewedCaption : undefined, sequenceNumber: block.sequenceNumber });
+                            for (const block of group) next = await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, caption: block === visual ? reviewedCaption : undefined, sequenceNumber: block.sequenceNumber, scientificContent: block.metadata.scientificContent as ScientificTextContent | undefined });
                             setExtraction(next);
                           }, visual && caption ? 'Diagram and caption reviewed and saved.' : 'Extracted block reviewed and saved.')}>{visual && caption ? 'Save reviewed diagram and caption' : 'Save reviewed block'}</Button>
                         </section>;
-                      })}{!visibleGroups.length && <p className="source-note">All extracted content blocks on this page have been reviewed.</p>}</div></div>
+                      })}{!visibleGroups.length && <p className="source-note">All extracted content blocks on this page have been reviewed.</p>}</div>}</div>
                       </div>
                     </details>
                   );})}

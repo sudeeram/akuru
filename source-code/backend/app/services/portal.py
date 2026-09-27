@@ -85,6 +85,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
             topic_context = db.execute(select(
                 Textbook.public_ref, Textbook.title, TextbookGroup.code, TextbookGroup.title,
                 TextbookTopic.public_ref, TextbookTopic.code, TextbookTopic.title,
+                TextbookTopicDocument.role, TextbookTopicDocument.review_status,
             ).join(TextbookGroup, TextbookGroup.textbook_id == Textbook.id)
               .join(TextbookTopic, TextbookTopic.group_id == TextbookGroup.id)
               .join(TextbookTopicDocument, TextbookTopicDocument.topic_id == TextbookTopic.id)
@@ -96,7 +97,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "subject": document.subject_id,
                 "course": "iGCSE",
                 "kind": document_kind_labels[document.kind],
-                "status": job.status if job else document.review_state,
+                "status": topic_context[8] if topic_context and topic_context[7] == "visual_reference" else (job.status if job else document.review_state),
                 "notes": "",
                 "paperId": str(document.source_document_id) if document.source_document_id else None,
                 "processingProgress": job.progress if job else 0,
@@ -110,6 +111,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "topicRef": topic_context[4] if topic_context else None,
                 "topicCode": topic_context[5] if topic_context else None,
                 "topicTitle": topic_context[6] if topic_context else None,
+                "sourceRole": topic_context[7] if topic_context else None,
             })
     visible_students = student_rows(db, principal) if not principal.user.must_change_password else []
     if principal.user.role == "student" and not principal.user.must_change_password:

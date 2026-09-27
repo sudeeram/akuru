@@ -38,6 +38,7 @@ export type Doc = {
   topicRef?: string | null;
   topicCode?: string | null;
   topicTitle?: string | null;
+  sourceRole?: 'primary' | 'supporting' | 'reference' | 'visual_reference' | null;
 };
 export type ExtractionBlock = {
   id: string;
@@ -52,6 +53,8 @@ export type ExtractionBlock = {
   sourceAssetId?: string | null;
   metadata: Record<string, unknown>;
 };
+export type ScientificTextMark = { type: 'subscript' | 'superscript' | 'bold' | 'italic'; start: number; end: number };
+export type ScientificTextContent = { version: 1; text: string; plainText: string; marks: ScientificTextMark[] };
 export type ExtractionPage = {
   id: string;
   pageNumber: number;

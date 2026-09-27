@@ -130,7 +130,8 @@ def update_extraction_block(document_id: uuid.UUID, block_id: uuid.UUID, payload
                             db: Annotated[Session, Depends(get_db)]):
     return documents.update_extraction_block(db, principal, document_id, block_id, kind=payload.kind,
                                              text=payload.text, latex=payload.latex,
-                                             caption=payload.caption, sequence_number=payload.sequenceNumber)
+                                             caption=payload.caption, sequence_number=payload.sequenceNumber,
+                                             scientific_content=payload.scientificContent.model_dump() if payload.scientificContent else None)
 
 
 @router.get("/{document_id}/official-review", response_model=OfficialMaterialReview)

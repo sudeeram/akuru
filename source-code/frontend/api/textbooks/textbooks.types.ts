@@ -25,8 +25,9 @@ export type TopicDocumentSource = { documentId: string; documentVersionId: strin
   libraryReviewState: string; unresolvedPageCount: number; unresolvedBlockCount: number;
   includedInRetrieval: boolean; usedByPublishedVersion: boolean; publishableBlockCount: number;
   visualAssetCount: number; selectedVisualCount: number; approvedVisualCount: number;
-  pendingVisualCount: number; duplicateOf: string[] };
-export type TopicReviewChecklist = { topicRef: string; topicTitle: string; remainingPages: number; remainingBlocks: number; notationBlocks: number; tableBlocks: number; visualBlocks: number; pendingVisualAssets: number; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
+  pendingVisualCount: number; pageCount: number; confirmedPageLabelCount: number;
+  missingPageLabelCount: number; duplicateOf: string[] };
+export type TopicReviewChecklist = { topicRef: string; topicTitle: string; remainingPages: number; remainingBlocks: number; notationBlocks: number; tableBlocks: number; visualBlocks: number; pendingVisualAssets: number; visualPageCount: number; confirmedVisualPageCount: number; missingVisualPageLabelCount: number; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
 export type TopicVisualAsset = { assetRef: string; documentId: string; documentVersionId: string; documentAssetId: string; filename: string; sourceRole: string; kind: string; page: number; printedPage?: string | null; boundingBox: Record<string, unknown>; extractedCaption: string; status: 'unselected'|'selected'|'approved'|'rejected'; caption: string; altText: string; contentUrl: string };
 export type TopicLaunchReadiness = { topicRef: string; topicTitle: string; overallStatus: 'ready' | 'blocked'; checks: { code: string; label: string; passed: boolean; message: string; href: string }[] };
 export type TopicRetrievalPreflight = { preflightRef: string; topicRef: string; contentVersion: number; passed: boolean; queries: string[]; results: { query: string; passed: boolean; reasons: string[]; page?: number | null; passage?: string | null; score: number }[]; createdAt: string };

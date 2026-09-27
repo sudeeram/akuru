@@ -196,6 +196,12 @@ def test_review_completion_handles_page_only_unattached_and_terminal_documents(a
         return document, version, page
 
     document, version, page = document_version("page-only")
+    blank = client.post(f"/api/v1/documents/{document.id}/extraction/pages/{page.id}",
+                        headers=headers, json={"printedPageLabel": ""})
+    assert blank.status_code == 200
+    session.refresh(document); session.refresh(version); session.refresh(page)
+    assert page.needs_review is True
+    assert document.review_state == "pending" and version.status == "needs_review"
     response = client.post(f"/api/v1/documents/{document.id}/extraction/pages/{page.id}",
                            headers=headers, json={"printedPageLabel": "1"})
     assert response.status_code == 200
@@ -338,6 +344,9 @@ def test_admin_configures_canonical_source_and_reviews_visual_assets(auth_client
         json={"status": "approved", "caption": "Particle arrangement",
               "altText": "A labelled diagram comparing particle spacing in solids, liquids and gases."})
     assert approved.status_code == 200 and approved.json()[0]["status"] == "approved"
+    labelled = client.post(f"/api/v1/documents/{scan_document.id}/extraction/pages/{page.id}",
+        headers=headers, json={"printedPageLabel": "1"})
+    assert labelled.status_code == 200
     checklist = client.get(
         f"/api/v1/admin/textbooks/{book.public_ref}/topics/{topic.public_ref}/review-checklist")
     assert checklist.json()["pendingVisualAssets"] == 0

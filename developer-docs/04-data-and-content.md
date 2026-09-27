@@ -47,6 +47,19 @@ Attached sources have roles:
 
 Exactly selected and approved visual assets enter a published topic version with document/version/checksum/page/bounding-box provenance and accessible text. A selected but unapproved visual blocks publication.
 
+Each Topic attachment has one explicit role: `primary`, `supporting`, `reference`
+or `visual_reference`. The first three require complete extraction review and
+can contribute text. A visual reference contributes page provenance and approved
+assets only; every page needs a confirmed printed-page label, while its OCR
+blocks are excluded from readiness and retrieval. Role changes recalculate the
+draft attachment without mutating a published manifest.
+
+Scientific inline review is extraction-block metadata containing a versioned,
+restricted mark document, normalized search alias and renderer version. Original
+OCR text and geometry remain available for audit. The API validates mark types
+and ranges and rejects arbitrary HTML. Existing JSON metadata stores the feature,
+so there is no migration.
+
 ## Document lifecycle
 
 1. Admin uploads a supported private file.

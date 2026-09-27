@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import json
 import re
 import uuid
 from pathlib import PurePath
@@ -133,29 +134,37 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
             DocumentBlock.document_version_id == link.document_version_id,
         ).order_by(DocumentBlock.page_id, DocumentBlock.sequence_number)).all()
         digest = hashlib.sha256("\n".join(
-            f"{block.id}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}"
+            f"{block.id}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}:{json.dumps(block.block_metadata.get('scientificContent'), sort_keys=True)}"
             for block in blocks).encode()).hexdigest()
         live_fingerprints.append({"documentVersionId": str(link.document_version_id), "role": link.role,
                                   "sequence": link.sequence,
                                   "extractionVersion": job.extraction_version if job else "",
                                   "reviewedContentHash": digest})
     visual_links = {link.document_version_id: link for link in links if link.role == "visual_reference"}
+    visual_statuses = [link.review_status for link in visual_links.values()]
+    visual_processing = sum(value in {"pending", "processing"} for value in visual_statuses)
+    visual_failed = sum(value == "failed" for value in visual_statuses)
+    visual_missing_labels = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+        DocumentPage.document_version_id.in_(list(visual_links)),
+        (DocumentPage.printed_page_label.is_(None)) | (DocumentPage.printed_page_label == ""),
+    )) or 0) if visual_links else 0
     for version_id, link in visual_links.items():
         assets = db.scalars(select(TextbookTopicVisualAsset).where(
             TextbookTopicVisualAsset.topic_id == topic.id,
             TextbookTopicVisualAsset.document_version_id == version_id,
             TextbookTopicVisualAsset.status == "approved",
         ).order_by(TextbookTopicVisualAsset.public_ref)).all()
-        if not assets:
-            continue
         job = db.scalar(select(DocumentJob).where(
             DocumentJob.document_version_id == version_id,
             DocumentJob.status.in_(("completed", "needs_review")),
         ).order_by(DocumentJob.completed_at.desc().nullslast()))
+        pages = db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == version_id).order_by(DocumentPage.page_number)).all()
         live_fingerprints.append({"documentVersionId": str(version_id), "role": "visual_reference",
             "sequence": link.sequence, "extractionVersion": job.extraction_version if job else "",
             "reviewedContentHash": hashlib.sha256("|".join(
-                f"{asset.public_ref}:{asset.status}:{asset.caption}:{asset.alt_text}" for asset in assets
+                [*(f"page:{page.page_number}:{page.printed_page_label or ''}" for page in pages),
+                 *(f"{asset.public_ref}:{asset.status}:{asset.caption}:{asset.alt_text}" for asset in assets)]
             ).encode()).hexdigest()})
     published_fingerprints = [{key: row.get(key) for key in (
         "documentVersionId", "role", "sequence", "extractionVersion", "reviewedContentHash"
@@ -165,7 +174,7 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
     pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
         TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected",
     )) or 0)
-    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes and not pending_visuals
+    ready = source_ready and not unresolved_pages and not unresolved_blocks and quality["passed"] and has_draft_changes and not pending_visuals and not visual_processing and not visual_failed and not visual_missing_labels
     if published: state = "published"
     elif not links: state = "no_document"
     elif failed: state = "failed"
@@ -183,6 +192,10 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
          "message": "Every topic PDF must meet page, OCR, formula, diagram, printed-page and retrieval thresholds."},
         {"code": "visual_review", "passed": pending_visuals == 0,
          "message": "Every selected diagram, image or table needs approval and accessible text."},
+        {"code": "visual_page_labels", "passed": visual_missing_labels == 0,
+         "message": "Every Visual Reference page needs a confirmed Printed page label."},
+        {"code": "visual_processing", "passed": visual_processing == 0 and visual_failed == 0,
+         "message": "Every Visual Reference must finish processing successfully."},
         {"code": "new_version", "passed": has_draft_changes,
          "message": "A published topic needs reviewed changes before another version is created."},
     ]
@@ -228,6 +241,14 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
             DocumentBlock.document_version_id == link.document_version_id,
             DocumentBlock.needs_review.is_(True),
         )) or 0)
+        page_count = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id)) or 0)
+        confirmed_page_labels = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id,
+            DocumentPage.printed_page_label.is_not(None), DocumentPage.printed_page_label != "")) or 0)
+        missing_page_labels = page_count - confirmed_page_labels
+        if link.role == "visual_reference":
+            unresolved_pages, unresolved_blocks = missing_page_labels, 0
         if not document or not version:
             continue
         publishable_blocks = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
@@ -266,6 +287,8 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
             selectedVisualCount=len(visual_statuses),
             approvedVisualCount=sum(value == "approved" for value in visual_statuses),
             pendingVisualCount=sum(value == "selected" for value in visual_statuses),
+            pageCount=page_count, confirmedPageLabelCount=confirmed_page_labels,
+            missingPageLabelCount=missing_page_labels,
             duplicateOf=duplicate_of,
         ))
     return result
@@ -289,6 +312,7 @@ def update_topic_source_role(db: Session, principal: Principal, textbook_ref: st
         return list_topic_sources(db, textbook_ref, topic_ref)
     old_role = link.role
     link.role = role
+    documents._refresh_topic_document_readiness(db, link.document_version_id, principal.user.id)
     _audit(db, principal, "textbook_topic_document.role_changed", "textbook_topic", topic.public_ref,
            {"textbookRef": book.public_ref, "documentId": str(link.document_id),
             "oldRole": old_role, "newRole": role,
@@ -332,6 +356,7 @@ def topic_review_checklist(db: Session, textbook_ref: str, topic_ref: str) -> To
     links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.topic_id == topic.id)).all()
     version_ids = [link.document_version_id for link in links if link.role != "visual_reference"]
+    visual_version_ids = [link.document_version_id for link in links if link.role == "visual_reference"]
     remaining_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
         DocumentPage.document_version_id.in_(version_ids), DocumentPage.needs_review.is_(True))) or 0) if version_ids else 0
     remaining_blocks = int(db.scalar(select(func.count()).select_from(DocumentBlock).where(
@@ -343,6 +368,12 @@ def topic_review_checklist(db: Session, textbook_ref: str, topic_ref: str) -> To
     visuals = count_kinds(("image", "diagram"))
     pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
         TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected")) or 0)
+    visual_page_count = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+        DocumentPage.document_version_id.in_(visual_version_ids))) or 0) if visual_version_ids else 0
+    confirmed_visual_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
+        DocumentPage.document_version_id.in_(visual_version_ids),
+        DocumentPage.printed_page_label.is_not(None), DocumentPage.printed_page_label != "")) or 0) if visual_version_ids else 0
+    missing_visual_labels = visual_page_count - confirmed_visual_pages
     checks = [
         {"code": "reading_order", "label": "Page and block review", "passed": remaining_pages == 0 and remaining_blocks == 0,
          "message": f"{remaining_pages} pages and {remaining_blocks} blocks remain.", "href": "/#library"},
@@ -353,10 +384,16 @@ def topic_review_checklist(db: Session, textbook_ref: str, topic_ref: str) -> To
         {"code": "visual_assets", "label": "Selected visuals", "passed": pending_visuals == 0,
          "message": f"{visuals} image or diagram blocks found; {pending_visuals} selected assets need approval.",
          "href": "/#units"},
+        {"code": "visual_page_labels", "label": "Visual Reference page labels",
+         "passed": missing_visual_labels == 0,
+         "message": f"{confirmed_visual_pages} of {visual_page_count} Visual Reference pages have confirmed Printed page labels.",
+         "href": "/admin/textbooks/review"},
     ]
     return TopicReviewChecklistResponse(topicRef=topic.public_ref, topicTitle=topic.title,
         remainingPages=remaining_pages, remainingBlocks=remaining_blocks, notationBlocks=notation,
-        tableBlocks=tables, visualBlocks=visuals, pendingVisualAssets=pending_visuals, checks=checks)
+        tableBlocks=tables, visualBlocks=visuals, pendingVisualAssets=pending_visuals,
+        visualPageCount=visual_page_count, confirmedVisualPageCount=confirmed_visual_pages,
+        missingVisualPageLabelCount=missing_visual_labels, checks=checks)
 
 
 def list_topic_visual_assets(db: Session, textbook_ref: str, topic_ref: str,
@@ -1077,7 +1114,7 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         ).order_by(DocumentBlock.page_id, DocumentBlock.sequence_number)).all()
         page_map = {page.id: page for page in pages}
         digest = hashlib.sha256("\n".join(
-            f"{block.id}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}"
+            f"{block.id}:{block.sequence_number}:{block.block_kind}:{block.text}:{block.latex or ''}:{json.dumps(block.block_metadata.get('scientificContent'), sort_keys=True)}"
             for block in blocks).encode()).hexdigest()
         text_source_manifest.append({"documentId": str(document.id), "documentVersionId": str(version.id),
                                 "documentVersion": version.version_number, "checksum": version.sha256,
@@ -1134,9 +1171,12 @@ def publish_topic_content(db: Session, principal: Principal, textbook_ref: str, 
         visual_refs = [row["assetRef"] for row in visual_manifest
                        if row["documentVersionId"] == str(version_id)]
         visual_hash = hashlib.sha256("|".join(
-            f"{row.public_ref}:{row.status}:{row.caption}:{row.alt_text}"
-            for row in sorted((item for item in approved_visuals
-                if item.document_version_id == version_id), key=lambda item: item.public_ref)
+            [*(f"page:{page.page_number}:{page.printed_page_label or ''}" for page in db.scalars(
+                select(DocumentPage).where(DocumentPage.document_version_id == version_id)
+                .order_by(DocumentPage.page_number)).all()),
+             *(f"{row.public_ref}:{row.status}:{row.caption}:{row.alt_text}"
+               for row in sorted((item for item in approved_visuals
+                   if item.document_version_id == version_id), key=lambda item: item.public_ref))]
         ).encode()).hexdigest()
         if existing_manifest:
             existing_manifest["visualAssetRefs"] = visual_refs

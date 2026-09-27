@@ -2,7 +2,7 @@ from enum import StrEnum
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class DocumentType(StrEnum):
@@ -108,19 +108,39 @@ class ExtractionPageUpdateRequest(BaseModel):
     printedPageLabel: str | None = Field(default=None, max_length=40)
 
 
+class ScientificTextMark(BaseModel):
+    type: Literal["subscript", "superscript", "bold", "italic"]
+    start: int = Field(ge=0, le=100_000)
+    end: int = Field(gt=0, le=100_000)
+
+
+class ScientificTextContent(BaseModel):
+    version: Literal[1] = 1
+    text: str = Field(max_length=100_000)
+    plainText: str = Field(max_length=100_000)
+    marks: list[ScientificTextMark] = Field(default_factory=list, max_length=2000)
+
+    @model_validator(mode="after")
+    def valid_ranges(self):
+        if any(mark.start >= mark.end or mark.end > len(self.text) for mark in self.marks):
+            raise ValueError("Scientific formatting ranges must identify text inside the reviewed block.")
+        return self
+
+
 class ExtractionBlockUpdateRequest(BaseModel):
     kind: str
     text: str = Field(default="", max_length=100_000)
     latex: str | None = Field(default=None, max_length=20_000)
     caption: str | None = Field(default=None, max_length=1000)
     sequenceNumber: int = Field(ge=1, le=10_000)
+    scientificContent: ScientificTextContent | None = None
 
 
 class TopicPartBatchItem(BaseModel):
     filename: str
     contentType: str
     contentBase64: str
-    role: Literal["primary", "supporting", "reference", "visual_reference"] = "primary"
+    role: Literal["primary", "supporting", "reference", "visual_reference"]
     printedStartPage: str | None = None
     printedEndPage: str | None = None
     idempotencyKey: str = Field(min_length=8, max_length=100)

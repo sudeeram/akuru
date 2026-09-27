@@ -30,7 +30,7 @@ export const reviewTopicVisualAsset = (bookRef: string, topicRef: string, docume
 export const getTopicLaunchReadiness = (bookRef: string, topicRef: string, studentId?: string) => request<TopicLaunchReadiness>(`admin/textbooks/${bookRef}/topics/${topicRef}/launch-readiness${studentId ? `?studentId=${encodeURIComponent(studentId)}` : ''}`);
 export const runTopicRetrievalPreflight = (bookRef: string, topicRef: string) => request<TopicRetrievalPreflight>(`admin/textbooks/${bookRef}/topics/${topicRef}/retrieval-preflight`, { method: 'POST', body: {} });
 export async function uploadTopicPart(bookRef: string, topicRef: string, file: File,
-  role: TopicSourceRole = 'primary', onProgress?: (percent: number) => void) {
+  role: TopicSourceRole, onProgress?: (percent: number) => void) {
   if (file.size > 50 * 1024 * 1024) throw new Error('Choose a file no larger than 50 MB.');
   return new Promise<{ document: { id: string }; job: DocumentJob }>((resolve, reject) => {
     const upload = new XMLHttpRequest();
@@ -67,7 +67,7 @@ async function fileBase64(file: File) {
     binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   return btoa(binary);
 }
-export async function uploadTopicPartsBatch(bookRef: string, topicRef: string, files: File[], role: TopicSourceRole = 'primary') {
+export async function uploadTopicPartsBatch(bookRef: string, topicRef: string, files: File[], role: TopicSourceRole) {
   const items = await Promise.all(files.map(async (file) => ({ filename: file.name,
     contentType: file.type, contentBase64: await fileBase64(file), role,
     idempotencyKey: crypto.randomUUID() })));

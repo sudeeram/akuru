@@ -101,6 +101,23 @@ Student eligibility is cumulative across the student's saved progression list. G
 
 Past-paper questions map to one or more published topics from the paper's approved same-subject textbook edition. A question spanning several topics is eligible only when every required topic is covered. Cross-subject and cross-edition mappings are invalid. Unit or Module mastery is an explainable aggregation of its topic mastery; authoritative evidence remains attached to the topic and source assessment.
 
+### Topic source roles and review evidence
+
+Every Topic upload has an explicit source role. **Primary text**, **Supporting
+text** and **Reference text** contribute reviewed text and require the complete
+page, block, formula, table and extraction review. A **Visual reference**
+preserves familiar textbook pages and approved figures, but its OCR is never used
+for retrieval, tutoring, flashcards or assessments. All Visual reference pages
+require a confirmed printed-page label; only visuals selected for Student use
+require a reviewed crop, caption, alternative text and approval. Unselected
+visuals and unresolved visual-reference OCR do not block publication.
+
+Review evidence remains in existing page, block, topic-source and audit records.
+Published Topic versions stay immutable when a source role later changes.
+Reviewed scientific text uses a versioned restricted mark schema stored beside
+the original extraction, plain search alias, source geometry and confidence;
+AKURU stores no editor-generated HTML.
+
 ## Document ingestion and publishing
 
 Supported learning document types are `Textbook`, `Past paper`, `Marking scheme`, `Examiner report`, `Reference material`. Only Admin can upload them. Student answer attachments are a separate permission and do not become learning documents.

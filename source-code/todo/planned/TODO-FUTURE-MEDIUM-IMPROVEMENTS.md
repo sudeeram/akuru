@@ -45,35 +45,12 @@ This plan contains features that can be implemented independently of advanced OC
 
 ## Future Step 2 — Preserve and review superscript and subscript notation
 
-### Extraction pipeline
-
-- [ ] Preserve native PDF character spans and their baseline, font size and vertical position so existing superscript and subscript formatting is retained.
-- [ ] Detect probable superscript and subscript tokens in OCR using word/character bounding boxes, neighbouring baselines, relative character height and scientific context.
-- [ ] Support common school-level forms such as `cm³`, `m²`, `10⁻³`, `H₂O`, `CO₂`, `H₂SO₄`, `Ca²⁺` and `SO₄²⁻`.
-- [ ] Store a structured, lossless representation that separates display text from semantics, while retaining original extracted text, source coordinates and confidence.
-- [ ] Generate LaTeX or MathML for equation/formula blocks where appropriate without replacing the human-readable reviewed text.
-- [ ] Treat ambiguous charges, indices, powers and OCR-flattened forms such as `SO42-` as review-required; never infer a chemically different expression silently.
-- [ ] Keep plain-text search aliases such as `H2O` where useful, while displaying and citing the reviewed scientific notation.
-
-### Admin review experience
-
-- [ ] Add keyboard-accessible **Subscript** and **Superscript** controls to the extracted-block editor.
-- [ ] Allow formatting of a selected character range without requiring the reviewer to find and paste Unicode characters.
-- [ ] Provide a clear preview using accessible HTML/MathML while preserving an editable source representation.
-- [ ] Offer common scientific symbols and charge notation where this reduces manual entry, but require explicit Admin acceptance.
-- [ ] Show the original page crop beside the edited notation and highlight low-confidence or automatically inferred characters.
-- [ ] Validate malformed or ambiguous structured notation and retain the block in review until corrected.
-- [ ] Ensure copying, searching, screen-reader output and downstream AI context retain the intended scientific meaning.
-
-### Verification and completion criteria
-
-- [ ] Add native-text and scanned fixtures covering powers, units, chemical formulae, ionic charges, isotopes, nested subscript/superscript and multi-character notation.
-- [ ] Measure character accuracy and semantic-notation accuracy separately from ordinary OCR similarity.
-- [ ] Test formatting controls with mouse, keyboard and screen reader, including selection, undo, save and reload.
-- [ ] Test persistence, audit events, retrieval, citations, tutor output, assessment content and publication gates.
-- [ ] Confirm unsafe or uncertain automatic corrections remain visibly review-required.
-
-**Done when:** Native and OCR extraction preserve or safely propose scientific baseline notation, Admins can correct it without specialist input syntax, and reviewed superscripts/subscripts retain their meaning through retrieval, display, citation and assessment workflows.
+This work has been consolidated into the single authoritative implementation plan
+[Visual Reference upload and role-aware review](../completed/TODO-VISUAL-REFERENCE-REVIEW.md).
+That plan combines upload-time source roles, role-aware review, scientific OCR, a
+restricted scientific-text editor, canonical structured storage, downstream
+rendering and release tests so the related data-model and review changes can be
+delivered together.
 
 
 ## Medium-priority learning extensions

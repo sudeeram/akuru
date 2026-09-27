@@ -241,7 +241,7 @@ def upload_topic_part(textbook_ref: str, topic_ref: str,
                       filename: Annotated[str, Header(alias="X-Filename", min_length=1, max_length=255)],
                       content_type: Annotated[str, Header(alias="Content-Type")],
                       idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=8, max_length=100)],
-                      role: Annotated[str, Query(max_length=24)] = "primary",
+                      role: Annotated[str, Query(max_length=24)],
                       printed_start_page: Annotated[str | None, Query(alias="printedStartPage", max_length=24)] = None,
                       printed_end_page: Annotated[str | None, Query(alias="printedEndPage", max_length=24)] = None):
     return textbook_structures.upload_topic_part(

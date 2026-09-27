@@ -23,6 +23,8 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Completed
 
+- [Visual Reference and scientific-text review](completed/TODO-VISUAL-REFERENCE-REVIEW.md) — explicit source roles, role-aware readiness, printed-page provenance and restricted scientific notation review.
+
 - [Textbook administration and Exam Documents experience](completed/TODO-TEXTBOOK-ADMIN-EXPERIENCE.md) — routed textbook list, create, manage and review workspaces with separated Exam Documents and protected source moves.
 - [Account password lifecycle and login visibility](completed/TODO-ACCOUNT-PASSWORD-LIFECYCLE.md) — Admin resets, forced replacement, authenticated changes, session revocation, last-login visibility and audit controls.
 - [Flashcard mastery and Student experience](completed/TODO-FLASHCARD-STUDENT-UX.md) — Student-owned mastery, randomized completed-set study and protected evidence experience.

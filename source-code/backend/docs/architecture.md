@@ -194,6 +194,21 @@ Tutor capabilities have independent backend-only text, voice and tool feature fl
 
 Tutor profiles use stable public references and immutable complete versions. Students may own multiple profiles and choose only enabled, curated AKURU BOT avatars and voice styles. Parents have read-only access to their own children's profiles; Admin manages preset availability and order but cannot impersonate a Student to create a profile. Provider voice references and profile UUIDs stay server-side. See [Tutor Step 1 profiles](tutor-step-01-profiles.md).
 
+### Role-aware review and scientific text
+
+Primary, Supporting and Reference text sources require complete extraction and
+structured-content review. Visual references require successful processing and
+a confirmed printed-page label on every page; unresolved OCR remains provenance
+but is excluded from text quality gates and retrieval. Selected visual assets
+still need a valid crop, reviewed caption, accessible alternative text and
+approval. Existing relational and JSON metadata records this evidence, so the
+feature requires no migration.
+
+Inline scientific review is validated JSON with versioned ranges for subscript,
+superscript, bold and italic and a normalized search alias. Original OCR evidence
+is unchanged. Reviewed-content hashes include the structure, so formatting
+corrections are traceable without accepting arbitrary HTML.
+
 ## API and migration strategy
 
 Use typed FastAPI request models, explicit response models and generated OpenAPI types. The frontend API wrapper is the integration seam, using the same-origin `/api/v1` prefix in development and production.

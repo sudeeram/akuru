@@ -6,6 +6,18 @@ Use **Textbooks** for the complete textbook workflow. **View Textbooks** provide
 
 Before choosing a file, confirm the upload destination shown above the picker. AKURU displays upload progress and then shows that the file was queued for extraction. If a file was attached to the wrong Topic, use **Manage topic sources → Move to another Topic**. AKURU refuses a move once the source has published, retrieval, or reviewed visual dependencies, protecting released learning evidence.
 
+Choose the source role before selecting a Topic file. **Primary text** is the
+canonical learning text; **Supporting text** and **Reference text** add reviewed
+material; **Visual reference** supplies familiar textbook pages and figures
+without using its OCR in Student learning. Visual references need a saved Printed
+page label on every page. Their OCR blocks do not need correction. Approve only
+figures AKURU should show, with an accurate caption and useful alternative text.
+
+For a text source, use the scientific toolbar in **Extracted text** to mark
+subscripts and superscripts such as H₂O and cm³. The preview shows the Student
+rendering and the plain search form. An empty Printed page label never counts as
+Fully reviewed.
+
 Use **Exam Documents** for past papers, marking schemes, examiner reports and reference materials. Textbook upload and review controls no longer appear there. Existing private downloads, assessment relationships, review and retry actions remain available.
 
 Sign in with the Admin account created through the secure backend bootstrap

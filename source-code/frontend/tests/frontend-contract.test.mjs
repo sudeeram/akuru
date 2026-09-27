@@ -37,6 +37,7 @@ const admin = readFileSync(
   'utf8',
 );
 const textbookStructure = readFileSync(new URL('../features/textbook-structure.tsx', import.meta.url), 'utf8');
+const scientificEditor = readFileSync(new URL('../components/scientific-text-editor.tsx', import.meta.url), 'utf8');
 const student = readFileSync(new URL('../features/student.tsx', import.meta.url), 'utf8');
 const vite = readFileSync(
   new URL('../vite.config.ts', import.meta.url),
@@ -161,7 +162,7 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /review-status-required/);
   assert.match(admin, /review-status-complete/);
   assert.match(admin, /Partially reviewed/);
-  assert.match(admin, /Yet to be reviewed/);
+  assert.match(admin, /Needs page label/);
   assert.match(admin, /Fully reviewed/);
   assert.match(admin, /Hide reviewed blocks/);
   assert.match(admin, /Show reviewed blocks/);
@@ -608,6 +609,19 @@ test('admin can designate canonical text and non-retrievable visual references',
   assert.match(textbookService, /TextbookTopicDocument\.role != "visual_reference"/);
   assert.match(documentsService, /version\.status = "completed" if complete else "needs_review"/);
   assert.match(documentsService, /document\.review_state = "reviewed" if complete else "pending"/);
+});
+
+test('source roles drive visual review and restricted scientific notation editing', () => {
+  assert.match(textbookStructure, /Source role \(required\)/);
+  assert.match(textbookStructure, /Visual reference — page labels and selected visuals only/);
+  assert.match(admin, /Visual reference review — OCR excluded from retrieval/);
+  assert.match(admin, /pageLabelComplete && pendingBlocks === 0/);
+  assert.match(admin, /scientificContent/);
+  assert.match(scientificEditor, /Apply subscript/);
+  assert.match(scientificEditor, /Apply superscript/);
+  assert.match(scientificEditor, /Student display preview/);
+  assert.match(scientificEditor, /Search alias/);
+  assert.doesNotMatch(scientificEditor, /dangerouslySetInnerHTML/);
 });
 
 test('admin sees group-level Topic 1 launch readiness without coupling later topics', () => {

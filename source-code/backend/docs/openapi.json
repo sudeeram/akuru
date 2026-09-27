@@ -3057,6 +3057,16 @@
             ],
             "title": "Latex"
           },
+          "scientificContent": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScientificTextContent"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sequenceNumber": {
             "maximum": 10000.0,
             "minimum": 1.0,
@@ -7023,6 +7033,73 @@
         "title": "SaveTopicMappingsRequest",
         "type": "object"
       },
+      "ScientificTextContent": {
+        "properties": {
+          "marks": {
+            "items": {
+              "$ref": "#/components/schemas/ScientificTextMark"
+            },
+            "maxItems": 2000,
+            "title": "Marks",
+            "type": "array"
+          },
+          "plainText": {
+            "maxLength": 100000,
+            "title": "Plaintext",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 100000,
+            "title": "Text",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "text",
+          "plainText"
+        ],
+        "title": "ScientificTextContent",
+        "type": "object"
+      },
+      "ScientificTextMark": {
+        "properties": {
+          "end": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 100000.0,
+            "title": "End",
+            "type": "integer"
+          },
+          "start": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Start",
+            "type": "integer"
+          },
+          "type": {
+            "enum": [
+              "subscript",
+              "superscript",
+              "bold",
+              "italic"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "start",
+          "end"
+        ],
+        "title": "ScientificTextMark",
+        "type": "object"
+      },
       "SourceLocation": {
         "properties": {
           "blockId": {
@@ -7667,6 +7744,11 @@
             "title": "Approvedvisualcount",
             "type": "integer"
           },
+          "confirmedPageLabelCount": {
+            "default": 0,
+            "title": "Confirmedpagelabelcount",
+            "type": "integer"
+          },
           "documentId": {
             "title": "Documentid",
             "type": "string"
@@ -7697,6 +7779,16 @@
           "libraryReviewState": {
             "title": "Libraryreviewstate",
             "type": "string"
+          },
+          "missingPageLabelCount": {
+            "default": 0,
+            "title": "Missingpagelabelcount",
+            "type": "integer"
+          },
+          "pageCount": {
+            "default": 0,
+            "title": "Pagecount",
+            "type": "integer"
           },
           "pendingVisualCount": {
             "default": 0,
@@ -8171,7 +8263,6 @@
             "title": "Printedstartpage"
           },
           "role": {
-            "default": "primary",
             "enum": [
               "primary",
               "supporting",
@@ -8186,6 +8277,7 @@
           "filename",
           "contentType",
           "contentBase64",
+          "role",
           "idempotencyKey"
         ],
         "title": "TopicPartBatchItem",
@@ -8622,6 +8714,16 @@
             "title": "Checks",
             "type": "array"
           },
+          "confirmedVisualPageCount": {
+            "default": 0,
+            "title": "Confirmedvisualpagecount",
+            "type": "integer"
+          },
+          "missingVisualPageLabelCount": {
+            "default": 0,
+            "title": "Missingvisualpagelabelcount",
+            "type": "integer"
+          },
           "notationBlocks": {
             "title": "Notationblocks",
             "type": "integer"
@@ -8652,6 +8754,11 @@
           },
           "visualBlocks": {
             "title": "Visualblocks",
+            "type": "integer"
+          },
+          "visualPageCount": {
+            "default": 0,
+            "title": "Visualpagecount",
             "type": "integer"
           }
         },
@@ -13583,9 +13690,8 @@
           {
             "in": "query",
             "name": "role",
-            "required": false,
+            "required": true,
             "schema": {
-              "default": "primary",
               "maxLength": 24,
               "title": "Role",
               "type": "string"

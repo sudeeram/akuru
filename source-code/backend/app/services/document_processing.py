@@ -24,6 +24,7 @@ from app.schemas.documents import DocumentJobResponse
 from app.security import utcnow
 from app.services.document_extraction import extract_document
 from app.services.document_processing_types import ProcessingFailure
+from app.services.scientific_text import proposal as scientific_text_proposal
 from app.storage import ObjectStorage, get_storage
 
 
@@ -265,13 +266,17 @@ def persist_extraction(
         db.flush()
         for sequence, block_data in enumerate(page_data["blocks"], 1):
             source_index = block_data.get("sourceAssetIndex")
+            metadata = {"bboxSpace": block_data["bboxSpace"], **block_data.get("metadata", {})}
+            scientific_proposal = scientific_text_proposal(block_data["text"])
+            if scientific_proposal:
+                metadata["scientificProposal"] = scientific_proposal
             db.add(DocumentBlock(
                 document_version_id=version.id, page_id=page.id, sequence_number=sequence,
                 block_kind=block_data["kind"], text=block_data["text"], latex=block_data["latex"],
                 bounding_box=block_data["bbox"], extraction_method=block_data["method"],
                 confidence=block_data["confidence"], needs_review=block_data["needsReview"],
                 source_asset_id=asset_rows[source_index].id if source_index is not None else None,
-                block_metadata={"bboxSpace": block_data["bboxSpace"], **block_data.get("metadata", {})},
+                block_metadata=metadata,
             ))
     db.flush()
     return {key: value for key, value in extraction.items() if key != "pages"}

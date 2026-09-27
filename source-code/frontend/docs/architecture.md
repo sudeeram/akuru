@@ -40,6 +40,14 @@ Student and Parent views show Unit or Module summaries that expand into topics. 
 
 All structure, upload, review and coverage workflows require keyboard access, visible focus, screen-reader labels and status indicators that do not depend on colour. Drag-and-drop may be an enhancement but cannot be the only interaction.
 
+The Topic uploader requires an explicit Primary text, Supporting text, Reference
+text or Visual reference choice before its file picker becomes available. Visual
+references use a short review view: page preview, required printed-page label,
+read-only OCR provenance and approved visual management. Text roles use the full
+review workflow and the reusable `ScientificTextEditor`, with bounded subscript,
+superscript, emphasis and school-level symbols, a Student preview and a plain
+search alias. Status labels always include text as well as colour.
+
 ## Authorization boundary
 
 The UI hides actions according to role for usability. FastAPI remains authoritative. A client-provided role, parent ID, student ID, subject, or progression never grants access. Parent and Student state is filtered by authenticated database identity.

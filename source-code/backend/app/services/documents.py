@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.errors import DomainError
-from app.models import Document, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage, DocumentVersion
+from app.models import Document, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage, DocumentVersion, TextbookTopicDocument
 from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (
@@ -310,10 +310,12 @@ def update_extraction_page(db: Session, principal: Principal, document_id: uuid.
     if not page:
         raise DomainError("document_page_not_found", "The extracted page could not be found.", 404)
     page.printed_page_label = (printed_page_label or "").strip() or None
-    page.needs_review = bool(db.scalar(select(DocumentBlock.id).where(
+    page.needs_review = not page.printed_page_label or bool(db.scalar(select(DocumentBlock.id).where(
         DocumentBlock.page_id == page.id, DocumentBlock.needs_review.is_(True),
     ).limit(1)))
-    page.page_metadata = {**page.page_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
+    page.page_metadata = {**page.page_metadata, "adminReviewed": bool(page.printed_page_label),
+                          "printedPageLabelConfirmed": bool(page.printed_page_label),
+                          "reviewedBy": str(principal.user.id)}
     db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
                          event_type="page_reviewed", event_data={"pageNumber": page.page_number,
                                                                   "printedPageLabel": page.printed_page_label}))
@@ -324,7 +326,8 @@ def update_extraction_page(db: Session, principal: Principal, document_id: uuid.
 
 def update_extraction_block(db: Session, principal: Principal, document_id: uuid.UUID,
                             block_id: uuid.UUID, *, kind: str, text: str, latex: str | None,
-                            sequence_number: int, caption: str | None = None) -> DocumentExtractionResponse:
+                            sequence_number: int, caption: str | None = None,
+                            scientific_content: dict | None = None) -> DocumentExtractionResponse:
     document, version = get_document(db, document_id)
     block = db.scalar(select(DocumentBlock).where(DocumentBlock.id == block_id,
                                                    DocumentBlock.document_version_id == version.id))
@@ -341,6 +344,16 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
     block.block_kind, block.text, block.latex = kind, text.strip(), (latex or "").strip() or None
     block.sequence_number = sequence_number; block.needs_review = False
     metadata = {**block.block_metadata, "adminReviewed": True, "reviewedBy": str(principal.user.id)}
+    if scientific_content is not None:
+        if scientific_content["text"] != block.text:
+            raise DomainError("scientific_text_mismatch",
+                              "The formatted scientific text must match the reviewed block text.", 422)
+        metadata["scientificContent"] = scientific_content
+        metadata["searchAlias"] = scientific_content["plainText"]
+        metadata["scientificRendererVersion"] = 1
+    else:
+        metadata.pop("scientificContent", None)
+        metadata.pop("searchAlias", None)
     if caption is not None:
         if kind not in {"image", "diagram", "table"}:
             raise DomainError("caption_requires_visual", "A reviewed caption can only be saved on a visual block.", 422)
@@ -352,7 +365,7 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
     block.block_metadata = metadata
     page = db.get(DocumentPage, block.page_id)
     if page:
-        page.needs_review = bool(db.scalar(select(DocumentBlock.id).where(
+        page.needs_review = not page.printed_page_label or bool(db.scalar(select(DocumentBlock.id).where(
             DocumentBlock.page_id == page.id, DocumentBlock.needs_review.is_(True), DocumentBlock.id != block.id,
         )))
     db.add(DocumentEvent(document_id=document.id, document_version_id=version.id, actor_id=principal.user.id,
@@ -365,7 +378,6 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
 
 def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUID,
                                       actor_id: uuid.UUID | None = None) -> None:
-    from app.models import TextbookTopicDocument
     links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.document_version_id == document_version_id,
     )).all()
@@ -378,11 +390,19 @@ def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUI
     page_exists = db.scalar(select(DocumentPage.id).where(
         DocumentPage.document_version_id == document_version_id,
     ).limit(1))
-    complete = bool(page_exists and not unresolved_pages and not unresolved_blocks)
+    missing_label = db.scalar(select(DocumentPage.id).where(
+        DocumentPage.document_version_id == document_version_id,
+        (DocumentPage.printed_page_label.is_(None)) | (DocumentPage.printed_page_label == ""),
+    ).limit(1))
+    text_complete = bool(page_exists and not missing_label and not unresolved_pages and not unresolved_blocks)
+    visual_complete = bool(page_exists and not missing_label)
+    complete = visual_complete if links and all(link.role == "visual_reference" for link in links) else text_complete
     version = db.get(DocumentVersion, document_version_id)
     document = db.get(Document, version.document_id) if version else None
     was_complete = bool(version and version.status == "completed" and document and document.review_state in {"reviewed", "published"})
-    if version and version.status not in {"failed", "removed"} and not (document and document.review_state == "published"):
+    if version and version.status not in {"failed", "removed"} and not (
+        document and document.review_state in {"published", "rejected"}
+    ):
         version.status = "completed" if complete else "needs_review"
     if document and document.review_state not in {"published", "rejected"} and not (
         version and version.status in {"failed", "removed"}
@@ -390,7 +410,8 @@ def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUI
         document.review_state = "reviewed" if complete else "pending"
     for link in links:
         if link.review_status not in {"failed", "superseded", "published"}:
-            link.review_status = "ready" if complete else "needs_review"
+            link_complete = visual_complete if link.role == "visual_reference" else text_complete
+            link.review_status = "ready" if link_complete else "needs_review"
     if complete and not was_complete and document and actor_id:
         db.add(DocumentEvent(document_id=document.id, document_version_id=document_version_id,
                              actor_id=actor_id, event_type="extraction_review_completed",
