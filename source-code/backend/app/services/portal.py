@@ -97,7 +97,9 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 "subject": document.subject_id,
                 "course": "iGCSE",
                 "kind": document_kind_labels[document.kind],
-                "status": topic_context[8] if topic_context and topic_context[7] == "visual_reference" else (job.status if job else document.review_state),
+                # The extraction job records what required review at upload time.
+                # The Topic link records the current Admin review outcome for every source role.
+                "status": topic_context[8] if topic_context else (job.status if job else document.review_state),
                 "notes": "",
                 "paperId": str(document.source_document_id) if document.source_document_id else None,
                 "processingProgress": job.progress if job else 0,

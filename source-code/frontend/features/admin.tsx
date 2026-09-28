@@ -839,11 +839,12 @@ export function AdminWorkspace(p: Props) {
                   </a>
                   {documentJob && (
                     <div className="small panel">
-                      <strong>Processing details</strong>
+                      <strong>Extraction job history</strong>
                       <p>
-                        {documentJob.stage.replaceAll('_', ' ')} · {documentJob.status.replaceAll('_', ' ')} ·{' '}
+                        {documentJob.stage.replaceAll('_', ' ')} · {documentJob.status === 'needs_review' ? 'finished; review was requested after extraction' : documentJob.status.replaceAll('_', ' ')} ·{' '}
                         {documentJob.progress}% · attempt {documentJob.attemptCount}
                       </p>
+                      <p>{doc.kind === 'Textbook' ? 'Current Topic source status' : 'Current document status'}: <strong>{doc.status.replaceAll('_', ' ')}</strong></p>
                       <p>Extractor: {documentJob.extractionVersion}</p>
                     </div>
                   )}

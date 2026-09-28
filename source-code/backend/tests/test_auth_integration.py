@@ -500,6 +500,12 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
     assert synchronized_document.json()["status"] == "completed"
     session.refresh(link)
     assert link.review_status == "ready"
+    # A completed Admin review must supersede the extraction job's historical
+    # needs_review outcome in the document list for a Primary text source.
+    assert session.get(DocumentJob, uuid.UUID(upload.json()["job"]["id"])).status == "needs_review"
+    portal_document = next(row for row in client.get("/api/v1/state").json()["documents"]
+                           if row["id"] == upload.json()["document"]["id"])
+    assert portal_document["status"] == "ready" and portal_document["sourceRole"] == "primary"
     stored_document = session.get(Document, uuid.UUID(upload.json()["document"]["id"]))
     assert stored_document.review_state == "reviewed"
     assert session.scalar(select(DocumentEvent).where(
