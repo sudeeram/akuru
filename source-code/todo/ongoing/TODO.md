@@ -1,5 +1,8 @@
 # AKURU implementation roadmap
 
+**Started:** 2026-09-12
+**Completed:** Not completed
+
 This is the ordered delivery backlog for the document-ingestion, OpenAI tutoring, assessment, unit-mastery and study-planning capabilities agreed for AKURU. Complete the steps in order unless an item explicitly says it can run in parallel.
 
 The completed unit-based foundation is scheduled to evolve into the Textbook → Unit/Module → Topic model in [TODO-TEXTBOOK-TOPICS.md](TODO-TEXTBOOK-TOPICS.md). That roadmap is authoritative for new textbook structure, topic coverage, question mapping, mastery and retrieval work.

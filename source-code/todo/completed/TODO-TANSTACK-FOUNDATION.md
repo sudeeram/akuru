@@ -1,5 +1,8 @@
 # TanStack Router and Query foundation
 
+**Started:** 2026-09-25
+**Completed:** 2026-09-25
+
 **Status:** Completed, CI-approved, deployed and production-verified.
 
 This plan contains only the agreed foundation needed before AKURU grows its mock-exam, tutoring, study-plan and collaboration experiences. Flashcards will be the first fully routed feature. Server-side authentication, authorization and family separation remain authoritative.

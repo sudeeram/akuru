@@ -1,5 +1,8 @@
 # Curated flashcard library and adaptive Student review
 
+**Started:** 2026-09-24
+**Completed:** 2026-09-24
+
 **Status: Completed and released to production on 24 September 2026**
 
 This roadmap replaces Admin-triggered flashcard generation with a curated, source-grounded release process. Flashcards are prepared after textbook topics are reviewed and published, validated outside the Student request path, imported into AKURU as a versioned release artifact, and then served using deterministic study and scheduling rules.

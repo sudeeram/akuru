@@ -1,5 +1,8 @@
 # AKURU textbook groups, topics and incremental coverage roadmap
 
+**Started:** 2026-09-17
+**Completed:** Not completed
+
 This roadmap updates AKURU for textbooks that contain **Units** or **Modules**, each containing ordered **Topics**. A topic may be supplied as one or more scanned PDFs. Topic coverage is added to a Grade + Term as teaching progresses and is cumulative for students.
 
 The production system has no uploaded educational content yet. The initial administrator and operational data must remain intact, but no legacy textbook, curriculum, question, assessment or mastery content needs conversion. Complete the steps in order unless a step explicitly permits parallel work.

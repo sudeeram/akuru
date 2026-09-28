@@ -1,5 +1,8 @@
 # Manual `api.ts` refactor
 
+**Started:** 2026-09-21
+**Completed:** 2026-09-21
+
 **Status: Completed on 21 September 2026.** The former `frontend/lib/api.ts` was replaced by the domain modules below, React imports now use `@/api`, and the API contract check, tests, type checking, linting and production build passed.
 
 Refactor the current large TypeScript API client file (`api.ts`) into multiple smaller files so the code is easier for a human reviewer to understand and maintain. Also add descriptive, informative comments so it is easier for human reviewers, but don't make them too lengthy.

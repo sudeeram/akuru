@@ -1,5 +1,8 @@
 # Future AKURU roadmap — priority index
 
+**Started:** 2026-09-19
+**Completed:** Not completed
+
 **Status: Future work — prioritized for staged delivery.**
 
 The original combined document-review and AI backlog has been divided so AKURU can deliver useful Student learning features before larger extraction, voice and messaging projects.

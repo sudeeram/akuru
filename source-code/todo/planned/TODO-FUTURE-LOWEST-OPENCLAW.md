@@ -1,5 +1,8 @@
 # Lowest priority — OpenClaw Telegram Quick Mock
 
+**Started:** 2026-09-19
+**Completed:** Not completed
+
 **Status: Future work — not started. Begin only after AKURU text learning, model routing and production operations are stable.**
 
 This plan is deliberately last because it adds another production runtime, Telegram identity, temporary Student assessment state, OpenAI usage outside AKURU's normal provider path and a separate security boundary. It must not block the web Student experience.

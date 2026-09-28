@@ -1,5 +1,8 @@
 # AKURU Tutor Agent implementation roadmap
 
+**Started:** 2026-09-14
+**Completed:** Not completed
+
 This is the ordered delivery backlog for the configurable, unit-aware text and voice Tutor Agent. The authoritative product and architecture decisions are in [docs/tutor-agent-plan.md](../../docs/tutor-agent-plan.md). Existing curriculum, assessment, mastery, media, security and operational rules remain in [docs/architecture.md](../../docs/architecture.md) and [TODO.md](TODO.md).
 
 The Tutor's completed unit-based services must be adapted to active topics and Unit/Module aggregation as specified in [TODO-TEXTBOOK-TOPICS.md](TODO-TEXTBOOK-TOPICS.md).

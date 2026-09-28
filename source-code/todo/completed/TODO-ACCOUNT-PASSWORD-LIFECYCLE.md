@@ -1,5 +1,8 @@
 # Account password lifecycle and login visibility
 
+**Started:** 2026-09-26
+**Completed:** 2026-09-26
+
 **Status:** Completed and production verified.
 
 This roadmap adds the account recovery controls required for AKURU's current
@@ -145,4 +148,3 @@ login time without expanding family data access.
 
 **Done when:** the complete current-scope password lifecycle is implemented,
 security-tested, documented and production-verified.
-

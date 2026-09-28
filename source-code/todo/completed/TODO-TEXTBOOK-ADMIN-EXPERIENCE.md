@@ -1,5 +1,8 @@
 # Textbook administration and Exam Documents experience
 
+**Started:** 2026-09-26
+**Completed:** 2026-09-26
+
 **Status:** Planned.
 
 This roadmap consolidates textbook structure, source upload, extraction review and

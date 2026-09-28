@@ -1,5 +1,8 @@
 # Flashcard mastery and Student experience
 
+**Started:** 2026-09-25
+**Completed:** 2026-09-25
+
 **Status:** Completed on 25 September 2026.
 
 This is the single delivery plan for the next Flashcard release. It combines mastery ranking, varied card selection, completed-set scoring, constrained navigation, clearer answers, readable textbook evidence, protected source caching and the existing visual improvements. It supersedes the current Student-facing Quick Review, Normal Review, Full Topic Practice, Difficult Cards, Due Today and Unit Mixed Practice modes.

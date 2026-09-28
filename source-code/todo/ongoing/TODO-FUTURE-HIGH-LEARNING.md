@@ -1,5 +1,8 @@
 # High priority — Chemistry Topic 1 readiness, text tutoring and flashcards
 
+**Started:** 2026-09-19
+**Completed:** Not completed
+
 **Status: In progress. Core flashcard persistence, review/release APIs, Student sessions, source configuration and accessible interfaces are deployed. Production Chemistry content configuration and release checks remain.**
 
 This is the first delivery plan. Its immediate objective is to let Students use the reviewed `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` content through grounded text tutoring and accessible flashcards. Work in this file takes precedence over the medium, low and lowest-priority future plans.

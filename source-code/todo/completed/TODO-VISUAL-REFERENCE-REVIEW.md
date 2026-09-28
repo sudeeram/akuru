@@ -1,5 +1,8 @@
 # Visual Reference upload and role-aware review
 
+**Started:** 2026-09-27
+**Completed:** 2026-09-27
+
 ## Objective
 
 Make the Topic source role an explicit upload decision and give Visual Reference

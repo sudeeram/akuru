@@ -1,5 +1,8 @@
 # Low priority — Advanced extraction, assessment routing and voice delegation
 
+**Started:** 2026-09-19
+**Completed:** Not completed
+
 **Status: Future work — not started. Begin after high and medium priorities meet their release gates.**
 
 This plan contains larger or more operationally expensive work. It improves difficult scans and structured content, extends model routing into assessment/document workflows, and connects realtime voice to the reviewed text Tutor policies.

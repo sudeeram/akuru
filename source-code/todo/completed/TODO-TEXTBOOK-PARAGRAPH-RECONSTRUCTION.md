@@ -1,5 +1,8 @@
 # Textbook paragraph reconstruction and newline normalization
 
+**Started:** 2026-09-27
+**Completed:** 2026-09-27
+
 ## Objective
 
 Turn line-oriented native PDF and OCR extraction into accurate, readable

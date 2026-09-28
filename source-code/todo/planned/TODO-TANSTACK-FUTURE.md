@@ -1,5 +1,8 @@
 # Future TanStack capabilities
 
+**Started:** 2026-09-25
+**Completed:** Not completed
+
 **Status:** Planned after the Router and Query foundation.
 
 These items are outside the immediate routing work. Adopt each capability only when an AKURU feature needs it and after measuring the current implementation. Do not install a package merely to reserve it for future use.

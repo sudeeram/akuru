@@ -1,5 +1,8 @@
 # Medium priority — Low-cost learning and document-review improvements
 
+**Started:** 2026-09-19
+**Completed:** Not completed
+
 **Status: Future work — not started. Begin after the high-priority Student pilot is stable.**
 
 This plan contains features that can be implemented independently of advanced OCR, voice and OpenClaw. It prioritizes deterministic processing and economical text interactions with limited additional model usage.

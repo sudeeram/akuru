@@ -1,5 +1,8 @@
 # Future Parent-assisted and self-service account recovery
 
+**Started:** 2026-09-26
+**Completed:** Not completed
+
 **Status:** Planned for a future phase.
 
 This roadmap begins only after the Admin-managed password lifecycle in
@@ -74,4 +77,3 @@ account, and the workflow does not reveal whether an account exists.
 
 **Done when:** verified users can recover access without Admin intervention and
 the security, privacy and family-isolation release gates pass.
-

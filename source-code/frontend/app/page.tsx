@@ -1,7 +1,7 @@
 'use client';
 /* React Compiler is not enabled here. Effects intentionally synchronise authentication, legacy links and document focus. */
 /* eslint-disable react/react-compiler */
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { RouterProvider, useNavigate, useRouterState } from '@tanstack/react-router';
@@ -121,6 +121,8 @@ export function Portal() {
   const navigate = useNavigate();
   const location = useRouterState({ select: state => state.location });
   const [signedOut, setSignedOut] = useState(false);
+  const [sessionExpiryMessage, setSessionExpiryMessage] = useState('');
+  const lastInteractionAt = useRef(Date.now());
   const authQuery = useQuery({
     queryKey: queryKeys.auth.state,
     queryFn: getState,
@@ -146,12 +148,22 @@ export function Portal() {
       setError(errorMessage(authQuery.error));
   }, [authQuery.error]);
   useEffect(() => {
+    const rememberInteraction = () => { lastInteractionAt.current = Date.now(); };
+    const activityEvents = ['pointerdown', 'keydown', 'touchstart', 'input'] as const;
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, rememberInteraction, { passive: true }));
     const expire = () => {
+      const recentlyActive = Date.now() - lastInteractionAt.current <= 5 * 60 * 1000;
+      setSessionExpiryMessage(recentlyActive
+        ? 'Your AKURU session expired for security. Please sign in again to continue.'
+        : 'Your session expired while you were away. Please sign in again to continue.');
       setSignedOut(true);
       void clearPrivateQueryState().finally(() => navigate({ to: '/login', replace: true }));
     };
     window.addEventListener('akuru:unauthorized', expire);
-    return () => window.removeEventListener('akuru:unauthorized', expire);
+    return () => {
+      window.removeEventListener('akuru:unauthorized', expire);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, rememberInteraction));
+    };
   }, [navigate]);
   const role = data?.user.role as PortalRole | undefined;
   const view = role ? viewForPath(role, location.pathname) : 'today';
@@ -207,6 +219,7 @@ export function Portal() {
       await api('auth/login', { username, password });
       await clearPrivateQueryState();
       setSignedOut(false);
+      setSessionExpiryMessage('');
       const loginState = await authQuery.refetch();
       if (!loginState.data) throw loginState.error ?? new Error('AKURU could not load your account.');
       const next = loginState.data;
@@ -280,6 +293,11 @@ export function Portal() {
             </span>
             <h2>Welcome back.</h2>
             <p>Sign in to your own learning space.</p>
+            {sessionExpiryMessage && (
+              <output className="session-expiry-message">
+                {sessionExpiryMessage}
+              </output>
+            )}
             <label htmlFor="username">Username</label>
             <Input
               id="username"

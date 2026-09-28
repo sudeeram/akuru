@@ -42,6 +42,14 @@ test('private Query data is actor scoped and erased on identity changes', () => 
   assert.match(page, /addEventListener\('akuru:unauthorized'/);
 });
 
+test('expired sessions explain whether the user was active or away', () => {
+  assert.match(page, /Your AKURU session expired for security\. Please sign in again to continue\./);
+  assert.match(page, /Your session expired while you were away\. Please sign in again to continue\./);
+  assert.match(page, /lastInteractionAt/);
+  assert.match(page, /5 \* 60 \* 1000/);
+  assert.match(page, /session-expiry-message/);
+});
+
 test('Flashcard deep links cover decks, modes, sessions and current cards', () => {
   assert.ok(routes.includes('`/flashcards/decks/${encodeURIComponent(deckRef)}`'));
   assert.ok(routes.includes('`/flashcards/sessions/${encodeURIComponent(sessionRef)}/cards/${Math.max(1, position)}`'));

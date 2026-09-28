@@ -1,5 +1,8 @@
 # AKURU database baseline reset and migration-squash roadmap
 
+**Started:** 2026-09-17
+**Completed:** Not completed
+
 This roadmap replaces AKURU's development-era Alembic chain with one reviewed baseline before real educational or student-learning data is entered. It covers both the local and OCI production databases.
 
 The reset is justified only while the production database contains no educational content and the production Admin account can be recreated. Once real textbook, assessment, mastery, Tutor transcript or student-learning data exists, AKURU must return to forward-only migrations and must not repeat this reset.
