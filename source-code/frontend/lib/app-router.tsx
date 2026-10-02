@@ -49,6 +49,11 @@ export function createAkuruRouter(Portal: PortalComponent) {
     getParentRoute: () => rootRoute,
     path: '/flashcards/sessions/$sessionRef/cards/$position',
   });
-  const routeTree = rootRoute.addChildren([...staticRoutes, deckRoute, startRoute, cardRoute]);
+  const textbookRoute = createRoute({ getParentRoute: () => rootRoute, path: '/student/textbooks/$bookRef' });
+  const textbookTopicRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: '/student/textbooks/$bookRef/topics/$topicRef',
+  });
+  const routeTree = rootRoute.addChildren([...staticRoutes, deckRoute, startRoute, cardRoute, textbookRoute, textbookTopicRoute]);
   return createRouter({ routeTree, defaultPreload: 'intent', scrollRestoration: true });
 }

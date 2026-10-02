@@ -1341,3 +1341,113 @@ def test_per_child_tutor_quotas_are_admin_controlled_and_independent(auth_client
     status = client.get("/api/v1/tutoring/quota")
     assert status.status_code == 200 and status.json()["fallbackMessage"]
     assert client.get("/api/v1/tutoring/admin/quotas").status_code == 403
+
+
+@pytest.mark.integration
+def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) -> None:
+    client, username, password = auth_client
+    session = next(app.dependency_overrides[get_db]())
+    storage = app.dependency_overrides[get_storage]()
+    admin = session.scalar(select(User).where(User.username == username))
+    token = uuid.uuid4().hex
+    parent = User(username=f"reader-parent-{token}", display_name="Reader parent", role="parent",
+                  password_hash=hash_password("reader parent password"), must_change_password=False)
+    chemistry_student = User(username=f"reader-chem-{token}", display_name="Chemistry reader", role="student",
+                             password_hash=hash_password("reader chemistry password"), must_change_password=False)
+    maths_student = User(username=f"reader-maths-{token}", display_name="Maths reader", role="student",
+                         password_hash=hash_password("reader maths password"), must_change_password=False)
+    session.add_all([parent, chemistry_student, maths_student]); session.flush()
+    session.add_all([StudentProfile(student_id=chemistry_student.id, parent_id=parent.id),
+                     StudentProfile(student_id=maths_student.id, parent_id=parent.id),
+                     StudentSubject(student_id=chemistry_student.id, subject_id="chemistry"),
+                     StudentSubject(student_id=maths_student.id, subject_id="maths")])
+    book = Textbook(course_id="igcse", subject_id="chemistry", title=f"Reader Chemistry {token}",
+        edition="2026", publisher="AKURU", group_label="unit", status="draft", created_by=admin.id)
+    session.add(book); session.flush()
+    group = TextbookGroup(textbook_id=book.id, code="1", title="Unit 1", sequence=1, status="published")
+    session.add(group); session.flush()
+    topic = TextbookTopic(textbook_id=book.id, group_id=group.id, course_id="igcse",
+        subject_id="chemistry", code="1", title="Unreleased draft title", sequence=1, status="published")
+    session.add(topic); session.flush()
+    session.add(TextbookStructureVersion(textbook_id=book.id, version_number=1,
+        snapshot={"groups": [{"code": "1", "title": "Unit 1", "topics": [{"topicRef": topic.public_ref,
+            "code": "1", "title": "Published States of Matter"}]}]}, published_by=admin.id))
+    source_manifest = []
+    parts = []
+    for ordinal in (1, 2):
+        document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+            title=f"Reader part {ordinal} {token}", original_filename=f"reader-{ordinal}.pdf",
+            object_key=f"reader/{token}/{ordinal}.pdf", mime_type="application/pdf",
+            sha256=(f"{ordinal}{token}" * 2)[:64], review_state="published",
+            uploaded_by=admin.id, size_bytes=10)
+        session.add(document); session.flush()
+        version = DocumentVersion(document_id=document.id, version_number=1,
+            original_filename=document.original_filename, object_key=f"reader/{token}/{ordinal}-v1.pdf",
+            mime_type="application/pdf", sha256=(f"{ordinal}{token[::-1]}" * 2)[:64],
+            size_bytes=10, status="completed", uploaded_by=admin.id)
+        session.add(version); session.flush()
+        asset = DocumentAsset(document_version_id=version.id, asset_kind="page_render",
+            object_key=f"reader/{token}/{ordinal}.png", mime_type="image/png",
+            sha256=(f"{ordinal}a{token}" * 2)[:64], size_bytes=8, page_number=1, bounding_box={})
+        session.add(asset); session.flush()
+        storage.put(asset.object_key, f"image-{ordinal}".encode(), "image/png")
+        page = DocumentPage(document_version_id=version.id, page_number=1, printed_page_label=str(10 + ordinal),
+            width_points=100, height_points=100, render_asset_id=asset.id,
+            extraction_method="native", confidence=1.0, needs_review=False, page_metadata={})
+        session.add(page); session.flush()
+        block = DocumentBlock(document_version_id=version.id, page_id=page.id, sequence_number=1,
+            block_kind="paragraph", text=f"Reviewed chemistry passage {ordinal}", bounding_box={},
+            extraction_method="native", confidence=1.0, needs_review=False, block_metadata={})
+        session.add(block); session.flush()
+        source_manifest.append({"role": "primary", "sequence": ordinal, "documentVersionId": str(version.id),
+            "pages": [{"pageNumber": 1, "printedPageLabel": str(10 + ordinal)}]})
+        parts.append((document, version, block))
+    visual_asset = DocumentAsset(document_version_id=parts[0][1].id, asset_kind="visual_crop",
+        object_key=f"reader/{token}/approved.png", mime_type="image/png",
+        sha256=(f"visual{token}" * 2)[:64], size_bytes=14, page_number=1, bounding_box={})
+    session.add(visual_asset); session.flush()
+    storage.put(visual_asset.object_key, b"approved-image", "image/png")
+    visual_ref = f"visual_{token}"
+    content = TextbookTopicContentVersion(topic_id=topic.id, version_number=1, status="published",
+        source_manifest=source_manifest, extraction_manifest={"visualAssets": [{
+            "assetRef": visual_ref, "documentAssetId": str(visual_asset.id),
+            "documentVersionId": str(parts[0][1].id), "pageNumber": 1,
+            "printedPageLabel": "11", "caption": "Approved diagram", "altText": "States of matter diagram"}]},
+        published_by=admin.id)
+    session.add(content); session.flush()
+    for ordinal, (document, version, block) in enumerate(parts, 1):
+        session.add(RetrievalChunk(document_id=document.id, document_version_id=version.id,
+            group_id=group.id, topic_id=topic.id, topic_content_version_id=content.id,
+            course_id="igcse", subject_id="chemistry", source_type="textbook_section",
+            source_item_id=block.id, source_ordinal=ordinal, content=block.text,
+            page_number=1, bounding_box={}, content_hash=(token * 2)[:64],
+            embedding_model="test", embedding_version=1, embedding=[0.1] * 256, status="active"))
+    session.commit()
+    path = f"/api/v1/student/textbooks/{book.public_ref}/topics/{topic.public_ref}"
+    assert client.get("/api/v1/student/textbooks").status_code == 401
+    client.post("/api/v1/auth/login", json={"username": username, "password": password})
+    assert client.get("/api/v1/student/textbooks").status_code == 403
+    with TestClient(app, base_url="http://localhost") as reader:
+        reader.post("/api/v1/auth/login", json={"username": chemistry_student.username,
+            "password": "reader chemistry password"})
+        books = reader.get("/api/v1/student/textbooks")
+        assert books.status_code == 200 and len(books.json()["textbooks"]) == 1
+        assert books.json()["textbooks"][0]["groups"][0]["topics"][0]["title"] == "Published States of Matter"
+        assert books.json()["textbooks"][0]["groups"][0]["topics"][0]["contentVersion"] == 1
+        opened = reader.get(path)
+        assert opened.status_code == 200 and [page["printedPage"] for page in opened.json()["pages"]] == ["11", "12"]
+        assert [page["sections"][0]["text"] for page in opened.json()["pages"]] == [
+            "Reviewed chemistry passage 1", "Reviewed chemistry passage 2"]
+        assert opened.json()["pages"][0]["visuals"][0]["altText"] == "States of matter diagram"
+        assert reader.get(path + "/pages/1/image").content == b"image-1"
+        assert reader.get(path + "/pages/2/image").content == b"image-2"
+        assert reader.get(path + "/pages/3/image").status_code == 404
+        assert reader.get(path + f"/visuals/{visual_ref}").content == b"approved-image"
+        assert reader.get(path + "/visuals/not-approved").status_code == 404
+    with TestClient(app, base_url="http://localhost") as other:
+        other.post("/api/v1/auth/login", json={"username": maths_student.username,
+            "password": "reader maths password"})
+        assert other.get("/api/v1/student/textbooks").json() == {"textbooks": []}
+        assert other.get(path).status_code == 404
+        assert other.get(path + "/pages/1/image").status_code == 404
+        assert other.get(path + f"/visuals/{visual_ref}").status_code == 404

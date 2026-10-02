@@ -55,16 +55,18 @@ import { TutorProfiles } from '@/features/tutor-profiles';
 import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
 import { StudentFlashcards } from '@/features/flashcards';
+import { StudentTextbooks } from '@/features/student-textbooks';
 import { AccountSecurity } from '@/features/account-security';
 import { AdminLayout, ParentLayout, PublicLayout, StudentLayout } from '@/components/portal-layouts';
 import { createAkuruRouter } from '@/lib/app-router';
 import { clearPrivateQueryState, queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
-import { flashcardRoute, pathForView, roleAllowsPath, viewForPath, type PortalRole } from '@/lib/routes';
+import { flashcardRoute, studentTextbookRoute, pathForView, roleAllowsPath, viewForPath, type PortalRole } from '@/lib/routes';
 
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
   ['subjects', 'My subjects', BookOpen],
+  ['textbooks', 'Textbooks', Library],
   ['tutors', 'My tutors', Bot],
   ['tutor-room', 'Tutor room', MessageCircle],
   ['practice', 'Practice', ClipboardCheck],
@@ -201,7 +203,8 @@ export function Portal() {
   };
   const navigateTo = (to: string, replace = false) => {
     const withinFlashcardSession = location.pathname.startsWith('/flashcards/sessions/') && to.startsWith('/flashcards/sessions/');
-    const proceed = () => { if (!withinFlashcardSession) window.dispatchEvent(new Event('akuru:navigation')); void navigate({ to, replace }); };
+    const withinTextbookReader = location.pathname.startsWith('/student/textbooks') && to.startsWith('/student/textbooks');
+    const proceed = () => { if (!withinFlashcardSession && !withinTextbookReader) window.dispatchEvent(new Event('akuru:navigation')); void navigate({ to, replace }); };
     const guard = new CustomEvent('akuru:before-navigation', { cancelable: true, detail: { to, proceed } });
     if (window.dispatchEvent(guard)) proceed();
   };
@@ -496,6 +499,8 @@ export function Portal() {
           )
         ) : view === 'subjects' && !parent ? (
           <Subjects {...props} />
+        ) : view === 'textbooks' && !parent ? (
+          <StudentTextbooks actorRef={data.user.id} subjects={data.subjects} route={studentTextbookRoute(location.pathname, location.search)} navigate={navigateTo} />
         ) : view === 'tutors' ? (
           <TutorProfiles data={data} notify={notify} />
         ) : view === 'tutor-history' && parent ? (

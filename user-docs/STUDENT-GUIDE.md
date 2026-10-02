@@ -58,8 +58,14 @@ awaiting curriculum setup, ask Admin to prepare its units and questions.
 
 ## Approved Resources And Sign-Out
 
-Read approved textbooks and reference material from your subject page. They may
-contain later units, but assessed practice remains limited to your covered units.
+Open **Textbooks** in the Student navigation to browse published textbooks for
+your enrolled subjects. Choose a textbook, then a Unit or Module and Topic. The
+reader shows the reviewed text, an image of each published primary-source page,
+and approved diagrams. Use Previous, Next or the page selector to move around.
+Each Topic displays its published content version and date; the textbook also
+shows its published structure version and date. Draft or unpublished Topics do
+not appear. Reading may include later Topics, but assessed practice remains
+limited to your covered Grade and Term Topics.
 Show your working, answer in your own words, and sign out on shared devices.
 
 

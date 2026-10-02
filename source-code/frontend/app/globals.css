@@ -2291,3 +2291,21 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .final-document-block { border-bottom: 1px solid #dce8ee; padding: 0 0 18px; }
 @media (max-width: 800px) { .final-document-page-layout { grid-template-columns: 1fr; } .final-document-page-layout aside { position: static; } }
 @media print { .topbar, .primary-nav, .button-row, .final-document-page-layout aside { display: none !important; } .final-document-page-layout { display: block; } .final-document-page { break-after: page; border: 0; } }
+.student-textbook-library { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 18px; }
+.student-textbook-groups, .student-textbook-reader { display: grid; gap: 18px; }
+.student-textbook-topic-list { display: grid; gap: 8px; }
+.student-textbook-topic { display: flex; justify-content: space-between; align-items: center; gap: 18px; width: 100%; padding: 14px 16px; border: 1px solid #d3e5e9; border-radius: 12px; background: #f8fcfd; color: inherit; text-align: left; cursor: pointer; }
+.student-textbook-topic:hover, .student-textbook-topic:focus-visible { border-color: #0f9fae; background: #eefbfc; }
+.student-textbook-topic span:first-child { display: grid; gap: 3px; }
+.student-textbook-topic small { color: #526477; }
+.student-textbook-page-nav { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.student-textbook-page-nav label { display: flex; align-items: center; gap: 8px; }
+.student-textbook-page-nav select { min-height: 40px; padding: 6px 10px; border: 1px solid #bacfd6; border-radius: 9px; background: white; }
+.student-textbook-page-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(250px, .75fr); gap: 18px; align-items: start; }
+.student-textbook-page-grid > * { min-width: 0; }
+.student-textbook-page-grid aside img { max-height: 75vh; }
+.student-textbook-paragraph { max-width: 74ch; white-space: pre-line; line-height: 1.7; overflow-wrap: anywhere; }
+.student-textbook-visual { display: grid; justify-items: center; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 12px; background: #f2f9fb; text-align: center; }
+.student-textbook-visual-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+@media (max-width: 850px) { .student-textbook-page-grid { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .student-textbook-topic { align-items: start; flex-direction: column; } }

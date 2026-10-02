@@ -18,7 +18,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
     reviews: '/parent/reviews', assignments: '/parent/assignments', progress: '/parent/progress', security: '/parent/security',
   },
   student: {
-    today: '/student', subjects: '/student/subjects', tutors: '/student/tutors',
+    today: '/student', subjects: '/student/subjects', textbooks: '/student/textbooks', tutors: '/student/tutors',
     'tutor-room': '/student/tutor-room', practice: '/student/practice', flashcards: '/flashcards',
     exams: '/student/exams', progress: '/student/progress', plan: '/student/study-plan', security: '/student/security',
   },
@@ -41,6 +41,7 @@ export function pathForView(role: PortalRole, view: string) {
 }
 
 export function viewForPath(role: PortalRole, pathname: string) {
+  if (role === 'student' && pathname.startsWith('/student/textbooks')) return 'textbooks';
   if (role === 'student' && pathname.startsWith('/flashcards')) return 'flashcards';
   if (role === 'admin' && pathname.startsWith('/admin/textbooks')) return 'units';
   if (role === 'admin' && pathname.startsWith('/admin/exam-documents')) return 'library';
@@ -51,6 +52,7 @@ export function viewForPath(role: PortalRole, pathname: string) {
 export function roleAllowsPath(role: PortalRole, pathname: string) {
   if (pathname === '/' || pathname === '/login') return true;
   if (role === 'student' && pathname.startsWith('/flashcards')) return true;
+  if (role === 'student' && /^\/student\/textbooks(?:\/book_[^/]+(?:\/topics\/topic_[^/]+)?)?$/.test(pathname)) return true;
   if (role === 'admin' && (pathname.startsWith('/admin/textbooks') || pathname.startsWith('/admin/exam-documents'))) return true;
   return Object.values(roleViews[role]).includes(pathname);
 }
@@ -80,6 +82,22 @@ export const flashcardPaths = {
     `/flashcards/sessions/${encodeURIComponent(sessionRef)}/cards/${Math.max(1, position)}`,
 };
 
+export const studentTextbookPaths = {
+  library: '/student/textbooks',
+  book: (bookRef: string) => `/student/textbooks/${encodeURIComponent(bookRef)}`,
+  topic: (bookRef: string, topicRef: string, page = 1) =>
+    `/student/textbooks/${encodeURIComponent(bookRef)}/topics/${encodeURIComponent(topicRef)}?page=${Math.max(1, page)}`,
+};
+
+export function studentTextbookRoute(pathname: string, search: Record<string, unknown>) {
+  const match = pathname.match(/^\/student\/textbooks(?:\/([^/]+)(?:\/topics\/([^/]+))?)?$/);
+  return {
+    bookRef: match?.[1] ? decodeURIComponent(match[1]) : undefined,
+    topicRef: match?.[2] ? decodeURIComponent(match[2]) : undefined,
+    page: Math.max(1, Number(search.page) || 1),
+  };
+}
+
 export const applicationPaths = [
   '/', '/login', '/admin', '/admin/accounts', '/admin/library', '/admin/textbooks', '/admin/textbooks/new', '/admin/textbooks/review', '/admin/exam-documents',
   '/admin/coverage', '/admin/questions', '/admin/flashcards', '/admin/blueprints',
@@ -88,7 +106,7 @@ export const applicationPaths = [
   '/admin/evaluations', '/admin/operations', '/admin/security', '/parent', '/parent/students',
   '/parent/tutors', '/parent/tutor-history', '/parent/library', '/parent/reviews',
   '/parent/assignments', '/parent/progress', '/parent/security', '/student', '/student/subjects',
-  '/student/tutors', '/student/tutor-room', '/student/practice', '/student/exams',
+  '/student/tutors', '/student/tutor-room', '/student/textbooks', '/student/practice', '/student/exams',
   '/student/progress', '/student/study-plan', '/student/security', '/flashcards',
 ] as const;
 
@@ -96,6 +114,7 @@ export function isApplicationPath(pathname: string) {
   return (applicationPaths as readonly string[]).includes(pathname) ||
     /^\/flashcards\/decks\/[^/]+(?:\/start)?$/.test(pathname) ||
     /^\/flashcards\/sessions\/[^/]+\/cards\/\d+$/.test(pathname) ||
+    /^\/student\/textbooks\/book_[^/]+(?:\/topics\/topic_[^/]+)?$/.test(pathname) ||
     /^\/admin\/textbooks\/book_[^/]+(?:\/topics\/topic_[^/]+)?$/.test(pathname) ||
     /^\/admin\/textbooks\/review\/[^/]+$/.test(pathname) ||
     /^\/admin\/exam-documents(?:\/[^/]+)?$/.test(pathname);

@@ -161,6 +161,14 @@ export interface Schemas {
   "SourceLocation": { "page": number; "blockId": string; "boundingBox"?: { [key: string]: unknown; }; };
   "StudentQuotaResponse": { "studentRef": string; "studentName": string; "enabled": boolean; "state": "available" | "warning" | "exhausted" | "disabled" | "renewed"; "periodDays": number; "periodStartsAt": string; "renewsAt": string; "requests": Schemas["QuotaAmount"]; "textTokens": Schemas["QuotaAmount"]; "voiceMinutes": Schemas["QuotaAmount"]; "fallbackMessage": string; };
   "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; "accountRef": string; "lastLoginAt"?: string | null; };
+  "StudentTextbook": { "textbookRef": string; "subjectId": string; "title": string; "edition": string; "publisher": string; "groupLabel": string; "structureVersion": number; "structurePublishedAt": string; "groups": Array<Schemas["StudentTextbookGroup"]>; };
+  "StudentTextbookGroup": { "code": string; "title": string; "topics": Array<Schemas["StudentTextbookTopic"]>; };
+  "StudentTextbookList": { "textbooks": Array<Schemas["StudentTextbook"]>; };
+  "StudentTextbookPage": { "ordinal": number; "pageNumber": number; "printedPage": string | null; "imageUrl": string; "sections": Array<Schemas["StudentTextbookSection"]>; "visuals": Array<Schemas["StudentTextbookVisual"]>; };
+  "StudentTextbookSection": { "kind": string; "text": string; };
+  "StudentTextbookTopic": { "topicRef": string; "code": string; "title": string; "pageCount": number; "contentVersion": number; "publishedAt": string; };
+  "StudentTextbookTopicContent": { "textbookRef": string; "textbookTitle": string; "subjectId": string; "groupCode": string; "groupTitle": string; "topicRef": string; "topicCode": string; "topicTitle": string; "contentVersion": number; "publishedAt": string; "pages": Array<Schemas["StudentTextbookPage"]>; "additionalVisuals": Array<Schemas["StudentTextbookVisual"]>; };
+  "StudentTextbookVisual": { "assetRef": string; "caption": string; "altText": string; "contentUrl": string; };
   "StudyPlanResponse": { "id": string; "studentId": string; "version": number; "updatedAt": string; "generationReason": string; "items": Array<Schemas["PlanItemResponse"]>; };
   "SubjectCourseResponse": { "level": string; "syllabus": string; };
   "SubjectPresentationResponse": { "id": string; "name": string; "symbol": string; "color": string; "topic": string; "topics": Array<string>; "course": string; };
@@ -372,6 +380,10 @@ export interface ApiOperations {
   "GET /api/v1/retrieval/evidence/{chunk_id}": { request: unknown; response: Schemas["EvidenceResponse"] };
   "POST /api/v1/retrieval/search": { request: Schemas["RetrievalRequest"]; response: Schemas["RetrievalResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
+  "GET /api/v1/student/textbooks": { request: unknown; response: Schemas["StudentTextbookList"] };
+  "GET /api/v1/student/textbooks/{book_ref}/topics/{topic_ref}": { request: unknown; response: Schemas["StudentTextbookTopicContent"] };
+  "GET /api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/pages/{ordinal}/image": { request: unknown; response: unknown };
+  "GET /api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/visuals/{asset_ref}": { request: unknown; response: unknown };
   "POST /api/v1/tutoring/admin/avatars/{code}": { request: Schemas["TutorPresetUpdate"]; response: Schemas["TutorAdminPresetsResponse"] };
   "GET /api/v1/tutoring/admin/presets": { request: unknown; response: Schemas["TutorAdminPresetsResponse"] };
   "GET /api/v1/tutoring/admin/quotas": { request: unknown; response: Schemas["AdminQuotaListResponse"] };

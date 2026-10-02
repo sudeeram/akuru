@@ -1,5 +1,18 @@
 # Frontend
 
+## Student textbook reader
+
+`/student/textbooks` lists only textbooks with published Topics in the signed-in
+Student's enrolled subjects. `/student/textbooks/{bookRef}` shows the released
+Unit/Module structure, and `/student/textbooks/{bookRef}/topics/{topicRef}?page=N`
+opens a published Topic at a page. `features/student-textbooks.tsx` uses
+actor-scoped TanStack Query keys and the Student-only API in
+`api/textbooks/student-textbooks.api.ts`. Each page shows published reviewed
+passages, its protected primary-source page image and approved visual assets.
+The UI labels the existing structure version separately from Topic content
+versions; a whole-textbook release version is not implemented yet. The AKURU
+BOT SVG favicon lives at `public/favicon.svg` and is declared in `app/layout.tsx`.
+
 ## Routed textbook administration
 
 Admin textbook work uses `/admin/textbooks`, `/admin/textbooks/new`, `/admin/textbooks/{textbookRef}` and `/admin/textbooks/review/{documentRef}`. The route owns list, create, manage and review state, so browser navigation and deep links remain meaningful. Exam material lives under `/admin/exam-documents` and its type-specific subroutes. Legacy `/admin/library` links redirect to Exam Documents.

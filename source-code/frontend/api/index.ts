@@ -12,6 +12,7 @@ export * from './documents/documents.api';
 export * from './documents/documents.types';
 export * from './textbooks/textbooks.api';
 export * from './textbooks/textbooks.types';
+export * from './textbooks/student-textbooks.api';
 export * from './curriculum/curriculum.api';
 export * from './curriculum/curriculum.types';
 export * from './assessments/assessments.api';

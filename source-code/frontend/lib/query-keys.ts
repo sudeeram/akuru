@@ -3,6 +3,11 @@ export const queryKeys = {
   auth: {
     state: ['auth', 'state'] as const,
   },
+  textbooks: {
+    studentLibrary: (actorRef: string) => ['textbooks', actorRef, 'student-library'] as const,
+    studentTopic: (actorRef: string, bookRef: string, topicRef: string) =>
+      ['textbooks', actorRef, 'student-topic', bookRef, topicRef] as const,
+  },
   flashcards: {
     all: (actorRef: string) => ['flashcards', actorRef] as const,
     studentDecks: (actorRef: string) =>

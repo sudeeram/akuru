@@ -1,5 +1,19 @@
 # Backend API
 
+## Student published textbook access
+
+`GET /api/v1/student/textbooks` lists books with a published structure and at
+least one published Topic content version in the Student's enrolled subjects.
+`GET /api/v1/student/textbooks/{bookRef}/topics/{topicRef}` returns reviewed
+passages from the active Topic content version, published page metadata and
+approved visual references. Page-image and visual endpoints recheck the same
+Student role, subject enrolment, published structure and Topic content on every
+request. They return private no-store image responses. Page images use a Topic
+page ordinal, so two PDF parts can each have a physical page 1 without
+ambiguity. Draft structure edits are excluded by reading the latest published
+structure snapshot. Grade/Term limits continue to govern assessed practice,
+not textbook reading. No new database tables are required for this reader.
+
 ## Textbook source moves
 
 `POST /api/v1/admin/textbooks/{textbookRef}/topics/{topicRef}/sources/{documentId}/move` moves an unreferenced source within the same textbook. It requires Admin authentication and CSRF protection, validates the destination through the textbook scope, rejects duplicates, and blocks sources used by published content, retrieval chunks, or reviewed visual assets. A successful move updates source metadata and writes a `textbook_topic_document.moved` audit event. No database migration is required for this UI release.

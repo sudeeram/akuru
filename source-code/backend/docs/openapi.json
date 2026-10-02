@@ -7600,6 +7600,313 @@
         "title": "StudentResponse",
         "type": "object"
       },
+      "StudentTextbook": {
+        "properties": {
+          "edition": {
+            "title": "Edition",
+            "type": "string"
+          },
+          "groupLabel": {
+            "title": "Grouplabel",
+            "type": "string"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookGroup"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "publisher": {
+            "title": "Publisher",
+            "type": "string"
+          },
+          "structurePublishedAt": {
+            "title": "Structurepublishedat",
+            "type": "string"
+          },
+          "structureVersion": {
+            "title": "Structureversion",
+            "type": "integer"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookRef": {
+            "title": "Textbookref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "textbookRef",
+          "subjectId",
+          "title",
+          "edition",
+          "publisher",
+          "groupLabel",
+          "structureVersion",
+          "structurePublishedAt",
+          "groups"
+        ],
+        "title": "StudentTextbook",
+        "type": "object"
+      },
+      "StudentTextbookGroup": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookTopic"
+            },
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "code",
+          "title",
+          "topics"
+        ],
+        "title": "StudentTextbookGroup",
+        "type": "object"
+      },
+      "StudentTextbookList": {
+        "properties": {
+          "textbooks": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbook"
+            },
+            "title": "Textbooks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "textbooks"
+        ],
+        "title": "StudentTextbookList",
+        "type": "object"
+      },
+      "StudentTextbookPage": {
+        "properties": {
+          "imageUrl": {
+            "title": "Imageurl",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          },
+          "printedPage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Printedpage"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "visuals": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookVisual"
+            },
+            "title": "Visuals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ordinal",
+          "pageNumber",
+          "printedPage",
+          "imageUrl",
+          "sections",
+          "visuals"
+        ],
+        "title": "StudentTextbookPage",
+        "type": "object"
+      },
+      "StudentTextbookSection": {
+        "properties": {
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "StudentTextbookSection",
+        "type": "object"
+      },
+      "StudentTextbookTopic": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "contentVersion": {
+            "title": "Contentversion",
+            "type": "integer"
+          },
+          "pageCount": {
+            "title": "Pagecount",
+            "type": "integer"
+          },
+          "publishedAt": {
+            "title": "Publishedat",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "code",
+          "title",
+          "pageCount",
+          "contentVersion",
+          "publishedAt"
+        ],
+        "title": "StudentTextbookTopic",
+        "type": "object"
+      },
+      "StudentTextbookTopicContent": {
+        "properties": {
+          "additionalVisuals": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookVisual"
+            },
+            "title": "Additionalvisuals",
+            "type": "array"
+          },
+          "contentVersion": {
+            "title": "Contentversion",
+            "type": "integer"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookPage"
+            },
+            "title": "Pages",
+            "type": "array"
+          },
+          "publishedAt": {
+            "title": "Publishedat",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "textbookRef": {
+            "title": "Textbookref",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "topicCode": {
+            "title": "Topiccode",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "textbookRef",
+          "textbookTitle",
+          "subjectId",
+          "groupCode",
+          "groupTitle",
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "contentVersion",
+          "publishedAt",
+          "pages",
+          "additionalVisuals"
+        ],
+        "title": "StudentTextbookTopicContent",
+        "type": "object"
+      },
+      "StudentTextbookVisual": {
+        "properties": {
+          "altText": {
+            "title": "Alttext",
+            "type": "string"
+          },
+          "assetRef": {
+            "title": "Assetref",
+            "type": "string"
+          },
+          "caption": {
+            "title": "Caption",
+            "type": "string"
+          },
+          "contentUrl": {
+            "title": "Contenturl",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetRef",
+          "caption",
+          "altText",
+          "contentUrl"
+        ],
+        "title": "StudentTextbookVisual",
+        "type": "object"
+      },
       "StudyPlanResponse": {
         "properties": {
           "generationReason": {
@@ -23485,6 +23792,350 @@
         "summary": "State",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks": {
+      "get": {
+        "operationId": "list_textbooks_api_v1_student_textbooks_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentTextbookList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Textbooks",
+        "tags": [
+          "student textbooks"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}": {
+      "get": {
+        "operationId": "read_topic_api_v1_student_textbooks__book_ref__topics__topic_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_ref",
+            "required": true,
+            "schema": {
+              "title": "Book Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentTextbookTopicContent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Topic",
+        "tags": [
+          "student textbooks"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/pages/{ordinal}/image": {
+      "get": {
+        "operationId": "read_page_image_api_v1_student_textbooks__book_ref__topics__topic_ref__pages__ordinal__image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_ref",
+            "required": true,
+            "schema": {
+              "title": "Book Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "ordinal",
+            "required": true,
+            "schema": {
+              "title": "Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Page Image",
+        "tags": [
+          "student textbooks"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/visuals/{asset_ref}": {
+      "get": {
+        "operationId": "read_visual_api_v1_student_textbooks__book_ref__topics__topic_ref__visuals__asset_ref__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_ref",
+            "required": true,
+            "schema": {
+              "title": "Book Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_ref",
+            "required": true,
+            "schema": {
+              "title": "Asset Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Visual",
+        "tags": [
+          "student textbooks"
         ]
       }
     },
