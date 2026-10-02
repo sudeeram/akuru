@@ -2304,7 +2304,8 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .student-textbook-page-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(250px, .75fr); gap: 18px; align-items: start; }
 .student-textbook-page-grid > * { min-width: 0; }
 .student-textbook-page-grid aside img { max-height: 75vh; }
-.student-textbook-paragraph { max-width: 74ch; white-space: pre-line; line-height: 1.7; overflow-wrap: anywhere; }
+.student-textbook-paragraph, .student-textbook-list { max-width: 74ch; line-height: 1.7; overflow-wrap: anywhere; }
+.student-textbook-list { padding-left: 1.5rem; }
 .student-textbook-visual { display: grid; justify-items: center; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 12px; background: #f2f9fb; text-align: center; }
 .student-textbook-visual-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
 @media (max-width: 850px) { .student-textbook-page-grid { grid-template-columns: 1fr; } }

@@ -10,6 +10,7 @@ import {
 } from '@/api';
 import { queryKeys } from '@/lib/query-keys';
 import { studentTextbookPaths } from '@/lib/routes';
+import { readableTextbookBlocks } from '@/lib/textbook-display.mjs';
 import { Empty, Heading } from './shared';
 
 type Route = { bookRef?: string; topicRef?: string; page: number };
@@ -105,9 +106,13 @@ export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props)
           <div className="student-textbook-page-grid">
             <article className="panel stack" aria-label={`Reviewed content for page ${page.printedPage || page.pageNumber}`}>
               <h3>Page {page.printedPage || page.pageNumber}</h3>
-              {page.sections.length ? page.sections.map((section, index) => section.kind === 'heading'
-                ? <h4 key={index}>{section.text}</h4>
-                : <p className="student-textbook-paragraph" key={index}>{section.text}</p>)
+              {page.sections.length ? page.sections.flatMap((section) => section.kind === 'heading'
+                ? [{ kind: 'heading' as const, text: section.text }]
+                : readableTextbookBlocks(section.text)).map((block, index) => block.kind === 'heading'
+                  ? <h4 key={index}>{block.text}</h4>
+                  : block.kind === 'list'
+                    ? <ul className="student-textbook-list" key={index}>{block.items.map((item: string, itemIndex: number) => <li key={itemIndex}>{item}</li>)}</ul>
+                    : <p className="student-textbook-paragraph" key={index}>{block.text}</p>)
                 : <p>The reviewed text for this page is unavailable. You can still see the published page image.</p>}
               {page.visuals.map((visual) => <Visual key={visual.assetRef} visual={visual}/>)}
             </article>
