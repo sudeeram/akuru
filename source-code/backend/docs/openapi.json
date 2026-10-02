@@ -1332,6 +1332,19 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "ConfirmVisualReferenceLabelsRequest": {
+        "properties": {
+          "confirmAllSavedLabels": {
+            "title": "Confirmallsavedlabels",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "confirmAllSavedLabels"
+        ],
+        "title": "ConfirmVisualReferenceLabelsRequest",
+        "type": "object"
+      },
       "ContextAttempt": {
         "properties": {
           "awardedMarks": {
@@ -19146,6 +19159,111 @@
           }
         },
         "summary": "Preview Document Paragraph Reconstruction",
+        "tags": [
+          "documents"
+        ]
+      }
+    },
+    "/api/v1/documents/{document_id}/extraction/visual-reference/confirm-page-labels": {
+      "post": {
+        "operationId": "confirm_visual_reference_labels_api_v1_documents__document_id__extraction_visual_reference_confirm_page_labels_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmVisualReferenceLabelsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExtractionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Confirm Visual Reference Labels",
         "tags": [
           "documents"
         ]

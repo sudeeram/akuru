@@ -167,6 +167,75 @@ def test_rejects_untrusted_origins(auth_client) -> None:
 
 
 @pytest.mark.integration
+def test_visual_reference_prefilled_labels_need_explicit_confirmation(auth_client) -> None:
+    client, username, password = auth_client
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    session = next(app.dependency_overrides[get_db]())
+    admin = session.scalar(select(User).where(User.username == username))
+    token = uuid.uuid4().hex
+    book = Textbook(course_id="igcse", subject_id="chemistry", title=f"Visual review {token}",
+        edition="2026", publisher="AKURU", group_label="unit", status="draft", created_by=admin.id)
+    session.add(book); session.flush()
+    group = TextbookGroup(textbook_id=book.id, code="1", title="Unit 1", sequence=1, status="draft")
+    session.add(group); session.flush()
+    topic = TextbookTopic(textbook_id=book.id, group_id=group.id, course_id="igcse",
+        subject_id="chemistry", code="1", title="States of Matter", sequence=1, status="draft")
+    session.add(topic); session.flush()
+    document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+        title="Original scan", original_filename="original-scan.pdf",
+        object_key=f"tests/{token}.pdf", mime_type="application/pdf", sha256=(token * 2)[:64],
+        review_state="pending", uploaded_by=admin.id, size_bytes=10)
+    session.add(document); session.flush()
+    version = DocumentVersion(document_id=document.id, version_number=1,
+        original_filename=document.original_filename, object_key=f"tests/{token}-v1.pdf",
+        mime_type="application/pdf", sha256=(token[::-1] * 2)[:64], size_bytes=10,
+        status="needs_review", uploaded_by=admin.id)
+    session.add(version); session.flush()
+    link = TextbookTopicDocument(topic_id=topic.id, document_version_id=version.id,
+        document_id=document.id, role="visual_reference", sequence=1,
+        review_status="needs_review", created_by=admin.id)
+    session.add(link)
+    for number in (1, 2):
+        asset = DocumentAsset(document_version_id=version.id, asset_kind="page_render",
+            object_key=f"tests/{token}-{number}.png", mime_type="image/png",
+            sha256=(f"{number}{token}" * 2)[:64], size_bytes=10,
+            page_number=number, bounding_box={})
+        session.add(asset); session.flush()
+        page = DocumentPage(document_version_id=version.id, page_number=number,
+            printed_page_label=str(number + 1), width_points=100, height_points=100,
+            render_asset_id=asset.id, extraction_method="ocr", confidence=0.6,
+            needs_review=True, page_metadata={})
+        session.add(page); session.flush()
+        session.add(DocumentBlock(document_version_id=version.id, page_id=page.id,
+            sequence_number=1, block_kind="paragraph", text="Unreviewed OCR",
+            bounding_box={}, extraction_method="ocr", confidence=0.6,
+            needs_review=True, block_metadata={}))
+    session.commit()
+    path = f"/api/v1/documents/{document.id}/extraction/visual-reference/confirm-page-labels"
+    assert client.post(path, headers=headers, json={"confirmAllSavedLabels": False}).status_code == 422
+    assert client.post(path, json={"confirmAllSavedLabels": True}).status_code == 403
+    first = session.scalar(select(DocumentPage).where(
+        DocumentPage.document_version_id == version.id, DocumentPage.page_number == 1))
+    one = client.post(f"/api/v1/documents/{document.id}/extraction/pages/{first.id}",
+        headers=headers, json={"printedPageLabel": "2"})
+    assert one.status_code == 200
+    session.refresh(link); session.refresh(document)
+    assert link.review_status == "needs_review" and document.review_state == "pending"
+    confirmed = client.post(path, headers=headers, json={"confirmAllSavedLabels": True})
+    assert confirmed.status_code == 200
+    assert all(page["metadata"].get("printedPageLabelConfirmed") is True
+               for page in confirmed.json()["pages"])
+    session.refresh(link); session.refresh(document); session.refresh(version)
+    assert link.review_status == "ready" and document.review_state == "reviewed"
+    assert version.status == "completed"
+    assert session.scalar(select(DocumentBlock).where(
+        DocumentBlock.document_version_id == version.id, DocumentBlock.needs_review.is_(True)))
+    assert session.scalar(select(DocumentEvent).where(
+        DocumentEvent.document_version_id == version.id,
+        DocumentEvent.event_type == "visual_reference_page_labels_confirmed"))
+
+
 def test_review_completion_handles_page_only_unattached_and_terminal_documents(auth_client) -> None:
     client, username, password = auth_client
     login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()

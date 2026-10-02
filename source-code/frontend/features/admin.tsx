@@ -40,6 +40,7 @@ import {
   reassessAssessment,
   updateExtractionBlock,
   updateExtractionPage,
+  confirmVisualReferenceLabels,
   type ScientificTextContent,
 } from '@/api';
 import { ScientificTextEditor, scientificPlainText } from '@/components/scientific-text-editor';
@@ -257,8 +258,10 @@ export function AdminWorkspace(p: Props) {
   const visualReferenceReview = doc?.sourceRole === 'visual_reference';
   const extractionReview = extraction ? {
     totalPages: extraction.pages.length,
-    pendingPages: extraction.pages.filter((page) => visualReferenceReview ? !page.printedPageLabel?.trim() : page.needsReview || !page.printedPageLabel?.trim()),
-    totalBlocks: extraction.pages.reduce((total, page) => total + page.blocks.length, 0),
+    pendingPages: extraction.pages.filter((page) => visualReferenceReview
+      ? !page.printedPageLabel?.trim() || page.metadata.printedPageLabelConfirmed !== true
+      : page.needsReview || !page.printedPageLabel?.trim()),
+    totalBlocks: visualReferenceReview ? 0 : extraction.pages.reduce((total, page) => total + page.blocks.length, 0),
     pendingBlocks: visualReferenceReview ? 0 : extraction.pages.reduce(
       (total, page) => total + page.blocks.filter((block) => block.needsReview).length,
       0,
@@ -951,6 +954,13 @@ export function AdminWorkspace(p: Props) {
                         <div><strong>{extractionReview.pendingBlocks}</strong><span>Blocks to review</span></div>
                         <div><strong>{extractionReview.totalBlocks - extractionReview.pendingBlocks}</strong><span>Cleared blocks</span></div>
                       </div>
+                      {visualReferenceReview && extractionReview.pendingPages.length > 0 && extraction?.pages.every((page) => page.printedPageLabel?.trim()) &&
+                        <div className="source-note stack"><p>The Printed page labels are present but some have not been confirmed by an Admin. Compare them with the original pages before confirming.</p>
+                          <Button variant="outline" disabled={busy} onClick={() => {
+                            if (!window.confirm(`Have you checked the saved Printed page labels against all ${extraction?.pages.length ?? 0} original pages? Unsaved edits are not included.`)) return;
+                            void run(async () => { setExtraction(await confirmVisualReferenceLabels(doc.id)); }, 'All saved Visual Reference page labels confirmed.');
+                          }}>Confirm all saved page labels</Button>
+                        </div>}
                       {extractionReview.pendingPages.length > 0 && (
                         <nav className="extraction-page-links" aria-label="Pages requiring review">
                           <strong>Go to page:</strong>
@@ -964,11 +974,12 @@ export function AdminWorkspace(p: Props) {
                   {!showFinalDocument && (doc.status !== 'published' || visualReferenceReview) && extraction?.pages.map((page) => {
                     const pendingBlocks = visualReferenceReview ? 0 : page.blocks.filter((block) => block.needsReview).length;
                     const blockReviews = page.blocks.filter((block) => block.metadata.adminReviewed === true).length;
-                    const pageLabelComplete = Boolean(page.printedPageLabel?.trim());
+                    const pageLabelComplete = Boolean(page.printedPageLabel?.trim()) && (!visualReferenceReview || page.metadata.printedPageLabelConfirmed === true);
                     const completedReviews = visualReferenceReview ? Number(pageLabelComplete) : blockReviews + Number(pageLabelComplete);
                     const requiredReviews = visualReferenceReview ? 1 : pendingBlocks + blockReviews + 1;
                     const pageComplete = pageLabelComplete && pendingBlocks === 0;
-                    const pageStatus = pageComplete ? 'Fully reviewed' : completedReviews > 0 ? 'Partially reviewed' : 'Needs page label';
+                    const pageStatus = pageComplete ? 'Fully reviewed' : completedReviews > 0 ? 'Partially reviewed' :
+                      visualReferenceReview && page.printedPageLabel?.trim() ? 'Confirm page label' : 'Needs page label';
                     const hideReviewed = Boolean(hideReviewedBlocks[page.id]);
                     const reviewGroups = groupExtractionBlocks(page.blocks);
                     const visibleGroups = hideReviewed
@@ -985,7 +996,7 @@ export function AdminWorkspace(p: Props) {
                         <div className="extraction-page-review-counts" aria-label={`Page ${page.pageNumber} review summary`}>
                           <span><strong>{requiredReviews}</strong> required</span>
                           <span><strong>{completedReviews}</strong> completed</span>
-                          <span><strong>{pendingBlocks}</strong> remaining</span>
+                          <span><strong>{visualReferenceReview ? requiredReviews - completedReviews : pendingBlocks}</strong> remaining</span>
                         </div>
                         <span className={`review-status-badge ${pageComplete ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}>
                           {pageStatus}

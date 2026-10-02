@@ -327,6 +327,37 @@ def update_extraction_page(db: Session, principal: Principal, document_id: uuid.
     return extraction_response(db, document_id)
 
 
+def confirm_visual_reference_labels(db: Session, principal: Principal, document_id: uuid.UUID,
+                                    *, confirm_all: bool) -> DocumentExtractionResponse:
+    if not confirm_all:
+        raise DomainError("visual_reference_confirmation_required",
+                          "Confirm that you checked every saved Printed page label.", 422)
+    document, version = get_document(db, document_id)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_version_id == version.id)).all()
+    if not links or any(link.role != "visual_reference" for link in links):
+        raise DomainError("visual_reference_only", "Only Visual Reference page labels can be confirmed together.", 409)
+    if document.review_state == "published":
+        raise DomainError("published_document_immutable", "Published source review cannot be changed.", 409)
+    pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number).with_for_update()).all()
+    if not pages or any(not page.printed_page_label or not page.printed_page_label.strip() for page in pages):
+        raise DomainError("visual_reference_page_label_missing",
+                          "Save a Printed page label on every page before confirming the Visual Reference.", 409)
+    unconfirmed = [page for page in pages if page.page_metadata.get("printedPageLabelConfirmed") is not True]
+    if unconfirmed:
+        for page in unconfirmed:
+            page.page_metadata = {**page.page_metadata, "adminReviewed": True,
+                                  "printedPageLabelConfirmed": True,
+                                  "reviewedBy": str(principal.user.id)}
+        db.add(DocumentEvent(document_id=document.id, document_version_id=version.id,
+            actor_id=principal.user.id, event_type="visual_reference_page_labels_confirmed",
+            event_data={"pageCount": len(pages), "newlyConfirmed": len(unconfirmed)}))
+        _refresh_topic_document_readiness(db, version.id, principal.user.id)
+        db.commit()
+    return extraction_response(db, document_id)
+
+
 def update_extraction_block(db: Session, principal: Principal, document_id: uuid.UUID,
                             block_id: uuid.UUID, *, kind: str, text: str, latex: str | None,
                             sequence_number: int, caption: str | None = None,
@@ -619,7 +650,10 @@ def _refresh_topic_document_readiness(db: Session, document_version_id: uuid.UUI
         (DocumentPage.printed_page_label.is_(None)) | (DocumentPage.printed_page_label == ""),
     ).limit(1))
     text_complete = bool(page_exists and not missing_label and not unresolved_pages and not unresolved_blocks)
-    visual_complete = bool(page_exists and not missing_label)
+    pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id == document_version_id)).all()
+    visual_complete = bool(pages and all(page.printed_page_label and
+        page.page_metadata.get("printedPageLabelConfirmed") is True for page in pages))
     complete = visual_complete if links and all(link.role == "visual_reference" for link in links) else text_complete
     version = db.get(DocumentVersion, document_version_id)
     document = db.get(Document, version.document_id) if version else None

@@ -108,6 +108,10 @@ class ExtractionPageUpdateRequest(BaseModel):
     printedPageLabel: str | None = Field(default=None, max_length=40)
 
 
+class ConfirmVisualReferenceLabelsRequest(BaseModel):
+    confirmAllSavedLabels: bool
+
+
 class ScientificTextMark(BaseModel):
     type: Literal["subscript", "superscript", "bold", "italic"]
     start: int = Field(ge=0, le=100_000)

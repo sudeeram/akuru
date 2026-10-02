@@ -144,10 +144,10 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
     visual_statuses = [link.review_status for link in visual_links.values()]
     visual_processing = sum(value in {"pending", "processing"} for value in visual_statuses)
     visual_failed = sum(value == "failed" for value in visual_statuses)
-    visual_missing_labels = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
-        DocumentPage.document_version_id.in_(list(visual_links)),
-        (DocumentPage.printed_page_label.is_(None)) | (DocumentPage.printed_page_label == ""),
-    )) or 0) if visual_links else 0
+    visual_pages = db.scalars(select(DocumentPage).where(
+        DocumentPage.document_version_id.in_(list(visual_links)))).all() if visual_links else []
+    visual_missing_labels = sum(not page.printed_page_label or
+        page.page_metadata.get("printedPageLabelConfirmed") is not True for page in visual_pages)
     for version_id, link in visual_links.items():
         assets = db.scalars(select(TextbookTopicVisualAsset).where(
             TextbookTopicVisualAsset.topic_id == topic.id,
@@ -203,7 +203,7 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
         {"code": "visual_review", "passed": pending_visuals == 0,
          "message": "Every selected diagram, image or table needs approval and accessible text."},
         {"code": "visual_page_labels", "passed": visual_missing_labels == 0,
-         "message": "Every Visual Reference page needs a confirmed Printed page label."},
+         "message": "Every Visual Reference page needs an explicitly confirmed Printed page label."},
         {"code": "visual_processing", "passed": visual_processing == 0 and visual_failed == 0,
          "message": "Every Visual Reference must finish processing successfully."},
         {"code": "new_version", "passed": has_draft_changes,
@@ -251,11 +251,11 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
             DocumentBlock.document_version_id == link.document_version_id,
             DocumentBlock.needs_review.is_(True),
         )) or 0)
-        page_count = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
-            DocumentPage.document_version_id == link.document_version_id)) or 0)
-        confirmed_page_labels = int(db.scalar(select(func.count()).select_from(DocumentPage).where(
-            DocumentPage.document_version_id == link.document_version_id,
-            DocumentPage.printed_page_label.is_not(None), DocumentPage.printed_page_label != "")) or 0)
+        source_pages = db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == link.document_version_id)).all()
+        page_count = len(source_pages)
+        confirmed_page_labels = sum(bool(page.printed_page_label) and
+            page.page_metadata.get("printedPageLabelConfirmed") is True for page in source_pages)
         missing_page_labels = page_count - confirmed_page_labels
         if link.role == "visual_reference":
             unresolved_pages, unresolved_blocks = missing_page_labels, 0

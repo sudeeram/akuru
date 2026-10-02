@@ -33,6 +33,7 @@ export async function getDocumentExtraction(id: string): Promise<DocumentExtract
   return request<DocumentExtraction>(`documents/${id}/extraction`);
 }
 export const updateExtractionPage = (documentId: string, pageId: string, printedPageLabel: string) => request<DocumentExtraction>(`documents/${documentId}/extraction/pages/${pageId}`, { method: 'POST', body: { printedPageLabel } });
+export const confirmVisualReferenceLabels = (documentId: string) => request<DocumentExtraction>(`documents/${documentId}/extraction/visual-reference/confirm-page-labels`, { method: 'POST', body: { confirmAllSavedLabels: true } });
 export const updateExtractionBlock = (documentId: string, blockId: string, body: { kind: string; text: string; latex?: string | null; caption?: string | null; sequenceNumber: number; scientificContent?: ScientificTextContent | null }) => request<DocumentExtraction>(`documents/${documentId}/extraction/blocks/${blockId}`, { method: 'POST', body });
 export const paragraphOperation = (documentId: string, blockId: string, action: 'join_previous'|'split'|'restore_extracted', splitOffset?: number) => request<DocumentExtraction>(`documents/${documentId}/extraction/blocks/${blockId}/paragraph`, { method: 'POST', body: { action, splitOffset } });
 export const reconstructDocumentParagraphs = (documentId: string, confirmOverwriteReviewed: boolean) => request<DocumentExtraction>(`documents/${documentId}/extraction/reconstruct`, { method: 'POST', body: { confirmOverwriteReviewed } });

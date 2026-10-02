@@ -9,6 +9,7 @@ from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.queue import DocumentQueue, get_document_queue
 from app.schemas.documents import (
+    ConfirmVisualReferenceLabelsRequest,
     DocumentExtractionResponse, DocumentJobResponse, DocumentListResponse, DocumentResponse,
     DocumentType, DocumentUploadResponse, ExtractionBlockUpdateRequest, ExtractionPageUpdateRequest,
     FinalDocumentConfirmRequest, FinalDocumentResponse, ParagraphOperationRequest,
@@ -124,6 +125,14 @@ def update_extraction_page(document_id: uuid.UUID, page_id: uuid.UUID, payload: 
                            principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
                            db: Annotated[Session, Depends(get_db)]):
     return documents.update_extraction_page(db, principal, document_id, page_id, payload.printedPageLabel)
+
+
+@router.post("/{document_id}/extraction/visual-reference/confirm-page-labels", response_model=DocumentExtractionResponse)
+def confirm_visual_reference_labels(document_id: uuid.UUID, payload: ConfirmVisualReferenceLabelsRequest,
+                                    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                                    db: Annotated[Session, Depends(get_db)]):
+    return documents.confirm_visual_reference_labels(db, principal, document_id,
+                                                      confirm_all=payload.confirmAllSavedLabels)
 
 
 @router.post("/{document_id}/extraction/blocks/{block_id}", response_model=DocumentExtractionResponse)

@@ -25,6 +25,7 @@ export interface Schemas {
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
+  "ConfirmVisualReferenceLabelsRequest": { "confirmAllSavedLabels": boolean; };
   "ContextAttempt": { "evidenceRef": string; "observedAt": string; "mode": string; "score": number; "awardedMarks": number; "maxMarks": number; "markingSummary": Array<string>; };
   "ContextEvidence": { "ref": string; "kind": "mastery_event" | "assessment_result" | "mistake" | "reviewed_recommendation" | "study_plan_item"; "observedAt": string; "summary": string; };
   "ContextMistakePattern": { "topic": string; "category": string; "last7Days": number; "last30Days": number; "lifetime": number; "evidenceRefs": Array<string>; "statement": Schemas["ContextStatement"]; };
@@ -330,6 +331,7 @@ export interface ApiOperations {
   "POST /api/v1/documents/{document_id}/extraction/pages/{page_id}": { request: Schemas["ExtractionPageUpdateRequest"]; response: Schemas["DocumentExtractionResponse"] };
   "POST /api/v1/documents/{document_id}/extraction/reconstruct": { request: Schemas["ReconstructionApplyRequest"]; response: Schemas["DocumentExtractionResponse"] };
   "GET /api/v1/documents/{document_id}/extraction/reconstruct-preview": { request: unknown; response: Schemas["ReconstructionPreviewResponse"] };
+  "POST /api/v1/documents/{document_id}/extraction/visual-reference/confirm-page-labels": { request: Schemas["ConfirmVisualReferenceLabelsRequest"]; response: Schemas["DocumentExtractionResponse"] };
   "GET /api/v1/documents/{document_id}/final-review": { request: unknown; response: Schemas["FinalDocumentResponse"] };
   "POST /api/v1/documents/{document_id}/final-review/confirm": { request: Schemas["FinalDocumentConfirmRequest"]; response: Schemas["FinalDocumentResponse"] };
   "GET /api/v1/documents/{document_id}/jobs/latest": { request: unknown; response: Schemas["DocumentJobResponse"] };

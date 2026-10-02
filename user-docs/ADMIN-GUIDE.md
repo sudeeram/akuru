@@ -9,8 +9,11 @@ Before choosing a file, confirm the upload destination shown above the picker. A
 Choose the source role before selecting a Topic file. **Primary text** is the
 canonical learning text; **Supporting text** and **Reference text** add reviewed
 material; **Visual reference** supplies familiar textbook pages and figures
-without using its OCR in Student learning. Visual references need a saved Printed
-page label on every page. Their OCR blocks do not need correction. Approve only
+without using its OCR in Student learning. Visual references need a saved and
+explicitly confirmed Printed page label on every page. Prefilled labels alone
+do not count as reviewed. Check each page and save its label, or, after checking
+all saved labels, choose **Confirm all saved page labels** on the review page.
+Their OCR blocks do not need correction. Approve only
 figures AKURU should show, with an accurate caption and useful alternative text.
 
 For a text source, use the scientific toolbar in **Extracted text** to mark
