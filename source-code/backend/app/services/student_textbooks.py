@@ -6,11 +6,12 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import (DocumentAsset, DocumentBlock, DocumentPage, RetrievalChunk,
+from app.models import (DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion, RetrievalChunk,
                         StudentSubject, Textbook, TextbookStructureVersion,
-                        TextbookTopic, TextbookTopicContentVersion)
+                        TextbookTopic, TextbookTopicContentVersion, TextbookTopicDocument)
 from app.schemas.student_textbooks import (StudentTextbook, StudentTextbookGroup,
-    StudentTextbookList, StudentTextbookPage, StudentTextbookSection,
+    StudentTextbookList, StudentTextbookPage, StudentTextbookReference,
+    StudentTextbookReferencePage, StudentTextbookSection,
     StudentTextbookTopic, StudentTextbookTopicContent, StudentTextbookVisual)
 from app.security import Principal
 from app.storage import ObjectStorage
@@ -133,13 +134,64 @@ def topic_content(db: Session, principal: Principal, book_ref: str,
         if matching:
             matching.visuals.append(visual_payload(row))
             attached_visual_refs.add(row["assetRef"])
+    references = []
+    for ordinal, (source, _version, reference_pages) in enumerate(_visual_reference_sources(db, content), 1):
+        references.append(StudentTextbookReference(ordinal=ordinal,
+            filename=_version.original_filename,
+            pages=[StudentTextbookReferencePage(ordinal=page_ordinal,
+                pageNumber=page.page_number, printedPage=page.printed_page_label,
+                imageUrl=(f"/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}"
+                          f"/visual-references/{ordinal}/pages/{page_ordinal}/image"))
+                for page_ordinal, page in enumerate(reference_pages, 1)]))
     return StudentTextbookTopicContent(textbookRef=book.public_ref, textbookTitle=book.title,
         subjectId=book.subject_id, groupCode=group_snapshot["code"],
         groupTitle=group_snapshot["title"], topicRef=topic.public_ref,
         topicCode=topic_snapshot["code"], topicTitle=topic_snapshot["title"],
         contentVersion=content.version_number, publishedAt=content.published_at.isoformat(),
-        pages=pages, additionalVisuals=[visual_payload(row) for row in visual_rows
+        pages=pages, visualReferences=references,
+        additionalVisuals=[visual_payload(row) for row in visual_rows
             if row["assetRef"] not in attached_visual_refs])
+
+
+def _visual_reference_sources(db: Session, content: TextbookTopicContentVersion):
+    """Resolve only labelled page renders from the published Visual Reference manifest.
+
+    Older publications omit a page list, so their reviewed DocumentPages are read
+    from the exact document version named by the immutable publication manifest.
+    """
+    result = []
+    for source in sorted(content.source_manifest, key=lambda item: item.get("sequence", 0)):
+        if source.get("role") != "visual_reference":
+            continue
+        version_id = source.get("documentVersionId")
+        if not version_id:
+            continue
+        version = db.get(DocumentVersion, uuid.UUID(version_id))
+        if not version or version.status not in {"completed", "needs_review"}:
+            continue
+        link = db.get(TextbookTopicDocument, (content.topic_id, version.id))
+        if not link or link.review_status not in {"ready", "published"}:
+            continue
+        pages = db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number)).all()
+        if not pages or any(not page.printed_page_label for page in pages):
+            continue
+        result.append((source, version, pages))
+    return result
+
+
+def reference_page_image(db: Session, storage: ObjectStorage, principal: Principal,
+                         book_ref: str, topic_ref: str, source_ordinal: int, page_ordinal: int):
+    _book, _structure, _topic, content = _released(db, principal, book_ref, topic_ref)
+    sources = _visual_reference_sources(db, content)
+    if 1 <= source_ordinal <= len(sources):
+        _source, version, pages = sources[source_ordinal - 1]
+        if 1 <= page_ordinal <= len(pages):
+            page = pages[page_ordinal - 1]
+            asset = db.get(DocumentAsset, page.original_render_asset_id or page.render_asset_id)
+            if asset and asset.document_version_id == version.id:
+                return storage.get(asset.object_key, asset.mime_type)
+    raise DomainError("textbook_reference_page_not_available", "This published Visual Reference page is unavailable.", 404)
 
 
 def page_image(db: Session, storage: ObjectStorage, principal: Principal,

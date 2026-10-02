@@ -45,3 +45,14 @@ def read_visual(book_ref: str, topic_ref: str, asset_ref: str,
     image = student_textbooks.visual_image(db, storage, principal, book_ref, topic_ref, asset_ref)
     return Response(content=image.content, media_type=image.content_type,
                     headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/{book_ref}/topics/{topic_ref}/visual-references/{source_ordinal}/pages/{page_ordinal}/image")
+def read_visual_reference_page(book_ref: str, topic_ref: str, source_ordinal: int, page_ordinal: int,
+                               principal: Annotated[Principal, Depends(require_roles("student"))],
+                               db: Annotated[Session, Depends(get_db)],
+                               storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    image = student_textbooks.reference_page_image(db, storage, principal, book_ref, topic_ref,
+                                                    source_ordinal, page_ordinal)
+    return Response(content=image.content, media_type=image.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})

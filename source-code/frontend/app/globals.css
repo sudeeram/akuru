@@ -2306,6 +2306,10 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .student-textbook-page-grid aside img { max-height: 75vh; }
 .student-textbook-paragraph, .student-textbook-list { max-width: 74ch; line-height: 1.7; overflow-wrap: anywhere; }
 .student-textbook-list { padding-left: 1.5rem; }
+.student-textbook-reference-source { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.student-textbook-reference-source select { min-height: 40px; padding: 6px 10px; border: 1px solid #bacfd6; border-radius: 9px; background: white; max-width: 100%; }
+.student-textbook-reference-page { display: grid; justify-items: center; gap: 12px; }
+.student-textbook-reference-page img { max-height: 85vh; max-width: 100%; object-fit: contain; }
 .student-textbook-visual { display: grid; justify-items: center; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 12px; background: #f2f9fb; text-align: center; }
 .student-textbook-visual-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
 @media (max-width: 850px) { .student-textbook-page-grid { grid-template-columns: 1fr; } }

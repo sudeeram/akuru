@@ -14,6 +14,11 @@ export type StudentTextbookPage = {
   sections: { kind: string; text: string }[];
   visuals: StudentTextbookVisual[];
 };
+export type StudentTextbookReference = {
+  ordinal: number;
+  filename: string;
+  pages: { ordinal: number; pageNumber: number; printedPage: string; imageUrl: string }[];
+};
 export type StudentTextbookTopic = {
   topicRef: string;
   code: string;
@@ -45,6 +50,7 @@ export type StudentTextbookContent = {
   contentVersion: number;
   publishedAt: string;
   pages: StudentTextbookPage[];
+  visualReferences: StudentTextbookReference[];
   additionalVisuals: StudentTextbookVisual[];
 };
 

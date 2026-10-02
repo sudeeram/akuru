@@ -2,6 +2,11 @@
 
 ## Student textbook reader
 
+Each published Topic offers Reviewed text and, when available, a Visual
+reference reading mode. The visual mode shows full original page images, a
+source selector for multiple reviewed references, printed page labels, and
+Previous/Next controls. The selected mode and page are URL parameters.
+
 `/student/textbooks` lists only textbooks with published Topics in the signed-in
 Student's enrolled subjects. `/student/textbooks/{bookRef}` shows the released
 Unit/Module structure, and `/student/textbooks/{bookRef}/topics/{topicRef}?page=N`

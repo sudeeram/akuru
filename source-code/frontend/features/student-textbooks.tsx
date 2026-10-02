@@ -13,7 +13,7 @@ import { studentTextbookPaths } from '@/lib/routes';
 import { readableTextbookBlocks } from '@/lib/textbook-display.mjs';
 import { Empty, Heading } from './shared';
 
-type Route = { bookRef?: string; topicRef?: string; page: number };
+type Route = { bookRef?: string; topicRef?: string; view: 'text' | 'visual'; source: number; page: number };
 type Props = {
   actorRef: string;
   subjects: { id: string; name: string }[];
@@ -59,6 +59,8 @@ export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props)
   const book = books.find((item) => item.textbookRef === route.bookRef);
   const topic = topicQuery.data;
   const page = topic?.pages[Math.min(Math.max(route.page, 1), topic.pages.length) - 1];
+  const reference = topic?.visualReferences.find((item) => item.ordinal === route.source);
+  const referencePage = reference?.pages[Math.min(Math.max(route.page, 1), reference.pages.length) - 1];
   const subjectName = (id: string) => subjects.find((item) => item.id === id)?.name || id;
 
   if (booksQuery.isPending) return <section className="panel" aria-live="polite">Loading your published textbooks…</section>;
@@ -95,7 +97,30 @@ export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props)
           <h2>{topic.topicCode} · {topic.topicTitle}</h2>
           <p className="small">Topic content v{topic.contentVersion} · published {publishedDate(topic.publishedAt)} · {topic.pages.length} pages</p>
         </div>
-        {page ? <>
+        <nav className="button-row" aria-label="Choose textbook reading view">
+          <Button variant={route.view === 'text' ? 'default' : 'outline'} aria-pressed={route.view === 'text'}
+            onClick={() => navigate(studentTextbookPaths.topic(topic.textbookRef, topic.topicRef))}>Reviewed text</Button>
+          {!!topic.visualReferences.length && <Button variant={route.view === 'visual' ? 'default' : 'outline'} aria-pressed={route.view === 'visual'}
+            onClick={() => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef))}>Visual reference · original pages</Button>}
+        </nav>
+        {route.view === 'visual' ? reference && referencePage ? <>
+          {topic.visualReferences.length > 1 && <label className="student-textbook-reference-source">Visual reference <select aria-label="Choose visual reference source" value={reference.ordinal}
+            onChange={(event) => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, Number(event.target.value)))}>
+            {topic.visualReferences.map((item) => <option key={item.ordinal} value={item.ordinal}>{item.filename}</option>)}
+          </select></label>}
+          <section className="panel stack"><h3>{reference.filename}</h3><p className="small">Reviewed Visual Reference · {reference.pages.length} labelled pages</p></section>
+          <nav className="student-textbook-page-nav" aria-label="Visual reference pages">
+            <Button variant="outline" disabled={referencePage.ordinal === 1} onClick={() => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, referencePage.ordinal - 1))}><ChevronLeft size={17}/> Previous</Button>
+            <label>Page <select aria-label="Choose visual reference page" value={referencePage.ordinal} onChange={(event) => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, Number(event.target.value)))}>
+              {reference.pages.map((item) => <option key={item.ordinal} value={item.ordinal}>{item.printedPage} ({item.ordinal} of {reference.pages.length})</option>)}
+            </select></label>
+            <Button variant="outline" disabled={referencePage.ordinal === reference.pages.length} onClick={() => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, referencePage.ordinal + 1))}>Next <ChevronRight size={17}/></Button>
+          </nav>
+          <figure className="panel student-textbook-reference-page"><Image src={referencePage.imageUrl}
+            alt={`Original textbook page ${referencePage.printedPage} from ${reference.filename}`}
+            width={1100} height={1500} unoptimized loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'contain' }}/>
+            <figcaption>Page {referencePage.printedPage}</figcaption></figure>
+        </> : <Empty title="Visual reference unavailable">Choose a reviewed Visual Reference for this published Topic.</Empty> : page ? <>
           <nav className="student-textbook-page-nav" aria-label="Textbook pages">
             <Button variant="outline" disabled={page.ordinal === 1} onClick={() => navigate(studentTextbookPaths.topic(topic.textbookRef, topic.topicRef, page.ordinal - 1))}><ChevronLeft size={17}/> Previous</Button>
             <label>Page <select aria-label="Choose textbook page" value={page.ordinal} onChange={(event) => navigate(studentTextbookPaths.topic(topic.textbookRef, topic.topicRef, Number(event.target.value)))}>

@@ -1402,6 +1402,39 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
         source_manifest.append({"role": "primary", "sequence": ordinal, "documentVersionId": str(version.id),
             "pages": [{"pageNumber": 1, "printedPageLabel": str(10 + ordinal)}]})
         parts.append((document, version, block))
+    reference_document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+        title=f"Reviewed visual reference {token}", original_filename="original-scanned-book.pdf",
+        object_key=f"reader/{token}/visual-reference.pdf", mime_type="application/pdf",
+        sha256=(f"reference{token}" * 2)[:64], review_state="reviewed",
+        uploaded_by=admin.id, size_bytes=10)
+    session.add(reference_document); session.flush()
+    reference_version = DocumentVersion(document_id=reference_document.id, version_number=1,
+        original_filename=reference_document.original_filename,
+        object_key=f"reader/{token}/visual-reference-v1.pdf", mime_type="application/pdf",
+        sha256=(f"reference-version{token}" * 2)[:64], size_bytes=10,
+        status="completed", uploaded_by=admin.id)
+    session.add(reference_version); session.flush()
+    for page_number in (1, 2):
+        render = DocumentAsset(document_version_id=reference_version.id, asset_kind="page_render",
+            object_key=f"reader/{token}/reference-render-{page_number}.png", mime_type="image/png",
+            sha256=(f"reference-render-{page_number}{token}" * 2)[:64], size_bytes=8,
+            page_number=page_number, bounding_box={})
+        original = DocumentAsset(document_version_id=reference_version.id, asset_kind="page_render",
+            object_key=f"reader/{token}/reference-original-{page_number}.png", mime_type="image/png",
+            sha256=(f"reference-original-{page_number}{token}" * 2)[:64], size_bytes=8,
+            page_number=page_number, bounding_box={})
+        session.add_all([render, original]); session.flush()
+        storage.put(original.object_key, f"original-page-{page_number}".encode(), "image/png")
+        session.add(DocumentPage(document_version_id=reference_version.id, page_number=page_number,
+            printed_page_label=str(10 + page_number), width_points=100, height_points=100,
+            render_asset_id=render.id, original_render_asset_id=original.id,
+            extraction_method="native", confidence=1.0, needs_review=False, page_metadata={}))
+    source_manifest.append({"role": "visual_reference", "sequence": 3,
+        "documentVersionId": str(reference_version.id)})
+    reference_link = TextbookTopicDocument(topic_id=topic.id, document_version_id=reference_version.id,
+        document_id=reference_document.id, role="visual_reference", sequence=3,
+        review_status="ready", created_by=admin.id)
+    session.add(reference_link)
     visual_asset = DocumentAsset(document_version_id=parts[0][1].id, asset_kind="visual_crop",
         object_key=f"reader/{token}/approved.png", mime_type="image/png",
         sha256=(f"visual{token}" * 2)[:64], size_bytes=14, page_number=1, bounding_box={})
@@ -1439,11 +1472,22 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
         assert [page["sections"][0]["text"] for page in opened.json()["pages"]] == [
             "Reviewed chemistry passage 1", "Reviewed chemistry passage 2"]
         assert opened.json()["pages"][0]["visuals"][0]["altText"] == "States of matter diagram"
+        assert opened.json()["visualReferences"][0]["filename"] == "original-scanned-book.pdf"
+        assert [page["printedPage"] for page in opened.json()["visualReferences"][0]["pages"]] == ["11", "12"]
         assert reader.get(path + "/pages/1/image").content == b"image-1"
         assert reader.get(path + "/pages/2/image").content == b"image-2"
         assert reader.get(path + "/pages/3/image").status_code == 404
         assert reader.get(path + f"/visuals/{visual_ref}").content == b"approved-image"
         assert reader.get(path + "/visuals/not-approved").status_code == 404
+        reference_path = path + "/visual-references/1/pages"
+        assert reader.get(reference_path + "/1/image").content == b"original-page-1"
+        assert reader.get(reference_path + "/2/image").content == b"original-page-2"
+        assert reader.get(reference_path + "/3/image").status_code == 404
+        assert reader.get(path + "/visual-references/2/pages/1/image").status_code == 404
+        reference_link.review_status = "needs_review"; session.commit()
+        assert reader.get(path).json()["visualReferences"] == []
+        assert reader.get(reference_path + "/1/image").status_code == 404
+        reference_link.review_status = "ready"; session.commit()
     with TestClient(app, base_url="http://localhost") as other:
         other.post("/api/v1/auth/login", json={"username": maths_student.username,
             "password": "reader maths password"})
@@ -1451,3 +1495,4 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
         assert other.get(path).status_code == 404
         assert other.get(path + "/pages/1/image").status_code == 404
         assert other.get(path + f"/visuals/{visual_ref}").status_code == 404
+        assert other.get(path + "/visual-references/1/pages/1/image").status_code == 404

@@ -2,6 +2,13 @@
 
 ## Student published textbook access
 
+The Student Topic response also enumerates labelled Visual Reference pages from
+the published source manifest. A role-checked page-image endpoint serves the
+original render only when the enrolled Student can read that published Topic
+and the referenced document version remains reviewed. Existing publications
+without page lists in their manifest resolve pages from the exact published
+document version; no draft Visual Reference is exposed.
+
 `GET /api/v1/student/textbooks` lists books with a published structure and at
 least one published Topic content version in the Student's enrolled subjects.
 `GET /api/v1/student/textbooks/{bookRef}/topics/{topicRef}` returns reviewed

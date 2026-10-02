@@ -61,7 +61,10 @@ awaiting curriculum setup, ask Admin to prepare its units and questions.
 Open **Textbooks** in the Student navigation to browse published textbooks for
 your enrolled subjects. Choose a textbook, then a Unit or Module and Topic. The
 reader shows the reviewed text, an image of each published primary-source page,
-and approved diagrams. Use Previous, Next or the page selector to move around.
+and approved diagrams. If a reviewed Visual Reference is included in the published
+Topic, choose **Visual reference · original pages** to read its labelled page images.
+You can switch between the text and original-page views. Use Previous, Next or
+the page selector to move around; choose a source if the Topic has more than one.
 Each Topic displays its published content version and date; the textbook also
 shows its published structure version and date. Draft or unpublished Topics do
 not appear. Reading may include later Topics, but assessed practice remains

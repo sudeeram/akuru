@@ -53,6 +53,19 @@ class StudentTextbookPage(BaseModel):
     visuals: list[StudentTextbookVisual]
 
 
+class StudentTextbookReferencePage(BaseModel):
+    ordinal: int
+    pageNumber: int
+    printedPage: str
+    imageUrl: str
+
+
+class StudentTextbookReference(BaseModel):
+    ordinal: int
+    filename: str
+    pages: list[StudentTextbookReferencePage]
+
+
 class StudentTextbookTopicContent(BaseModel):
     textbookRef: str
     textbookTitle: str
@@ -65,4 +78,5 @@ class StudentTextbookTopicContent(BaseModel):
     contentVersion: int
     publishedAt: str
     pages: list[StudentTextbookPage]
+    visualReferences: list[StudentTextbookReference]
     additionalVisuals: list[StudentTextbookVisual]

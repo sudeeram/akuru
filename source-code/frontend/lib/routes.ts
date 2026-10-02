@@ -87,6 +87,8 @@ export const studentTextbookPaths = {
   book: (bookRef: string) => `/student/textbooks/${encodeURIComponent(bookRef)}`,
   topic: (bookRef: string, topicRef: string, page = 1) =>
     `/student/textbooks/${encodeURIComponent(bookRef)}/topics/${encodeURIComponent(topicRef)}?page=${Math.max(1, page)}`,
+  visual: (bookRef: string, topicRef: string, source = 1, page = 1) =>
+    `/student/textbooks/${encodeURIComponent(bookRef)}/topics/${encodeURIComponent(topicRef)}?view=visual&source=${Math.max(1, source)}&page=${Math.max(1, page)}`,
 };
 
 export function studentTextbookRoute(pathname: string, search: Record<string, unknown>) {
@@ -94,6 +96,8 @@ export function studentTextbookRoute(pathname: string, search: Record<string, un
   return {
     bookRef: match?.[1] ? decodeURIComponent(match[1]) : undefined,
     topicRef: match?.[2] ? decodeURIComponent(match[2]) : undefined,
+    view: search.view === 'visual' ? 'visual' as const : 'text' as const,
+    source: Math.max(1, Number(search.source) || 1),
     page: Math.max(1, Number(search.page) || 1),
   };
 }

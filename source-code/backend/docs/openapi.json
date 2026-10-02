@@ -7749,6 +7749,60 @@
         "title": "StudentTextbookPage",
         "type": "object"
       },
+      "StudentTextbookReference": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "pages": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookReferencePage"
+            },
+            "title": "Pages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ordinal",
+          "filename",
+          "pages"
+        ],
+        "title": "StudentTextbookReference",
+        "type": "object"
+      },
+      "StudentTextbookReferencePage": {
+        "properties": {
+          "imageUrl": {
+            "title": "Imageurl",
+            "type": "string"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          },
+          "pageNumber": {
+            "title": "Pagenumber",
+            "type": "integer"
+          },
+          "printedPage": {
+            "title": "Printedpage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ordinal",
+          "pageNumber",
+          "printedPage",
+          "imageUrl"
+        ],
+        "title": "StudentTextbookReferencePage",
+        "type": "object"
+      },
       "StudentTextbookSection": {
         "properties": {
           "kind": {
@@ -7860,6 +7914,13 @@
           "topicTitle": {
             "title": "Topictitle",
             "type": "string"
+          },
+          "visualReferences": {
+            "items": {
+              "$ref": "#/components/schemas/StudentTextbookReference"
+            },
+            "title": "Visualreferences",
+            "type": "array"
           }
         },
         "required": [
@@ -7874,6 +7935,7 @@
           "contentVersion",
           "publishedAt",
           "pages",
+          "visualReferences",
           "additionalVisuals"
         ],
         "title": "StudentTextbookTopicContent",
@@ -24040,6 +24102,109 @@
           }
         },
         "summary": "Read Page Image",
+        "tags": [
+          "student textbooks"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/visual-references/{source_ordinal}/pages/{page_ordinal}/image": {
+      "get": {
+        "operationId": "read_visual_reference_page_api_v1_student_textbooks__book_ref__topics__topic_ref__visual_references__source_ordinal__pages__page_ordinal__image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_ref",
+            "required": true,
+            "schema": {
+              "title": "Book Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_ordinal",
+            "required": true,
+            "schema": {
+              "title": "Source Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page_ordinal",
+            "required": true,
+            "schema": {
+              "title": "Page Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Visual Reference Page",
         "tags": [
           "student textbooks"
         ]
