@@ -10,16 +10,17 @@ import {
   type DocumentExtraction, type FinalDocumentReview, type ScientificTextContent,
 } from '@/api';
 
-export function FinalDocumentReviewWorkspace({ documentId, notify, extractionChanged }: {
+export function FinalDocumentReviewWorkspace({ documentId, notify, extractionChanged, readOnly = false }: {
   documentId: string;
   notify: (message: string) => void;
   extractionChanged: (value: DocumentExtraction) => void;
+  readOnly?: boolean;
 }) {
   const [review, setReview] = useState<FinalDocumentReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
-  const [previewMode, setPreviewMode] = useState(false);
+  const [previewMode, setPreviewMode] = useState(readOnly);
   const load = async () => setReview(await getFinalDocumentReview(documentId));
   useEffect(() => {
     let active = true;
@@ -42,27 +43,27 @@ export function FinalDocumentReviewWorkspace({ documentId, notify, extractionCha
   }
   if (!review) return <section className="panel"><p>{error || 'Loading the final reviewed document…'}</p></section>;
   return <section className="panel stack final-document-workspace" aria-labelledby="final-document-title">
-    <div className="spread"><div><h2 id="final-document-title">Review complete document</h2>
-      <p>Read and correct the exact continuous content AKURU will publish. Every edit updates the underlying review draft.</p></div>
+    <div className="spread"><div><h2 id="final-document-title">{readOnly ? 'Published document content' : 'Review complete document'}</h2>
+      <p>{readOnly ? 'This reviewed source is published and read-only. Upload a revised source and publish a new Topic version to change what students use.' : 'Read and correct the exact continuous content AKURU will publish. Every edit updates the underlying review draft.'}</p></div>
       <span className={`review-status-badge ${review.confirmed ? 'review-status-complete' : 'review-status-required'}`}>{review.confirmed ? 'Final document confirmed' : 'Confirmation required'}</span>
     </div>
     {error && <p className="error" role="alert">{error}</p>}
     {dirty && <output className="source-note"><strong>Unsaved changes.</strong> Save the edited paragraph before leaving this page or confirming the document.</output>}
     <div className="button-row">
       <Button variant="outline" disabled={busy} onClick={() => window.print()}>Print or save private preview</Button>
-      <Button variant="outline" aria-pressed={previewMode} onClick={() => setPreviewMode((value) => !value)}>{previewMode ? 'Return to editing' : 'Preview Student version'}</Button>
-      <Button variant="outline" disabled={busy} onClick={() => { setBusy(true); setError('');
+      {!readOnly && <Button variant="outline" aria-pressed={previewMode} onClick={() => setPreviewMode((value) => !value)}>{previewMode ? 'Return to editing' : 'Preview Student version'}</Button>}
+      {!readOnly && <Button variant="outline" disabled={busy} onClick={() => { setBusy(true); setError('');
         void previewDocumentParagraphReconstruction(documentId).then((preview) => {
           const summary = `${preview.version}\n${preview.pageCount} pages\n${preview.beforeBlockCount} current blocks → ${preview.afterBlockCount} reconstructed blocks\n${preview.reviewedBlockCount} manually reviewed blocks would be reopened.\n\nApply this reconstruction to the unpublished review draft?`;
           if (window.confirm(summary)) return run(() => reconstructDocumentParagraphs(documentId, preview.reviewedBlockCount > 0), 'Paragraph reconstruction applied to the review draft.');
         }).catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-      }}>Re-run paragraph reconstruction</Button>
-      <Button className="primary" disabled={busy || dirty || review.blockers.length > 0 || review.confirmed} onClick={() => {
+      }}>Re-run paragraph reconstruction</Button>}
+      {!readOnly && <Button className="primary" disabled={busy || dirty || review.blockers.length > 0 || review.confirmed} onClick={() => {
         if (!window.confirm('Confirm this complete document as the exact reviewed content AKURU may publish?')) return;
         setBusy(true); setError(''); void confirmFinalDocumentReview(documentId).then(setReview)
           .then(() => notify('Final reviewed document confirmed.'))
           .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-      }}>Confirm final reviewed document</Button>
+      }}>Confirm final reviewed document</Button>}
     </div>
     <div className="source-note"><strong>Final review summary</strong><p>Reconstruction {review.reconstructionVersion} · content fingerprint {review.contentHash.slice(0, 12)}</p>
       {review.blockers.length ? <><p><strong>{review.blockers.length} items remain:</strong></p><ul>{review.blockers.slice(0, 20).map((blocker) => <li key={blocker}>{blocker}</li>)}</ul></> : <p>Every page label and review block is complete.</p>}

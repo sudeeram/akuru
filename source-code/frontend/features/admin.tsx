@@ -272,6 +272,7 @@ export function AdminWorkspace(p: Props) {
     'Examiner report': 'examiner_report',
   } as const;
   const textbookReviewMode = p.pathname.startsWith('/admin/textbooks/review');
+  const requestedReviewDocument = p.pathname.match(/^\/admin\/textbooks\/review\/([^/]+)$/)?.[1];
   const examSection = p.pathname.match(/^\/admin\/exam-documents\/([^/]+)$/)?.[1] || 'all';
   const examKind = ({ 'past-papers': 'Past paper', 'mark-schemes': 'Marking scheme',
     'examiner-reports': 'Examiner report', references: 'Reference material' } as Record<string, string>)[examSection];
@@ -292,10 +293,15 @@ export function AdminWorkspace(p: Props) {
   const refreshPortal = p.refresh;
   useEffect(() => {
     if (!textbookReviewMode) return;
-    const documentRef = p.pathname.match(/^\/admin\/textbooks\/review\/([^/]+)$/)?.[1];
-    const selected = p.data.documents.find((document) => (document.publicRef || document.id) === documentRef);
-    if (selected) queueMicrotask(() => setDocId(selected.id));
-  }, [textbookReviewMode, p.pathname, p.data.documents]);
+    const selected = p.data.documents.find((document) => (document.publicRef || document.id) === requestedReviewDocument);
+    queueMicrotask(() => {
+      setDocId(selected?.id || '');
+      setExtraction(null);
+      setDocumentJob(null);
+      setExtractionError('');
+      setShowFinalDocument(selected?.status === 'published' && selected.sourceRole !== 'visual_reference');
+    });
+  }, [textbookReviewMode, requestedReviewDocument, p.data.documents]);
   useEffect(() => {
     if (currentView !== 'accounts') return;
     let active = true;
@@ -314,7 +320,7 @@ export function AdminWorkspace(p: Props) {
     const selected = p.data.documents.find((document) => document.id === docId);
     if (!selected) return;
     let active = true;
-    const extractionRequest = ['needs_review', 'completed'].includes(selected.status)
+    const extractionRequest = selected.kind === 'Textbook' || ['needs_review', 'completed'].includes(selected.status)
       ? getDocumentExtraction(docId)
       : Promise.resolve(null);
     void Promise.all([getLatestDocumentJob(docId), extractionRequest])
@@ -810,11 +816,13 @@ export function AdminWorkspace(p: Props) {
               </label>
             </section>}
             <section className="panel spaced stack">
-              <div className="spread"><h2>{textbookReviewMode ? 'Review textbook documents' : 'Review exam documents'}</h2>{textbookReviewMode && docId && <Button variant="outline" onClick={() => { setDocId(''); setExtraction(null); setDocumentJob(null); p.navigate(requestedTextbook ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}` : '/admin/textbooks/review'); }}>Return to review list</Button>}</div>
+              <div className="spread"><h2>{requestedReviewDocument && doc ? doc.name : textbookReviewMode ? 'Review textbook documents' : 'Review exam documents'}</h2>{textbookReviewMode && requestedReviewDocument && <Button variant="outline" onClick={() => p.navigate(requestedTextbook ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}` : '/admin/textbooks/review')}>Return to review list</Button>}</div>
+              {(!textbookReviewMode || !requestedReviewDocument) && <>
               <fieldset className="catalogue-filters"><legend>Filter review work</legend><div className="three-cols"><label className="stack" htmlFor="review-document-search">Search<Input id="review-document-search" type="search" value={reviewSearch} onChange={(event) => setReviewSearch(event.target.value)} placeholder="Document, textbook, Unit or Topic"/></label><Picker label="Subject" value={reviewSubject} onChange={setReviewSubject} options={[{value:'all',label:'All subjects'},...p.data.subjects.map((item) => ({value:item.id,label:item.name}))]}/><Picker label="Status" value={reviewStatus} onChange={setReviewStatus} options={[{value:'all',label:'All statuses'},...Array.from(new Set(visibleDocuments.map((item) => item.status))).map((value) => ({value,label:value.replaceAll('_',' ')}))]}/></div><div className="button-row"><Button variant="outline" onClick={() => { setReviewSearch(''); setReviewSubject('all'); setReviewStatus('all'); }}>Clear filters</Button><span>{filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}</span></div></fieldset>
-              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>Review</Button>{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
+              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>{document.status === 'published' ? 'View published source' : 'Review'}</Button>{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
               {!filteredDocuments.length && <p>No documents match these filters.</p>}
-              <Picker
+              </>}
+              {!textbookReviewMode && <Picker
                 label="Document to review"
                 value={docId}
                 onChange={(v) => {
@@ -827,7 +835,8 @@ export function AdminWorkspace(p: Props) {
                   value: d.id,
                   label: `${d.name} · ${d.subject} · ${d.kind} · ${d.status}`,
                 }))}
-              />
+              />}
+              {requestedReviewDocument && !doc && <p role="alert">This textbook document is unavailable. Return to the review list and select a document.</p>}
               {doc && (
                 <>
                   <a
@@ -913,12 +922,13 @@ export function AdminWorkspace(p: Props) {
                     </section>
                   )}
                   {extractionError && <p className="error" role="alert">{extractionError}</p>}
-                  {textbookReviewMode && extraction && !visualReferenceReview && <div className="button-row">
+                  {doc.status === 'published' && <p className="source-note"><strong>Published source · read-only.</strong> Saving another review does not create a new Topic version. Upload and review a revised source, then publish the Topic to create its next content version.</p>}
+                  {textbookReviewMode && extraction && !visualReferenceReview && doc.status !== 'published' && <div className="button-row">
                     <Button className={showFinalDocument ? '' : 'primary'} variant={showFinalDocument ? 'outline' : 'default'} onClick={() => setShowFinalDocument(false)}>Review pages and blocks</Button>
                     <Button className={showFinalDocument ? 'primary' : ''} variant={showFinalDocument ? 'default' : 'outline'} onClick={() => setShowFinalDocument(true)}>Review complete document</Button>
                   </div>}
-                  {showFinalDocument && doc && extraction && !visualReferenceReview && <FinalDocumentReviewWorkspace documentId={doc.id} notify={p.notify} extractionChanged={setExtraction}/>}
-                  {!showFinalDocument && extractionReview && (
+                  {showFinalDocument && doc && extraction && !visualReferenceReview && <FinalDocumentReviewWorkspace key={doc.id} documentId={doc.id} notify={p.notify} extractionChanged={setExtraction} readOnly={doc.status === 'published'}/>}
+                  {!showFinalDocument && doc.status !== 'published' && extractionReview && (
                     <section className="extraction-review-summary stack" aria-labelledby="extraction-review-summary-title">
                       <div className="spread">
                         <div>
@@ -946,7 +956,7 @@ export function AdminWorkspace(p: Props) {
                       )}
                     </section>
                   )}
-                  {!showFinalDocument && extraction?.pages.map((page) => {
+                  {!showFinalDocument && (doc.status !== 'published' || visualReferenceReview) && extraction?.pages.map((page) => {
                     const pendingBlocks = visualReferenceReview ? 0 : page.blocks.filter((block) => block.needsReview).length;
                     const blockReviews = page.blocks.filter((block) => block.metadata.adminReviewed === true).length;
                     const pageLabelComplete = Boolean(page.printedPageLabel?.trim());
@@ -988,7 +998,7 @@ export function AdminWorkspace(p: Props) {
                         </Button>
                         <span className="small">Showing {visibleBlockCount} of {page.blocks.length} extracted content blocks in {visibleGroups.length} review boxes</span>
                       </div>}
-                      <div className="two-cols"><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></div>
+                      <div className="two-cols">{doc.status === 'published' ? <p><strong>Printed page label:</strong> {page.printedPageLabel || 'Not recorded'}</p> : <><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></>}</div>
                       <div className="extraction-review-grid"><div><strong className="small">Original page</strong><Image
                         src={`/api/v1/documents/${doc.id}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
                         alt={`Rendered source page ${page.pageNumber}`}
