@@ -21,6 +21,7 @@ export function FinalDocumentReviewWorkspace({ documentId, notify, extractionCha
   const [error, setError] = useState('');
   const [dirty, setDirty] = useState(false);
   const [previewMode, setPreviewMode] = useState(readOnly);
+  const displayPreview = readOnly || previewMode;
   const load = async () => setReview(await getFinalDocumentReview(documentId));
   useEffect(() => {
     let active = true;
@@ -75,8 +76,8 @@ export function FinalDocumentReviewWorkspace({ documentId, notify, extractionCha
         const content = (block.metadata.scientificContent as ScientificTextContent | undefined) || { version: 1 as const, text: block.text, plainText: scientificPlainText(block.text), marks: [] };
         return <section className="final-document-block stack" key={block.id}>
           <div className="spread"><span><strong>{block.kind}</strong> · {Math.round(block.confidence * 100)}% confidence</span><span>{block.needsReview ? 'Needs block review' : 'Reviewed'}</span></div>
-          {previewMode ? <div className="scientific-preview" aria-label="Student version"><ScientificTextPreview content={content}/></div> : <ScientificTextEditor id={`final-${block.id}`} content={content} onChange={(value) => { setDirty(true); setReview({ ...review, confirmed: false, pages: review.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value.text, metadata: { ...item.metadata, scientificContent: value } } : item) } : row) }); }}/>} 
-          {!previewMode && <><details><summary>Compare with extracted version</summary><pre className="source-note">{block.rawText}</pre></details>
+          {displayPreview ? <div className="scientific-preview" aria-label="Student version"><ScientificTextPreview content={content}/></div> : <ScientificTextEditor id={`final-${block.id}`} content={content} onChange={(value) => { setDirty(true); setReview({ ...review, confirmed: false, pages: review.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value.text, metadata: { ...item.metadata, scientificContent: value } } : item) } : row) }); }}/>} 
+          {!displayPreview && <><details><summary>Compare with extracted version</summary><pre className="source-note">{block.rawText}</pre></details>
           <div className="button-row">
             <Button disabled={busy} onClick={() => void run(() => updateExtractionBlock(documentId, block.id, { kind: block.kind, text: block.text, latex: block.latex, sequenceNumber: block.sequenceNumber, scientificContent: block.metadata.scientificContent as ScientificTextContent | undefined }), 'Reviewed paragraph saved.')}>Save paragraph</Button>
             <Button variant="outline" disabled={busy || index === 0} onClick={() => void run(() => paragraphOperation(documentId, block.id, 'join_previous'), 'Paragraphs joined for review.')}>Join with previous</Button>

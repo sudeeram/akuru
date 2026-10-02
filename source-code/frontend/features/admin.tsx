@@ -294,6 +294,11 @@ export function AdminWorkspace(p: Props) {
   useEffect(() => {
     if (!textbookReviewMode) return;
     const selected = p.data.documents.find((document) => (document.publicRef || document.id) === requestedReviewDocument);
+    if ((selected?.id || '') === docId) {
+      if (selected?.status === 'published' && selected.sourceRole !== 'visual_reference' && !showFinalDocument)
+        queueMicrotask(() => setShowFinalDocument(true));
+      return;
+    }
     queueMicrotask(() => {
       setDocId(selected?.id || '');
       setExtraction(null);
@@ -301,7 +306,7 @@ export function AdminWorkspace(p: Props) {
       setExtractionError('');
       setShowFinalDocument(selected?.status === 'published' && selected.sourceRole !== 'visual_reference');
     });
-  }, [textbookReviewMode, requestedReviewDocument, p.data.documents]);
+  }, [textbookReviewMode, requestedReviewDocument, p.data.documents, docId, showFinalDocument]);
   useEffect(() => {
     if (currentView !== 'accounts') return;
     let active = true;
