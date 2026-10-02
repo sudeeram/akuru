@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/query-keys';
 import { studentTextbookPaths } from '@/lib/routes';
 import { readableTextbookBlocks } from '@/lib/textbook-display.mjs';
 import { Empty, Heading } from './shared';
+import { VisualReferenceFlipbook } from './visual-reference-flipbook';
 
 type Route = { bookRef?: string; topicRef?: string; view: 'text' | 'visual'; source: number; page: number };
 type Props = {
@@ -109,17 +110,8 @@ export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props)
             {topic.visualReferences.map((item) => <option key={item.ordinal} value={item.ordinal}>{item.filename}</option>)}
           </select></label>}
           <section className="panel stack"><h3>{reference.filename}</h3><p className="small">Reviewed Visual Reference · {reference.pages.length} labelled pages</p></section>
-          <nav className="student-textbook-page-nav" aria-label="Visual reference pages">
-            <Button variant="outline" disabled={referencePage.ordinal === 1} onClick={() => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, referencePage.ordinal - 1))}><ChevronLeft size={17}/> Previous</Button>
-            <label>Page <select aria-label="Choose visual reference page" value={referencePage.ordinal} onChange={(event) => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, Number(event.target.value)))}>
-              {reference.pages.map((item) => <option key={item.ordinal} value={item.ordinal}>{item.printedPage} ({item.ordinal} of {reference.pages.length})</option>)}
-            </select></label>
-            <Button variant="outline" disabled={referencePage.ordinal === reference.pages.length} onClick={() => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, referencePage.ordinal + 1))}>Next <ChevronRight size={17}/></Button>
-          </nav>
-          <figure className="panel student-textbook-reference-page"><Image src={referencePage.imageUrl}
-            alt={`Original textbook page ${referencePage.printedPage} from ${reference.filename}`}
-            width={1100} height={1500} unoptimized loading="lazy" style={{ width: '100%', height: 'auto', objectFit: 'contain' }}/>
-            <figcaption>Page {referencePage.printedPage}</figcaption></figure>
+          <VisualReferenceFlipbook reference={reference} pageNumber={referencePage.ordinal}
+            onTurn={(pageNumber) => navigate(studentTextbookPaths.visual(topic.textbookRef, topic.topicRef, reference.ordinal, pageNumber))}/>
         </> : <Empty title="Visual reference unavailable">Choose a reviewed Visual Reference for this published Topic.</Empty> : page ? <>
           <nav className="student-textbook-page-nav" aria-label="Textbook pages">
             <Button variant="outline" disabled={page.ordinal === 1} onClick={() => navigate(studentTextbookPaths.topic(topic.textbookRef, topic.topicRef, page.ordinal - 1))}><ChevronLeft size={17}/> Previous</Button>

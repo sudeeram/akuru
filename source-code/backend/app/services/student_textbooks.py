@@ -141,7 +141,9 @@ def topic_content(db: Session, principal: Principal, book_ref: str,
             pages=[StudentTextbookReferencePage(ordinal=page_ordinal,
                 pageNumber=page.page_number, printedPage=page.printed_page_label,
                 imageUrl=(f"/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}"
-                          f"/visual-references/{ordinal}/pages/{page_ordinal}/image"))
+                          f"/visual-references/{ordinal}/pages/{page_ordinal}/image"),
+                thumbnailUrl=(f"/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}"
+                              f"/visual-references/{ordinal}/pages/{page_ordinal}/thumbnail"))
                 for page_ordinal, page in enumerate(reference_pages, 1)]))
     return StudentTextbookTopicContent(textbookRef=book.public_ref, textbookTitle=book.title,
         subjectId=book.subject_id, groupCode=group_snapshot["code"],

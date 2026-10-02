@@ -7792,13 +7792,18 @@
           "printedPage": {
             "title": "Printedpage",
             "type": "string"
+          },
+          "thumbnailUrl": {
+            "title": "Thumbnailurl",
+            "type": "string"
           }
         },
         "required": [
           "ordinal",
           "pageNumber",
           "printedPage",
-          "imageUrl"
+          "imageUrl",
+          "thumbnailUrl"
         ],
         "title": "StudentTextbookReferencePage",
         "type": "object"
@@ -24205,6 +24210,109 @@
           }
         },
         "summary": "Read Visual Reference Page",
+        "tags": [
+          "student textbooks"
+        ]
+      }
+    },
+    "/api/v1/student/textbooks/{book_ref}/topics/{topic_ref}/visual-references/{source_ordinal}/pages/{page_ordinal}/thumbnail": {
+      "get": {
+        "operationId": "read_visual_reference_thumbnail_api_v1_student_textbooks__book_ref__topics__topic_ref__visual_references__source_ordinal__pages__page_ordinal__thumbnail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "book_ref",
+            "required": true,
+            "schema": {
+              "title": "Book Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "source_ordinal",
+            "required": true,
+            "schema": {
+              "title": "Source Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page_ordinal",
+            "required": true,
+            "schema": {
+              "title": "Page Ordinal",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Read Visual Reference Thumbnail",
         "tags": [
           "student textbooks"
         ]

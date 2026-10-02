@@ -58,6 +58,7 @@ class StudentTextbookReferencePage(BaseModel):
     pageNumber: int
     printedPage: str
     imageUrl: str
+    thumbnailUrl: str
 
 
 class StudentTextbookReference(BaseModel):

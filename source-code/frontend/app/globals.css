@@ -2308,8 +2308,33 @@ pre.source-note { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24
 .student-textbook-list { padding-left: 1.5rem; }
 .student-textbook-reference-source { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .student-textbook-reference-source select { min-height: 40px; padding: 6px 10px; border: 1px solid #bacfd6; border-radius: 9px; background: white; max-width: 100%; }
-.student-textbook-reference-page { display: grid; justify-items: center; gap: 12px; }
-.student-textbook-reference-page img { max-height: 85vh; max-width: 100%; object-fit: contain; }
+.flipbook { min-width: 0; }
+.flipbook-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; }
+.flipbook-position { min-width: 8rem; text-align: center; font-weight: 700; color: #173958; }
+.flipbook-jump { display: inline-flex; align-items: center; gap: 6px; }
+.flipbook-jump select { min-height: 34px; padding: 5px 8px; border: 1px solid #bacfd6; border-radius: 8px; background: white; }
+.flipbook-stage { background: radial-gradient(circle at 50% 28%, #d5e5ee, #8da5ba); border-radius: 18px; padding: clamp(12px, 2.5vw, 28px); box-shadow: inset 0 3px 15px #24445a30; touch-action: pan-y; }
+.flipbook:fullscreen { overflow: auto; justify-content: start; background: #edf4f7; padding: 20px; }
+.flipbook:fullscreen .flipbook-stage { flex: 1; display: grid; align-items: center; }
+.flipbook-scroll { overflow: auto; width: 100%; max-height: 82vh; }
+.flipbook-spread { display: flex; margin: auto; max-width: none; min-height: 18rem; perspective: 1800px; filter: drop-shadow(0 13px 12px #13283955); }
+.flipbook-spread-double { max-width: 1400px; }
+.flipbook-sheet { position: relative; display: grid; place-items: center; flex: 1 1 0; min-width: 0; padding: clamp(8px, 1.6vw, 18px); background: #fffefb; box-shadow: inset 0 0 14px #213c5522; }
+.flipbook-sheet-left { border-radius: 8px 0 0 8px; box-shadow: inset -9px 0 15px #1d40542e; }
+.flipbook-sheet-right { border-radius: 0 8px 8px 0; box-shadow: inset 9px 0 15px #1d40542e; }
+.flipbook-sheet-blank { background: #e7edf0; }
+.flipbook-sheet img { display: block; max-width: 100%; max-height: 72vh !important; }
+.flipbook-sheet-label { color: #486073; font-size: .83rem; padding-top: 6px; }
+.flipbook-turn-forward { animation: akuru-flip-forward .36s ease-out; }
+.flipbook-turn-backward { animation: akuru-flip-backward .36s ease-out; }
+@keyframes akuru-flip-forward { from { opacity: .75; transform: rotateY(-5deg) translateX(12px); } to { opacity: 1; transform: none; } }
+@keyframes akuru-flip-backward { from { opacity: .75; transform: rotateY(5deg) translateX(-12px); } to { opacity: 1; transform: none; } }
+.flipbook-pages { display: flex; gap: 10px; overflow-x: auto; padding: 8px 2px 14px; }
+.flipbook-page-tile { display: grid; justify-items: center; gap: 5px; flex: 0 0 94px; padding: 7px; border: 2px solid #cedfe5; border-radius: 9px; background: white; color: #173958; cursor: pointer; }
+.flipbook-page-tile.active { border-color: #0f9fae; background: #e8faf9; }
+.flipbook-page-tile img { width: 78px; height: 104px; object-fit: contain; }
+@media (max-width: 849px) { .flipbook-stage { padding: 10px; } .flipbook-sheet { border-radius: 8px; } .flipbook-scroll { max-height: 78vh; } }
+@media (prefers-reduced-motion: reduce) { .flipbook-turn-forward, .flipbook-turn-backward { animation: none; } }
 .student-textbook-visual { display: grid; justify-items: center; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 12px; background: #f2f9fb; text-align: center; }
 .student-textbook-visual-gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 12px; }
 @media (max-width: 850px) { .student-textbook-page-grid { grid-template-columns: 1fr; } }

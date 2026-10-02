@@ -1,12 +1,14 @@
 import base64
 import json
 import uuid
+from io import BytesIO
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import pymupdf as fitz
 import pytest
+from PIL import Image as PILImage
 from pydantic import SecretStr
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -1424,7 +1426,9 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
             sha256=(f"reference-original-{page_number}{token}" * 2)[:64], size_bytes=8,
             page_number=page_number, bounding_box={})
         session.add_all([render, original]); session.flush()
-        storage.put(original.object_key, f"original-page-{page_number}".encode(), "image/png")
+        rendered = BytesIO()
+        PILImage.new("RGB", (600, 800), color=(240, 248, 255)).save(rendered, format="PNG")
+        storage.put(original.object_key, rendered.getvalue(), "image/png")
         session.add(DocumentPage(document_version_id=reference_version.id, page_number=page_number,
             printed_page_label=str(10 + page_number), width_points=100, height_points=100,
             render_asset_id=render.id, original_render_asset_id=original.id,
@@ -1480,13 +1484,18 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
         assert reader.get(path + f"/visuals/{visual_ref}").content == b"approved-image"
         assert reader.get(path + "/visuals/not-approved").status_code == 404
         reference_path = path + "/visual-references/1/pages"
-        assert reader.get(reference_path + "/1/image").content == b"original-page-1"
-        assert reader.get(reference_path + "/2/image").content == b"original-page-2"
+        assert reader.get(reference_path + "/1/image").headers["content-type"] == "image/png"
+        assert reader.get(reference_path + "/2/image").headers["content-type"] == "image/png"
+        thumbnail = reader.get(reference_path + "/1/thumbnail")
+        assert thumbnail.status_code == 200 and thumbnail.headers["content-type"] == "image/jpeg"
+        with PILImage.open(BytesIO(thumbnail.content)) as small:
+            assert small.width <= 220 and small.height <= 300
         assert reader.get(reference_path + "/3/image").status_code == 404
         assert reader.get(path + "/visual-references/2/pages/1/image").status_code == 404
         reference_link.review_status = "needs_review"; session.commit()
         assert reader.get(path).json()["visualReferences"] == []
         assert reader.get(reference_path + "/1/image").status_code == 404
+        assert reader.get(reference_path + "/1/thumbnail").status_code == 404
         reference_link.review_status = "ready"; session.commit()
     with TestClient(app, base_url="http://localhost") as other:
         other.post("/api/v1/auth/login", json={"username": maths_student.username,
@@ -1496,3 +1505,4 @@ def test_student_textbook_reader_is_published_and_subject_scoped(auth_client) ->
         assert other.get(path + "/pages/1/image").status_code == 404
         assert other.get(path + f"/visuals/{visual_ref}").status_code == 404
         assert other.get(path + "/visual-references/1/pages/1/image").status_code == 404
+        assert other.get(path + "/visual-references/1/pages/1/thumbnail").status_code == 404

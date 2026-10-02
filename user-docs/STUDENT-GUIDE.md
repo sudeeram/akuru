@@ -63,8 +63,12 @@ your enrolled subjects. Choose a textbook, then a Unit or Module and Topic. The
 reader shows the reviewed text, an image of each published primary-source page,
 and approved diagrams. If a reviewed Visual Reference is included in the published
 Topic, choose **Visual reference · original pages** to read its labelled page images.
-You can switch between the text and original-page views. Use Previous, Next or
-the page selector to move around; choose a source if the Topic has more than one.
+You can switch between the text and original-page views. The Visual Reference
+opens as a flipbook: use Previous and Next, the left and right arrow keys, or a
+swipe on a phone. Larger screens show a two-page spread; choose **One page** if
+you prefer. Use **Browse pages** for page thumbnails, **Zoom** for details, or
+**Full screen** for focused reading. Choose a source if the Topic has more than
+one reviewed Visual Reference.
 Each Topic displays its published content version and date; the textbook also
 shows its published structure version and date. Draft or unpublished Topics do
 not appear. Reading may include later Topics, but assessed practice remains

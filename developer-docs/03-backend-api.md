@@ -8,6 +8,9 @@ original render only when the enrolled Student can read that published Topic
 and the referenced document version remains reviewed. Existing publications
 without page lists in their manifest resolve pages from the exact published
 document version; no draft Visual Reference is exposed.
+The thumbnail endpoint applies the same authorization and published-source
+checks as the full page endpoint, then downsizes the page image in memory.
+Student page and thumbnail responses use private, no-store cache headers.
 
 `GET /api/v1/student/textbooks` lists books with a published structure and at
 least one published Topic content version in the Student's enrolled subjects.

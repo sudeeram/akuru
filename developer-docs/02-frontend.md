@@ -5,7 +5,10 @@
 Each published Topic offers Reviewed text and, when available, a Visual
 reference reading mode. The visual mode shows full original page images, a
 source selector for multiple reviewed references, printed page labels, and
-Previous/Next controls. The selected mode and page are URL parameters.
+Previous/Next controls. The selected mode and page are URL parameters. The
+flipbook uses a cover followed by two-page spreads on larger screens, a single
+page on mobile, keyboard and swipe navigation, zoom, full screen and a thumbnail
+strip. It respects reduced-motion settings.
 
 `/student/textbooks` lists only textbooks with published Topics in the signed-in
 Student's enrolled subjects. `/student/textbooks/{bookRef}` shows the released
