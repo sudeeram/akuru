@@ -3,9 +3,9 @@
 **Started:** 2026-09-19
 **Completed:** Not completed
 
-**Status: In progress. Core flashcard persistence, review/release APIs, Student sessions, source configuration and accessible interfaces are deployed. Production Chemistry content configuration and release checks remain.**
+**Status: In progress. Chemistry Topic 1 source configuration, publication, retrieval preflight, Student eligibility and the curated flashcard release have been completed in production. Feature-specific model routing, text-Tutor pilot acceptance and the remaining release tests remain open. Reviewed 2026-10-03.**
 
-This is the first delivery plan. Its immediate objective is to let Students use the reviewed `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` content through grounded text tutoring and accessible flashcards. Work in this file takes precedence over the medium, low and lowest-priority future plans.
+This is the first delivery plan. Its immediate objective is to let Students use the reviewed States of Matter content through grounded text tutoring and accessible flashcards. The source configuration has evolved since the original plan: v2.2 is the current primary text, v2.1 is supporting text, and the original scan is a Visual Reference. References below to v2.1 as the intended primary source describe the earlier launch plan, not the current production configuration. Work in this file takes precedence over the medium, low and lowest-priority future plans.
 
 ## Delivery sequence
 
@@ -27,15 +27,15 @@ Implementation support was deployed to production on 19 September 2026 at Git re
 - [x] Existing published source manifests remain immutable when an Admin changes the role used by the next topic publication.
 - [x] The migration, authenticated Admin APIs, frontend controls, API contract and regression checks passed the reviewed production deployment and acceptance gates.
 
-The production-specific checks below remain open until an Admin applies the configuration to the two Chemistry files. The deployment changed the schema and application code but did not change either document's role or publish Chemistry content.
+The production-specific checklist below has been updated for the later v2.2 release. Confirmation of text review and publication was observed during the Chemistry launch; remaining checks require a new explicit acceptance pass.
 
-- [ ] Confirm v2.1 has no unresolved required page or block reviews.
-- [ ] Confirm the document version, library review state and active topic-document link agree.
-- [ ] Designate v2.1 as the canonical primary text for Topic 1 — States of Matter.
-- [ ] Keep the original scan as a visual reference and exclude its duplicate OCR text from normal retrieval.
-- [ ] Publish a reviewed Topic 1 content version with exact document/page provenance.
-- [ ] Run retrieval checks for representative States of Matter questions before enabling Student use.
-- [ ] Confirm Student enrolment and term coverage make Topic 1 eligible for the intended pilot account.
+- [x] Confirm the reviewed clean-text source has no unresolved required page or block reviews. *(Completed for the later v2.2 primary source.)*
+- [x] Confirm the reviewed clean-text document, version and active topic attachment agree. *(Completed for v2.2; the original Visual Reference has its separate page-label confirmation workflow.)*
+- [x] Designate the reviewed clean-text source as canonical primary text for Topic 1 — States of Matter. *(v2.2 replaced the originally proposed v2.1.)*
+- [x] Keep the original scan as a Visual Reference and exclude its duplicate OCR text from normal retrieval.
+- [x] Publish a reviewed Topic 1 content version with exact document/page provenance. *(Later v2.2 content version was published.)*
+- [x] Run a passing retrieval preflight for representative States of Matter questions before Student flashcard use.
+- [x] Confirm Student enrolment and term coverage make Topic 1 eligible for the pilot flashcard account.
 - [ ] Keep the release limited to Admin testing until citation, Tutor and flashcard evaluations pass.
 
 ## Admin launch workflow — first usable Chemistry flashcard and Tutor release
@@ -44,15 +44,15 @@ The first Student release must work from one independently published topic. AKUR
 
 ### Admin Step 1 — Confirm the textbook hierarchy
 
-- [ ] Confirm the Edexcel iGCSE Chemistry textbook, Unit 1 group and Topic 1 — States of Matter records exist and have stable public references and subject ownership. *(The authenticated hierarchy and ownership validation are implemented; this remains an environment-specific launch check. The local database currently has no Chemistry hierarchy.)*
-- [ ] Verify Unit 1 is represented as a textbook group and States of Matter as a child topic rather than attaching the PDF directly to an unrelated unit or subject. *(The enforced parent-child model is implemented; verify the production records after deployment.)*
+- [x] Confirm the Edexcel iGCSE Chemistry textbook, Unit 1 group and Topic 1 — States of Matter records exist and have stable public references and subject ownership. *(Verified in the production hierarchy.)*
+- [x] Verify Unit 1 is represented as a textbook group and States of Matter as a child topic rather than attaching the PDF directly to an unrelated unit or subject.
 - [x] Permit the remaining Unit 1 topics and later units to be created and published incrementally without changing the released Topic 1 identity.
 - [x] Show the Admin the number of total, reviewed, published and Student-eligible topics within Unit 1.
 
 ### Admin Step 2 — Select the canonical Topic 1 source
 
 - [x] Provide the source-manager controls required to set `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` as the canonical `primary` text source.
-- [ ] Change the original scan to `visual_reference`, preserve its provenance and exclude its duplicate OCR text from ordinary retrieval.
+- [x] Change the original scan to `visual_reference`, preserve its provenance and exclude its duplicate OCR text from ordinary retrieval.
 - [x] Preview exactly which document versions, text blocks and optional visual assets will enter the next published Topic 1 version.
 - [x] Block publication when two materially duplicate sources are still selected as canonical primary text.
 
@@ -215,11 +215,15 @@ The intended configuration for this case is:
 
 ### Current Chemistry transition
 
+The original v2.1-primary transition was superseded by the reviewed v2.2
+release. The checkmarks below record the outcome that was actually reached;
+the dry-run and presentation tasks remain open as historical process checks.
+
 - [ ] After this feature is implemented and verified, prepare a dry-run migration for Topic 1 — States of Matter.
-- [ ] Keep `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter-v2.1.pdf` as the canonical primary source.
-- [ ] Change `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter.pdf` from primary to visual reference without deleting it.
-- [ ] Exclude the original scan's duplicate OCR text from the next retrieval index.
-- [ ] Retain the scan for provenance and later selection of reviewed diagrams.
+- [x] Use the reviewed v2.2 PDF as canonical primary text; retain v2.1 as supporting text. *(Supersedes the earlier v2.1-primary proposal.)*
+- [x] Change `Edexcel-iGCSE-Chemistry-Unit-1-Topic-1-States-of-Matter.pdf` from primary to Visual Reference without deleting it.
+- [x] Exclude the original scan's duplicate OCR text from the published retrieval index.
+- [x] Retain the scan for provenance and later selection of reviewed diagrams.
 - [ ] Re-run topic readiness, quality and retrieval-duplication reports before publishing.
 - [ ] Present the proposed production changes for review before applying them.
 
