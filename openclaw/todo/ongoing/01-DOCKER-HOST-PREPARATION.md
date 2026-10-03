@@ -21,7 +21,7 @@ The current AKURU VM is ARM64 Ubuntu 24 LTS with about 11 GiB RAM and 173 GiB fr
 - [x] Re-run AKURU HTTPS, route, service and loopback-binding acceptance tests; inspect listening ports and effective firewall rules. Production acceptance passed; no container ports published.
 - [x] Document how to stop Docker containers and revert the host package/network change if AKURU health regresses in `docs/01-docker-host-preparation.md`.
 - [x] Record installed package versions and operational commands in the deployment guide.
-- [ ] Commit reviewed host setup/verification scripts, package version pins and rollback instructions under `openclaw/deploy/` and `openclaw/docs/`; keep host-specific secrets and backup data outside Git.
+- [x] Commit reviewed host setup/verification scripts, package version pins and rollback instructions under `openclaw/deploy/` and `openclaw/docs/`; keep host-specific secrets and backup data outside Git. Commit `689f1aa` was pushed to `main`.
 
 **Done when:** Docker and Compose work on the VM, no new public port is exposed, and AKURU production acceptance still passes. Do not proceed to OpenClaw installation if host networking or AKURU service health changes unexpectedly.
 
