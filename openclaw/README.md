@@ -13,4 +13,4 @@ Commit every script, template, version/digest pin, plugin source, test and runbo
 
 **Never commit** live `.env` files, API keys, Telegram bot tokens, Gateway tokens, AKURU integration credentials, Student conversations, mock answers, container volumes or backups. Keep live secrets and mutable state outside this checkout on the server. Git alone cannot restore those values; the operations guide must document their secure provision, rotation and state restore.
 
-No OpenClaw software has been installed or deployed by creating this directory.
+As of 2026-10-03, a pinned, isolated OpenClaw Gateway is installed on the OCI host. It has no network, published port, Telegram channel, AKURU integration or model credential. See the [installation record](docs/02-openclaw-installation.md). This installation is infrastructure only; no Student-facing OpenClaw feature is released.

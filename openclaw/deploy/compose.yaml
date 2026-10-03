@@ -1,0 +1,29 @@
+name: akuru-openclaw
+
+services:
+  gateway:
+    image: ghcr.io/openclaw/openclaw:2026.9.6@sha256:62040ed3fe6f566adb39e60c5428cce078989a39cc713d63e873c4dccf166892
+    platform: linux/arm64
+    init: false # The official image already uses tini as PID 1.
+    restart: unless-stopped
+    network_mode: none
+    env_file:
+      - /etc/openclaw/gateway.env
+    volumes:
+      - /data/openclaw/state:/home/node/.openclaw
+      - /data/openclaw/cache:/home/node/.cache
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1536m
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

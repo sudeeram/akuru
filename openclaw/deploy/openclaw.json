@@ -1,0 +1,42 @@
+{
+  "gateway": {
+    "mode": "local",
+    "bind": "loopback",
+    "auth": { "mode": "token" },
+    "controlUi": { "enabled": false },
+    "terminal": { "enabled": false },
+    "cliAgents": { "enabled": false }
+  },
+  "session": { "dmScope": "per-channel-peer" },
+  "browser": { "enabled": false },
+  "plugins": { "entries": { "browser": { "enabled": false } } },
+  "agents": {
+    "defaults": {
+      "skipBootstrap": true,
+      "heartbeat": { "every": "0m" }
+    },
+    "entries": {
+      "exam": {
+        "name": "AKURU Quick Mock (inactive)",
+        "workspace": "/home/node/.openclaw/workspace-exam",
+        "skills": [],
+        "tools": { "allow": ["session_status"] }
+      }
+    }
+  },
+  "tools": {
+    "profile": "minimal",
+    "allow": ["session_status"],
+    "deny": [
+      "gateway", "cron", "automations", "exec", "process", "read",
+      "write", "edit", "apply_patch", "browser", "web_search", "web_fetch",
+      "sessions_spawn", "sessions_send", "sessions_list", "sessions_history",
+      "group:fs", "group:runtime", "group:web", "group:automation",
+      "group:messaging", "group:plugins"
+    ],
+    "elevated": { "enabled": false },
+    "sessions": { "visibility": "self" },
+    "agentToAgent": { "enabled": false }
+  },
+  "commands": { "restart": false }
+}
