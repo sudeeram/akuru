@@ -32,6 +32,18 @@ extraction and save any corrections. Resolve every page-label and block warning,
 then select **Confirm final reviewed document**. Topic publication remains
 blocked until this exact saved content is confirmed.
 
+To correct a Topic PDF after publication, open its review page and select
+**Create review revision**. AKURU copies the reviewed source and its page images
+into a separate editable document. The published version stays available to
+Students. Edit as many sections and pages as needed, then select **Save all
+changed sections**. Inspect **Review complete document** and confirm the final
+reviewed document. Return to the Topic in Textbook structure, check its quality
+and retrieval readiness, then select **Publish topic content** once. This creates
+a new Topic content version; existing citations and completed Student work keep
+their original source. Check any released flashcards grounded in passages you
+changed before reusing them with the new Topic version. Do not edit the old
+published source directly.
+
 **Re-run paragraph reconstruction** is available only for unpublished text
 sources. AKURU shows the algorithm version, before/after block totals and the
 number of manually reviewed blocks that would be reopened before applying it.

@@ -10,6 +10,7 @@ import {
   api,
   errorMessage,
   getDocumentExtraction,
+  createDocumentReviewRevision,
   getLatestDocumentJob,
   getCurriculumPlan,
   createCurriculumPlanDraft,
@@ -389,6 +390,41 @@ export function AdminWorkspace(p: Props) {
     } finally {
       setBusy(false);
     }
+  }
+  async function saveAllReviewChanges() {
+    if (!doc || !extraction || doc.status === 'published') return;
+    const draft = extraction;
+    await run(async () => {
+      const saved = await getDocumentExtraction(doc.id);
+      const savedPages = new Map(saved.pages.map((page) => [page.id, page]));
+      let changes = 0;
+      for (const page of draft.pages) {
+        const previous = savedPages.get(page.id);
+        if (!previous) continue;
+        if ((page.printedPageLabel || '') !== (previous.printedPageLabel || '')) {
+          await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '');
+          changes++;
+        }
+        const savedBlocks = new Map(previous.blocks.map((block) => [block.id, block]));
+        for (const block of page.blocks) {
+          const before = savedBlocks.get(block.id);
+          if (!before) continue;
+          const content = block.metadata.scientificContent as ScientificTextContent | undefined;
+          const priorContent = before.metadata.scientificContent;
+          const caption = typeof block.metadata.reviewedCaption === 'string' ? block.metadata.reviewedCaption : undefined;
+          if (block.kind === before.kind && block.text === before.text && block.latex === before.latex &&
+              block.sequenceNumber === before.sequenceNumber &&
+              caption === before.metadata.reviewedCaption &&
+              JSON.stringify(content) === JSON.stringify(priorContent)) continue;
+          await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text,
+            latex: block.latex, sequenceNumber: block.sequenceNumber, caption,
+            scientificContent: content });
+          changes++;
+        }
+      }
+      setExtraction(await getDocumentExtraction(doc.id));
+      if (!changes) throw new Error('There are no unsaved section changes.');
+    }, 'All changed sections saved. Review the complete document before publishing the Topic.');
   }
   function edit(s: Student) {
     setEditId(s.id);
@@ -930,7 +966,20 @@ export function AdminWorkspace(p: Props) {
                     </section>
                   )}
                   {extractionError && <p className="error" role="alert">{extractionError}</p>}
-                  {doc.status === 'published' && <p className="source-note"><strong>Published source · read-only.</strong> Saving another review does not create a new Topic version. Upload and review a revised source, then publish the Topic to create its next content version.</p>}
+                  {doc.status === 'published' && <div className="source-note stack"><strong>Published source · read-only.</strong><p>Create a separate review revision to correct several sections. Students keep the current published version until you confirm the revised document and publish the Topic again.</p>
+                    {doc.kind === 'Textbook' && doc.sourceRole !== 'visual_reference' && <Button variant="outline" disabled={busy} onClick={() => {
+                      if (!window.confirm('Create an editable copy of this published textbook source? The current Student version will stay available until you publish the Topic again.')) return;
+                      void run(async () => {
+                        const revision = await createDocumentReviewRevision(doc.id);
+                        await p.refresh();
+                        setDocId(revision.id);
+                        setExtraction(await getDocumentExtraction(revision.id));
+                        setShowFinalDocument(false);
+                        p.navigate(`/admin/textbooks/review/document_${revision.id.replaceAll('-', '')}`);
+                      }, 'Review revision created. Edit and save the sections you want to correct.');
+                    }}>Create review revision</Button>}
+                  </div>}
+                  {doc.kind === 'Textbook' && doc.status !== 'published' && doc.sourceRole !== 'visual_reference' && <div className="source-note stack"><strong>Editing reviewed text</strong><p>You can change several sections before republishing. Save changed sections, inspect the complete revised document, and publish the Topic once from Textbook structure.</p><Button variant="outline" disabled={busy || !extraction} onClick={() => { void saveAllReviewChanges(); }}>Save all changed sections</Button></div>}
                   {textbookReviewMode && extraction && !visualReferenceReview && doc.status !== 'published' && <div className="button-row">
                     <Button className={showFinalDocument ? '' : 'primary'} variant={showFinalDocument ? 'outline' : 'default'} onClick={() => setShowFinalDocument(false)}>Review pages and blocks</Button>
                     <Button className={showFinalDocument ? 'primary' : ''} variant={showFinalDocument ? 'default' : 'outline'} onClick={() => setShowFinalDocument(true)}>Review complete document</Button>

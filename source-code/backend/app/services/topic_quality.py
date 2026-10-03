@@ -27,6 +27,7 @@ def report(db: Session, topic: TextbookTopic) -> dict:
     links = db.scalars(select(TextbookTopicDocument).where(
         TextbookTopicDocument.topic_id == topic.id,
         TextbookTopicDocument.role != "visual_reference",
+        TextbookTopicDocument.review_status != "superseded",
     )).all()
     documents: list[dict] = []
     all_passed = bool(links)

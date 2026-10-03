@@ -341,6 +341,7 @@ export interface ApiOperations {
   "POST /api/v1/documents/{document_id}/official-review/propose": { request: unknown; response: Schemas["OfficialMaterialReview"] };
   "POST /api/v1/documents/{document_id}/official-review/publish": { request: Schemas["PublishOfficialMaterialRequest"]; response: Schemas["OfficialMaterialReview"] };
   "POST /api/v1/documents/{document_id}/retry": { request: unknown; response: Schemas["DocumentJobResponse"] };
+  "POST /api/v1/documents/{document_id}/review-revision": { request: unknown; response: Schemas["DocumentResponse"] };
   "GET /api/v1/evaluations/admin": { request: unknown; response: Schemas["EvaluationDashboard"] };
   "POST /api/v1/evaluations/admin/corpora": { request: Schemas["CorpusCreate"]; response: Schemas["CorpusResponse"] };
   "POST /api/v1/evaluations/admin/corpora/{corpus_id}/review": { request: Schemas["CorpusReview"]; response: Schemas["CorpusResponse"] };

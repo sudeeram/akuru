@@ -234,6 +234,100 @@ def test_visual_reference_prefilled_labels_need_explicit_confirmation(auth_clien
     assert session.scalar(select(DocumentEvent).where(
         DocumentEvent.document_version_id == version.id,
         DocumentEvent.event_type == "visual_reference_page_labels_confirmed"))
+    document.review_state = "published"
+    session.commit()
+    block = session.scalar(select(DocumentBlock).where(DocumentBlock.page_id == first.id))
+    assert client.post(f"/api/v1/documents/{document.id}/extraction/pages/{first.id}",
+        headers=headers, json={"printedPageLabel": "3"}).status_code == 409
+    assert client.post(f"/api/v1/documents/{document.id}/extraction/blocks/{block.id}",
+        headers=headers, json={"kind": "paragraph", "text": "Changed published evidence",
+            "latex": None, "sequenceNumber": 1}).status_code == 409
+    assert client.post(f"/api/v1/documents/{document.id}/final-review/confirm",
+        headers=headers, json={"confirmComplete": True}).status_code == 409
+    session.refresh(first); session.refresh(block)
+    assert first.printed_page_label == "2" and block.text == "Unreviewed OCR"
+
+
+def test_published_textbook_review_revision_preserves_source_and_allows_multiple_edits(auth_client) -> None:
+    client, username, password = auth_client
+    headers = {"X-CSRF-Token": client.post("/api/v1/auth/login", json={
+        "username": username, "password": password}).json()["csrfToken"]}
+    session = next(app.dependency_overrides[get_db]())
+    storage = app.dependency_overrides[get_storage]()
+    admin = session.scalar(select(User).where(User.username == username))
+    token = uuid.uuid4().hex
+    book = Textbook(course_id="igcse", subject_id="chemistry", title=f"Revision {token}",
+        edition="2026", publisher="AKURU", group_label="unit", status="published", created_by=admin.id)
+    session.add(book); session.flush()
+    group = TextbookGroup(textbook_id=book.id, code="1", title="Unit 1", sequence=1, status="published")
+    session.add(group); session.flush()
+    topic = TextbookTopic(textbook_id=book.id, group_id=group.id, course_id="igcse",
+        subject_id="chemistry", code="1", title="States", sequence=1, status="published")
+    session.add(topic); session.flush()
+    pdf = fitz.open(); pdf.new_page(); source_bytes = pdf.tobytes(); pdf.close()
+    document = Document(kind="textbook", course_id="igcse", subject_id="chemistry",
+        title="States", original_filename="states.pdf", object_key=f"tests/{token}.pdf",
+        mime_type="application/pdf", sha256=__import__("hashlib").sha256(source_bytes).hexdigest(),
+        review_state="published", uploaded_by=admin.id, size_bytes=len(source_bytes), edition="2026")
+    session.add(document); session.flush()
+    version = DocumentVersion(document_id=document.id, version_number=1,
+        original_filename="states.pdf", object_key=f"tests/{token}.pdf",
+        mime_type="application/pdf", sha256=document.sha256, size_bytes=len(source_bytes),
+        status="completed", uploaded_by=admin.id)
+    session.add(version); session.flush()
+    storage.put(version.object_key, source_bytes, version.mime_type)
+    asset = DocumentAsset(document_version_id=version.id, asset_kind="page_render",
+        object_key=f"tests/{token}.png", mime_type="image/png", sha256=token * 2,
+        size_bytes=8, page_number=1, bounding_box={})
+    session.add(asset); session.flush()
+    storage.put(asset.object_key, b"PNGDATA1", asset.mime_type)
+    page = DocumentPage(document_version_id=version.id, page_number=1,
+        printed_page_label="2", width_points=100, height_points=100,
+        render_asset_id=asset.id, native_text="", extraction_method="ocr",
+        confidence=1, needs_review=False, page_metadata={"paragraphReconstructionVersion": "1"})
+    session.add(page); session.flush()
+    originals = []
+    for index, content in enumerate(("Solids have fixed shape.", "Liquids flow."), 1):
+        block = DocumentBlock(document_version_id=version.id, page_id=page.id,
+            sequence_number=index, block_kind="paragraph", text=content,
+            bounding_box={}, extraction_method="ocr", confidence=1,
+            needs_review=False, block_metadata={"adminReviewed": True})
+        session.add(block); session.flush(); originals.append(block)
+    session.add(DocumentJob(document_id=document.id, document_version_id=version.id,
+        stage="deterministic_extraction", status="completed", progress=100,
+        attempt_count=1, extraction_version="test-v1", max_seconds=30,
+        max_memory_mb=128, max_pages=10, result_data={},
+        completed_at=datetime.now(timezone.utc)))
+    link = TextbookTopicDocument(topic_id=topic.id, document_version_id=version.id,
+        document_id=document.id, role="primary", sequence=1,
+        review_status="published", created_by=admin.id)
+    session.add(link); session.commit()
+    route = f"/api/v1/documents/{document.id}/review-revision"
+    assert client.post(route).status_code == 403
+    revision = client.post(route, headers=headers)
+    assert revision.status_code == 201, revision.text
+    new_id = revision.json()["id"]
+    assert client.post(route, headers=headers).status_code == 409
+    copied = client.get(f"/api/v1/documents/{new_id}/extraction").json()
+    assert [block["text"] for block in copied["pages"][0]["blocks"]] == [block.text for block in originals]
+    for block, text in zip(copied["pages"][0]["blocks"], ("Solids keep their shape.", "Liquids can flow.")):
+        changed = client.post(f"/api/v1/documents/{new_id}/extraction/blocks/{block['id']}",
+            headers=headers, json={"kind": "paragraph", "text": text,
+                "latex": None, "sequenceNumber": block["sequenceNumber"]})
+        assert changed.status_code == 200, changed.text
+    assert [block.text for block in originals] == ["Solids have fixed shape.", "Liquids flow."]
+    session.refresh(link)
+    assert link.review_status == "superseded"
+    revised_link = session.scalar(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_id == uuid.UUID(new_id)))
+    assert revised_link.review_status == "ready"
+    assert client.get(f"/api/v1/documents/{new_id}/final-review").json()["confirmed"] is False
+    confirmed = client.post(f"/api/v1/documents/{new_id}/final-review/confirm",
+        headers=headers, json={"confirmComplete": True})
+    assert confirmed.status_code == 200 and confirmed.json()["confirmed"] is True
+    assert client.post(f"/api/v1/documents/{document.id}/extraction/blocks/{originals[0].id}",
+        headers=headers, json={"kind": "paragraph", "text": "Corrupt",
+            "latex": None, "sequenceNumber": 1}).status_code == 409
 
 
 def test_review_completion_handles_page_only_unattached_and_terminal_documents(auth_client) -> None:
@@ -607,13 +701,21 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
         TextbookTopicContentVersion.topic_id == link.topic_id, TextbookTopicContentVersion.status == "published"))
     assert content_version and content_version.source_manifest[0]["documentVersionId"] == str(version_id)
     assert session.query(RetrievalChunk).filter_by(topic_content_version_id=content_version.id, status="active").count() >= 1
+    original_document_id = upload.json()["document"]["id"]
+    assert client.post(f"/api/v1/documents/{original_document_id}/extraction/blocks/{block['id']}",
+        headers=headers, json={"kind": "equation", "text": "Corrupt old citation",
+            "latex": "x", "sequenceNumber": block["sequenceNumber"]}).status_code == 409
+    draft_response = client.post(f"/api/v1/documents/{original_document_id}/review-revision", headers=headers)
+    assert draft_response.status_code == 201, draft_response.text
+    draft_document_id = draft_response.json()["id"]
+    draft_block = client.get(f"/api/v1/documents/{draft_document_id}/extraction").json()["pages"][0]["blocks"][0]
     revised = client.post(
-        f"/api/v1/documents/{upload.json()['document']['id']}/extraction/blocks/{block['id']}", headers=headers,
+        f"/api/v1/documents/{draft_document_id}/extraction/blocks/{draft_block['id']}", headers=headers,
         json={"kind": "equation", "text": "H2SO4 + 2NaOH → Na2SO4 + 2H2O", "latex": "H_2SO_4 + 2NaOH",
-              "sequenceNumber": block["sequenceNumber"]},
+              "sequenceNumber": draft_block["sequenceNumber"]},
     )
     assert revised.status_code == 200
-    reviewed_block = session.get(DocumentBlock, uuid.UUID(block["id"]))
+    reviewed_block = session.get(DocumentBlock, uuid.UUID(draft_block["id"]))
     session.add(DocumentBlock(document_version_id=reviewed_block.document_version_id,
         page_id=reviewed_block.page_id, sequence_number=reviewed_block.sequence_number + 100,
         block_kind=reviewed_block.block_kind, text=reviewed_block.text, latex=reviewed_block.latex,
@@ -622,7 +724,7 @@ def test_admin_builds_reorders_versions_and_attaches_scanned_topic_parts(auth_cl
         source_asset_id=reviewed_block.source_asset_id, block_metadata={"testDuplicate": True}))
     session.commit()
     reconfirmed = client.post(
-        f"/api/v1/documents/{upload.json()['document']['id']}/final-review/confirm",
+        f"/api/v1/documents/{draft_document_id}/final-review/confirm",
         headers=headers, json={"confirmComplete": True})
     assert reconfirmed.status_code == 200 and reconfirmed.json()["confirmed"] is True
     republished_content = client.post(f"/api/v1/admin/textbooks/{book_ref}/topics/{topic_ref}/publish",

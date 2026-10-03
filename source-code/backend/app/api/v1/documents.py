@@ -120,6 +120,14 @@ def document_extraction(
     return documents.extraction_response(db, document_id)
 
 
+@router.post("/{document_id}/review-revision", response_model=DocumentResponse, status_code=status.HTTP_201_CREATED)
+def create_review_revision(document_id: uuid.UUID,
+                           principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                           db: Annotated[Session, Depends(get_db)],
+                           storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return documents.create_review_revision(db, storage, principal, document_id)
+
+
 @router.post("/{document_id}/extraction/pages/{page_id}", response_model=DocumentExtractionResponse)
 def update_extraction_page(document_id: uuid.UUID, page_id: uuid.UUID, payload: ExtractionPageUpdateRequest,
                            principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],

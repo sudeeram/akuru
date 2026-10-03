@@ -1,5 +1,17 @@
 # Data and content lifecycle
 
+Published textbook PDF reviews are immutable. `POST /api/v1/documents/{id}/review-revision`
+copies the stored PDF, rendered assets, pages and reviewed blocks to a separate
+Admin-only document whose `source_document_id` points to the published source.
+The old Topic attachment becomes `superseded`; the review copy occupies its
+source order and must pass final-document confirmation before a new Topic
+publication. The current Student Topic content version and historical retrieval
+chunks remain unchanged until `publish_topic_content` publishes the review copy.
+The Admin review page can save edits on several blocks and pages before that
+publication. Its current bulk-save control issues the existing audited page and
+block updates sequentially; an atomic batch save with conflict detection remains
+a planned enhancement.
+
 ## PostgreSQL and migrations
 
 SQLAlchemy models in `backend/app/models.py` define the runtime relational model. Alembic migrations under `backend/migrations/versions` define how an existing environment reaches it. The current production path begins at the consolidated `0001_initial_akuru_schema` baseline and advances only through reviewed forward migrations.

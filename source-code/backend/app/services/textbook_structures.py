@@ -97,7 +97,7 @@ def _structure_version(db: Session, textbook_id: uuid.UUID) -> int:
 
 def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessResponse:
     links = db.scalars(select(TextbookTopicDocument).where(TextbookTopicDocument.topic_id == topic.id)).all()
-    text_links = [link for link in links if link.role != "visual_reference"]
+    text_links = [link for link in links if link.role != "visual_reference" and link.review_status != "superseded"]
     version = int(db.scalar(select(func.max(TextbookTopicContentVersion.version_number)).where(
         TextbookTopicContentVersion.topic_id == topic.id,
     )) or 0)
@@ -277,9 +277,9 @@ def list_topic_sources(db: Session, textbook_ref: str, topic_ref: str) -> list[T
         )).all())
         own_tokens = source_tokens.get(link.document_version_id, set())
         duplicate_of = []
-        if link.role == "primary" and own_tokens:
+        if link.role == "primary" and link.review_status != "superseded" and own_tokens:
             for other in links:
-                if other.document_version_id == link.document_version_id or other.role != "primary":
+                if other.document_version_id == link.document_version_id or other.role != "primary" or other.review_status == "superseded":
                     continue
                 other_tokens = source_tokens.get(other.document_version_id, set())
                 union = own_tokens | other_tokens
@@ -318,6 +318,9 @@ def update_topic_source_role(db: Session, principal: Principal, textbook_ref: st
     ).with_for_update())
     if not link:
         raise DomainError("topic_source_not_found", "The topic source could not be found.", 404)
+    if link.review_status == "superseded":
+        raise DomainError("historical_topic_source_immutable",
+                          "This source belongs to an earlier Topic version and cannot be changed.", 409)
     if link.role == role:
         return list_topic_sources(db, textbook_ref, topic_ref)
     old_role = link.role
@@ -364,7 +367,8 @@ def apply_recommended_topic_source_roles(db: Session, principal: Principal, text
 def topic_review_checklist(db: Session, textbook_ref: str, topic_ref: str) -> TopicReviewChecklistResponse:
     book = _book(db, textbook_ref); topic = _topic(db, book, topic_ref)
     links = db.scalars(select(TextbookTopicDocument).where(
-        TextbookTopicDocument.topic_id == topic.id)).all()
+        TextbookTopicDocument.topic_id == topic.id,
+        TextbookTopicDocument.review_status != "superseded")).all()
     version_ids = [link.document_version_id for link in links if link.role != "visual_reference"]
     visual_version_ids = [link.document_version_id for link in links if link.role == "visual_reference"]
     remaining_pages = int(db.scalar(select(func.count()).select_from(DocumentPage).where(

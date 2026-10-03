@@ -3,15 +3,17 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from copy import deepcopy
 from pathlib import PurePath
 
+import pymupdf
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.errors import DomainError
-from app.models import Document, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage, DocumentVersion, TextbookTopicDocument
+from app.models import Document, DocumentAsset, DocumentBlock, DocumentEvent, DocumentJob, DocumentPage, DocumentVersion, TextbookTopicDocument
 from app.queue import DocumentQueue
 from app.repositories.documents import DocumentRepository
 from app.schemas.documents import (
@@ -268,6 +270,124 @@ def get_document(db: Session, document_id: uuid.UUID) -> tuple[Document, Documen
     return document, version
 
 
+def create_review_revision(db: Session, storage: ObjectStorage, principal: Principal,
+                           document_id: uuid.UUID) -> DocumentResponse:
+    source, version = get_document(db, document_id)
+    db.scalar(select(Document.id).where(Document.id == source.id).with_for_update())
+    if source.kind != "textbook" or source.review_state != "published" or version.mime_type != "application/pdf":
+        raise DomainError("review_revision_unavailable",
+                          "Only a published textbook PDF can start a review revision.", 409)
+    links = db.scalars(select(TextbookTopicDocument).where(
+        TextbookTopicDocument.document_version_id == version.id).with_for_update()).all()
+    if len(links) != 1 or links[0].role == "visual_reference" or links[0].review_status != "published":
+        raise DomainError("review_revision_unavailable",
+                          "Choose a published text source attached to one Topic.", 409)
+    old_link = links[0]
+    existing = db.scalar(select(Document).where(Document.source_document_id == source.id,
+        Document.removed_at.is_(None), Document.review_state != "published"))
+    if existing:
+        raise DomainError("review_revision_exists",
+                          "An unpublished revision already exists for this document.", 409)
+    source_bytes = storage.get(version.object_key, version.mime_type).content
+    try:
+        with pymupdf.open(stream=source_bytes, filetype="pdf") as pdf:
+            metadata = dict(pdf.metadata or {})
+            metadata["keywords"] = f"AKURU reviewed revision {uuid.uuid4().hex}"
+            pdf.set_metadata(metadata)
+            revised_bytes = pdf.tobytes(garbage=3, deflate=True)
+    except Exception as exc:
+        raise DomainError("review_revision_source_invalid", "The published PDF cannot be copied for review.", 409) from exc
+    new_id, new_version_id = uuid.uuid4(), uuid.uuid4()
+    object_key = f"documents/{new_id}/versions/{new_version_id}/original.pdf"
+    stored_keys = []
+    try:
+        storage.put(object_key, revised_bytes, "application/pdf"); stored_keys.append(object_key)
+        copied_assets = {}
+        for asset in db.scalars(select(DocumentAsset).where(
+            DocumentAsset.document_version_id == version.id)).all():
+            copied_key = f"documents/{new_id}/versions/{new_version_id}/assets/{asset.id}"
+            content = storage.get(asset.object_key, asset.mime_type).content
+            storage.put(copied_key, content, asset.mime_type); stored_keys.append(copied_key)
+            copied_assets[asset.id] = (asset, copied_key)
+        source_metadata = deepcopy(source.source_metadata or {})
+        source_metadata.pop("finalDocumentReview", None)
+        source_metadata["reviewRevisionOf"] = str(source.id)
+        document = Document(id=new_id, kind="textbook", course_id=source.course_id,
+            subject_id=source.subject_id, title=f"{source.title} (review revision)",
+            original_filename=source.original_filename, object_key=object_key,
+            mime_type="application/pdf", sha256=hashlib.sha256(revised_bytes).hexdigest(),
+            review_state="pending", uploaded_by=principal.user.id,
+            source_document_id=source.id, edition=source.edition,
+            publication_year=source.publication_year, source_metadata=source_metadata,
+            size_bytes=len(revised_bytes))
+        new_version = DocumentVersion(id=new_version_id, document_id=new_id,
+            version_number=1, original_filename=version.original_filename,
+            object_key=object_key, mime_type="application/pdf", sha256=document.sha256,
+            size_bytes=len(revised_bytes), status="needs_review", uploaded_by=principal.user.id)
+        db.add_all((document, new_version)); db.flush()
+        asset_ids = {}
+        for old_id, (asset, copied_key) in copied_assets.items():
+            copy = DocumentAsset(document_version_id=new_version_id,
+                asset_kind=asset.asset_kind, object_key=copied_key,
+                mime_type=asset.mime_type, sha256=asset.sha256, size_bytes=asset.size_bytes,
+                page_number=asset.page_number, bounding_box=deepcopy(asset.bounding_box),
+                asset_metadata=deepcopy(asset.asset_metadata))
+            db.add(copy); db.flush(); asset_ids[old_id] = copy.id
+        page_ids = {}
+        for page in db.scalars(select(DocumentPage).where(
+            DocumentPage.document_version_id == version.id).order_by(DocumentPage.page_number)).all():
+            copy = DocumentPage(document_version_id=new_version_id,
+                page_number=page.page_number, printed_page_label=page.printed_page_label,
+                width_points=page.width_points, height_points=page.height_points,
+                render_asset_id=asset_ids[page.render_asset_id],
+                original_render_asset_id=asset_ids.get(page.original_render_asset_id),
+                native_text=page.native_text, extraction_method=page.extraction_method,
+                confidence=page.confidence, needs_review=page.needs_review,
+                page_metadata=deepcopy(page.page_metadata))
+            db.add(copy); db.flush(); page_ids[page.id] = copy.id
+        for block in db.scalars(select(DocumentBlock).where(
+            DocumentBlock.document_version_id == version.id)).all():
+            db.add(DocumentBlock(document_version_id=new_version_id,
+                page_id=page_ids[block.page_id], sequence_number=block.sequence_number,
+                block_kind=block.block_kind, text=block.text, latex=block.latex,
+                bounding_box=deepcopy(block.bounding_box), extraction_method=block.extraction_method,
+                confidence=block.confidence, needs_review=block.needs_review,
+                source_asset_id=asset_ids.get(block.source_asset_id),
+                block_metadata=deepcopy(block.block_metadata)))
+        old_job = db.scalar(select(DocumentJob).where(DocumentJob.document_version_id == version.id,
+            DocumentJob.status.in_(("completed", "needs_review"))).order_by(DocumentJob.completed_at.desc().nullslast()))
+        if not old_job:
+            raise DomainError("review_revision_extraction_missing", "The published extraction is unavailable.", 409)
+        db.add(DocumentJob(document_id=new_id, document_version_id=new_version_id,
+            stage="deterministic_extraction", status="completed", progress=100,
+            attempt_count=1, extraction_version=old_job.extraction_version,
+            max_seconds=old_job.max_seconds, max_memory_mb=old_job.max_memory_mb,
+            max_pages=old_job.max_pages, result_data=deepcopy(old_job.result_data),
+            completed_at=utcnow()))
+        last_sequence = db.scalar(select(func.max(TextbookTopicDocument.sequence)).where(
+            TextbookTopicDocument.topic_id == old_link.topic_id)) or old_link.sequence
+        previous_sequence = old_link.sequence
+        old_link.sequence = last_sequence + 1
+        old_link.review_status = "superseded"
+        db.flush()
+        db.add(TextbookTopicDocument(topic_id=old_link.topic_id,
+            document_version_id=new_version_id, document_id=new_id, role=old_link.role,
+            sequence=previous_sequence, review_status="needs_review",
+            printed_start_page=old_link.printed_start_page,
+            printed_end_page=old_link.printed_end_page, created_by=principal.user.id))
+        db.add(DocumentEvent(document_id=new_id, document_version_id=new_version_id,
+            actor_id=principal.user.id, event_type="review_revision_created",
+            event_data={"sourceDocumentId": str(source.id), "sourceVersionId": str(version.id),
+                "topicId": str(old_link.topic_id)}))
+        db.commit()
+        return document_response(document, new_version)
+    except Exception:
+        db.rollback()
+        for key in reversed(stored_keys):
+            storage.delete(key)
+        raise
+
+
 def download_document(db: Session, storage: ObjectStorage, document_id: uuid.UUID) -> StoredObject:
     _document, version = get_document(db, document_id)
     try:
@@ -308,6 +428,9 @@ BLOCK_KINDS = {"heading", "paragraph", "table", "question", "subpart", "answer_s
 def update_extraction_page(db: Session, principal: Principal, document_id: uuid.UUID,
                            page_id: uuid.UUID, printed_page_label: str | None) -> DocumentExtractionResponse:
     document, version = get_document(db, document_id)
+    if document.review_state == "published":
+        raise DomainError("published_document_immutable",
+                          "Published textbook evidence cannot be edited. Create a review revision first.", 409)
     page = db.scalar(select(DocumentPage).where(DocumentPage.id == page_id,
                                                 DocumentPage.document_version_id == version.id))
     if not page:
@@ -363,6 +486,9 @@ def update_extraction_block(db: Session, principal: Principal, document_id: uuid
                             sequence_number: int, caption: str | None = None,
                             scientific_content: dict | None = None) -> DocumentExtractionResponse:
     document, version = get_document(db, document_id)
+    if document.review_state == "published":
+        raise DomainError("published_document_immutable",
+                          "Published textbook evidence cannot be edited. Create a review revision first.", 409)
     block = db.scalar(select(DocumentBlock).where(DocumentBlock.id == block_id,
                                                    DocumentBlock.document_version_id == version.id))
     if not block:
@@ -617,6 +743,9 @@ def confirm_final_document(db: Session, principal: Principal, document_id: uuid.
                            *, confirm_complete: bool) -> FinalDocumentResponse:
     if not confirm_complete: raise DomainError("final_document_confirmation_required", "Confirm the complete reviewed document.", 422)
     document, version = get_document(db, document_id); result = final_document(db, document_id)
+    if document.review_state == "published":
+        raise DomainError("published_document_immutable",
+                          "Published textbook evidence cannot be edited. Create a review revision first.", 409)
     if result.blockers:
         raise DomainError("final_document_not_ready", "Resolve every document review item before confirmation.", 409,
                           [{"message": value} for value in result.blockers])
