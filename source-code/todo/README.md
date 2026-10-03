@@ -19,7 +19,11 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Future roadmap priority index](planned/TODO-FUTURE-DOCUMENT-REVIEW.md)
   - [Medium: low-cost learning and document-review improvements](planned/TODO-FUTURE-MEDIUM-IMPROVEMENTS.md)
   - [Low: advanced extraction, assessment routing and voice](planned/TODO-FUTURE-LOW-ADVANCED-AI.md)
-  - [Lowest: OpenClaw Telegram Quick Mock](planned/TODO-FUTURE-LOWEST-OPENCLAW.md)
+  - [Lowest: OpenClaw Telegram Quick Mock — ordered action plans](../../openclaw/todo/README.md)
+
+## OpenClaw
+
+The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
 

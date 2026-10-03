@@ -1,0 +1,22 @@
+# Live secrets and configuration
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.key
+*.pem
+*secret*
+*token*
+
+# Mutable runtime state and backups
+state/
+data/
+backups/
+logs/
+*.db
+*.sqlite*
+
+# Local tooling
+node_modules/
+.venv/
+__pycache__/

@@ -5,6 +5,8 @@
 
 **Status: Future work — not started. Begin only after AKURU text learning, model routing and production operations are stable.**
 
+**Planning update, 2026-10-03:** The OpenClaw implementation checklist is now split into ordered action plans in [`../../../openclaw/todo/README.md`](../../../openclaw/todo/README.md). Use those files to track delivery. The detailed requirements below remain a reference; the per-child AI quota extensions above are separate deferred work.
+
 This plan is deliberately last because it adds another production runtime, Telegram identity, temporary Student assessment state, OpenAI usage outside AKURU's normal provider path and a separate security boundary. It must not block the web Student experience.
 
 ## Deferred lowest-priority work — per-child AI quotas
@@ -48,7 +50,7 @@ The Quick Mock is intentionally separate from AKURU's permanent assessment syste
 - [ ] Add independent health checks, service restart policy, structured operational logs, backup rules for configuration and a documented rollback/uninstall procedure.
 - [ ] Disable filesystem, shell, browser, general web, cross-agent and unrelated messaging tools for the AKURU exam agent.
 - [ ] Expose only the reviewed AKURU Quick Mock plugin tools and the Telegram delivery capabilities required for the workflow.
-- [ ] Do not install or enable OpenClaw in production until the backend APIs, isolation tests, privacy review and release gate pass.
+- [ ] The isolated OpenClaw Gateway may be installed after Docker host preparation. Do not connect Telegram, AKURU APIs or Student data until backend APIs, isolation tests, privacy review and release gates pass.
 
 ### Telegram account linking and lifecycle
 

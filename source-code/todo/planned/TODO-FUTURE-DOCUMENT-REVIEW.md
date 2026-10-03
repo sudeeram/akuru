@@ -24,7 +24,7 @@ The original combined document-review and AI backlog has been divided so AKURU c
    - Extend model policies into document interpretation and assessment marking.
    - Add bounded realtime voice delegation.
 
-4. [Lowest priority — OpenClaw Telegram Quick Mock](TODO-FUTURE-LOWEST-OPENCLAW.md)
+4. [Lowest priority — OpenClaw Telegram Quick Mock action plans](../../../openclaw/todo/README.md)
    - Add isolated Telegram identities and temporary OpenClaw-generated and marked mocks.
    - Keep Quick Mock state outside AKURU PostgreSQL and independent of permanent mastery.
 
