@@ -19,9 +19,9 @@ export function VisualReferenceFlipbook({ reference, pageNumber, onTurn }: Props
   const [zoom, setZoom] = useState(1);
   const [showPages, setShowPages] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [turnDirection, setTurnDirection] = useState<'forward' | 'backward'>('forward');
-  const stageRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLElement>(null);
   const touchStart = useRef<number | null>(null);
   useEffect(() => {
     const media = window.matchMedia('(min-width: 850px)');
@@ -31,11 +31,31 @@ export function VisualReferenceFlipbook({ reference, pageNumber, onTurn }: Props
   }, []);
   useEffect(() => {
     const sync = () => setFullscreen(document.fullscreenElement === stageRef.current);
-    const checkAvailability = () => setFullscreenAvailable(Boolean(document.fullscreenEnabled));
-    checkAvailability();
     document.addEventListener('fullscreenchange', sync);
     return () => document.removeEventListener('fullscreenchange', sync);
   }, []);
+  useEffect(() => {
+    if (!expanded) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setExpanded(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onEscape);
+    };
+  }, [expanded]);
+  const fullScreenActive = fullscreen || expanded;
+  const toggleFullScreen = async () => {
+    if (expanded) { setExpanded(false); return; }
+    if (fullscreen) { await document.exitFullscreen(); return; }
+    if (document.fullscreenEnabled && stageRef.current?.requestFullscreen) {
+      try { await stageRef.current.requestFullscreen(); return; } catch { /* Use the in-page mobile view. */ }
+    }
+    setExpanded(true);
+  };
   const spreadMode = wide && !singlePage;
   const shown = flipbookSpread(pageNumber, reference.pages.length, spreadMode);
   const previous = previousFlipPage(pageNumber, reference.pages.length, spreadMode);
@@ -64,7 +84,7 @@ export function VisualReferenceFlipbook({ reference, pageNumber, onTurn }: Props
     </div>;
   };
   const shownPages = [shown.left, shown.right].filter((value): value is number => value !== null);
-  return <section className="flipbook stack" ref={stageRef} aria-label={`Visual reference flipbook: ${reference.filename}`}>
+  return <section className={`flipbook stack${expanded ? ' flipbook-expanded' : ''}`} ref={stageRef} aria-label={`Visual reference flipbook: ${reference.filename}`}>
     <div className="flipbook-toolbar" role="toolbar" aria-label="Flipbook controls">
       <Button variant="outline" disabled={previous === null} onClick={() => previous !== null && turn(previous)}><ChevronLeft size={17}/> Previous</Button>
       <span className="flipbook-position" aria-live="polite">{shownPages.map((ordinal) => reference.pages[ordinal - 1]?.printedPage).join('–')} · {shown.start} of {reference.pages.length}</span>
@@ -77,12 +97,9 @@ export function VisualReferenceFlipbook({ reference, pageNumber, onTurn }: Props
       <Button variant="outline" aria-label="Zoom out" disabled={zoom <= 1} onClick={() => setZoom((value) => Math.max(1, value - 0.25))}><ZoomOut size={17}/></Button>
       <span className="small" aria-live="polite">{Math.round(zoom * 100)}%</span>
       <Button variant="outline" aria-label="Zoom in" disabled={zoom >= 2} onClick={() => setZoom((value) => Math.min(2, value + 0.25))}><ZoomIn size={17}/></Button>
-      {fullscreenAvailable && <Button variant="outline" onClick={() => {
-        if (fullscreen) void document.exitFullscreen();
-        else void stageRef.current?.requestFullscreen().catch(() => setFullscreenAvailable(false));
-      }}>
-        {fullscreen ? <Minimize size={17}/> : <Expand size={17}/>} {fullscreen ? 'Exit full screen' : 'Full screen'}
-      </Button>}
+      <Button variant="outline" aria-pressed={fullScreenActive} onClick={() => { void toggleFullScreen(); }}>
+        {fullScreenActive ? <Minimize size={17}/> : <Expand size={17}/>} {fullScreenActive ? 'Exit full screen' : 'Full screen'}
+      </Button>
       <Button variant="outline" aria-pressed={showPages} onClick={() => setShowPages((value) => !value)}>{showPages ? 'Hide pages' : 'Browse pages'}</Button>
     </div>
     <div className="flipbook-stage" onPointerDown={(event) => {
