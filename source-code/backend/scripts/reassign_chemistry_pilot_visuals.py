@@ -81,9 +81,9 @@ def main() -> None:
                     labels = {part["label"] for part in parts}
                     if any(not set(targets).issubset(labels) for targets in assignments.values()):
                         raise RuntimeError(f"{paper_id} Q{number}: source subpart labels changed")
-                    already = all(set(part.get("visualAssetIds", [])) == {
+                    already = all({
                         asset_id for asset_id, targets in assignments.items() if part["label"] in targets
-                    } for part in parts) and not data.get("visualAssetIds") and not data.get("candidateVisualAssetIds")
+                    }.issubset(set(part.get("visualAssetIds", []))) for part in parts) and not data.get("visualAssetIds") and not data.get("candidateVisualAssetIds")
                     if already:
                         continue
                     if set(data.get("visualAssetIds", [])) | set(data.get("candidateVisualAssetIds", [])) != set(assignments):
