@@ -1,6 +1,9 @@
 """Private Admin review state for source-grounded official questions."""
 from datetime import datetime, timezone
+import hashlib
 import uuid
+
+import pymupdf
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -11,7 +14,7 @@ from app.models import (
     OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace, RetrievalChunk, TextbookTopic,
 )
 from app.schemas.official_paper_reviews import (
-    PaperReviewResponse, ReviewQuestionData, ReviewQuestionResponse,
+    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewQuestionData, ReviewQuestionResponse,
     SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
 from app.schemas.official_materials import (
@@ -20,6 +23,7 @@ from app.schemas.official_materials import (
 )
 from app.security import Principal
 from app.services import official_materials
+from app.storage import ObjectStorage
 
 
 def _paper(db: Session, paper_id: uuid.UUID) -> Document:
@@ -127,6 +131,167 @@ def published_topics(db: Session, paper_id: uuid.UUID) -> list[dict]:
     return [{"topicRef": row.public_ref, "code": row.code, "title": row.title} for row in rows]
 
 
+def create_review_crop(db: Session, storage: ObjectStorage, principal: Principal,
+                       paper_id: uuid.UUID, payload: CreateReviewCrop) -> ReviewCropResponse:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    page = db.scalar(select(DocumentPage).where(
+        DocumentPage.document_version_id == workspace.paper_version_id,
+        DocumentPage.page_number == payload.page,
+    ))
+    if not page:
+        raise DomainError("invalid_source_page", "Choose a page in this question paper.", 422)
+    if payload.x1 <= payload.x0 or payload.y1 <= payload.y0:
+        raise DomainError("invalid_crop_bounds", "The crop must have a positive width and height.", 422)
+    width, height = payload.x1 - payload.x0, payload.y1 - payload.y0
+    if width < 0.02 or height < 0.02 or width * height > 0.65:
+        raise DomainError("invalid_crop_size", "Select a focused diagram or table, not a tiny or near-full-page region.", 422)
+    version = db.get(DocumentVersion, workspace.paper_version_id)
+    try:
+        original = storage.get(version.object_key, version.mime_type)
+        with pymupdf.open(stream=original.content, filetype="pdf") as pdf:
+            source_page = pdf[payload.page - 1]
+            rect = source_page.rect
+            clip = pymupdf.Rect(rect.x0 + payload.x0 * rect.width, rect.y0 + payload.y0 * rect.height,
+                                rect.x0 + payload.x1 * rect.width, rect.y0 + payload.y1 * rect.height)
+            pixels_w, pixels_h = clip.width * 2.5, clip.height * 2.5  # 180 DPI
+            if pixels_w > 4096 or pixels_h > 4096 or pixels_w * pixels_h > 12_000_000:
+                raise DomainError("crop_render_limit", "Choose a smaller visual crop for this oversized PDF page.", 422)
+            image = source_page.get_pixmap(dpi=180, alpha=False, clip=clip).tobytes("png")
+    except (FileNotFoundError, IndexError, pymupdf.FileDataError) as exc:
+        raise DomainError("source_render_unavailable", "The original paper page could not be rendered.", 409) from exc
+    asset_id = uuid.uuid4()
+    key = f"derived/{version.id}/review-crops/{asset_id}.png"
+    storage.put(key, image, "image/png")
+    asset = DocumentAsset(id=asset_id, document_version_id=version.id,
+        asset_kind=f"review_{payload.kind}_crop", object_key=key, mime_type="image/png",
+        sha256=hashlib.sha256(image).hexdigest(), size_bytes=len(image), page_number=payload.page,
+        bounding_box={"x0": clip.x0, "y0": clip.y0, "x1": clip.x1, "y1": clip.y1},
+        asset_metadata={"reviewCrop": True, "reviewApproved": True, "kind": payload.kind, "altText": payload.altText.strip(),
+                        "normalizedBounds": {key: getattr(payload, key) for key in ("x0", "y0", "x1", "y1")}})
+    db.add(asset)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.visual_cropped",
+                      target_type="document", target_id=str(paper_id),
+                      event_data={"assetId": str(asset_id), "page": payload.page, "kind": payload.kind}))
+    db.commit()
+    return ReviewCropResponse(assetId=asset_id, page=payload.page, kind=payload.kind, altText=payload.altText.strip(),
+        bounds={key:getattr(payload,key) for key in ("x0","y0","x1","y1")})
+
+
+def _candidate_boxes(page: pymupdf.Page) -> list[tuple[str, pymupdf.Rect]]:
+    """Propose bounded visuals; reject PDF trim marks, borders and whole-page clusters."""
+    bounds = page.rect
+    tables = [pymupdf.Rect(table.bbox) for table in page.find_tables().tables]
+    candidates: list[tuple[str, pymupdf.Rect]] = [("table", box) for box in tables]
+    drawings = []
+    for drawing in page.get_drawings():
+        box = drawing["rect"]
+        if (box.is_empty or box.width > bounds.width * .8 or box.height > bounds.height * .8
+                or box.x0 < bounds.width * .04 or box.x1 > bounds.width * .96):
+            continue
+        if any((box & table).get_area() >= box.get_area() * .5 for table in tables):
+            continue
+        drawings.append(drawing)
+    for region in page.cluster_drawings(drawings=drawings, x_tolerance=15, y_tolerance=15):
+        box = pymupdf.Rect(region)
+        if box.width < 40 or box.height < 35:
+            continue
+        if any((box & table).get_area() >= box.get_area() * .5 for table in tables):
+            continue
+        candidates.append(("diagram", box))
+    for block in page.get_text("dict").get("blocks", []):
+        if block.get("type") != 1:
+            continue
+        box = pymupdf.Rect(block["bbox"])
+        if box.width >= 40 and box.height >= 35:
+            candidates.append(("diagram", box))
+    selected = []
+    for kind, box in candidates:
+        box = (box + (-6, -6, 6, 6)) & bounds
+        if box.get_area() > bounds.get_area() * .65:
+            continue
+        if any(kind == prior_kind and (box & prior).get_area() > min(box.get_area(), prior.get_area()) * .8
+               for prior_kind, prior in selected):
+            continue
+        selected.append((kind, box))
+    return selected
+
+
+def generate_review_candidates(db: Session, storage: ObjectStorage, principal: Principal,
+                               paper_id: uuid.UUID) -> dict:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    version = db.get(DocumentVersion, workspace.paper_version_id)
+    original = storage.get(version.object_key, version.mime_type)
+    questions = db.scalars(select(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id == workspace.id).order_by(OfficialPaperReviewQuestion.number)).all()
+    pages_needed = {source["page"] for row in questions for source in row.review_data.get("paperSources", [])}
+    created = 0
+    attached = 0
+    with pymupdf.open(stream=original.content, filetype="pdf") as pdf:
+        candidates_by_page: dict[int, list[str]] = {}
+        for page_number in sorted(pages_needed):
+            page = pdf[page_number - 1]
+            existing = db.scalars(select(DocumentAsset).where(
+                DocumentAsset.document_version_id == version.id,
+                DocumentAsset.page_number == page_number,
+                DocumentAsset.asset_kind.in_(("candidate_diagram_crop", "candidate_table_crop")))).all()
+            if existing:
+                candidates_by_page[page_number] = [str(asset.id) for asset in existing]
+                continue
+            candidates_by_page[page_number] = []
+            for kind, box in _candidate_boxes(page):
+                if box.width * 2.5 > 4096 or box.height * 2.5 > 4096 or box.get_area() * 6.25 > 12_000_000:
+                    continue
+                image = page.get_pixmap(dpi=180, alpha=False, clip=box).tobytes("png")
+                asset_id = uuid.uuid4()
+                key = f"derived/{version.id}/review-candidates/{asset_id}.png"
+                storage.put(key, image, "image/png")
+                db.add(DocumentAsset(id=asset_id, document_version_id=version.id,
+                    asset_kind=f"candidate_{kind}_crop", object_key=key, mime_type="image/png",
+                    sha256=hashlib.sha256(image).hexdigest(), size_bytes=len(image), page_number=page_number,
+                    bounding_box={"x0":box.x0,"y0":box.y0,"x1":box.x1,"y1":box.y1},
+                    asset_metadata={"reviewCrop":True,"reviewApproved":False,"kind":kind,"altText":"",
+                        "normalizedBounds":{"x0":box.x0/page.rect.width,"y0":box.y0/page.rect.height,
+                                            "x1":box.x1/page.rect.width,"y1":box.y1/page.rect.height}}))
+                candidates_by_page[page_number].append(str(asset_id))
+                created += 1
+    for row in questions:
+        if row.status == "approved":
+            continue
+        data = dict(row.review_data)
+        prior = list(data.get("visualAssetIds", []))
+        if any(db.get(DocumentAsset, uuid.UUID(asset_id)).asset_metadata.get("reviewApproved") for asset_id in prior):
+            continue
+        proposed = list(dict.fromkeys([*prior, *(asset_id for source in data.get("paperSources", [])
+            for asset_id in candidates_by_page.get(source["page"], []))]))
+        if proposed == prior:
+            continue
+        data["visualAssetIds"] = proposed
+        row.review_data = data
+        row.revision += 1
+        attached += len(proposed) - len(prior)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.visual_candidates_generated",
+                      target_type="document", target_id=str(paper_id),
+                      event_data={"created":created,"attached":attached}))
+    db.commit()
+    return {"created":created,"attached":attached,"questionCount":len(questions)}
+
+
+def review_crops(db: Session, paper_id: uuid.UUID) -> list[ReviewCropResponse]:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    assets = db.scalars(select(DocumentAsset).where(
+        DocumentAsset.document_version_id == workspace.paper_version_id,
+        DocumentAsset.asset_kind.in_(("review_diagram_crop", "review_table_crop",
+                                     "candidate_diagram_crop", "candidate_table_crop")),
+    ).order_by(DocumentAsset.created_at)).all()
+    return [ReviewCropResponse(assetId=asset.id, page=asset.page_number,
+        kind=asset.asset_metadata["kind"], altText=asset.asset_metadata.get("altText", ""),
+        approved=bool(asset.asset_metadata.get("reviewApproved")),
+        bounds=asset.asset_metadata.get("normalizedBounds", {})) for asset in assets]
+
+
 def start(db: Session, principal: Principal, paper_id: uuid.UUID, payload: StartPaperReview) -> PaperReviewResponse:
     paper = _paper(db, paper_id)
     version = _version(db, paper.id)
@@ -204,30 +369,50 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             raise DomainError("topic_required", "A supported part needs a published topic.", 422)
         if part.coverage != "supported" and part.topicRefs:
             raise DomainError("unsupported_topic_mapping", "Only supported parts may have confirmed topic links.", 422)
-        if part.status == "approved":
+        if part.status in {"ready_for_approval", "approved"}:
             if not (part.prompt.strip() and part.paperSources and part.schemeSources and part.markingPoints
-                    and part.coverage != "unreviewed" and part.coverageReason.strip()):
+                    and part.label.strip() and part.marks > 0 and part.coverage != "unreviewed"
+                    and part.coverageReason.strip()):
                 raise DomainError("part_incomplete", "Approve wording, source, scheme and coverage before approving a part.", 409)
             if not any(source.blockId for source in part.paperSources) or not any(source.blockId for source in part.schemeSources):
                 raise DomainError("exact_block_required", "Link an exact question and scheme block before approval.", 409)
             if len({point.code for point in part.markingPoints}) != len(part.markingPoints):
                 raise DomainError("duplicate_marking_code", "Marking-point codes must be unique per part.", 422)
+            if any(not point.code.strip() or not point.text.strip() for point in part.markingPoints):
+                raise DomainError("marking_point_incomplete", "Give every marking point a short code and wording before approval.", 422)
+    visual_assets = []
     for asset_id in data.visualAssetIds:
-        if not db.scalar(select(DocumentAsset.id).where(
-            DocumentAsset.id == asset_id, DocumentAsset.document_version_id == workspace.paper_version_id)):
+        asset = db.scalar(select(DocumentAsset).where(
+            DocumentAsset.id == asset_id, DocumentAsset.document_version_id == workspace.paper_version_id))
+        if not asset:
             raise DomainError("invalid_question_asset", "The visual must come from this paper version.", 422)
+        visual_assets.append(asset)
     if status == "excluded":
         if not data.exclusionReason.strip():
             raise DomainError("exclusion_reason_required", "Explain why this source question is excluded.", 422)
-    if status == "approved":
-        if not workspace.scheme_document_id or not data.paperSources or not data.prompt.strip():
+    if status in {"ready_for_approval", "approved"}:
+        if not workspace.scheme_document_id or not data.paperSources or not data.prompt.strip() or data.marks <= 0:
             raise DomainError("question_incomplete", "Attach the scheme and review the complete question source.", 409)
-        if any(part.status != "approved" for part in data.parts):
+        if sum(part.marks for part in data.parts) != data.marks:
+            raise DomainError("question_marks_mismatch", "Subpart marks must add up to the question marks.", 422)
+        required_part_status = "approved" if status == "approved" else "ready_for_approval"
+        if any(part.status not in {required_part_status, "approved"} for part in data.parts):
             raise DomainError("parts_not_approved", "Approve every subpart first.", 409)
         if not any(source.blockId for source in data.paperSources):
             raise DomainError("exact_block_required", "Link an exact paper block before question approval.", 409)
-        if data.visualAssetIds and not data.visualAltText.strip():
+        if any(not asset.asset_metadata.get("reviewApproved") for asset in visual_assets):
+            raise DomainError("visual_review_required", "Review or replace every proposed visual before approving this question.", 409)
+        if data.visualAssetIds and not data.visualAltText.strip() and any(
+            not asset.asset_metadata.get("altText", "").strip() for asset in visual_assets
+        ):
             raise DomainError("visual_alt_required", "Describe approved visuals for accessibility.", 422)
+        wording = " ".join([data.sharedStem, data.prompt, *(part.prompt for part in data.parts)]).casefold()
+        for keyword, kind in (("diagram", "diagram"), ("figure", "diagram"), ("table", "table")):
+            if keyword in wording and not any(
+                asset.asset_metadata.get("kind") == kind and asset.asset_metadata.get("reviewCrop")
+                for asset in visual_assets
+            ):
+                raise DomainError("required_visual_missing", f"Select and describe a focused {kind} crop before approving this question.", 409)
 
 
 def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
@@ -359,8 +544,9 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
         scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
         if not locations or not scheme_locations:
             raise DomainError("exact_block_required", "Every approved question needs exact paper and scheme blocks.", 409)
-        assets = list(dict.fromkeys([*data.visualAssetIds,
-            *(str(source.assetId) for source in data.paperSources if source.assetId)]))
+        assets = list(dict.fromkeys(data.visualAssetIds or [
+            source.assetId for source in data.paperSources if source.assetId
+        ]))
         paper_questions.append(OfficialQuestionReview(
             number=row.number, prompt=data.prompt, sharedStem=data.sharedStem,
             marks=data.marks, assetIds=assets, sourceLocations=locations,

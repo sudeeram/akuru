@@ -1,4 +1,5 @@
 import uuid
+import pymupdf
 
 import pytest
 from sqlalchemy import select
@@ -10,6 +11,8 @@ from app.models import (
     OfficialPaperReviewQuestion, Textbook, TextbookGroup, TextbookTopic, User,
 )
 from app.security import hash_password
+from app.storage.factory import get_storage
+from app.storage.local import LocalObjectStorage
 from test_auth_integration import auth_client  # noqa: F401 - shared transactional fixture
 
 
@@ -30,6 +33,12 @@ def _source(session, admin, token, kind, paper=None):
         object_key=f"tests/review-{token}-{kind}.png", mime_type="image/png",
         sha256=(f"a{token}" * 2)[:64], size_bytes=10, page_number=1, bounding_box={})
     session.add(asset); session.flush()
+    visual = DocumentAsset(document_version_id=version.id, asset_kind="review_diagram_crop",
+        object_key=f"tests/review-{token}-{kind}-visual.png", mime_type="image/png",
+        sha256=(f"b{token}" * 2)[:64], size_bytes=10, page_number=1,
+        bounding_box={"x0":10,"y0":10,"x1":60,"y1":60},
+        asset_metadata={"reviewCrop":True,"reviewApproved":True,"kind":"diagram","altText":"Two separated chromatography spots."})
+    session.add(visual); session.flush()
     page = DocumentPage(document_version_id=version.id, page_number=1,
         width_points=100, height_points=100, render_asset_id=asset.id,
         extraction_method="native", confidence=1.0, needs_review=False, page_metadata={})
@@ -38,7 +47,7 @@ def _source(session, admin, token, kind, paper=None):
         sequence_number=1, block_kind="question", text="Question 1", bounding_box={},
         extraction_method="native", confidence=1.0, needs_review=False, block_metadata={})
     session.add(block); session.flush()
-    return document, version, page, block, asset
+    return document, version, page, block, asset, visual
 
 
 def _setup(auth_client):
@@ -68,7 +77,7 @@ def _question(paper, scheme, topic):
     scheme_source = {"page": 1, "blockId": str(scheme[3].id), "assetId": str(scheme[4].id)}
     return {"number": "1", "expectedRevision": 0, "status": "approved", "data": {
         "marks": 2, "prompt": "Explain the chromatogram", "sharedStem": "Use the diagram",
-        "paperSources": [paper_source], "parts": [{
+        "paperSources": [paper_source], "visualAssetIds": [str(paper[5].id)], "parts": [{
             "label": "a", "marks": 2, "prompt": "Explain the chromatogram",
             "markingPoints": [{"code": "M1", "text": "One spot", "kind": "method"},
                               {"code": "M2", "text": "Separated dyes", "kind": "accuracy"}],
@@ -106,6 +115,69 @@ def test_admin_can_review_one_question_without_student_release(auth_client):
     assert result.status_code == 200, result.text
     assert result.json()["questions"][0]["status"] == "needs_correction"
     assert result.json()["questions"][0]["data"]["parts"][0]["status"] == "needs_correction"
+
+
+@pytest.mark.integration
+def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
+    client, headers, session, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    draft = _question(paper, scheme, topic)
+    draft["status"] = "unreviewed"
+    draft["data"]["marks"] = 3  # incomplete reconciliation is allowed in a saved draft
+    draft["data"]["visualAssetIds"] = []
+    draft["data"]["parts"][0]["status"] = "unreviewed"
+    draft["data"]["parts"][0]["markingPoints"] = [{"code": "", "text": ""}]
+    saved = client.post(root + "/questions", headers=headers, json=draft)
+    assert saved.status_code == 200, saved.text
+    assert client.get(root).json()["questions"][0]["data"]["parts"][0]["markingPoints"][0]["text"] == ""
+    approved = _question(paper, scheme, topic)
+    approved["data"]["visualAssetIds"] = []
+    approved["expectedRevision"] = 1
+    assert client.post(root + "/questions", headers=headers, json=approved).json()["error"]["code"] == "required_visual_missing"
+
+    pdf = pymupdf.open()
+    page = pdf.new_page(width=100, height=100)
+    page.insert_text((20, 30), "Atom diagram")
+    shape = page.new_shape()
+    shape.draw_circle(pymupdf.Point(48, 57), 23)
+    shape.draw_circle(pymupdf.Point(48, 57), 10)
+    shape.finish(color=(0, 0, 0), width=1)
+    shape.commit()
+    content = pdf.tobytes()
+    pdf.close()
+    storage = LocalObjectStorage(tmp_path)
+    storage.put(paper[1].object_key, content, "application/pdf")
+    old_storage = app.dependency_overrides.get(get_storage)
+    app.dependency_overrides[get_storage] = lambda: storage
+    try:
+        generated = client.post(root + "/visual-candidates/generate", headers=headers)
+        assert generated.status_code == 200, generated.text
+        assert generated.json()["created"] >= 1
+        candidates = client.get(root + "/visual-crops").json()
+        assert any(not row["approved"] for row in candidates)
+        assert any(row["assetId"] in client.get(root).json()["questions"][0]["data"]["visualAssetIds"] for row in candidates)
+        crop = {"page":1,"kind":"diagram","x0":0.1,"y0":0.1,"x1":0.7,"y1":0.6,
+                "altText":"An atom diagram with labelled particles."}
+        assert client.post(root + "/visual-crops", json=crop).status_code == 403
+        assert client.post(root + "/visual-crops", headers=headers, json={**crop,"x1":1,"y1":1}).status_code == 422
+        created = client.post(root + "/visual-crops", headers=headers, json=crop)
+        assert created.status_code == 200, created.text
+        asset_id = created.json()["assetId"]
+        assert any(row["assetId"] == asset_id for row in client.get(root + "/visual-crops").json())
+        asset = session.get(DocumentAsset, uuid.UUID(asset_id))
+        assert asset.document_version_id == paper[1].id and asset.asset_metadata["altText"] == crop["altText"]
+        assert storage.get(asset.object_key, "image/png").content.startswith(b"\x89PNG")
+        approved["data"]["visualAssetIds"] = [asset_id]
+        approved["expectedRevision"] = 2
+        saved = client.post(root + "/questions", headers=headers, json=approved)
+        assert saved.status_code == 200, saved.text
+    finally:
+        if old_storage is None:
+            app.dependency_overrides.pop(get_storage, None)
+        else:
+            app.dependency_overrides[get_storage] = old_storage
 
 
 @pytest.mark.integration

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.errors import DomainError
 from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentInteraction, AssessmentQuestion, AssessmentWorkingFile,
-    Document, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
+    Document, DocumentAsset, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
     OfficialQuestionTopicMapping, OfficialQuestionVersion, StudentProgression, StudentSubject, TextbookTopic)
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
 from app.security import Principal
@@ -215,13 +215,18 @@ def response(db, row):
     if row.status == "active" and row.ends_at <= _now(): row.status = "expired"; db.commit(); db.refresh(row)
     visible = row.status in {"submitted", "expired"}
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == row.id).order_by(AssessmentQuestion.sequence)).all()
+    asset_ids = {uuid.UUID(asset_id) for question in questions for asset_id in question.asset_ids}
+    descriptions = {str(asset.id): asset.asset_metadata.get("altText", "") for asset in db.scalars(
+        select(DocumentAsset).where(DocumentAsset.id.in_(asset_ids))).all()} if asset_ids else {}
     answers = {answer.question_id: answer for answer in db.scalars(select(AssessmentAnswer).where(AssessmentAnswer.assessment_id == row.id)).all()}
     results = assessment_marking.latest_results(db, row.id) if visible else {}
     return AssessmentResponse(id=row.id, studentId=row.student_id, subjectId=row.subject_id, mode=row.mode, status=row.status,
         title=row.title, targetMarks=row.target_marks, durationMinutes=row.duration_minutes, startedAt=row.started_at,
         endsAt=row.ends_at, submittedAt=row.submitted_at, skills=row.skills, difficultyProfile=row.difficulty_profile,
         feedbackVisible=visible, questions=[AssessmentQuestionResponse(id=q.id, number=q.question_number, prompt=q.prompt,
-            sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, sourceLocations=q.source_locations,
+            sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids,
+            assetDescriptions={asset_id: descriptions.get(asset_id, "") for asset_id in q.asset_ids},
+            sourceLocations=q.source_locations,
             topicRefs=list(db.scalars(select(TextbookTopic.public_ref).where(
                 TextbookTopic.id.in_([uuid.UUID(value) for value in q.topic_ids]))).all()) if q.topic_ids else [],
             skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",

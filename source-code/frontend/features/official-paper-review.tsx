@@ -1,16 +1,16 @@
 'use client';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
 /* eslint-disable jsx-a11y/label-has-associated-control */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type PointerEvent } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
   getDocumentExtraction, getPaperReview, getReviewTopicEvidence, getReviewTopics,
-  savePaperReviewQuestion, seedPaperReview, startPaperReview, prepareOfficialReviewDrafts, errorMessage,
+  savePaperReviewQuestion, seedPaperReview, startPaperReview, prepareOfficialReviewDrafts, createPaperReviewCrop, getPaperReviewCrops, generatePaperReviewVisuals, errorMessage,
   type Doc, type DocumentExtraction, type PaperReview, type ReviewQuestionData,
-  type ReviewPart, type ReviewStatus, type CoverageStatus,
+  type ReviewPart, type ReviewStatus, type CoverageStatus, type ReviewEvidence,
 } from '@/api';
 
 const reviewStatuses: ReviewStatus[] = ['unreviewed', 'needs_correction', 'ready_for_approval', 'approved', 'excluded'];
@@ -26,28 +26,74 @@ function emptyQuestion(): ReviewQuestionData {
     parts: [emptyPart()], exclusionReason: ''};
 }
 
-function SourcePage({documentId, extraction, title, selectedPage, onPage, onAttach, onAttachBlock}: {
+function SourcePage({documentId, extraction, title, selectedPage, onPage, onToggle, linked, partLabel, sourceKind, onCropBox}: {
   documentId?: string|null; extraction?: DocumentExtraction|null; title: string;
-  selectedPage: number; onPage: (value: number) => void; onAttach?: () => void;
-  onAttachBlock?: (blockId: string) => void;
+  selectedPage: number; onPage: (value: number) => void;
+  onToggle?: (blockId?: string) => void; linked: ReviewEvidence[]; partLabel: string;
+  sourceKind: 'paper'|'scheme'|'report';
+  onCropBox?: (box: {x0:number;y0:number;x1:number;y1:number}) => void;
 }) {
   const page = extraction?.pages.find((item) => item.pageNumber === selectedPage);
+  const hasLink = (blockId?: string) => linked.some((source) => source.page === selectedPage && (source.blockId || null) === (blockId || null));
   return <section className="panel stack" style={{minWidth: 0}} aria-label={`${title} evidence`}>
     <strong>{title}</strong>
     {!documentId ? <p>No source attached.</p> : !extraction ? <p>Loading reviewed source pages…</p> : <>
       <div className="button-row">
         <label>PDF page <Input type="number" min={1} max={extraction.pages.length} value={selectedPage} onChange={(event) => onPage(Number(event.target.value))} style={{width: 85}}/></label>
         <span>of {extraction.pages.length}</span>
-        {onAttach && <Button variant="outline" disabled={!page} onClick={onAttach}>Link this page</Button>}
+        {onToggle && <Button variant="outline" disabled={!page} aria-pressed={hasLink()} onClick={() => onToggle()}>{hasLink() ? `Remove page link from part ${partLabel}` : 'Link this page'}</Button>}
       </div>
       {page ? <>
         <span className="small">{page.printedPageLabel ? `Book page ${page.printedPageLabel}` : `PDF page ${page.pageNumber}`}</span>
         <Image src={`/api/v1/documents/${documentId}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
           alt={`${title}, page ${page.pageNumber}`} width={800} height={1100} unoptimized
           style={{width:'100%',height:'auto',maxHeight:520,objectFit:'contain',objectPosition:'top',borderRadius:8}}/>
-        <details><summary>Extracted blocks · link exact evidence</summary>{page.blocks.map((block) => <div key={block.id} className="panel stack"><p className="small">{block.text.slice(0,600) || block.kind}</p>{onAttachBlock && <Button variant="outline" onClick={() => onAttachBlock(block.id)}>Link this block</Button>}</div>)}</details>
+        <details><summary>Extracted blocks · link exact evidence</summary>{page.blocks.map((block) => <div key={block.id} id={`review-${sourceKind}-${block.id}`} className="panel stack"><p className="small">{block.text.slice(0,600) || block.kind}</p>{onToggle && <Button variant="outline" aria-pressed={hasLink(block.id)} onClick={() => onToggle(block.id)}>{hasLink(block.id) ? `Linked to part ${partLabel} · Remove link` : 'Link this block'}</Button>}{sourceKind === 'paper' && onCropBox && ['diagram','image','table'].includes(block.kind) && <Button variant="outline" onClick={() => onCropBox({x0:block.boundingBox.x0/page.widthPoints,y0:block.boundingBox.y0/page.heightPoints,x1:block.boundingBox.x1/page.widthPoints,y1:block.boundingBox.y1/page.heightPoints})}>Use region as crop starting point</Button>}</div>)}</details>
       </> : <p>Choose a valid page.</p>}
     </>}
+  </section>;
+}
+
+type CropBox = {x0:number;y0:number;x1:number;y1:number};
+function VisualCropEditor({paperId, extraction, pageNumber, initialBox, initialKind, onCreated}: {
+  paperId:string; extraction:DocumentExtraction|null; pageNumber:number; initialBox:CropBox|null; initialKind:'diagram'|'table';
+  onCreated:(assetId:string, altText:string, kind:'diagram'|'table', bounds:CropBox)=>void;
+}) {
+  const page = extraction?.pages.find((item)=>item.pageNumber===pageNumber);
+  const [box,setBox] = useState<CropBox>({x0:0.2,y0:0.2,x1:0.8,y1:0.6});
+  const [kind,setKind] = useState<'diagram'|'table'>('diagram');
+  const [altText,setAltText] = useState('');
+  const [dragStart,setDragStart] = useState<{x:number;y:number}|null>(null);
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState('');
+  useEffect(()=>{if(initialBox) setBox(initialBox);},[initialBox]);
+  useEffect(()=>setKind(initialKind),[initialKind]);
+  const clamp=(value:number)=>Math.max(0,Math.min(1,value));
+  const point=(event:PointerEvent<HTMLDivElement>)=>{
+    const rect=event.currentTarget.getBoundingClientRect();
+    return {x:clamp((event.clientX-rect.left)/rect.width),y:clamp((event.clientY-rect.top)/rect.height)};
+  };
+  const change=(field:keyof CropBox,value:string)=>setBox((current)=>({...current,[field]:clamp(Number(value)/100)}));
+  const valid=box.x1>box.x0+0.02 && box.y1>box.y0+0.02 && (box.x1-box.x0)*(box.y1-box.y0)<=0.65 && altText.trim().length>=10;
+  if(!page) return <p>Choose a question-paper page before selecting a visual.</p>;
+  return <section className="panel stack" aria-label="Select question visual">
+    <h3>Crop a diagram or table from PDF page {pageNumber}</h3>
+    <p className="small">Drag across the page or adjust the percentages below. Keep only the visual and any labels needed to answer.</p>
+    <div style={{position:'relative',width:'100%',maxWidth:650,touchAction:'none',cursor:'crosshair'}}
+      onPointerDown={(event)=>{const p=point(event);setDragStart(p);setBox({x0:p.x,y0:p.y,x1:p.x,y1:p.y});event.currentTarget.setPointerCapture(event.pointerId);}}
+      onPointerMove={(event)=>{if(!dragStart)return;const p=point(event);setBox({x0:Math.min(dragStart.x,p.x),y0:Math.min(dragStart.y,p.y),x1:Math.max(dragStart.x,p.x),y1:Math.max(dragStart.y,p.y)});}}
+      onPointerUp={()=>setDragStart(null)} onPointerCancel={()=>setDragStart(null)}>
+      <Image src={`/api/v1/documents/${paperId}/assets/${page.originalRenderAssetId||page.renderAssetId}/content`} alt={`Question paper PDF page ${pageNumber} for visual selection`} width={Math.round(page.widthPoints)} height={Math.round(page.heightPoints)} unoptimized style={{display:'block',width:'100%',height:'auto'}}/>
+      <div aria-hidden="true" style={{position:'absolute',left:`${box.x0*100}%`,top:`${box.y0*100}%`,width:`${Math.max(0,box.x1-box.x0)*100}%`,height:`${Math.max(0,box.y1-box.y0)*100}%`,border:'3px solid #0f766e',background:'rgba(15,118,110,.15)',pointerEvents:'none'}}/>
+    </div>
+    <div className="button-row"><label>Visual type <select value={kind} onChange={(event)=>setKind(event.target.value as 'diagram'|'table')}><option value="diagram">Diagram or figure</option><option value="table">Table</option></select></label>
+      {(['x0','y0','x1','y1'] as const).map((field)=><label key={field}>{field} % <Input type="number" min={0} max={100} step={0.1} value={Math.round(box[field]*1000)/10} onChange={(event)=>change(field,event.target.value)} style={{width:90}}/></label>)}
+    </div>
+    <label>Accessible description of this visual <Textarea value={altText} onChange={(event)=>setAltText(event.target.value)} placeholder="Describe the diagram labels or table structure needed to answer."/></label>
+    {error && <p role="alert" className="error">{error}</p>}
+    <Button disabled={!valid||busy} onClick={()=>{setBusy(true);setError('');void createPaperReviewCrop(paperId,{page:pageNumber,kind,...box,altText:altText.trim()})
+      .then((result)=>{onCreated(result.assetId,result.altText,result.kind,result.bounds);setAltText('');})
+      .catch((cause)=>setError(errorMessage(cause))).finally(()=>setBusy(false));}}>Create and attach visual to this question</Button>
   </section>;
 }
 
@@ -80,12 +126,19 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [savedSnapshot, setSavedSnapshot] = useState('');
+  const [cropBox, setCropBox] = useState<CropBox|null>(null);
+  const [cropKind, setCropKind] = useState<'diagram'|'table'>('diagram');
+  const [replaceCandidateId, setReplaceCandidateId] = useState<string|null>(null);
+  const [availableCrops, setAvailableCrops] = useState<{assetId:string;page:number;kind:'diagram'|'table';altText:string;approved:boolean;bounds:CropBox}[]>([]);
+  const [candidateDescriptions, setCandidateDescriptions] = useState<Record<string,string>>({});
 
   useEffect(() => {
     let active = true;
     void getPaperReview(paperId).then((value) => {if (active) setReview(value);}).catch(() => {});
     void getReviewTopics(paperId).then((value) => {if (active) setTopics(value);}).catch(() => {});
     void getDocumentExtraction(paperId).then((value) => {if (active) setPaperExtraction(value);}).catch(() => {});
+    void getPaperReviewCrops(paperId).then((value) => {if(active)setAvailableCrops(value);}).catch(() => {});
     return () => { active = false; };
   }, [paperId]);
   useEffect(() => {
@@ -119,6 +172,7 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
   function chooseQuestion(row: PaperReview['questions'][number]) {
     setSelected(row.number); setNumber(row.number); setData(structuredClone(row.data));
     setStatus(row.status); setRevision(row.revision); setActivePart(0);
+    setSavedSnapshot(JSON.stringify({number:row.number,status:row.status,data:row.data}));
     setPaperPage(row.data.paperSources[0]?.page || 1);
     setSchemePage(row.data.parts[0]?.schemeSources[0]?.page || 1);
     setReportPage(row.data.parts[0]?.reportSources[0]?.page || 1);
@@ -127,23 +181,45 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
     setData((current) => ({...current, parts: current.parts.map((part, index) => index === activePart ? next : part)}));
   }
   const part = data.parts[activePart];
+  const dirty = !!number && JSON.stringify({number,status,data}) !== savedSnapshot;
   const pageAsset = (extraction: DocumentExtraction|null, pageNumber: number) => extraction?.pages.find((row) => row.pageNumber === pageNumber)?.renderAssetId;
-  function linkPage(kind: 'paper'|'scheme'|'report', blockId?: string) {
+  function toggleLink(kind: 'paper'|'scheme'|'report', blockId?: string) {
     const [extraction, pageNumber, field] = kind === 'paper' ? [paperExtraction,paperPage,'paperSources'] as const :
       kind === 'scheme' ? [schemeExtraction,schemePage,'schemeSources'] as const : [reportExtraction,reportPage,'reportSources'] as const;
     const assetId = pageAsset(extraction, pageNumber);
     if (!assetId || !part) return;
     const entry = {page:pageNumber,assetId,blockId:blockId||null};
-    if (kind === 'paper') setData((current) => ({...current,paperSources: current.paperSources.some((s) => s.page === pageNumber && s.blockId === (blockId||null)) ? current.paperSources : [...current.paperSources,entry]}));
-    updatePart({...part,[field]: part[field].some((source) => source.page === pageNumber && source.blockId === (blockId||null)) ? part[field] : [...part[field],entry]});
+    setData((current)=>{
+      const chosen=current.parts[activePart];
+      const isLinked=chosen[field].some((source)=>source.page===pageNumber && (source.blockId||null)===(blockId||null));
+      const sources=isLinked ? chosen[field].filter((source)=>!(source.page===pageNumber && (source.blockId||null)===(blockId||null))) : [...chosen[field],entry];
+      const parts=current.parts.map((row,index)=>index===activePart?{...row,[field]:sources}:row);
+      const paperSources=kind==='paper' ? Array.from(new Map(parts.flatMap((row)=>row.paperSources).map((source)=>[`${source.page}:${source.blockId||''}`,source])).values()) : current.paperSources;
+      return {...current,parts,paperSources};
+    });
   }
-  const markingText = part?.markingPoints.map((point) => `${point.code}|${point.kind}|${point.text}${point.dependsOn ? `|${point.dependsOn}` : ''}`).join('\n') || '';
   const sourceList = (sources: {page:number}[]) => sources.map((source) => source.page).join(', ') || 'None';
+  function showLinked(kind:'paper'|'scheme'|'report', source:ReviewEvidence) {
+    (kind==='paper'?setPaperPage:kind==='scheme'?setSchemePage:setReportPage)(source.page);
+    if(source.blockId) window.setTimeout(()=>document.getElementById(`review-${kind}-${source.blockId}`)?.scrollIntoView({behavior:'smooth',block:'center'}),30);
+  }
+  async function keepCandidate(crop: typeof availableCrops[number]) {
+    const altText=(candidateDescriptions[crop.assetId]||'').trim();
+    if(altText.length<10){setError('Describe this visual in at least 10 characters before approving its crop.');return;}
+    setBusy(true);setError('');setNotice('');
+    try {
+      const result=await createPaperReviewCrop(paperId,{page:crop.page,kind:crop.kind,...crop.bounds,altText});
+      setAvailableCrops((current)=>[...current,result]);
+      setData((current)=>({...current,visualAssetIds:current.visualAssetIds.map((id)=>id===crop.assetId?result.assetId:id),visualAltText:current.visualAltText||altText}));
+      setNotice('Candidate crop reviewed and attached. Save question review to keep this selection.');
+    } catch(cause) {setError(errorMessage(cause));}
+    finally {setBusy(false);}
+  }
 
   if (!paper) return <section className="panel"><p>Past paper not found.</p><Button onClick={() => navigate('/admin/exam-documents/past-papers')}>Back to papers</Button></section>;
   return <div className="stack">
-    <section className="panel stack"><div className="spread"><div><h2>Official-paper review · {paper.name}</h2><p>Admin-only draft. Saving or approving a question does not release it to Students.</p></div><Button variant="outline" onClick={() => navigate('/admin/exam-documents/past-papers')}>Back to papers</Button></div>
-      {error && <p className="error" role="alert">{error}</p>}{notice && <output>{notice}</output>}
+    <section className="panel stack"><div className="spread"><div><h2>Official-paper review · {paper.name}</h2><p>Admin-only draft. Saving or approving a question does not release it to Students.</p></div><Button variant="outline" onClick={() => {if(!dirty||window.confirm('Discard unsaved question review changes?'))navigate('/admin/exam-documents/past-papers');}}>Back to papers</Button></div>
+      {error && <p className="error" role="alert">{error}</p>}{notice && <output aria-live="polite">{notice}</output>}
       {!review ? <div className="stack">
         <label>Exact marking scheme <select value={schemeId} onChange={(event) => setSchemeId(event.target.value)}><option value="">Attach later</option>{companions.filter((doc) => doc.kind === 'Marking scheme').map((doc) => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select></label>
         <label>Examiner report <select value={reportId} onChange={(event) => setReportId(event.target.value)}><option value="">Absent or attach later</option>{companions.filter((doc) => doc.kind === 'Examiner report').map((doc) => <option key={doc.id} value={doc.id}>{doc.name}</option>)}</select></label>
@@ -170,11 +246,12 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
       {review.questionCount === 0 && <section className="panel stack"><h3>Import draft proposals</h3><p>Use the private unreleased bank only after uploading the exact source PDFs. Every imported item remains unapproved.</p>
         <label>Draft bank JSON <Input type="file" accept="application/json,.json" onChange={(event) => setDraftFile(event.target.files?.[0]||null)}/></label>
         <label>Optional coverage triage JSON <Input type="file" accept="application/json,.json" onChange={(event) => setTriageFile(event.target.files?.[0]||null)}/></label>
-        <Button disabled={!draftFile || busy} onClick={() => void act(async () => seedPaperReview(paperId,JSON.parse(await draftFile!.text()) as object,triageFile ? JSON.parse(await triageFile.text()) as object:undefined),'Unapproved source proposals imported.')}>Import proposals for review</Button>
+        <Button disabled={!draftFile || busy} onClick={() => void act(async () => {await seedPaperReview(paperId,JSON.parse(await draftFile!.text()) as object,triageFile ? JSON.parse(await triageFile.text()) as object:undefined);await generatePaperReviewVisuals(paperId);setAvailableCrops(await getPaperReviewCrops(paperId));return getPaperReview(paperId);},'Unapproved source proposals and candidate visuals imported.')}>Import proposals for review</Button>
       </section>}
+      {review.questionCount > 0 && <div className="panel stack"><strong>Candidate question visuals</strong><p className="small">AKURU crops diagrams and tables from the paper first. Review each attached candidate, adjust its crop if needed, and add a useful description before approving the question.</p><Button variant="outline" disabled={busy||dirty} onClick={()=>{setBusy(true);setError('');void generatePaperReviewVisuals(paperId).then(async(result)=>{const updated=await getPaperReview(paperId);setReview(updated);setAvailableCrops(await getPaperReviewCrops(paperId));const row=updated.questions.find((question)=>question.number===number);if(row)chooseQuestion(row);setNotice(`${result.created} candidate visual(s) prepared; ${result.attached} question link(s) added.`);}).catch((cause)=>setError(errorMessage(cause))).finally(()=>setBusy(false));}}>Prepare or refresh candidate visuals</Button></div>}
       <div className="button-row" aria-label="Question review navigation">
-        {review.questions.map((question) => <Button key={question.number} variant={selected===question.number?'default':'outline'} onClick={() => chooseQuestion(question)}>{question.number} · {label(question.status)}</Button>)}
-        <Button variant="outline" onClick={() => {setSelected('');setNumber('');setRevision(0);setStatus('unreviewed');setData(emptyQuestion());}}>Add question</Button>
+        {review.questions.map((question) => <Button key={question.number} variant={selected===question.number?'default':'outline'} onClick={() => {if(!dirty||window.confirm('Discard unsaved question review changes?')) chooseQuestion(question);}}>{question.number} · {label(question.status)}</Button>)}
+        <Button variant="outline" onClick={() => {if(dirty&&!window.confirm('Discard unsaved question review changes?'))return;setSelected('');setNumber('');setRevision(0);setStatus('unreviewed');setData(emptyQuestion());setSavedSnapshot('');}}>Add question</Button>
       </div>
       <section className="panel stack"><div className="two-cols"><label>Question number <Input value={number} disabled={revision>0} onChange={(event) => setNumber(event.target.value)}/></label><label>Marks <Input type="number" min={1} value={data.marks} onChange={(event) => setData({...data,marks:Number(event.target.value)})}/></label></div>
         <label>Shared stem <Textarea value={data.sharedStem} onChange={(event) => setData({...data,sharedStem:event.target.value})}/></label>
@@ -185,24 +262,39 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
         <div className="button-row">{data.parts.map((row,index) => <Button key={index} variant={activePart===index?'default':'outline'} onClick={() => setActivePart(index)}>{row.label} · {row.marks} marks</Button>)}<Button variant="outline" onClick={() => {setData({...data,parts:[...data.parts,{...emptyPart(),label:String.fromCharCode(97+data.parts.length)}]});setActivePart(data.parts.length);}}>Add subpart</Button></div>
         {part && <div className="panel stack"><div className="two-cols"><label>Subpart label <Input value={part.label} onChange={(event) => updatePart({...part,label:event.target.value})}/></label><label>Subpart marks <Input type="number" min={1} value={part.marks} onChange={(event) => updatePart({...part,marks:Number(event.target.value)})}/></label></div>
           <label>Reviewed subpart wording <Textarea rows={4} value={part.prompt} onChange={(event) => updatePart({...part,prompt:event.target.value})}/></label>
-          <label>Exact marking points · code|kind|text|optional dependency <Textarea rows={5} value={markingText} onChange={(event) => updatePart({...part,markingPoints:event.target.value.split('\n').filter(Boolean).map((line,index) => {const [code,kind,text,dependsOn]=line.split('|');return {code:code||`P${index+1}`,kind:(['method','accuracy','independent','communication'].includes(kind)?kind:'other') as ReviewPart['markingPoints'][number]['kind'],text:text||'',dependsOn:dependsOn||null};})})}/></label>
+          <fieldset className="stack"><legend>Exact marking points</legend><p className="small">Add one point per row. Incomplete rows can be saved as draft; complete them before approval.</p>
+            {part.markingPoints.map((point,index)=><div key={index} className="panel stack"><strong>Point {index+1}</strong><div className="two-cols">
+              <label>Short code (30 characters maximum)<Input maxLength={30} value={point.code} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,code:event.target.value}:row)})}/></label>
+              <label>Kind<select value={point.kind} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,kind:event.target.value as typeof row.kind}:row)})}>{['method','accuracy','independent','communication','other'].map((value)=><option key={value} value={value}>{value}</option>)}</select></label></div>
+              <label>What earns the mark<Textarea value={point.text} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,text:event.target.value}:row)})}/></label>
+              <label>Depends on code (optional)<Input maxLength={30} value={point.dependsOn||''} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,dependsOn:event.target.value||null}:row)})}/></label>
+              {(!point.code.trim()||!point.text.trim()) && <p className="small" role="status">Point {index+1} is incomplete. You may save this draft, but cannot approve it yet.</p>}
+              <Button variant="outline" onClick={()=>updatePart({...part,markingPoints:part.markingPoints.filter((_,i)=>i!==index)})}>Remove point {index+1}</Button>
+            </div>)}
+            <Button variant="outline" onClick={()=>updatePart({...part,markingPoints:[...part.markingPoints,{code:'',kind:'other',text:'',dependsOn:null,followThrough:false}]})}>Add marking point</Button>
+          </fieldset>
           <label>Accepted alternatives · one per line <Textarea value={part.alternatives.join('\n')} onChange={(event) => updatePart({...part,alternatives:event.target.value.split('\n').filter(Boolean)})}/></label>
           <label>Examiner guidance <Textarea value={part.examinerAdvice} onChange={(event) => updatePart({...part,examinerAdvice:event.target.value})}/></label>
           <p className="small">Paper pages: {sourceList(part.paperSources)} · Scheme pages: {sourceList(part.schemeSources)} · Report pages: {sourceList(part.reportSources)}</p>
+          <div className="stack" aria-live="polite"><strong>Evidence linked to part {part.label || activePart+1} {dirty?'· unsaved changes':''}</strong>{(['paper','scheme','report'] as const).map((kind)=>{const sources=part[`${kind}Sources`];return <div key={kind}><span>{kind}: {sources.filter((source)=>source.blockId).length} exact block(s), {sources.filter((source)=>!source.blockId).length} page link(s)</span><div className="button-row">{sources.map((source,index)=><Button key={`${source.page}-${source.blockId||index}`} variant="outline" onClick={()=>showLinked(kind,source)}>{source.blockId?'Block':'Page'} · PDF page {source.page} · {source.blockId ? (kind==='paper'?paperExtraction:kind==='scheme'?schemeExtraction:reportExtraction)?.pages.find((page)=>page.pageNumber===source.page)?.blocks.find((block)=>block.id===source.blockId)?.text.slice(0,45)||'Visual block':'Page evidence'}</Button>)}</div></div>;})}</div>
           <label>Coverage decision <select value={part.coverage} onChange={(event) => updatePart({...part,coverage:event.target.value as CoverageStatus,topicRefs:[]})}>{coverageStatuses.map((value) => <option value={value} key={value}>{label(value)}</option>)}</select></label>
           {part.coverage==='supported' && <fieldset><legend>Published Chemistry topics</legend>{topics.map((topic) => <label key={topic.topicRef} style={{display:'block'}}><input type="checkbox" checked={part.topicRefs.includes(topic.topicRef)} onChange={(event) => updatePart({...part,topicRefs:event.target.checked?[...part.topicRefs,topic.topicRef]:part.topicRefs.filter((ref) => ref!==topic.topicRef)})}/> {topic.code} · {topic.title}</label>)}</fieldset>}
           <label>Coverage reason <Textarea value={part.coverageReason} onChange={(event) => updatePart({...part,coverageReason:event.target.value})}/></label>
           <label>Subpart review status <select value={part.status} onChange={(event) => updatePart({...part,status:event.target.value as ReviewStatus})}>{reviewStatuses.filter((item) => item!=='excluded').map((value) => <option value={value} key={value}>{label(value)}</option>)}</select></label>
         </div>}
-        <label>Approved visual asset IDs · one per line <Textarea value={data.visualAssetIds.join('\n')} onChange={(event) => setData({...data,visualAssetIds:event.target.value.split('\n').map((value) => value.trim()).filter(Boolean)})}/></label>
-        <label>Accessible visual description <Textarea value={data.visualAltText} onChange={(event) => setData({...data,visualAltText:event.target.value})}/></label>
+        <div className="stack"><strong>Question visuals · {data.visualAssetIds.length} attached {dirty?'· unsaved':''}</strong>{data.visualAssetIds.map((assetId)=>{const crop=availableCrops.find((item)=>item.assetId===assetId);return <div key={assetId} className="panel stack"><strong>{crop?.approved?'Reviewed visual':'Candidate · needs review'} · {crop?.kind||'visual'} · PDF page {crop?.page||'?'}</strong><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={crop?.altText||'Unreviewed candidate visual'} width={560} height={400} unoptimized style={{width:'100%',height:'auto',maxWidth:560,objectFit:'contain'}}/><p className="small">{crop?.altText||'Check the crop and enter an accessible description before approval.'}</p>{crop&&!crop.approved&&<><label>Describe this candidate for students <Textarea value={candidateDescriptions[assetId]||''} onChange={(event)=>setCandidateDescriptions((current)=>({...current,[assetId]:event.target.value}))}/></label><div className="button-row"><Button variant="outline" disabled={busy||(candidateDescriptions[assetId]||'').trim().length<10} onClick={()=>void keepCandidate(crop)}>Keep this crop and attach reviewed visual</Button><Button variant="outline" onClick={()=>{setPaperPage(crop.page);setCropBox(crop.bounds);setCropKind(crop.kind);setReplaceCandidateId(assetId);}}>Adjust crop</Button></div></>}<Button variant="outline" onClick={()=>setData((current)=>({...current,visualAssetIds:current.visualAssetIds.filter((id)=>id!==assetId)}))}>Remove this visual from question</Button></div>;})}</div>
+        {!!availableCrops.length && <label>Attach an existing reviewed crop <select value="" onChange={(event)=>{const id=event.target.value;if(id)setData((current)=>({...current,visualAssetIds:current.visualAssetIds.includes(id)?current.visualAssetIds:[...current.visualAssetIds,id]}));}}><option value="">Choose a crop</option>{availableCrops.filter((crop)=>!data.visualAssetIds.includes(crop.assetId)).map((crop)=><option key={crop.assetId} value={crop.assetId}>{crop.kind} · PDF page {crop.page} · {crop.altText.slice(0,70)}</option>)}</select></label>}
+        <label>Fallback accessible description for older visuals <Textarea value={data.visualAltText} onChange={(event) => setData({...data,visualAltText:event.target.value})}/></label>
+        <VisualCropEditor paperId={paperId} extraction={paperExtraction} pageNumber={paperPage} initialBox={cropBox} initialKind={cropKind} onCreated={(assetId,altText,kind,bounds)=>{setAvailableCrops((current)=>[...current,{assetId,page:paperPage,kind,altText,approved:true,bounds}]);setData((current)=>({...current,visualAssetIds:[...current.visualAssetIds.filter((id)=>id!==replaceCandidateId),assetId],visualAltText:current.visualAltText||altText}));setReplaceCandidateId(null);setNotice('Reviewed visual attached to this draft. Save question review to keep the link.');}}/>
+        <details><summary>Preview this question as a student</summary><div className="panel stack" style={{maxWidth:700}}><strong>Question {number} · {data.marks} marks</strong>{data.sharedStem && <p>{data.sharedStem}</p>}<p style={{whiteSpace:'pre-wrap'}}>{data.prompt}</p>{data.visualAssetIds.map((assetId)=><figure key={assetId} style={{margin:0}}><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText||'Question visual'} width={650} height={450} unoptimized style={{maxWidth:'100%',width:'auto',height:'auto',maxHeight:450}}/><figcaption className="small">{availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText}</figcaption></figure>)}{data.parts.map((row)=><p key={row.label} style={{whiteSpace:'pre-wrap'}}>({row.label}) {row.prompt} · {row.marks} marks</p>)}</div></details>
+        <p role="status" aria-live="polite">{dirty?'Unsaved review changes.':'Saved review state.'}</p>
         <Button disabled={busy || !number.trim()} onClick={() => void act(() => savePaperReviewQuestion(paperId,{number,expectedRevision:revision,status,data}), 'Question review saved.')}>
           Save question review</Button>
       </section>
       <div className="two-cols" style={{alignItems:'start'}}>
-        <SourcePage documentId={paperId} extraction={paperExtraction} title="Question paper" selectedPage={paperPage} onPage={setPaperPage} onAttach={part?()=>linkPage('paper'):undefined} onAttachBlock={part?(id)=>linkPage('paper',id):undefined}/>
-        <SourcePage documentId={review.schemeDocumentId} extraction={schemeExtraction} title="Exact marking scheme" selectedPage={schemePage} onPage={setSchemePage} onAttach={part?()=>linkPage('scheme'):undefined} onAttachBlock={part?(id)=>linkPage('scheme',id):undefined}/>
-        <SourcePage documentId={review.reportDocumentId} extraction={reportExtraction} title="Examiner report" selectedPage={reportPage} onPage={setReportPage} onAttach={part?()=>linkPage('report'):undefined} onAttachBlock={part?(id)=>linkPage('report',id):undefined}/>
+        <SourcePage documentId={paperId} extraction={paperExtraction} title="Question paper" selectedPage={paperPage} onPage={setPaperPage} linked={part?.paperSources||[]} partLabel={part?.label||String(activePart+1)} sourceKind="paper" onToggle={part?(id)=>toggleLink('paper',id):undefined} onCropBox={setCropBox}/>
+        <SourcePage documentId={review.schemeDocumentId} extraction={schemeExtraction} title="Exact marking scheme" selectedPage={schemePage} onPage={setSchemePage} linked={part?.schemeSources||[]} partLabel={part?.label||String(activePart+1)} sourceKind="scheme" onToggle={part?(id)=>toggleLink('scheme',id):undefined}/>
+        <SourcePage documentId={review.reportDocumentId} extraction={reportExtraction} title="Examiner report" selectedPage={reportPage} onPage={setReportPage} linked={part?.reportSources||[]} partLabel={part?.label||String(activePart+1)} sourceKind="report" onToggle={part?(id)=>toggleLink('report',id):undefined}/>
         <section className="panel stack"><strong>Published textbook evidence</strong><select aria-label="Textbook topic" value={evidenceTopic} onChange={(event) => {setEvidenceTopic(event.target.value);setEvidence([]);}}><option value="">Choose topic</option>{topics.map((topic) => <option value={topic.topicRef} key={topic.topicRef}>{topic.code} · {topic.title}</option>)}</select><div style={{maxHeight:520,overflow:'auto'}}>{evidence.map((chunk,index) => <details key={`${chunk.pageNumber}-${index}`}><summary>Extracted page {chunk.pageNumber}</summary><p>{chunk.text}</p></details>)}</div><p className="small">Text similarity does not approve a mapping; check the assessed concept and source page.</p></section>
       </div>
     </>}

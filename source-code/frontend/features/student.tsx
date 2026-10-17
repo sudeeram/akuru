@@ -351,7 +351,7 @@ export function Practice(p: FeatureProps) {
           {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
           <Diagram kind={q.diagram} />
           {q.assetIds?.map((assetId) => (
-            <LearningImage key={assetId} src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={`Source diagram for ${q.title}: ${q.prompt}`} />
+            <LearningImage key={assetId} src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} />
           ))}
           <div className="source-note">
             <BookOpen size={14} />
@@ -693,7 +693,7 @@ export function Exams(p: FeatureProps) {
               {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
               <Diagram kind={q.diagram} />
               {q.assetIds?.map((assetId) => (
-                <LearningImage key={assetId} src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={`Source diagram for ${q.title}: ${q.prompt}`} />
+                <LearningImage key={assetId} src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} />
               ))}
             </section>
             <section className="panel">

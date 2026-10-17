@@ -16,16 +16,16 @@ class ReviewEvidence(BaseModel):
 
 
 class ReviewMarkingPoint(BaseModel):
-    code: str = Field(min_length=1, max_length=30)
-    text: str = Field(min_length=1, max_length=2000)
+    code: str = Field(default="", max_length=30)
+    text: str = Field(default="", max_length=2000)
     kind: Literal["method", "accuracy", "independent", "communication", "other"] = "other"
     dependsOn: str | None = Field(default=None, max_length=30)
     followThrough: bool = False
 
 
 class ReviewPart(BaseModel):
-    label: str = Field(min_length=1, max_length=40)
-    marks: int = Field(gt=0, le=200)
+    label: str = Field(default="", max_length=40)
+    marks: int = Field(ge=0, le=200)
     prompt: str = Field(default="", max_length=12000)
     markingPoints: list[ReviewMarkingPoint] = Field(default_factory=list, max_length=200)
     alternatives: list[str] = Field(default_factory=list, max_length=100)
@@ -40,7 +40,7 @@ class ReviewPart(BaseModel):
 
 
 class ReviewQuestionData(BaseModel):
-    marks: int = Field(gt=0, le=200)
+    marks: int = Field(ge=0, le=200)
     sharedStem: str = Field(default="", max_length=12000)
     prompt: str = Field(default="", max_length=30000)
     paperSources: list[ReviewEvidence] = Field(default_factory=list)
@@ -53,8 +53,6 @@ class ReviewQuestionData(BaseModel):
     def reconcile(self):
         if len({part.label for part in self.parts}) != len(self.parts):
             raise ValueError("Subpart labels must be unique")
-        if sum(part.marks for part in self.parts) != self.marks:
-            raise ValueError("Subpart marks must add up to question marks")
         return self
 
 
@@ -74,6 +72,25 @@ class SaveReviewQuestion(BaseModel):
 class SeedPaperReview(BaseModel):
     draftBank: dict
     coverageTriage: dict | None = None
+
+
+class CreateReviewCrop(BaseModel):
+    page: int = Field(gt=0)
+    kind: Literal["diagram", "table"]
+    x0: float = Field(ge=0, lt=1)
+    y0: float = Field(ge=0, lt=1)
+    x1: float = Field(gt=0, le=1)
+    y1: float = Field(gt=0, le=1)
+    altText: str = Field(min_length=10, max_length=2000)
+
+
+class ReviewCropResponse(BaseModel):
+    assetId: uuid.UUID
+    page: int
+    kind: Literal["diagram", "table"]
+    altText: str
+    approved: bool = True
+    bounds: dict[str, float] = Field(default_factory=dict)
 
 
 class ReviewQuestionResponse(BaseModel):

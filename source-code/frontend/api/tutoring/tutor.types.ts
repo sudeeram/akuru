@@ -72,7 +72,7 @@ export type TutorAgentReply = {
 export type TutorPractice = {
   practiceRef: string; status: 'active' | 'submitted'; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string;
   question: { id: string; number: string; prompt: string; sharedStem: string; marks: number;
-    equations: string[]; assetIds: string[]; answer: string; result?: AssessmentResult | null };
+    equations: string[]; assetIds: string[]; assetDescriptions?: Record<string, string>; answer: string; result?: AssessmentResult | null };
   assetUrls: string[]; hintCount: number; latestHint?: string | null; feedbackVisible: boolean;
   createdAt: string; submittedAt?: string | null;
 };

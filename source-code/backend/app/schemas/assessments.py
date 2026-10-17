@@ -122,6 +122,7 @@ class AssessmentQuestionResponse(BaseModel):
     marks: int
     equations: list
     assetIds: list
+    assetDescriptions: dict[str, str] = Field(default_factory=dict)
     sourceLocations: list
     topicRefs: list[str] = Field(default_factory=list)
     skills: list

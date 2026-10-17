@@ -7,10 +7,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.official_paper_reviews import (
-    PaperReviewResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
+    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
 from app.security import Principal
 from app.services import official_paper_reviews
+from app.storage import ObjectStorage, get_storage
 
 
 router = APIRouter(prefix="/admin/official-paper-reviews", tags=["official-paper-reviews"])
@@ -49,6 +50,29 @@ def save_question(paper_id: uuid.UUID, payload: SaveReviewQuestion,
                   principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
                   db: Annotated[Session, Depends(get_db)]):
     return official_paper_reviews.save_question(db, principal, paper_id, payload)
+
+
+@router.post("/{paper_id}/visual-crops", response_model=ReviewCropResponse)
+def create_visual_crop(paper_id: uuid.UUID, payload: CreateReviewCrop,
+                       principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                       db: Annotated[Session, Depends(get_db)],
+                       storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return official_paper_reviews.create_review_crop(db, storage, principal, paper_id, payload)
+
+
+@router.get("/{paper_id}/visual-crops", response_model=list[ReviewCropResponse])
+def list_visual_crops(paper_id: uuid.UUID,
+                      _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                      db: Annotated[Session, Depends(get_db)]):
+    return official_paper_reviews.review_crops(db, paper_id)
+
+
+@router.post("/{paper_id}/visual-candidates/generate")
+def generate_visual_candidates(paper_id: uuid.UUID,
+                               principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                               db: Annotated[Session, Depends(get_db)],
+                               storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return official_paper_reviews.generate_review_candidates(db, storage, principal, paper_id)
 
 
 @router.post("/{paper_id}/seed", response_model=PaperReviewResponse)

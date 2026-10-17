@@ -49,6 +49,7 @@ export type Question = {
   diagram: string;
   source: string;
   assetIds?: string[];
+  assetDescriptions?: Record<string, string>;
   equations?: string[];
   assessmentId?: string;
 };

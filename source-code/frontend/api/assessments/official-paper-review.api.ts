@@ -35,3 +35,8 @@ export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
   request<{topicRef: string; code: string; title: string; chunks: {pageNumber: number; text: string}[]}>(`${base(paperId)}/topics/${encodeURIComponent(topicRef)}/evidence`);
 export const prepareOfficialReviewDrafts = (paperId: string) =>
   request<{paperDocumentId:string;paperDraftVersion:number;schemeDocumentId:string;schemeDraftVersion:number;published:false}>(`${base(paperId)}/prepare-official-drafts`, {method:'POST',body:{}});
+export const createPaperReviewCrop = (paperId: string, body: {
+  page: number; kind: 'diagram'|'table'; x0: number; y0: number; x1: number; y1: number; altText: string;
+}) => request<{assetId:string;page:number;kind:'diagram'|'table';altText:string;approved:boolean;bounds:{x0:number;y0:number;x1:number;y1:number}}>(`${base(paperId)}/visual-crops`, {method:'POST',body});
+export const getPaperReviewCrops = (paperId: string) => request<{assetId:string;page:number;kind:'diagram'|'table';altText:string;approved:boolean;bounds:{x0:number;y0:number;x1:number;y1:number}}[]>(`${base(paperId)}/visual-crops`);
+export const generatePaperReviewVisuals = (paperId: string) => request<{created:number;attached:number;questionCount:number}>(`${base(paperId)}/visual-candidates/generate`, {method:'POST',body:{}});
