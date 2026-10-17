@@ -52,6 +52,8 @@ preview remains private to the signed-in Admin.
 
 Use **Exam Documents** for past papers, marking schemes, examiner reports and reference materials. Textbook upload and review controls no longer appear there. Existing private downloads, assessment relationships, review and retry actions remain available.
 
+For question-by-question review of an uploaded official paper and its exact marking scheme, follow the [official-paper review walkthrough](OFFICIAL-PAPER-REVIEW.md). Draft question approvals stay private until the whole paper and scheme pass their publication checks.
+
 Sign in with the Admin account created through the secure backend bootstrap
 command. AKURU contains no default Admin password.
 

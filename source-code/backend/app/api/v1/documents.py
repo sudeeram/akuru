@@ -17,7 +17,7 @@ from app.schemas.documents import (
 )
 from app.schemas.official_materials import OfficialMaterialReview, PublishOfficialMaterialRequest, SaveOfficialMaterialReview
 from app.security import Principal
-from app.services import documents, official_materials
+from app.services import documents, official_materials, reference_materials
 from app.services.document_processing import get_job, job_response, retry_job
 from app.storage import ObjectStorage, get_storage
 
@@ -209,6 +209,13 @@ def save_official_material_review(document_id: uuid.UUID, payload: SaveOfficialM
 @router.post("/{document_id}/official-review/publish", response_model=OfficialMaterialReview)
 def publish_official_material_review(document_id: uuid.UUID, payload: PublishOfficialMaterialRequest, principal: Annotated[Principal, Depends(require_csrf_roles("admin"))], db: Annotated[Session, Depends(get_db)]) -> OfficialMaterialReview:
     return official_materials.publish_review(db, principal, document_id, payload)
+
+
+@router.post("/{document_id}/reference/publish")
+def publish_reference_document(document_id: uuid.UUID,
+                               principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                               db: Annotated[Session, Depends(get_db)]):
+    return reference_materials.publish(db, principal, document_id)
 
 
 @router.get("/{document_id}/assets/{asset_id}/content")

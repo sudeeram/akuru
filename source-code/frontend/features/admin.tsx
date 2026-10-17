@@ -18,6 +18,7 @@ import {
   getPaperMappings,
   publishCurriculumPlan,
   publishOfficialMaterialReview,
+  publishReferenceDocument,
   publishQuestionMappings,
   saveCurriculumPlan,
   saveOfficialMaterialReview,
@@ -55,6 +56,7 @@ import { TutorQuotaAdmin } from './tutor-quotas';
 import { TutorHistory } from './tutor-history';
 import { TextbookStructureAdmin } from './textbook-structure';
 import { FinalDocumentReviewWorkspace } from './final-document-review';
+import { OfficialPaperReview } from './official-paper-review';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -276,6 +278,7 @@ export function AdminWorkspace(p: Props) {
     'Examiner report': 'examiner_report',
   } as const;
   const textbookReviewMode = p.pathname.startsWith('/admin/textbooks/review');
+  const officialPaperReviewId = p.pathname.match(/^\/admin\/exam-documents\/review\/([0-9a-f-]{36})$/)?.[1];
   const requestedReviewDocument = p.pathname.match(/^\/admin\/textbooks\/review\/([^/]+)$/)?.[1];
   const examSection = p.pathname.match(/^\/admin\/exam-documents\/([^/]+)$/)?.[1] || 'all';
   const examKind = ({ 'past-papers': 'Past paper', 'mark-schemes': 'Marking scheme',
@@ -527,6 +530,7 @@ export function AdminWorkspace(p: Props) {
       {p.view === 'library' && <nav className="secondary-nav" aria-label="Exam document sections">
         {[['/admin/exam-documents', 'All Exam Documents'], ['/admin/exam-documents/past-papers', 'Past Papers'], ['/admin/exam-documents/mark-schemes', 'Mark Schemes'], ['/admin/exam-documents/examiner-reports', 'Examiner Reports'], ['/admin/exam-documents/references', 'Reference Materials']].map(([path, label]) => <Button key={path} variant={p.pathname === path ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
       </nav>}
+      {officialPaperReviewId && <OfficialPaperReview paperId={officialPaperReviewId} documents={p.data.documents} navigate={p.navigate}/>}
       <fieldset
         disabled={busy}
         style={{ border: 0, padding: 0, minWidth: 0 }}
@@ -782,7 +786,7 @@ export function AdminWorkspace(p: Props) {
             </div>
           </>
         )}
-        {(p.view === 'library' || textbookReviewMode) && (
+        {(p.view === 'library' || textbookReviewMode) && !officialPaperReviewId && (
           <>
             {!textbookReviewMode && <section className="panel stack">
               <h2>Upload a learning document</h2>
@@ -863,7 +867,7 @@ export function AdminWorkspace(p: Props) {
               <div className="spread"><h2>{requestedReviewDocument && doc ? doc.name : textbookReviewMode ? 'Review textbook documents' : 'Review exam documents'}</h2>{textbookReviewMode && requestedReviewDocument && <Button variant="outline" onClick={() => p.navigate(requestedTextbook ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}` : '/admin/textbooks/review')}>Return to review list</Button>}</div>
               {(!textbookReviewMode || !requestedReviewDocument) && <>
               <fieldset className="catalogue-filters"><legend>Filter review work</legend><div className="three-cols"><label className="stack" htmlFor="review-document-search">Search<Input id="review-document-search" type="search" value={reviewSearch} onChange={(event) => setReviewSearch(event.target.value)} placeholder="Document, textbook, Unit or Topic"/></label><Picker label="Subject" value={reviewSubject} onChange={setReviewSubject} options={[{value:'all',label:'All subjects'},...p.data.subjects.map((item) => ({value:item.id,label:item.name}))]}/><Picker label="Status" value={reviewStatus} onChange={setReviewStatus} options={[{value:'all',label:'All statuses'},...Array.from(new Set(visibleDocuments.map((item) => item.status))).map((value) => ({value,label:value.replaceAll('_',' ')}))]}/></div><div className="button-row"><Button variant="outline" onClick={() => { setReviewSearch(''); setReviewSubject('all'); setReviewStatus('all'); }}>Clear filters</Button><span>{filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}</span></div></fieldset>
-              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>{document.status === 'published' ? 'View published source' : 'Review'}</Button>{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
+              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>{document.status === 'published' ? 'View published source' : 'Review'}</Button>{document.kind === 'Past paper' && <Button variant="outline" onClick={() => p.navigate(`/admin/exam-documents/review/${document.id}`)}>Review questions</Button>}{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
               {!filteredDocuments.length && <p>No documents match these filters.</p>}
               </>}
               {!textbookReviewMode && <Picker
@@ -980,11 +984,12 @@ export function AdminWorkspace(p: Props) {
                     }}>Create review revision</Button>}
                   </div>}
                   {doc.kind === 'Textbook' && doc.status !== 'published' && doc.sourceRole !== 'visual_reference' && <div className="source-note stack"><strong>Editing reviewed text</strong><p>You can change several sections before republishing. Save changed sections, inspect the complete revised document, and publish the Topic once from Textbook structure.</p><Button variant="outline" disabled={busy || !extraction} onClick={() => { void saveAllReviewChanges(); }}>Save all changed sections</Button></div>}
-                  {textbookReviewMode && extraction && !visualReferenceReview && doc.status !== 'published' && <div className="button-row">
+                  {(textbookReviewMode || doc.kind === 'Reference material') && extraction && !visualReferenceReview && doc.status !== 'published' && <div className="button-row">
                     <Button className={showFinalDocument ? '' : 'primary'} variant={showFinalDocument ? 'outline' : 'default'} onClick={() => setShowFinalDocument(false)}>Review pages and blocks</Button>
                     <Button className={showFinalDocument ? 'primary' : ''} variant={showFinalDocument ? 'default' : 'outline'} onClick={() => setShowFinalDocument(true)}>Review complete document</Button>
                   </div>}
                   {showFinalDocument && doc && extraction && !visualReferenceReview && <FinalDocumentReviewWorkspace key={doc.id} documentId={doc.id} notify={p.notify} extractionChanged={setExtraction} readOnly={doc.status === 'published'}/>}
+                  {doc.kind === 'Reference material' && doc.status === 'completed' && <div className="source-note stack"><strong>Release this reviewed reference to students</strong><p>First confirm the complete document above. Only students enrolled in this subject will be able to open the original PDF.</p><Button className="primary" disabled={busy} onClick={() => { if (window.confirm(`Publish ${doc.name} for enrolled students?`)) void run(() => publishReferenceDocument(doc.id), 'Reference published for enrolled students.'); }}>Publish student reference</Button></div>}
                   {!showFinalDocument && doc.status !== 'published' && extractionReview && (
                     <section className="extraction-review-summary stack" aria-labelledby="extraction-review-summary-title">
                       <div className="spread">

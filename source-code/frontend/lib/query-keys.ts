@@ -8,6 +8,9 @@ export const queryKeys = {
     studentTopic: (actorRef: string, bookRef: string, topicRef: string) =>
       ['textbooks', actorRef, 'student-topic', bookRef, topicRef] as const,
   },
+  references: {
+    studentLibrary: (actorRef: string) => ['references', actorRef, 'student-library'] as const,
+  },
   flashcards: {
     all: (actorRef: string) => ['flashcards', actorRef] as const,
     studentDecks: (actorRef: string) =>

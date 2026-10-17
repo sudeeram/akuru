@@ -47,7 +47,7 @@ def official_papers(db: Session, student_id: uuid.UUID):
         for paper_id, rows in by_paper.items():
             total = db.scalar(select(func.count()).select_from(OfficialQuestionVersion).where(
                 OfficialQuestionVersion.material_version_id == paper_id))
-            if total == len(rows):
+            if total == len(rows) and _approved_scheme(db, rows):
                 material = rows[0][1]; document = db.get(Document, material.document_id)
                 result.append({"id": str(document.id), "subjectId": subject_id, "title": document.title,
                     "questionCount": total, "marks": sum(row[0].marks for row in rows)})
@@ -85,6 +85,24 @@ def _choose(candidates, count, marks, seed):
         return None
     return visit(0, [], 0) or []
 
+
+def _approved_scheme(db: Session, selected) -> bool:
+    """Every assessed question needs its own paper version's approved mark entry."""
+    for paper_version_id in {material.id for _, material, _ in selected}:
+        scheme = db.scalar(select(OfficialMaterialVersion).where(
+            OfficialMaterialVersion.kind == "mark_scheme",
+            OfficialMaterialVersion.source_paper_version_id == paper_version_id,
+            OfficialMaterialVersion.status == "published"))
+        if not scheme:
+            return False
+        entries = dict(db.execute(select(MarkSchemeEntryVersion.question_number,
+            MarkSchemeEntryVersion.max_marks).where(
+            MarkSchemeEntryVersion.material_version_id == scheme.id)).all())
+        if any(entries.get(question.question_number) != question.marks
+               for question, material, _ in selected if material.id == paper_version_id):
+            return False
+    return True
+
 def _rubric(db, paper_version_id, number):
     scheme = db.scalar(select(OfficialMaterialVersion).where(OfficialMaterialVersion.kind == "mark_scheme",
         OfficialMaterialVersion.source_paper_version_id == paper_version_id, OfficialMaterialVersion.status == "published"))
@@ -107,6 +125,21 @@ def _topic_weights(db, question_id, topics):
     if weights and sum(weights.values()) == 100: return weights
     base, remainder = divmod(100, len(topics))
     return {str(topic_id): base + (1 if index < remainder else 0) for index, topic_id in enumerate(topics)}
+
+
+def official_paper_duration(document: Document, target_marks: int) -> int:
+    """Use the reviewed paper's exam duration, never a marks-based mock estimate."""
+    metadata = document.source_metadata or {}
+    configured = metadata.get("durationMinutes")
+    if isinstance(configured, int) and not isinstance(configured, bool) and 1 <= configured <= 360:
+        return configured
+    component = (document.component or "").strip().upper().replace("PAPER", "").replace(" ", "")
+    if component in {"1", "1C", "1CR"}:
+        return 120
+    if component in {"2", "2C", "2CR"}:
+        return 75
+    raise DomainError("official_paper_duration_required",
+                      "Set the official paper component or duration before students can take this paper.", 409)
 
 def start(db, principal, payload, *, required_topic_id: uuid.UUID | None = None):
     student_id = principal.user.id
@@ -139,11 +172,16 @@ def start(db, principal, payload, *, required_topic_id: uuid.UUID | None = None)
         selected = [row for row in candidates if paper_version and row[1].id == paper_version.id]
         if not paper_version or not all_questions or len(selected) != len(all_questions):
             raise DomainError("official_paper_not_eligible", "Every question in an official paper must be within the student's covered topics.", 409)
-        target = sum(row[0].marks for row in selected); duration = max(1, round(target * 1.5)); title = "Official past paper"
+        target = sum(row[0].marks for row in selected)
+        duration = official_paper_duration(db.get(Document, paper_version.document_id), target)
+        title = "Official past paper"
     else:
         selected = _choose(candidates, 1, 0, f"{student_id}:{required_topic_id or ''}")
         if not selected: raise DomainError("question_pool_shortage", "No eligible practice question is available for the covered topics.", 409)
         target, duration, title = selected[0][0].marks, 20, "Individual practice"
+    if not _approved_scheme(db, selected):
+        raise DomainError("approved_mark_scheme_required",
+                          "The exact paper's approved marking scheme is required before this assessment can start.", 409)
     ref = f"assessment:{uuid.uuid4()}"; curriculum = snapshot(db, ref, student_id, payload.subjectId); started = _now()
     assessment = Assessment(student_id=student_id, subject_id=payload.subjectId, mode=payload.mode.value,
         blueprint_id=blueprint.id if blueprint else None, official_paper_version_id=paper_version.id if paper_version else None,

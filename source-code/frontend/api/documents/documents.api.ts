@@ -41,6 +41,7 @@ export const reconstructDocumentParagraphs = (documentId: string, confirmOverwri
 export const previewDocumentParagraphReconstruction = (documentId: string) => request<{version: string; pageCount: number; beforeBlockCount: number; afterBlockCount: number; reviewedBlockCount: number; examples: Array<{pageNumber: number; before: string; after: string}>}>(`documents/${documentId}/extraction/reconstruct-preview`);
 export const getFinalDocumentReview = (documentId: string) => request<FinalDocumentReview>(`documents/${documentId}/final-review`);
 export const confirmFinalDocumentReview = (documentId: string) => request<FinalDocumentReview>(`documents/${documentId}/final-review/confirm`, { method: 'POST', body: { confirmComplete: true } });
+export const publishReferenceDocument = (documentId: string) => request<{id: string; status: string}>(`documents/${documentId}/reference/publish`, { method: 'POST' });
 export async function getLatestDocumentJob(id: string): Promise<DocumentJob> {
   return request<DocumentJob>(`documents/${id}/jobs/latest`);
 }

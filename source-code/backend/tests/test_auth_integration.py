@@ -872,6 +872,74 @@ def test_topic_question_mapping_is_weighted_same_subject_and_requires_all_topics
     assert assessments.eligible_questions(session, student.id, "chemistry") == []
     session.add(CurriculumPlanTopic(plan_id=plan.id, grade=10, term=1, topic_id=topics[1].id)); session.commit()
     assert [row[0].id for row in assessments.eligible_questions(session, student.id, "chemistry")] == [question.id]
+    assert not assessments._approved_scheme(session, assessments.eligible_questions(session, student.id, "chemistry"))
+    assert assessments.official_papers(session, student.id) == []
+    scheme_document = Document(kind="mark_scheme", course_id="igcse", subject_id="chemistry", title="Topic scheme",
+        original_filename="scheme.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex*2, review_state="published", uploaded_by=admin.id, size_bytes=1,
+        source_document_id=paper.id)
+    session.add(scheme_document); session.flush()
+    scheme_source = DocumentVersion(document_id=scheme_document.id, version_number=1,
+        original_filename="scheme.pdf", object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+        sha256=uuid.uuid4().hex*2, size_bytes=1, status="completed", uploaded_by=admin.id)
+    session.add(scheme_source); session.flush()
+    scheme = OfficialMaterialVersion(document_id=scheme_document.id, source_document_version_id=scheme_source.id,
+        version_number=1, kind="mark_scheme", course_id="igcse", subject_id="chemistry",
+        source_paper_id=paper.id, source_paper_version_id=material.id, textbook_id=book.id,
+        status="published", inventory_count=1, completeness_confirmed=True,
+        created_by=admin.id, published_by=admin.id)
+    session.add(scheme); session.flush()
+    session.add(MarkSchemeEntryVersion(material_version_id=scheme.id, question_number="1",
+        max_marks=4, marking_points=[{"code":"B1","kind":"independent","text":"Correct chemistry"}]))
+    session.commit()
+    assert assessments._approved_scheme(session, assessments.eligible_questions(session, student.id, "chemistry"))
+    assert [row["id"] for row in assessments.official_papers(session, student.id)] == [str(paper.id)]
+
+
+@pytest.mark.integration
+def test_published_specification_is_private_and_enrolled_subject_scoped(auth_client) -> None:
+    client, username, _password = auth_client
+    session = next(app.dependency_overrides[get_db]())
+    admin = session.query(User).filter_by(username=username).one()
+    parent = User(username=f"reference-parent-{uuid.uuid4().hex}", display_name="Parent", role="parent",
+                  password_hash=hash_password("parent reference password"), must_change_password=False)
+    chemistry_student = User(username=f"reference-chem-{uuid.uuid4().hex}", display_name="Chemistry Student", role="student",
+                             password_hash=hash_password("student reference password"), must_change_password=False)
+    biology_student = User(username=f"reference-bio-{uuid.uuid4().hex}", display_name="Biology Student", role="student",
+                           password_hash=hash_password("student reference password"), must_change_password=False)
+    session.add_all([parent, chemistry_student, biology_student]); session.flush()
+    session.add_all([StudentProfile(student_id=chemistry_student.id, parent_id=parent.id),
+                     StudentProfile(student_id=biology_student.id, parent_id=parent.id),
+                     StudentSubject(student_id=chemistry_student.id, subject_id="chemistry"),
+                     StudentSubject(student_id=biology_student.id, subject_id="biology")])
+    document = Document(kind="reference", course_id="igcse", subject_id="chemistry",
+                        title="Pearson Chemistry specification", original_filename="spec.pdf",
+                        object_key=f"test/{uuid.uuid4()}", mime_type="application/pdf",
+                        sha256=uuid.uuid4().hex*2, review_state="published", uploaded_by=admin.id, size_bytes=8)
+    session.add(document); session.flush()
+    object_key = f"test/{uuid.uuid4()}/spec.pdf"
+    version = DocumentVersion(document_id=document.id, version_number=1,
+                              original_filename="spec.pdf", object_key=object_key,
+                              mime_type="application/pdf", sha256=uuid.uuid4().hex*2,
+                              size_bytes=8, status="completed", uploaded_by=admin.id)
+    session.add(version); session.flush()
+    document.source_metadata = {"publishedReferenceVersionId": str(version.id)}
+    session.commit()
+    app.dependency_overrides[get_storage]().put(object_key, b"%PDF-test", "application/pdf")
+
+    path = f"/api/v1/student/references/{document.id}/content"
+    assert client.get(path).status_code == 401
+    assert client.post("/api/v1/auth/login", json={"username": biology_student.username,
+        "password": "student reference password"}).status_code == 200
+    assert client.get("/api/v1/student/references").json()["references"] == []
+    assert client.get(path).status_code == 404
+    assert client.post("/api/v1/auth/login", json={"username": chemistry_student.username,
+        "password": "student reference password"}).status_code == 200
+    listed = client.get("/api/v1/student/references").json()["references"]
+    assert [row["id"] for row in listed] == [str(document.id)]
+    content = client.get(path)
+    assert content.status_code == 200 and content.content == b"%PDF-test"
+    assert content.headers["cache-control"] == "private, no-store"
 
 
 @pytest.mark.integration

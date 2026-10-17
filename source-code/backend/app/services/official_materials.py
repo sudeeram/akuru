@@ -9,6 +9,7 @@ from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
     ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
+    OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace,
     OfficialQuestionVersion, Textbook,
 )
 from app.schemas.official_materials import (
@@ -265,9 +266,68 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
     count = db.scalar(select(func.count()).select_from(OfficialQuestionVersion if material.kind == "past_paper" else MarkSchemeEntryVersion if material.kind == "mark_scheme" else ExaminerCommentVersion).where((OfficialQuestionVersion if material.kind == "past_paper" else MarkSchemeEntryVersion if material.kind == "mark_scheme" else ExaminerCommentVersion).material_version_id == material.id))
     if not material.completeness_confirmed or count == 0 or count != material.inventory_count:
         raise DomainError("official_material_incomplete", "Complete and attest the full source inventory before publishing.", 409)
+    if material.kind in {"past_paper", "mark_scheme"}:
+        paper_id = document.id if material.kind == "past_paper" else material.source_paper_id
+        workspace = db.scalar(select(OfficialPaperReviewWorkspace).where(
+            OfficialPaperReviewWorkspace.paper_document_id == paper_id)) if paper_id else None
+        if not workspace:
+            raise DomainError("paper_review_required", "Complete the Admin paper review workspace before publishing.", 409)
+        review_rows = db.scalars(select(OfficialPaperReviewQuestion).where(
+            OfficialPaperReviewQuestion.workspace_id == workspace.id)).all()
+        if (not workspace.expected_question_count or len(review_rows) != workspace.expected_question_count
+                or any(row.status != "approved" for row in review_rows)):
+            raise DomainError("paper_review_incomplete", "Approve every question in the complete paper inventory first.", 409)
+        expected_version = workspace.paper_version_id if material.kind == "past_paper" else workspace.scheme_version_id
+        if material.source_document_version_id != expected_version:
+            raise DomainError("review_source_changed", "The reviewed PDF version differs from this draft.", 409)
+        if material.kind == "past_paper":
+            reviewed = {row.number: row.review_data for row in review_rows}
+            published_rows = db.scalars(select(OfficialQuestionVersion).where(
+                OfficialQuestionVersion.material_version_id == material.id)).all()
+            if len(published_rows) != len(reviewed) or any(
+                row.question_number not in reviewed or row.marks != reviewed[row.question_number]["marks"]
+                or row.prompt != reviewed[row.question_number]["prompt"]
+                or row.shared_stem != reviewed[row.question_number].get("sharedStem", "")
+                for row in published_rows
+            ):
+                raise DomainError("review_draft_mismatch", "Prepare official drafts again from the approved workspace.", 409)
+        else:
+            if workspace.scheme_document_id != document.id:
+                raise DomainError("review_draft_mismatch", "The scheme differs from the reviewed companion.", 409)
+            reviewed = {row.number: row.review_data for row in review_rows}
+            scheme_rows = db.scalars(select(MarkSchemeEntryVersion).where(
+                MarkSchemeEntryVersion.material_version_id == material.id)).all()
+            def approved_points(question_data):
+                result = []
+                for part in question_data["parts"]:
+                    for point in part["markingPoints"]:
+                        suffix = f" [depends on {part['label']}.{point['dependsOn']}]" if point.get("dependsOn") else ""
+                        if point.get("followThrough"):
+                            suffix += " [error carried forward]"
+                        result.append({"code": f"{part['label']}.{point['code']}",
+                                       "text": point["text"] + suffix, "kind": point["kind"]})
+                return result
+            if len(scheme_rows) != len(reviewed) or any(
+                row.question_number not in reviewed or row.max_marks != reviewed[row.question_number]["marks"]
+                or row.marking_points != approved_points(reviewed[row.question_number])
+                for row in scheme_rows
+            ):
+                raise DomainError("review_draft_mismatch", "Prepare the exact scheme draft again from the approved workspace.", 409)
     if material.kind != "past_paper":
         if not confirmation.confirmSourcePaper or not material.source_paper_id:
             raise DomainError("source_paper_confirmation_required", "Confirm the related published past paper.", 422)
+        source_document = db.get(Document, material.source_paper_id)
+        if not source_document or source_document.kind != "past_paper" or any(
+            source is not None and (companion is None or str(source).strip().casefold() != str(companion).strip().casefold())
+            for source, companion in (
+                (source_document.exam_session, document.exam_session),
+                (source_document.component, document.component),
+                (source_document.variant, document.variant),
+                (source_document.publication_year, document.publication_year),
+            )
+        ):
+            raise DomainError("source_paper_identity_mismatch",
+                              "The exam session, component, variant and year must match the selected past paper.", 409)
         source_paper_version, allowed = _published_paper_questions(db, material.source_paper_id)
         material.source_paper_version_id = source_paper_version.id
         material.textbook_id = source_paper_version.textbook_id

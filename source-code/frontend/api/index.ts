@@ -17,6 +17,7 @@ export * from './curriculum/curriculum.api';
 export * from './curriculum/curriculum.types';
 export * from './assessments/assessments.api';
 export * from './assessments/assessments.types';
+export * from './assessments/official-paper-review.api';
 export * from './flashcards/flashcards.api';
 export * from './flashcards/flashcards.types';
 export * from './mastery/mastery.types';

@@ -1190,6 +1190,40 @@ class OfficialMaterialVersion(Base):
     )
 
 
+class OfficialPaperReviewWorkspace(Base):
+    __tablename__ = "official_paper_review_workspaces"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    paper_document_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"), unique=True)
+    paper_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    scheme_document_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
+    scheme_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    report_document_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("documents.id", ondelete="RESTRICT"))
+    report_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
+    expected_question_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (CheckConstraint("expected_question_count >= 0", name="ck_official_review_expected_count"),)
+
+
+class OfficialPaperReviewQuestion(Base):
+    __tablename__ = "official_paper_review_questions"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_paper_review_workspaces.id", ondelete="CASCADE"), index=True)
+    number: Mapped[str] = mapped_column(String(40))
+    revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    status: Mapped[str] = mapped_column(String(24), default="unreviewed", server_default="unreviewed")
+    review_data: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    __table_args__ = (
+        CheckConstraint("revision > 0", name="ck_official_review_question_revision"),
+        CheckConstraint("status IN ('unreviewed','needs_correction','ready_for_approval','approved','excluded')", name="ck_official_review_question_status"),
+        UniqueConstraint("workspace_id", "number", name="uq_official_review_question_number"),
+    )
+
+
 class OfficialQuestionVersion(Base):
     __tablename__ = "official_question_versions"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

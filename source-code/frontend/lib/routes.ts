@@ -121,5 +121,6 @@ export function isApplicationPath(pathname: string) {
     /^\/student\/textbooks\/book_[^/]+(?:\/topics\/topic_[^/]+)?$/.test(pathname) ||
     /^\/admin\/textbooks\/book_[^/]+(?:\/topics\/topic_[^/]+)?$/.test(pathname) ||
     /^\/admin\/textbooks\/review\/[^/]+$/.test(pathname) ||
+    /^\/admin\/exam-documents\/review\/[0-9a-f-]{36}$/.test(pathname) ||
     /^\/admin\/exam-documents(?:\/[^/]+)?$/.test(pathname);
 }

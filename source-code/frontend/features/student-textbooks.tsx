@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  errorMessage, getStudentTextbooks, getStudentTextbookTopic,
+  errorMessage, getStudentTextbooks, getStudentTextbookTopic, getStudentReferences,
   type StudentTextbook, type StudentTextbookVisual,
 } from '@/api';
 import { queryKeys } from '@/lib/query-keys';
@@ -51,6 +51,7 @@ function BookTopics({ book, navigate }: { book: StudentTextbook; navigate: (to: 
 
 export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props) {
   const booksQuery = useQuery({ queryKey: queryKeys.textbooks.studentLibrary(actorRef), queryFn: getStudentTextbooks });
+  const referencesQuery = useQuery({ queryKey: queryKeys.references.studentLibrary(actorRef), queryFn: getStudentReferences });
   const topicQuery = useQuery({
     queryKey: queryKeys.textbooks.studentTopic(actorRef, route.bookRef || '', route.topicRef || ''),
     queryFn: () => getStudentTextbookTopic(route.bookRef!, route.topicRef!),
@@ -72,6 +73,7 @@ export function StudentTextbooks({ actorRef, subjects, route, navigate }: Props)
       Read the published Topics in your enrolled subjects. Your Grade and Term still determine which Topics appear in practice and exams.
     </Heading>
     {!books.length && <Empty title="No published textbook Topics yet">Your Admin can publish a reviewed Topic in one of your subjects to make it available here.</Empty>}
+    {!route.bookRef && <section className="panel stack" aria-label="Published subject references"><h2>Subject references</h2><p className="small">Published specifications and other reviewed reference PDFs for your enrolled subjects.</p>{referencesQuery.isPending && <p>Loading references…</p>}{referencesQuery.error && <p role="alert">{errorMessage(referencesQuery.error)}</p>}{referencesQuery.data?.references.map((item) => <div className="spread" key={item.id}><div><strong>{item.title}</strong><p className="small">{subjectName(item.subjectId)}{item.publicationYear ? ` · ${item.publicationYear}` : ''}</p></div><a className="button" href={item.contentUrl} target="_blank" rel="noreferrer">Open PDF</a></div>)}{referencesQuery.data && !referencesQuery.data.references.length && <p>No subject references have been published yet.</p>}</section>}
     {route.bookRef && <div className="button-row"><Button variant="outline" onClick={() => navigate(studentTextbookPaths.library)}><ArrowLeft size={16}/> All textbooks</Button>
       {route.topicRef && <Button variant="outline" onClick={() => navigate(studentTextbookPaths.book(route.bookRef!))}>All Topics in this textbook</Button>}</div>}
     {!route.bookRef && <div className="student-textbook-library">

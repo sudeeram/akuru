@@ -77,6 +77,10 @@ def _validate_relationships(
     course_id: str,
     subject_id: str,
     source_document_id: uuid.UUID | None,
+    exam_session: str | None = None,
+    component: str | None = None,
+    variant: str | None = None,
+    publication_year: int | None = None,
 ) -> None:
     if not repository.course_and_subject_exist(course_id, subject_id):
         raise DomainError("invalid_document_scope", "Choose an active course and valid subject.", 422)
@@ -96,6 +100,14 @@ def _validate_relationships(
                 "Choose a past paper from the same course and subject.",
                 422,
             )
+        identity = (("exam session", paper.exam_session, exam_session),
+                    ("component", paper.component, component),
+                    ("variant", paper.variant, variant),
+                    ("year", paper.publication_year, publication_year))
+        for label, source, companion in identity:
+            if source is not None and (companion is None or str(source).strip().casefold() != str(companion).strip().casefold()):
+                raise DomainError("source_paper_identity_mismatch",
+                                  f"The {label} must match the selected past paper exactly.", 422)
 
 
 def upload_document(
@@ -131,7 +143,15 @@ def upload_document(
     if kind == DocumentType.TEXTBOOK and not (edition and edition.strip()):
         raise DomainError("textbook_edition_required", "Enter the textbook edition before uploading.", 422)
     repository = DocumentRepository(db)
-    _validate_relationships(repository, kind, course_id, subject_id, source_document_id)
+    if kind in (DocumentType.MARK_SCHEME, DocumentType.EXAMINER_REPORT) and source_document_id:
+        source_paper = repository.source_paper(source_document_id)
+        if source_paper:
+            exam_session = exam_session or source_paper.exam_session
+            component = component or source_paper.component
+            variant = variant or source_paper.variant
+            publication_year = publication_year or source_paper.publication_year
+    _validate_relationships(repository, kind, course_id, subject_id, source_document_id,
+                            exam_session, component, variant, publication_year)
     if upload_request_key:
         existing = db.scalar(select(Document).where(Document.upload_request_key == upload_request_key))
         if existing:

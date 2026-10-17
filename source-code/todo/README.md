@@ -11,9 +11,12 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Textbook groups, topics and incremental coverage](ongoing/TODO-TEXTBOOK-TOPICS.md)
 - [Database baseline reset and migration squash](ongoing/TODO-DATABASE-BASELINE.md)
 - [High: Chemistry Topic 1, text tutoring and flashcards](ongoing/TODO-FUTURE-HIGH-LEARNING.md)
+- [Pearson Chemistry past-paper intake pilot](ongoing/TODO-PEARSON-CHEMISTRY-PAST-PAPERS.md)
+- [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
 
+- [Admin official-paper review workspace](planned/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md) — side-by-side question, scheme, examiner and textbook review with per-part decisions and separate release gates.
 - [Future Parent-assisted and self-service account recovery](planned/TODO-FUTURE-ACCOUNT-RECOVERY.md) — Parent requests, verified recovery contacts and expiring one-time email tokens after the Admin-managed lifecycle is complete.
 - [Future TanStack capabilities](planned/TODO-TANSTACK-FUTURE.md) — optional suite features to assess when their product use cases are built.
 - [Future roadmap priority index](planned/TODO-FUTURE-DOCUMENT-REVIEW.md)

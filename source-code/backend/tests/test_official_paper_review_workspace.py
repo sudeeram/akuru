@@ -1,0 +1,173 @@
+import uuid
+
+import pytest
+from sqlalchemy import select
+
+from app.database import get_db
+from app.main import app
+from app.models import (
+    Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
+    OfficialPaperReviewQuestion, Textbook, TextbookGroup, TextbookTopic, User,
+)
+from app.security import hash_password
+from test_auth_integration import auth_client  # noqa: F401 - shared transactional fixture
+
+
+def _source(session, admin, token, kind, paper=None):
+    document = Document(kind=kind, course_id="igcse", subject_id="chemistry",
+        title=f"{kind}-{token}", original_filename=f"{kind}.pdf",
+        object_key=f"tests/review-{token}-{kind}.pdf", mime_type="application/pdf",
+        sha256=(token * 2)[:64], size_bytes=10, review_state="pending",
+        publication_year=2025, exam_session="June", component="1C", variant="standard",
+        source_document_id=paper.id if paper else None, uploaded_by=admin.id)
+    session.add(document); session.flush()
+    version = DocumentVersion(document_id=document.id, version_number=1,
+        original_filename=document.original_filename,
+        object_key=f"tests/review-{token}-{kind}-v1.pdf", mime_type="application/pdf",
+        sha256=(token[::-1] * 2)[:64], size_bytes=10, status="completed", uploaded_by=admin.id)
+    session.add(version); session.flush()
+    asset = DocumentAsset(document_version_id=version.id, asset_kind="page_render",
+        object_key=f"tests/review-{token}-{kind}.png", mime_type="image/png",
+        sha256=(f"a{token}" * 2)[:64], size_bytes=10, page_number=1, bounding_box={})
+    session.add(asset); session.flush()
+    page = DocumentPage(document_version_id=version.id, page_number=1,
+        width_points=100, height_points=100, render_asset_id=asset.id,
+        extraction_method="native", confidence=1.0, needs_review=False, page_metadata={})
+    session.add(page); session.flush()
+    block = DocumentBlock(document_version_id=version.id, page_id=page.id,
+        sequence_number=1, block_kind="question", text="Question 1", bounding_box={},
+        extraction_method="native", confidence=1.0, needs_review=False, block_metadata={})
+    session.add(block); session.flush()
+    return document, version, page, block, asset
+
+
+def _setup(auth_client):
+    client, username, password = auth_client
+    assert client.get("/api/v1/admin/official-paper-reviews/" + str(uuid.uuid4())).status_code == 401
+    login = client.post("/api/v1/auth/login", json={"username": username, "password": password}).json()
+    headers = {"X-CSRF-Token": login["csrfToken"]}
+    session = next(app.dependency_overrides[get_db]())
+    admin = session.scalar(select(User).where(User.username == username))
+    token = uuid.uuid4().hex
+    paper = _source(session, admin, token + "p", "past_paper")
+    scheme = _source(session, admin, token + "s", "mark_scheme", paper[0])
+    report = _source(session, admin, token + "r", "examiner_report", paper[0])
+    book = Textbook(course_id="igcse", subject_id="chemistry", title=f"Book {token}",
+        edition="2025", publisher="AKURU", group_label="unit", status="published", created_by=admin.id)
+    session.add(book); session.flush()
+    group = TextbookGroup(textbook_id=book.id, code="1", title="Unit 1", sequence=1, status="published")
+    session.add(group); session.flush()
+    topic = TextbookTopic(textbook_id=book.id, group_id=group.id, course_id="igcse",
+        subject_id="chemistry", code="1", title="States", sequence=1, status="published")
+    session.add(topic); session.commit()
+    return client, headers, session, paper, scheme, report, topic
+
+
+def _question(paper, scheme, topic):
+    paper_source = {"page": 1, "blockId": str(paper[3].id), "assetId": str(paper[4].id)}
+    scheme_source = {"page": 1, "blockId": str(scheme[3].id), "assetId": str(scheme[4].id)}
+    return {"number": "1", "expectedRevision": 0, "status": "approved", "data": {
+        "marks": 2, "prompt": "Explain the chromatogram", "sharedStem": "Use the diagram",
+        "paperSources": [paper_source], "parts": [{
+            "label": "a", "marks": 2, "prompt": "Explain the chromatogram",
+            "markingPoints": [{"code": "M1", "text": "One spot", "kind": "method"},
+                              {"code": "M2", "text": "Separated dyes", "kind": "accuracy"}],
+            "paperSources": [paper_source], "schemeSources": [scheme_source],
+            "coverage": "supported", "coverageReason": "The published chapter teaches chromatography.",
+            "topicRefs": [topic.public_ref], "status": "approved",
+        }],
+    }}
+
+
+@pytest.mark.integration
+def test_admin_can_review_one_question_without_student_release(auth_client):
+    client, headers, session, paper, scheme, report, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + "/start", json={"schemeDocumentId": str(scheme[0].id)}).status_code == 403
+    started = client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "reportDocumentId": str(report[0].id),
+        "expectedQuestionCount": 2})
+    assert started.status_code == 200, started.text
+    assert started.json()["wholePaperReady"] is False
+    body = _question(paper, scheme, topic)
+    saved = client.post(root + "/questions", headers=headers, json=body)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["approvedCount"] == 1
+    assert saved.json()["wholePaperReady"] is False
+    assert session.scalar(select(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id.is_not(None))).status == "approved"
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 409
+    assert client.get(root).json()["questions"][0]["data"]["parts"][0]["topicRefs"] == [topic.public_ref]
+    reopened = _question(paper, scheme, topic)
+    reopened["expectedRevision"] = 1
+    reopened["status"] = "needs_correction"
+    reopened["data"]["prompt"] = "Revised explanation"
+    result = client.post(root + "/questions", headers=headers, json=reopened)
+    assert result.status_code == 200, result.text
+    assert result.json()["questions"][0]["status"] == "needs_correction"
+    assert result.json()["questions"][0]["data"]["parts"][0]["status"] == "needs_correction"
+
+
+@pytest.mark.integration
+def test_source_topic_and_companion_guards(auth_client):
+    client, headers, session, paper, scheme, report, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    bad = client.post(root + "/start", headers=headers, json={"schemeDocumentId": str(report[0].id)})
+    assert bad.status_code == 409
+    assert client.post(root + "/start", headers=headers, json={"schemeDocumentId": str(scheme[0].id)}).status_code == 200
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["schemeSources"][0]["blockId"] = str(paper[3].id)
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 422
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["topicRefs"] = ["topic_missing"]
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 422
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["markingPoints"] = []
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 409
+
+
+@pytest.mark.integration
+def test_import_requires_exact_uploaded_pdf_hashes(auth_client):
+    client, headers, session, paper, scheme, _, _ = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    bank = {"status": "local_draft_unreleased", "studentAccess": False,
+        "course": "igcse", "subject": "chemistry", "papers": [{
+            "component": "1C", "paperKey": "pilot-1C", "questionCount": 1,
+            "totalMarks": 2, "sourceSha256": {"question": "wrong", "markScheme": scheme[1].sha256},
+        }], "questions": [{"paperKey": "pilot-1C", "component": "1C", "number": "1",
+            "marks": 2, "studentPrompt": None, "topicMappings": [],
+            "rawQuestionExtraction": "Draft wording", "subparts": [{"label": "a", "marks": 2,
+                "extractionCandidate": "Draft wording"}],
+            "source": {"questionPdfPages": [1], "schemePdfPages": [1]}}]}
+    assert client.post(root + "/seed", headers=headers, json={"draftBank": bank}).status_code == 409
+    bank["papers"][0]["sourceSha256"]["question"] = paper[1].sha256
+    response = client.post(root + "/seed", headers=headers, json={"draftBank": bank})
+    assert response.status_code == 200, response.text
+    assert response.json()["questions"][0]["status"] == "unreviewed"
+    assert response.json()["wholePaperReady"] is False
+
+
+@pytest.mark.integration
+def test_whole_paper_review_prepares_drafts_and_gates_publication(auth_client):
+    client, headers, _, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    paper_publish = f"/api/v1/documents/{paper[0].id}/official-review/publish"
+    scheme_publish = f"/api/v1/documents/{scheme[0].id}/official-review/publish"
+    confirmation = {"confirmCourse": True, "confirmSubject": True,
+                    "confirmComplete": True, "confirmSourcePaper": True}
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    assert client.post(root + "/prepare-official-drafts", headers=headers).status_code == 409
+    assert client.post(root + "/questions", headers=headers,
+                       json=_question(paper, scheme, topic)).status_code == 200
+    assert client.post(paper_publish, headers=headers, json=confirmation).status_code == 409
+    prepared = client.post(root + "/prepare-official-drafts", headers=headers)
+    assert prepared.status_code == 200, prepared.text
+    assert prepared.json()["published"] is False
+    assert client.post(scheme_publish, headers=headers, json=confirmation).status_code == 409
+    released_paper = client.post(paper_publish, headers=headers, json=confirmation)
+    assert released_paper.status_code == 200, released_paper.text
+    released_scheme = client.post(scheme_publish, headers=headers, json=confirmation)
+    assert released_scheme.status_code == 200, released_scheme.text

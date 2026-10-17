@@ -27,7 +27,8 @@ def test_baseline_matches_topic_only_metadata_inventory():
     later_tables = {"topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
                         "textbook_topic_visual_assets", "flashcard_reports",
-                        "password_reset_receipts"}
+                            "password_reset_receipts", "official_paper_review_workspaces",
+                            "official_paper_review_questions"}
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 

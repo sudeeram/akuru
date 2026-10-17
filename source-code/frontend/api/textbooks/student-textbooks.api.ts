@@ -55,5 +55,7 @@ export type StudentTextbookContent = {
 };
 
 export const getStudentTextbooks = () => request<{ textbooks: StudentTextbook[] }>('student/textbooks');
+export type StudentReference = { id: string; subjectId: string; title: string; filename: string; publicationYear: number | null; contentUrl: string };
+export const getStudentReferences = () => request<{ references: StudentReference[] }>('student/references');
 export const getStudentTextbookTopic = (bookRef: string, topicRef: string) =>
   request<StudentTextbookContent>(`student/textbooks/${encodeURIComponent(bookRef)}/topics/${encodeURIComponent(topicRef)}`);

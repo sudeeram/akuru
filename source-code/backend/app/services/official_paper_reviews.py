@@ -1,0 +1,400 @@
+"""Private Admin review state for source-grounded official questions."""
+from datetime import datetime, timezone
+import uuid
+
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from app.errors import DomainError
+from app.models import (
+    AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
+    OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace, RetrievalChunk, TextbookTopic,
+)
+from app.schemas.official_paper_reviews import (
+    PaperReviewResponse, ReviewQuestionData, ReviewQuestionResponse,
+    SaveReviewQuestion, SeedPaperReview, StartPaperReview,
+)
+from app.schemas.official_materials import (
+    MarkSchemeEntryReview, MarkingPoint, OfficialQuestionReview,
+    SaveOfficialMaterialReview, SourceLocation,
+)
+from app.security import Principal
+from app.services import official_materials
+
+
+def _paper(db: Session, paper_id: uuid.UUID) -> Document:
+    paper = db.get(Document, paper_id)
+    if not paper or paper.kind != "past_paper" or paper.removed_at:
+        raise DomainError("past_paper_required", "Choose an available past paper.", 404)
+    return paper
+
+
+def _version(db: Session, document_id: uuid.UUID) -> DocumentVersion:
+    version = db.scalar(select(DocumentVersion).where(
+        DocumentVersion.document_id == document_id,
+        DocumentVersion.status.in_(("needs_review", "completed")),
+    ).order_by(DocumentVersion.version_number.desc()))
+    if not version:
+        raise DomainError("extraction_required", "Finish document extraction before starting review.", 409)
+    return version
+
+
+def _companion(db: Session, paper: Document, doc_id: uuid.UUID | None, kind: str):
+    if not doc_id:
+        return None, None
+    doc = db.get(Document, doc_id)
+    if not doc or doc.removed_at or doc.kind != kind or doc.source_document_id != paper.id:
+        raise DomainError("invalid_companion", "Choose a matching paper companion.", 409)
+    if (doc.course_id, doc.subject_id, doc.publication_year, doc.exam_session, doc.component, doc.variant) != (
+        paper.course_id, paper.subject_id, paper.publication_year, paper.exam_session, paper.component, paper.variant
+    ):
+        raise DomainError("companion_identity_mismatch", "The companion's subject and exam identity must match the paper.", 409)
+    return doc, _version(db, doc.id)
+
+
+def _workspace(db: Session, paper_id: uuid.UUID) -> OfficialPaperReviewWorkspace:
+    _paper(db, paper_id)
+    workspace = db.scalar(select(OfficialPaperReviewWorkspace).where(
+        OfficialPaperReviewWorkspace.paper_document_id == paper_id))
+    if not workspace:
+        raise DomainError("review_workspace_not_found", "Start the paper review first.", 404)
+    return workspace
+
+
+def _validate_bound_versions(db: Session, workspace: OfficialPaperReviewWorkspace) -> None:
+    for document_id, version_id in (
+        (workspace.paper_document_id, workspace.paper_version_id),
+        (workspace.scheme_document_id, workspace.scheme_version_id),
+        (workspace.report_document_id, workspace.report_version_id),
+    ):
+        if document_id and _version(db, document_id).id != version_id:
+            raise DomainError("review_source_changed", "A source version changed. Start a new review after checking its evidence.", 409)
+
+
+def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperReviewResponse:
+    rows = db.scalars(select(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id == workspace.id
+    ).order_by(OfficialPaperReviewQuestion.number)).all()
+    questions = [ReviewQuestionResponse(
+        number=row.number, revision=row.revision, status=row.status,
+        data=ReviewQuestionData.model_validate(row.review_data),
+        reviewedBy=str(row.reviewed_by) if row.reviewed_by else None,
+        reviewedAt=row.reviewed_at.isoformat() if row.reviewed_at else None,
+    ) for row in rows]
+    approved = sum(row.status == "approved" for row in rows)
+    blockers = []
+    if not workspace.scheme_document_id:
+        blockers.append("Attach the exact marking scheme.")
+    if not workspace.expected_question_count or len(rows) != workspace.expected_question_count:
+        blockers.append("Reconcile the complete question inventory.")
+    if approved != len(rows):
+        blockers.append(f"Approve {len(rows) - approved} remaining questions.")
+    return PaperReviewResponse(
+        paperDocumentId=str(workspace.paper_document_id), paperVersionId=str(workspace.paper_version_id),
+        schemeDocumentId=str(workspace.scheme_document_id) if workspace.scheme_document_id else None,
+        reportDocumentId=str(workspace.report_document_id) if workspace.report_document_id else None,
+        expectedQuestionCount=workspace.expected_question_count, questionCount=len(rows),
+        approvedCount=approved, wholePaperReady=not blockers, blockers=blockers, questions=questions,
+    )
+
+
+def get(db: Session, paper_id: uuid.UUID) -> PaperReviewResponse:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    return _response(db, workspace)
+
+
+def published_topic_evidence(db: Session, paper_id: uuid.UUID, topic_ref: str) -> dict:
+    paper = _paper(db, paper_id)
+    topic = db.scalar(select(TextbookTopic).where(TextbookTopic.public_ref == topic_ref,
+        TextbookTopic.course_id == paper.course_id, TextbookTopic.subject_id == paper.subject_id,
+        TextbookTopic.status == "published"))
+    if not topic:
+        raise DomainError("published_topic_not_found", "Choose a published topic in the paper's subject.", 404)
+    rows = db.scalars(select(RetrievalChunk).where(
+        RetrievalChunk.topic_id == topic.id, RetrievalChunk.status == "active",
+        RetrievalChunk.source_type == "textbook_section"
+    ).order_by(RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(100)).all()
+    return {"topicRef": topic.public_ref, "code": topic.code, "title": topic.title,
+            "chunks": [{"pageNumber": row.page_number, "text": row.content} for row in rows]}
+
+
+def published_topics(db: Session, paper_id: uuid.UUID) -> list[dict]:
+    paper = _paper(db, paper_id)
+    rows = db.scalars(select(TextbookTopic).where(
+        TextbookTopic.course_id == paper.course_id, TextbookTopic.subject_id == paper.subject_id,
+        TextbookTopic.status == "published").order_by(TextbookTopic.code)).all()
+    return [{"topicRef": row.public_ref, "code": row.code, "title": row.title} for row in rows]
+
+
+def start(db: Session, principal: Principal, paper_id: uuid.UUID, payload: StartPaperReview) -> PaperReviewResponse:
+    paper = _paper(db, paper_id)
+    version = _version(db, paper.id)
+    scheme, scheme_version = _companion(db, paper, payload.schemeDocumentId, "mark_scheme")
+    report, report_version = _companion(db, paper, payload.reportDocumentId, "examiner_report")
+    workspace = db.scalar(select(OfficialPaperReviewWorkspace).where(
+        OfficialPaperReviewWorkspace.paper_document_id == paper_id).with_for_update())
+    if workspace:
+        if workspace.paper_version_id != version.id:
+            raise DomainError("review_source_changed", "The paper source changed. Preserve the old review before restarting.", 409)
+        if any((workspace.scheme_document_id and scheme and workspace.scheme_document_id != scheme.id,
+                workspace.report_document_id and report and workspace.report_document_id != report.id)):
+            raise DomainError("review_companion_changed", "An attached companion cannot be silently replaced.", 409)
+        if scheme and not workspace.scheme_document_id:
+            workspace.scheme_document_id, workspace.scheme_version_id = scheme.id, scheme_version.id
+        if report and not workspace.report_document_id:
+            workspace.report_document_id, workspace.report_version_id = report.id, report_version.id
+        if payload.expectedQuestionCount:
+            count = db.scalar(select(func.count()).select_from(OfficialPaperReviewQuestion).where(
+                OfficialPaperReviewQuestion.workspace_id == workspace.id)) or 0
+            if count > payload.expectedQuestionCount:
+                raise DomainError("inventory_mismatch", "Expected count is smaller than saved questions.", 409)
+            workspace.expected_question_count = payload.expectedQuestionCount
+    else:
+        workspace = OfficialPaperReviewWorkspace(
+            paper_document_id=paper.id, paper_version_id=version.id,
+            scheme_document_id=scheme.id if scheme else None,
+            scheme_version_id=scheme_version.id if scheme_version else None,
+            report_document_id=report.id if report else None,
+            report_version_id=report_version.id if report_version else None,
+            expected_question_count=payload.expectedQuestionCount, created_by=principal.user.id,
+        )
+        db.add(workspace)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.started", target_type="document",
+                      target_id=str(paper.id), event_data={"expectedQuestionCount": workspace.expected_question_count}))
+    db.commit()
+    return _response(db, workspace)
+
+
+def _validate_evidence(db: Session, version_id: uuid.UUID | None, sources, label: str):
+    if sources and version_id is None:
+        raise DomainError("companion_required", f"Attach the {label} source first.", 409)
+    for source in sources:
+        page = db.scalar(select(DocumentPage).where(
+            DocumentPage.document_version_id == version_id,
+            DocumentPage.page_number == source.page))
+        if not page:
+            raise DomainError("invalid_source_page", f"The {label} page does not belong to the selected source.", 422)
+        if source.blockId and not db.scalar(select(DocumentBlock.id).where(
+            DocumentBlock.id == source.blockId, DocumentBlock.document_version_id == version_id,
+            DocumentBlock.page_id == page.id)):
+            raise DomainError("invalid_source_block", f"The {label} block does not belong to that page.", 422)
+        if source.assetId and not db.scalar(select(DocumentAsset.id).where(
+            DocumentAsset.id == source.assetId, DocumentAsset.document_version_id == version_id,
+            DocumentAsset.page_number == source.page)):
+            raise DomainError("invalid_source_asset", f"The {label} visual does not belong to that page.", 422)
+
+
+def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
+                       status: str, data: ReviewQuestionData):
+    _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
+    for part in data.parts:
+        _validate_evidence(db, workspace.paper_version_id, part.paperSources, "paper")
+        _validate_evidence(db, workspace.scheme_version_id, part.schemeSources, "scheme")
+        _validate_evidence(db, workspace.report_version_id, part.reportSources, "examiner report")
+        if part.topicRefs:
+            topics = db.scalars(select(TextbookTopic).where(TextbookTopic.public_ref.in_(part.topicRefs))).all()
+            paper = db.get(Document, workspace.paper_document_id)
+            if len(topics) != len(set(part.topicRefs)) or any(
+                (topic.course_id, topic.subject_id, topic.status) != (paper.course_id, paper.subject_id, "published")
+                for topic in topics
+            ):
+                raise DomainError("invalid_topic_mapping", "Choose only published topics in this paper's subject.", 422)
+        if part.coverage == "supported" and not part.topicRefs:
+            raise DomainError("topic_required", "A supported part needs a published topic.", 422)
+        if part.coverage != "supported" and part.topicRefs:
+            raise DomainError("unsupported_topic_mapping", "Only supported parts may have confirmed topic links.", 422)
+        if part.status == "approved":
+            if not (part.prompt.strip() and part.paperSources and part.schemeSources and part.markingPoints
+                    and part.coverage != "unreviewed" and part.coverageReason.strip()):
+                raise DomainError("part_incomplete", "Approve wording, source, scheme and coverage before approving a part.", 409)
+            if not any(source.blockId for source in part.paperSources) or not any(source.blockId for source in part.schemeSources):
+                raise DomainError("exact_block_required", "Link an exact question and scheme block before approval.", 409)
+            if len({point.code for point in part.markingPoints}) != len(part.markingPoints):
+                raise DomainError("duplicate_marking_code", "Marking-point codes must be unique per part.", 422)
+    for asset_id in data.visualAssetIds:
+        if not db.scalar(select(DocumentAsset.id).where(
+            DocumentAsset.id == asset_id, DocumentAsset.document_version_id == workspace.paper_version_id)):
+            raise DomainError("invalid_question_asset", "The visual must come from this paper version.", 422)
+    if status == "excluded":
+        if not data.exclusionReason.strip():
+            raise DomainError("exclusion_reason_required", "Explain why this source question is excluded.", 422)
+    if status == "approved":
+        if not workspace.scheme_document_id or not data.paperSources or not data.prompt.strip():
+            raise DomainError("question_incomplete", "Attach the scheme and review the complete question source.", 409)
+        if any(part.status != "approved" for part in data.parts):
+            raise DomainError("parts_not_approved", "Approve every subpart first.", 409)
+        if not any(source.blockId for source in data.paperSources):
+            raise DomainError("exact_block_required", "Link an exact paper block before question approval.", 409)
+        if data.visualAssetIds and not data.visualAltText.strip():
+            raise DomainError("visual_alt_required", "Describe approved visuals for accessibility.", 422)
+
+
+def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
+                  payload: SaveReviewQuestion) -> PaperReviewResponse:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    row = db.scalar(select(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id == workspace.id,
+        OfficialPaperReviewQuestion.number == payload.number).with_for_update())
+    revision = row.revision if row else 0
+    if revision != payload.expectedRevision:
+        raise DomainError("review_conflict", "This question changed in another session. Reload before saving.", 409)
+    changed = bool(row and row.review_data != payload.data.model_dump(mode="json"))
+    if row and row.status == "approved" and payload.status == "approved" and changed:
+        raise DomainError("reopen_required", "Reopen this approved question before editing it.", 409)
+    if row and row.status == "approved" and payload.status != "approved":
+        for part in payload.data.parts:
+            if part.status == "approved":
+                part.status = "needs_correction"
+    _validate_question(db, workspace, payload.status, payload.data)
+    if row is None:
+        row = OfficialPaperReviewQuestion(workspace_id=workspace.id, number=payload.number)
+        db.add(row)
+    else:
+        row.revision += 1
+    row.status = payload.status
+    row.review_data = payload.data.model_dump(mode="json")
+    row.reviewed_by = principal.user.id
+    row.reviewed_at = datetime.now(timezone.utc)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.question_saved",
+                      target_type="document", target_id=str(paper_id),
+                      event_data={"number": payload.number, "revision": row.revision, "status": row.status}))
+    db.commit()
+    return _response(db, workspace)
+
+
+def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
+         payload: SeedPaperReview) -> PaperReviewResponse:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    if db.scalar(select(func.count()).select_from(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id == workspace.id)):
+        raise DomainError("review_already_started", "Import proposals only into an empty review workspace.", 409)
+    bank = payload.draftBank
+    paper = _paper(db, paper_id)
+    paper_version = db.get(DocumentVersion, workspace.paper_version_id)
+    if bank.get("status") != "local_draft_unreleased" or bank.get("studentAccess") is not False or bank.get("course") != paper.course_id or bank.get("subject") != paper.subject_id:
+        raise DomainError("invalid_draft_bank", "Choose an unreleased bank for this subject.", 422)
+    candidates = [item for item in bank.get("papers", []) if item.get("component") == paper.component]
+    if len(candidates) != 1 or candidates[0].get("sourceSha256", {}).get("question") != paper_version.sha256:
+        raise DomainError("source_hash_mismatch", "The draft bank question PDF does not match this uploaded paper.", 409)
+    if workspace.scheme_version_id and candidates[0]["sourceSha256"].get("markScheme") != db.get(DocumentVersion, workspace.scheme_version_id).sha256:
+        raise DomainError("source_hash_mismatch", "The marking scheme differs from the draft bank.", 409)
+    if workspace.report_version_id and candidates[0]["sourceSha256"].get("examinerReport") != db.get(DocumentVersion, workspace.report_version_id).sha256:
+        raise DomainError("source_hash_mismatch", "The examiner report differs from the draft bank.", 409)
+    questions = [q for q in bank.get("questions", []) if q.get("paperKey") == candidates[0].get("paperKey")]
+    if len(questions) != candidates[0].get("questionCount") or sum(q.get("marks", 0) for q in questions) != candidates[0].get("totalMarks"):
+        raise DomainError("inventory_mismatch", "Draft question and mark totals do not reconcile.", 409)
+    if workspace.expected_question_count and workspace.expected_question_count != len(questions):
+        raise DomainError("inventory_mismatch", "Expected count differs from the draft bank.", 409)
+    triage_rows = payload.coverageTriage.get("subparts", []) if payload.coverageTriage else []
+    triage = {(r.get("component"), str(r.get("question")), r.get("subpart")): r for r in triage_rows}
+    for q in questions:
+        if q.get("studentPrompt") is not None or q.get("topicMappings"):
+            raise DomainError("released_question_not_allowed", "Import only unreleased proposals.", 422)
+        def sources(pages, version_id):
+            if not version_id:
+                return []
+            out = []
+            for number in pages:
+                page = db.scalar(select(DocumentPage).where(
+                    DocumentPage.document_version_id == version_id, DocumentPage.page_number == number))
+                if not page:
+                    raise DomainError("source_page_missing", f"Source page {number} is absent from the uploaded PDF.", 409)
+                out.append({"page": number, "assetId": str(page.render_asset_id)})
+            return out
+        paper_sources = sources(q["source"]["questionPdfPages"], workspace.paper_version_id)
+        scheme_sources = sources(q["source"]["schemePdfPages"], workspace.scheme_version_id)
+        parts = []
+        for part in q["subparts"]:
+            suggestion = triage.get((q["component"], str(q["number"]), part["label"]), {})
+            parts.append({
+                "label": part["label"], "marks": part["marks"],
+                "prompt": part.get("extractionCandidate", ""),
+                "paperSources": paper_sources, "schemeSources": scheme_sources,
+                "coverageReason": suggestion.get("reason", ""),
+                "status": "unreviewed", "coverage": "unreviewed", "topicRefs": [],
+            })
+        data = ReviewQuestionData(
+            marks=q["marks"], sharedStem=q.get("sharedStemExtractionCandidate", ""),
+            prompt=q.get("rawQuestionExtraction", ""), paperSources=paper_sources,
+            parts=parts,
+        )
+        db.add(OfficialPaperReviewQuestion(workspace_id=workspace.id,
+            number=str(q["number"]), review_data=data.model_dump(mode="json")))
+    workspace.expected_question_count = len(questions)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.proposals_imported",
+                      target_type="document", target_id=str(paper_id),
+                      event_data={"questionCount": len(questions), "studentAccess": False}))
+    db.commit()
+    return _response(db, workspace)
+
+
+def _exact_locations(db: Session, sources) -> list[SourceLocation]:
+    locations = []
+    seen = set()
+    for source in sources:
+        if not source.blockId or source.blockId in seen:
+            continue
+        block = db.get(DocumentBlock, source.blockId)
+        locations.append(SourceLocation(page=source.page, blockId=block.id,
+                                        boundingBox=block.bounding_box or {}))
+        seen.add(source.blockId)
+    return locations
+
+
+def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UUID) -> dict:
+    workspace = _workspace(db, paper_id)
+    _validate_bound_versions(db, workspace)
+    summary = _response(db, workspace)
+    if not summary.wholePaperReady:
+        raise DomainError("review_incomplete", "Finish the complete paper review before preparing official drafts.", 409)
+    paper_questions = []
+    scheme_entries = []
+    for row in summary.questions:
+        data = row.data
+        locations = _exact_locations(db, [*data.paperSources,
+            *(source for part in data.parts for source in part.paperSources)])
+        scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
+        if not locations or not scheme_locations:
+            raise DomainError("exact_block_required", "Every approved question needs exact paper and scheme blocks.", 409)
+        assets = list(dict.fromkeys([*data.visualAssetIds,
+            *(str(source.assetId) for source in data.paperSources if source.assetId)]))
+        paper_questions.append(OfficialQuestionReview(
+            number=row.number, prompt=data.prompt, sharedStem=data.sharedStem,
+            marks=data.marks, assetIds=assets, sourceLocations=locations,
+        ))
+        points = []
+        alternatives = []
+        for part in data.parts:
+            for point in part.markingPoints:
+                code = f"{part.label}.{point.code}"
+                if len(code) > 30:
+                    raise DomainError("marking_code_too_long", "Shorten a marking-point code before preparing drafts.", 422)
+                suffix = f" [depends on {part.label}.{point.dependsOn}]" if point.dependsOn else ""
+                if point.followThrough:
+                    suffix += " [error carried forward]"
+                points.append(MarkingPoint(code=code, kind=point.kind, text=point.text + suffix))
+            alternatives.extend(part.alternatives)
+        scheme_entries.append(MarkSchemeEntryReview(
+            questionNumber=row.number, maxMarks=data.marks,
+            markingPoints=points, alternatives=alternatives, sourceLocations=scheme_locations,
+        ))
+    paper_payload = SaveOfficialMaterialReview(
+        expectedItemCount=len(paper_questions), completenessConfirmed=True,
+        questions=paper_questions,
+    )
+    scheme_payload = SaveOfficialMaterialReview(
+        expectedItemCount=len(scheme_entries), completenessConfirmed=True,
+        markSchemeEntries=scheme_entries,
+    )
+    paper_draft = official_materials.save_review(db, principal, paper_id, paper_payload)
+    scheme_draft = official_materials.save_review(db, principal, workspace.scheme_document_id, scheme_payload)
+    db.add(AuditEvent(actor_id=principal.user.id, action="official_review.drafts_prepared",
+                      target_type="document", target_id=str(paper_id),
+                      event_data={"questionCount": len(paper_questions), "schemeDocumentId": str(workspace.scheme_document_id)}))
+    db.commit()
+    return {"paperDocumentId": str(paper_id), "paperDraftVersion": paper_draft.versionNumber,
+            "schemeDocumentId": str(workspace.scheme_document_id),
+            "schemeDraftVersion": scheme_draft.versionNumber, "published": False}

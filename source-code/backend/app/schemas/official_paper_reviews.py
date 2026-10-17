@@ -1,0 +1,98 @@
+"""Admin-only, unpublished question-by-question review contracts."""
+from typing import Literal
+import uuid
+
+from pydantic import BaseModel, Field, model_validator
+
+
+ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "excluded"]
+CoverageStatus = Literal["unreviewed", "supported", "partial_or_uncertain", "outside_current_coverage"]
+
+
+class ReviewEvidence(BaseModel):
+    page: int = Field(gt=0)
+    blockId: uuid.UUID | None = None
+    assetId: uuid.UUID | None = None
+
+
+class ReviewMarkingPoint(BaseModel):
+    code: str = Field(min_length=1, max_length=30)
+    text: str = Field(min_length=1, max_length=2000)
+    kind: Literal["method", "accuracy", "independent", "communication", "other"] = "other"
+    dependsOn: str | None = Field(default=None, max_length=30)
+    followThrough: bool = False
+
+
+class ReviewPart(BaseModel):
+    label: str = Field(min_length=1, max_length=40)
+    marks: int = Field(gt=0, le=200)
+    prompt: str = Field(default="", max_length=12000)
+    markingPoints: list[ReviewMarkingPoint] = Field(default_factory=list, max_length=200)
+    alternatives: list[str] = Field(default_factory=list, max_length=100)
+    examinerAdvice: str = Field(default="", max_length=12000)
+    paperSources: list[ReviewEvidence] = Field(default_factory=list)
+    schemeSources: list[ReviewEvidence] = Field(default_factory=list)
+    reportSources: list[ReviewEvidence] = Field(default_factory=list)
+    coverage: CoverageStatus = "unreviewed"
+    topicRefs: list[str] = Field(default_factory=list)
+    coverageReason: str = Field(default="", max_length=4000)
+    status: ReviewStatus = "unreviewed"
+
+
+class ReviewQuestionData(BaseModel):
+    marks: int = Field(gt=0, le=200)
+    sharedStem: str = Field(default="", max_length=12000)
+    prompt: str = Field(default="", max_length=30000)
+    paperSources: list[ReviewEvidence] = Field(default_factory=list)
+    visualAssetIds: list[uuid.UUID] = Field(default_factory=list)
+    visualAltText: str = Field(default="", max_length=2000)
+    parts: list[ReviewPart] = Field(min_length=1, max_length=100)
+    exclusionReason: str = Field(default="", max_length=4000)
+
+    @model_validator(mode="after")
+    def reconcile(self):
+        if len({part.label for part in self.parts}) != len(self.parts):
+            raise ValueError("Subpart labels must be unique")
+        if sum(part.marks for part in self.parts) != self.marks:
+            raise ValueError("Subpart marks must add up to question marks")
+        return self
+
+
+class StartPaperReview(BaseModel):
+    schemeDocumentId: uuid.UUID | None = None
+    reportDocumentId: uuid.UUID | None = None
+    expectedQuestionCount: int = Field(default=0, ge=0, le=200)
+
+
+class SaveReviewQuestion(BaseModel):
+    expectedRevision: int = Field(ge=0)
+    number: str = Field(min_length=1, max_length=40)
+    status: ReviewStatus = "unreviewed"
+    data: ReviewQuestionData
+
+
+class SeedPaperReview(BaseModel):
+    draftBank: dict
+    coverageTriage: dict | None = None
+
+
+class ReviewQuestionResponse(BaseModel):
+    number: str
+    revision: int
+    status: ReviewStatus
+    data: ReviewQuestionData
+    reviewedBy: str | None = None
+    reviewedAt: str | None = None
+
+
+class PaperReviewResponse(BaseModel):
+    paperDocumentId: str
+    paperVersionId: str
+    schemeDocumentId: str | None
+    reportDocumentId: str | None
+    expectedQuestionCount: int
+    questionCount: int
+    approvedCount: int
+    wholePaperReady: bool
+    blockers: list[str]
+    questions: list[ReviewQuestionResponse]
