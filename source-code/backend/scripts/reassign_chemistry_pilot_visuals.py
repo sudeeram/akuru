@@ -109,8 +109,6 @@ def main() -> None:
                         """, (actor_id, str(row_id), json.dumps({
                             "paperDocumentId": paper_id, "questionNumber": number,
                             "placements": assignments, "approved": False})))
-            if not args.apply:
-                connection.rollback()
     print(json.dumps({"mode": "apply" if args.apply else "dry-run", "changedQuestions": changes}, indent=2))
 
 
