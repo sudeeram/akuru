@@ -139,6 +139,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "title": f"Question {question.number}", "prompt": question.prompt, "marks": question.marks,
                     "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
                     "topicRefs": question.topicRefs, "rubric": question.rubric, "assetIds": question.assetIds,
+                    "visualPlacements": question.visualPlacements, "assetDescriptions": question.assetDescriptions,
                     "equations": question.equations,
                     "assessmentId": str(item.id)})
             if question.result:

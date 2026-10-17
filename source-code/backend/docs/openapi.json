@@ -675,6 +675,13 @@
             "title": "Answer",
             "type": "string"
           },
+          "assetDescriptions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Assetdescriptions",
+            "type": "object"
+          },
           "assetIds": {
             "items": {},
             "title": "Assetids",
@@ -764,6 +771,16 @@
             },
             "title": "Topicrefs",
             "type": "array"
+          },
+          "visualPlacements": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Visualplacements",
+            "type": "object"
           }
         },
         "required": [
@@ -2018,6 +2035,64 @@
           "role"
         ],
         "title": "CreateAccountRequest",
+        "type": "object"
+      },
+      "CreateReviewCrop": {
+        "properties": {
+          "altText": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "diagram",
+              "table"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "exclusiveMinimum": 0.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "x0": {
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "X0",
+            "type": "number"
+          },
+          "x1": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "X1",
+            "type": "number"
+          },
+          "y0": {
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Y0",
+            "type": "number"
+          },
+          "y1": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Y1",
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "kind",
+          "x0",
+          "y0",
+          "x1",
+          "y1",
+          "altText"
+        ],
+        "title": "CreateReviewCrop",
         "type": "object"
       },
       "CurriculumPlanResponse": {
@@ -5368,7 +5443,6 @@
               "format": "uuid",
               "type": "string"
             },
-            "minItems": 1,
             "title": "Assetids",
             "type": "array"
           },
@@ -5420,13 +5494,23 @@
             "minItems": 1,
             "title": "Sourcelocations",
             "type": "array"
+          },
+          "visualPlacements": {
+            "additionalProperties": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Visualplacements",
+            "type": "object"
           }
         },
         "required": [
           "number",
           "prompt",
           "marks",
-          "assetIds",
           "sourceLocations"
         ],
         "title": "OfficialQuestionReview",
@@ -7262,6 +7346,51 @@
         "title": "RetrievalResponse",
         "type": "object"
       },
+      "ReviewCropResponse": {
+        "properties": {
+          "altText": {
+            "title": "Alttext",
+            "type": "string"
+          },
+          "approved": {
+            "default": true,
+            "title": "Approved",
+            "type": "boolean"
+          },
+          "assetId": {
+            "format": "uuid",
+            "title": "Assetid",
+            "type": "string"
+          },
+          "bounds": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "title": "Bounds",
+            "type": "object"
+          },
+          "kind": {
+            "enum": [
+              "diagram",
+              "table"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "assetId",
+          "page",
+          "kind",
+          "altText"
+        ],
+        "title": "ReviewCropResponse",
+        "type": "object"
+      },
       "ReviewEvidence": {
         "properties": {
           "assetId": {
@@ -7303,8 +7432,8 @@
       "ReviewMarkingPoint": {
         "properties": {
           "code": {
+            "default": "",
             "maxLength": 30,
-            "minLength": 1,
             "title": "Code",
             "type": "string"
           },
@@ -7338,16 +7467,12 @@
             "type": "string"
           },
           "text": {
+            "default": "",
             "maxLength": 2000,
-            "minLength": 1,
             "title": "Text",
             "type": "string"
           }
         },
-        "required": [
-          "code",
-          "text"
-        ],
         "title": "ReviewMarkingPoint",
         "type": "object"
       },
@@ -7385,8 +7510,8 @@
             "type": "string"
           },
           "label": {
+            "default": "",
             "maxLength": 40,
-            "minLength": 1,
             "title": "Label",
             "type": "string"
           },
@@ -7399,8 +7524,8 @@
             "type": "array"
           },
           "marks": {
-            "exclusiveMinimum": 0.0,
             "maximum": 200.0,
+            "minimum": 0.0,
             "title": "Marks",
             "type": "integer"
           },
@@ -7449,10 +7574,17 @@
             },
             "title": "Topicrefs",
             "type": "array"
+          },
+          "visualAssetIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Visualassetids",
+            "type": "array"
           }
         },
         "required": [
-          "label",
           "marks"
         ],
         "title": "ReviewPart",
@@ -7460,6 +7592,14 @@
       },
       "ReviewQuestionData": {
         "properties": {
+          "candidateVisualAssetIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Candidatevisualassetids",
+            "type": "array"
+          },
           "exclusionReason": {
             "default": "",
             "maxLength": 4000,
@@ -7467,8 +7607,8 @@
             "type": "string"
           },
           "marks": {
-            "exclusiveMinimum": 0.0,
             "maximum": 200.0,
+            "minimum": 0.0,
             "title": "Marks",
             "type": "integer"
           },
@@ -13690,6 +13830,285 @@
           }
         },
         "summary": "Topic Evidence",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/visual-candidates/generate": {
+      "post": {
+        "operationId": "generate_visual_candidates_api_v1_admin_official_paper_reviews__paper_id__visual_candidates_generate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Generate Visual Candidates",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/visual-crops": {
+      "get": {
+        "operationId": "list_visual_crops_api_v1_admin_official_paper_reviews__paper_id__visual_crops_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ReviewCropResponse"
+                  },
+                  "title": "Response List Visual Crops Api V1 Admin Official Paper Reviews  Paper Id  Visual Crops Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Visual Crops",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      },
+      "post": {
+        "operationId": "create_visual_crop_api_v1_admin_official_paper_reviews__paper_id__visual_crops_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewCrop"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewCropResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Create Visual Crop",
         "tags": [
           "official-paper-reviews"
         ]

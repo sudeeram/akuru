@@ -351,7 +351,7 @@ export function Practice(p: FeatureProps) {
           {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
           <Diagram kind={q.diagram} />
           {q.assetIds?.map((assetId) => (
-            <LearningImage key={assetId} src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} />
+            <div key={assetId} className="stack"><strong>{Object.entries(q.visualPlacements||{}).filter(([,ids])=>ids.includes(assetId)).map(([part])=>part==='shared'?'Shared question visual':`Part (${part})`).join(', ') || 'Question visual'}</strong><LearningImage src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} /></div>
           ))}
           <div className="source-note">
             <BookOpen size={14} />
@@ -693,7 +693,7 @@ export function Exams(p: FeatureProps) {
               {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
               <Diagram kind={q.diagram} />
               {q.assetIds?.map((assetId) => (
-                <LearningImage key={assetId} src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} />
+                <div key={assetId} className="stack"><strong>{Object.entries(q.visualPlacements||{}).filter(([,ids])=>ids.includes(assetId)).map(([part])=>part==='shared'?'Shared question visual':`Part (${part})`).join(', ') || 'Question visual'}</strong><LearningImage src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} /></div>
               ))}
             </section>
             <section className="panel">

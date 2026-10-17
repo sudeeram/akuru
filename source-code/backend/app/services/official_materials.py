@@ -147,7 +147,7 @@ def _response(db: Session, material: OfficialMaterialVersion) -> OfficialMateria
         sourcePaperId=str(material.source_paper_id) if material.source_paper_id else None,
         sourcePaperVersionId=str(material.source_paper_version_id) if material.source_paper_version_id else None,
         expectedItemCount=material.inventory_count, completenessConfirmed=material.completeness_confirmed,
-        questions=[OfficialQuestionReview(number=q.question_number, parentNumber=q.parent_number, prompt=q.prompt, sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, sourceLocations=q.source_locations) for q in questions],
+        questions=[OfficialQuestionReview(number=q.question_number, parentNumber=q.parent_number, prompt=q.prompt, sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, visualPlacements=q.visual_placements, sourceLocations=q.source_locations) for q in questions],
         markSchemeEntries=[MarkSchemeEntryReview(questionNumber=e.question_number, maxMarks=e.max_marks, markingPoints=e.marking_points, alternatives=e.alternatives, sourceLocations=e.source_locations) for e in schemes],
         examinerComments=[ExaminerCommentReview(questionNumber=c.question_number, commonMistakes=c.common_mistakes, advice=c.advice, sourceLocations=c.source_locations) for c in comments],
     )
@@ -191,7 +191,7 @@ def _replace(db: Session, material: OfficialMaterialVersion, payload: SaveOffici
     db.execute(delete(MarkSchemeEntryVersion).where(MarkSchemeEntryVersion.material_version_id == material.id))
     db.execute(delete(ExaminerCommentVersion).where(ExaminerCommentVersion.material_version_id == material.id))
     for q in payload.questions:
-        db.add(OfficialQuestionVersion(material_version_id=material.id, question_number=q.number, parent_number=q.parentNumber, prompt=q.prompt, shared_stem=q.sharedStem, marks=q.marks, equations=q.equations, asset_ids=[str(value) for value in q.assetIds], source_locations=[row.model_dump(mode="json") for row in q.sourceLocations]))
+        db.add(OfficialQuestionVersion(material_version_id=material.id, question_number=q.number, parent_number=q.parentNumber, prompt=q.prompt, shared_stem=q.sharedStem, marks=q.marks, equations=q.equations, asset_ids=[str(value) for value in q.assetIds], visual_placements={key:[str(value) for value in ids] for key,ids in q.visualPlacements.items()}, source_locations=[row.model_dump(mode="json") for row in q.sourceLocations]))
     for e in payload.markSchemeEntries:
         db.add(MarkSchemeEntryVersion(material_version_id=material.id, question_number=e.questionNumber, max_marks=e.maxMarks, marking_points=[row.model_dump() for row in e.markingPoints], alternatives=e.alternatives, source_locations=[row.model_dump(mode="json") for row in e.sourceLocations]))
     for c in payload.examinerComments:
@@ -221,6 +221,10 @@ def _validate_sources(db: Session, material: OfficialMaterialVersion, payload: S
     )).all()) if asset_ids else set()
     if asset_ids != valid_assets:
         raise DomainError("invalid_question_asset", "Question assets must come from this document version.", 422)
+    for question in payload.questions:
+        placed = {asset_id for ids in question.visualPlacements.values() for asset_id in ids}
+        if not placed.issubset(set(question.assetIds)):
+            raise DomainError("invalid_visual_placement", "Placed visuals must belong to their question assets.", 422)
 
 
 def save_review(db: Session, principal: Principal, document_id: uuid.UUID, payload: SaveOfficialMaterialReview):

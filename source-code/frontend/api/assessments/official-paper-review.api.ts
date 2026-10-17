@@ -5,6 +5,7 @@ export type ReviewStatus = 'unreviewed' | 'needs_correction' | 'ready_for_approv
 export type CoverageStatus = 'unreviewed' | 'supported' | 'partial_or_uncertain' | 'outside_current_coverage';
 export type ReviewPart = {
   label: string; marks: number; prompt: string;
+  visualAssetIds: string[];
   markingPoints: { code: string; text: string; kind: 'method'|'accuracy'|'independent'|'communication'|'other'; dependsOn?: string | null; followThrough?: boolean }[];
   alternatives: string[]; examinerAdvice: string;
   paperSources: ReviewEvidence[]; schemeSources: ReviewEvidence[]; reportSources: ReviewEvidence[];
@@ -12,7 +13,7 @@ export type ReviewPart = {
 };
 export type ReviewQuestionData = {
   marks: number; sharedStem: string; prompt: string;
-  paperSources: ReviewEvidence[]; visualAssetIds: string[]; visualAltText: string;
+  paperSources: ReviewEvidence[]; visualAssetIds: string[]; candidateVisualAssetIds: string[]; visualAltText: string;
   parts: ReviewPart[]; exclusionReason: string;
 };
 export type PaperReview = {

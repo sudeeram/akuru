@@ -17,7 +17,8 @@ class OfficialQuestionReview(BaseModel):
     sharedStem: str = ""
     marks: int = Field(gt=0, le=200)
     equations: list[str] = Field(default_factory=list)
-    assetIds: list[uuid.UUID] = Field(min_length=1)
+    assetIds: list[uuid.UUID] = Field(default_factory=list)
+    visualPlacements: dict[str, list[uuid.UUID]] = Field(default_factory=dict)
     sourceLocations: list[SourceLocation] = Field(min_length=1)
 
 

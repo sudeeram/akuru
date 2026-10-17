@@ -193,7 +193,8 @@ def start(db, principal, payload, *, required_topic_id: uuid.UUID | None = None)
         db.add(AssessmentQuestion(assessment_id=assessment.id, sequence=sequence, source_question_version_id=question.id,
             source_document_version_id=material.source_document_version_id, question_number=question.question_number,
             prompt=question.prompt, shared_stem=question.shared_stem, marks=question.marks, equations=question.equations,
-            asset_ids=question.asset_ids, source_locations=question.source_locations, rubric=_rubric(db, material.id, question.question_number),
+            asset_ids=question.asset_ids, visual_placements=question.visual_placements,
+            source_locations=question.source_locations, rubric=_rubric(db, material.id, question.question_number),
             topic_ids=[str(value) for value in mappings], topic_weights=_topic_weights(db, question.id, mappings),
             skills=blueprint.skills if blueprint else [], difficulty="mixed"))
     db.commit(); db.refresh(assessment); return response(db, assessment)
@@ -225,6 +226,7 @@ def response(db, row):
         endsAt=row.ends_at, submittedAt=row.submitted_at, skills=row.skills, difficultyProfile=row.difficulty_profile,
         feedbackVisible=visible, questions=[AssessmentQuestionResponse(id=q.id, number=q.question_number, prompt=q.prompt,
             sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids,
+            visualPlacements=q.visual_placements,
             assetDescriptions={asset_id: descriptions.get(asset_id, "") for asset_id in q.asset_ids},
             sourceLocations=q.source_locations,
             topicRefs=list(db.scalars(select(TextbookTopic.public_ref).where(

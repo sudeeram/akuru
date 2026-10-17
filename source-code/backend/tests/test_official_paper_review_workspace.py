@@ -135,7 +135,7 @@ def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
     approved = _question(paper, scheme, topic)
     approved["data"]["visualAssetIds"] = []
     approved["expectedRevision"] = 1
-    assert client.post(root + "/questions", headers=headers, json=approved).json()["error"]["code"] == "required_visual_missing"
+    assert client.post(root + "/questions", headers=headers, json=approved).json()["error"]["code"] == "required_part_visual_missing"
 
     pdf = pymupdf.open()
     page = pdf.new_page(width=100, height=100)
@@ -157,7 +157,7 @@ def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
         assert generated.json()["created"] >= 1
         candidates = client.get(root + "/visual-crops").json()
         assert any(not row["approved"] for row in candidates)
-        assert any(row["assetId"] in client.get(root).json()["questions"][0]["data"]["visualAssetIds"] for row in candidates)
+        assert any(row["assetId"] in client.get(root).json()["questions"][0]["data"]["candidateVisualAssetIds"] for row in candidates)
         crop = {"page":1,"kind":"diagram","x0":0.1,"y0":0.1,"x1":0.7,"y1":0.6,
                 "altText":"An atom diagram with labelled particles."}
         assert client.post(root + "/visual-crops", json=crop).status_code == 403
@@ -169,7 +169,7 @@ def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
         asset = session.get(DocumentAsset, uuid.UUID(asset_id))
         assert asset.document_version_id == paper[1].id and asset.asset_metadata["altText"] == crop["altText"]
         assert storage.get(asset.object_key, "image/png").content.startswith(b"\x89PNG")
-        approved["data"]["visualAssetIds"] = [asset_id]
+        approved["data"]["parts"][0]["visualAssetIds"] = [asset_id]
         approved["expectedRevision"] = 2
         saved = client.post(root + "/questions", headers=headers, json=approved)
         assert saved.status_code == 200, saved.text
@@ -178,6 +178,40 @@ def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
             app.dependency_overrides.pop(get_storage, None)
         else:
             app.dependency_overrides[get_storage] = old_storage
+
+
+@pytest.mark.integration
+def test_subpart_visuals_are_required_at_the_relevant_part_and_preserved(auth_client):
+    client, headers, session, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    table = DocumentAsset(document_version_id=paper[1].id, asset_kind="review_table_crop",
+        object_key=f"tests/review-{uuid.uuid4().hex}-table.png", mime_type="image/png",
+        sha256=uuid.uuid4().hex * 2, size_bytes=10, page_number=1, bounding_box={},
+        asset_metadata={"reviewCrop": True, "reviewApproved": True, "kind": "table",
+                        "altText": "Four rows of results for the atom."})
+    session.add(table); session.commit()
+    body = _question(paper, scheme, topic)
+    body["data"]["marks"] = 4
+    body["data"]["visualAssetIds"] = []
+    first = body["data"]["parts"][0]
+    first["prompt"] = "Label the diagram."
+    first["visualAssetIds"] = [str(paper[5].id)]
+    second = {**first, "label": "b", "prompt": "Use the diagram to complete the table.",
+              "visualAssetIds": [str(table.id)]}
+    body["data"]["parts"].append(second)
+    missing = client.post(root + "/questions", headers=headers, json=body)
+    assert missing.status_code == 409 and missing.json()["error"]["code"] == "required_part_visual_missing"
+    second["visualAssetIds"] = [str(paper[5].id), str(table.id)]
+    saved = client.post(root + "/questions", headers=headers, json=body)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["questions"][0]["data"]["parts"][1]["visualAssetIds"] == second["visualAssetIds"]
+    prepared = client.post(root + "/prepare-official-drafts", headers=headers)
+    assert prepared.status_code == 200, prepared.text
+    published_draft = client.get(f"/api/v1/documents/{paper[0].id}/official-review").json()
+    assert published_draft["questions"][0]["visualPlacements"] == {
+        "shared": [], "a": [str(paper[5].id)], "b": second["visualAssetIds"]}
 
 
 @pytest.mark.integration

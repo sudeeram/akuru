@@ -1235,6 +1235,7 @@ class OfficialQuestionVersion(Base):
     marks: Mapped[int] = mapped_column(Integer)
     equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     asset_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    visual_placements: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     mapping_status: Mapped[str] = mapped_column(String(20), default="pending", server_default="pending")
     __table_args__ = (
@@ -1393,6 +1394,7 @@ class AssessmentQuestion(Base):
     marks: Mapped[int] = mapped_column(Integer)
     equations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     asset_ids: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    visual_placements: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     rubric: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     topic_ids: Mapped[list] = mapped_column(JSON)

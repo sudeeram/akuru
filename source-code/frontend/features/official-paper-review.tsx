@@ -18,11 +18,11 @@ const coverageStatuses: CoverageStatus[] = ['unreviewed', 'supported', 'partial_
 const label = (value: string) => value.replaceAll('_', ' ');
 
 function emptyPart(): ReviewPart {
-  return {label: 'a', marks: 1, prompt: '', markingPoints: [], alternatives: [], examinerAdvice: '',
+  return {label: 'a', marks: 1, prompt: '', visualAssetIds: [], markingPoints: [], alternatives: [], examinerAdvice: '',
     paperSources: [], schemeSources: [], reportSources: [], coverage: 'unreviewed', topicRefs: [], coverageReason: '', status: 'unreviewed'};
 }
 function emptyQuestion(): ReviewQuestionData {
-  return {marks: 1, sharedStem: '', prompt: '', paperSources: [], visualAssetIds: [], visualAltText: '',
+  return {marks: 1, sharedStem: '', prompt: '', paperSources: [], visualAssetIds: [], candidateVisualAssetIds: [], visualAltText: '',
     parts: [emptyPart()], exclusionReason: ''};
 }
 
@@ -60,14 +60,12 @@ function VisualCropEditor({paperId, extraction, pageNumber, initialBox, initialK
   onCreated:(assetId:string, altText:string, kind:'diagram'|'table', bounds:CropBox)=>void;
 }) {
   const page = extraction?.pages.find((item)=>item.pageNumber===pageNumber);
-  const [box,setBox] = useState<CropBox>({x0:0.2,y0:0.2,x1:0.8,y1:0.6});
-  const [kind,setKind] = useState<'diagram'|'table'>('diagram');
+  const [box,setBox] = useState<CropBox>(initialBox || {x0:0.2,y0:0.2,x1:0.8,y1:0.6});
+  const [kind,setKind] = useState<'diagram'|'table'>(initialKind);
   const [altText,setAltText] = useState('');
   const [dragStart,setDragStart] = useState<{x:number;y:number}|null>(null);
   const [busy,setBusy] = useState(false);
   const [error,setError] = useState('');
-  useEffect(()=>{if(initialBox) setBox(initialBox);},[initialBox]);
-  useEffect(()=>setKind(initialKind),[initialKind]);
   const clamp=(value:number)=>Math.max(0,Math.min(1,value));
   const point=(event:PointerEvent<HTMLDivElement>)=>{
     const rect=event.currentTarget.getBoundingClientRect();
@@ -170,9 +168,13 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
     finally {setBusy(false);}
   }
   function chooseQuestion(row: PaperReview['questions'][number]) {
-    setSelected(row.number); setNumber(row.number); setData(structuredClone(row.data));
+    const loaded = structuredClone(row.data);
+    loaded.candidateVisualAssetIds ||= [];
+    loaded.parts = loaded.parts.map((item) => ({...item, visualAssetIds:item.visualAssetIds || []}));
+    setSelected(row.number); setNumber(row.number); setData(loaded);
     setStatus(row.status); setRevision(row.revision); setActivePart(0);
-    setSavedSnapshot(JSON.stringify({number:row.number,status:row.status,data:row.data}));
+    setCropBox(null); setReplaceCandidateId(null);
+    setSavedSnapshot(JSON.stringify({number:row.number,status:row.status,data:loaded}));
     setPaperPage(row.data.paperSources[0]?.page || 1);
     setSchemePage(row.data.parts[0]?.schemeSources[0]?.page || 1);
     setReportPage(row.data.parts[0]?.reportSources[0]?.page || 1);
@@ -210,10 +212,28 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
     try {
       const result=await createPaperReviewCrop(paperId,{page:crop.page,kind:crop.kind,...crop.bounds,altText});
       setAvailableCrops((current)=>[...current,result]);
-      setData((current)=>({...current,visualAssetIds:current.visualAssetIds.map((id)=>id===crop.assetId?result.assetId:id),visualAltText:current.visualAltText||altText}));
+      setData((current)=>({...current,
+        visualAssetIds:current.visualAssetIds.map((id)=>id===crop.assetId?result.assetId:id),
+        candidateVisualAssetIds:current.candidateVisualAssetIds.map((id)=>id===crop.assetId?result.assetId:id),
+        parts:current.parts.map((item)=>({...item,visualAssetIds:item.visualAssetIds.map((id)=>id===crop.assetId?result.assetId:id)})),
+        visualAltText:current.visualAltText||altText}));
       setNotice('Candidate crop reviewed and attached. Save question review to keep this selection.');
     } catch(cause) {setError(errorMessage(cause));}
     finally {setBusy(false);}
+  }
+  const assignedIds = [...new Set([...data.visualAssetIds,...data.parts.flatMap((item)=>item.visualAssetIds)])];
+  const allVisualIds = [...new Set([...assignedIds,...data.candidateVisualAssetIds])];
+  function setVisualLocation(assetId:string, target:'shared'|'unassigned'|number, selected:boolean) {
+    setData((current)=>{
+      const shared = current.visualAssetIds.filter((id)=>id!==assetId);
+      const unassigned = current.candidateVisualAssetIds.filter((id)=>id!==assetId);
+      const parts = current.parts.map((item,index)=>({...item,visualAssetIds:
+        index===target ? (selected ? [...new Set([...item.visualAssetIds,assetId])] : item.visualAssetIds.filter((id)=>id!==assetId)) : item.visualAssetIds}));
+      if(target==='shared' && selected) shared.push(assetId);
+      if(target==='unassigned' && selected) unassigned.push(assetId);
+      const assigned = shared.includes(assetId)||parts.some((item)=>item.visualAssetIds.includes(assetId));
+      return {...current,visualAssetIds:shared,candidateVisualAssetIds:assigned?unassigned:unassigned.includes(assetId)?unassigned:[...unassigned,assetId],parts};
+    });
   }
 
   if (!paper) return <section className="panel"><p>Past paper not found.</p><Button onClick={() => navigate('/admin/exam-documents/past-papers')}>Back to papers</Button></section>;
@@ -268,7 +288,7 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
               <label>Kind<select value={point.kind} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,kind:event.target.value as typeof row.kind}:row)})}>{['method','accuracy','independent','communication','other'].map((value)=><option key={value} value={value}>{value}</option>)}</select></label></div>
               <label>What earns the mark<Textarea value={point.text} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,text:event.target.value}:row)})}/></label>
               <label>Depends on code (optional)<Input maxLength={30} value={point.dependsOn||''} onChange={(event)=>updatePart({...part,markingPoints:part.markingPoints.map((row,i)=>i===index?{...row,dependsOn:event.target.value||null}:row)})}/></label>
-              {(!point.code.trim()||!point.text.trim()) && <p className="small" role="status">Point {index+1} is incomplete. You may save this draft, but cannot approve it yet.</p>}
+              {(!point.code.trim()||!point.text.trim()) && <output className="small">Point {index+1} is incomplete. You may save this draft, but cannot approve it yet.</output>}
               <Button variant="outline" onClick={()=>updatePart({...part,markingPoints:part.markingPoints.filter((_,i)=>i!==index)})}>Remove point {index+1}</Button>
             </div>)}
             <Button variant="outline" onClick={()=>updatePart({...part,markingPoints:[...part.markingPoints,{code:'',kind:'other',text:'',dependsOn:null,followThrough:false}]})}>Add marking point</Button>
@@ -282,12 +302,25 @@ export function OfficialPaperReview({paperId, documents, navigate}: {
           <label>Coverage reason <Textarea value={part.coverageReason} onChange={(event) => updatePart({...part,coverageReason:event.target.value})}/></label>
           <label>Subpart review status <select value={part.status} onChange={(event) => updatePart({...part,status:event.target.value as ReviewStatus})}>{reviewStatuses.filter((item) => item!=='excluded').map((value) => <option value={value} key={value}>{label(value)}</option>)}</select></label>
         </div>}
-        <div className="stack"><strong>Question visuals · {data.visualAssetIds.length} attached {dirty?'· unsaved':''}</strong>{data.visualAssetIds.map((assetId)=>{const crop=availableCrops.find((item)=>item.assetId===assetId);return <div key={assetId} className="panel stack"><strong>{crop?.approved?'Reviewed visual':'Candidate · needs review'} · {crop?.kind||'visual'} · PDF page {crop?.page||'?'}</strong><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={crop?.altText||'Unreviewed candidate visual'} width={560} height={400} unoptimized style={{width:'100%',height:'auto',maxWidth:560,objectFit:'contain'}}/><p className="small">{crop?.altText||'Check the crop and enter an accessible description before approval.'}</p>{crop&&!crop.approved&&<><label>Describe this candidate for students <Textarea value={candidateDescriptions[assetId]||''} onChange={(event)=>setCandidateDescriptions((current)=>({...current,[assetId]:event.target.value}))}/></label><div className="button-row"><Button variant="outline" disabled={busy||(candidateDescriptions[assetId]||'').trim().length<10} onClick={()=>void keepCandidate(crop)}>Keep this crop and attach reviewed visual</Button><Button variant="outline" onClick={()=>{setPaperPage(crop.page);setCropBox(crop.bounds);setCropKind(crop.kind);setReplaceCandidateId(assetId);}}>Adjust crop</Button></div></>}<Button variant="outline" onClick={()=>setData((current)=>({...current,visualAssetIds:current.visualAssetIds.filter((id)=>id!==assetId)}))}>Remove this visual from question</Button></div>;})}</div>
-        {!!availableCrops.length && <label>Attach an existing reviewed crop <select value="" onChange={(event)=>{const id=event.target.value;if(id)setData((current)=>({...current,visualAssetIds:current.visualAssetIds.includes(id)?current.visualAssetIds:[...current.visualAssetIds,id]}));}}><option value="">Choose a crop</option>{availableCrops.filter((crop)=>!data.visualAssetIds.includes(crop.assetId)).map((crop)=><option key={crop.assetId} value={crop.assetId}>{crop.kind} · PDF page {crop.page} · {crop.altText.slice(0,70)}</option>)}</select></label>}
+        <div className="stack"><strong>Question visuals · {allVisualIds.length} candidates or assigned {dirty?'· unsaved':''}</strong>
+          <p className="small">Assign a visual to every subpart that needs it. Use Shared only when it applies to the entire question. Unassigned candidates cannot be approved.</p>
+          {allVisualIds.map((assetId)=>{const crop=availableCrops.find((item)=>item.assetId===assetId);return <div key={assetId} className="panel stack"><strong>{crop?.approved?'Reviewed visual':'Candidate · needs review'} · {crop?.kind||'visual'} · PDF page {crop?.page||'?'}</strong>
+            <Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={crop?.altText||'Unreviewed candidate visual'} width={560} height={400} unoptimized style={{width:'100%',height:'auto',maxWidth:560,objectFit:'contain'}}/>
+            <p className="small">{crop?.altText||'Check the crop and enter an accessible description before approval.'}</p>
+            <fieldset><legend>Where this visual belongs</legend><div className="button-row">
+              <label><input type="checkbox" checked={data.visualAssetIds.includes(assetId)} onChange={(event)=>setVisualLocation(assetId,'shared',event.target.checked)}/> Shared question stem</label>
+              {data.parts.map((item,index)=><label key={index}><input type="checkbox" checked={item.visualAssetIds.includes(assetId)} onChange={(event)=>setVisualLocation(assetId,index,event.target.checked)}/> Part {item.label||index+1}</label>)}
+            </div></fieldset>
+            {data.candidateVisualAssetIds.includes(assetId)&&<output className="small">Unassigned: select a part or the shared stem, or remove this candidate.</output>}
+            {crop&&!crop.approved&&<><label>Describe this candidate for students <Textarea value={candidateDescriptions[assetId]||''} onChange={(event)=>setCandidateDescriptions((current)=>({...current,[assetId]:event.target.value}))}/></label><div className="button-row"><Button variant="outline" disabled={busy||(candidateDescriptions[assetId]||'').trim().length<10} onClick={()=>void keepCandidate(crop)}>Keep this crop and attach reviewed visual</Button><Button variant="outline" onClick={()=>{setPaperPage(crop.page);setCropBox(crop.bounds);setCropKind(crop.kind);setReplaceCandidateId(assetId);}}>Adjust crop</Button></div></>}
+            <Button variant="outline" onClick={()=>setData((current)=>({...current,visualAssetIds:current.visualAssetIds.filter((id)=>id!==assetId),candidateVisualAssetIds:current.candidateVisualAssetIds.filter((id)=>id!==assetId),parts:current.parts.map((item)=>({...item,visualAssetIds:item.visualAssetIds.filter((id)=>id!==assetId)}))}))}>Remove visual from question</Button>
+          </div>;})}
+        </div>
+        {!!availableCrops.length && <label>Attach an existing reviewed crop <select value="" onChange={(event)=>{const id=event.target.value;if(id)setData((current)=>({...current,candidateVisualAssetIds:current.candidateVisualAssetIds.includes(id)?current.candidateVisualAssetIds:[...current.candidateVisualAssetIds,id]}));}}><option value="">Choose a crop</option>{availableCrops.filter((crop)=>crop.approved&&!allVisualIds.includes(crop.assetId)).map((crop)=><option key={crop.assetId} value={crop.assetId}>{crop.kind} · PDF page {crop.page} · {crop.altText.slice(0,70)}</option>)}</select></label>}
         <label>Fallback accessible description for older visuals <Textarea value={data.visualAltText} onChange={(event) => setData({...data,visualAltText:event.target.value})}/></label>
-        <VisualCropEditor paperId={paperId} extraction={paperExtraction} pageNumber={paperPage} initialBox={cropBox} initialKind={cropKind} onCreated={(assetId,altText,kind,bounds)=>{setAvailableCrops((current)=>[...current,{assetId,page:paperPage,kind,altText,approved:true,bounds}]);setData((current)=>({...current,visualAssetIds:[...current.visualAssetIds.filter((id)=>id!==replaceCandidateId),assetId],visualAltText:current.visualAltText||altText}));setReplaceCandidateId(null);setNotice('Reviewed visual attached to this draft. Save question review to keep the link.');}}/>
-        <details><summary>Preview this question as a student</summary><div className="panel stack" style={{maxWidth:700}}><strong>Question {number} · {data.marks} marks</strong>{data.sharedStem && <p>{data.sharedStem}</p>}<p style={{whiteSpace:'pre-wrap'}}>{data.prompt}</p>{data.visualAssetIds.map((assetId)=><figure key={assetId} style={{margin:0}}><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText||'Question visual'} width={650} height={450} unoptimized style={{maxWidth:'100%',width:'auto',height:'auto',maxHeight:450}}/><figcaption className="small">{availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText}</figcaption></figure>)}{data.parts.map((row)=><p key={row.label} style={{whiteSpace:'pre-wrap'}}>({row.label}) {row.prompt} · {row.marks} marks</p>)}</div></details>
-        <p role="status" aria-live="polite">{dirty?'Unsaved review changes.':'Saved review state.'}</p>
+        <VisualCropEditor key={`${paperPage}-${replaceCandidateId||''}-${JSON.stringify(cropBox)}`} paperId={paperId} extraction={paperExtraction} pageNumber={paperPage} initialBox={cropBox} initialKind={cropKind} onCreated={(assetId,altText,kind,bounds)=>{setAvailableCrops((current)=>[...current,{assetId,page:paperPage,kind,altText,approved:true,bounds}]);setData((current)=>({...current,visualAssetIds:current.visualAssetIds.filter((id)=>id!==replaceCandidateId),candidateVisualAssetIds:[...current.candidateVisualAssetIds.filter((id)=>id!==replaceCandidateId),assetId],parts:current.parts.map((item)=>({...item,visualAssetIds:item.visualAssetIds.filter((id)=>id!==replaceCandidateId)})),visualAltText:current.visualAltText||altText}));setReplaceCandidateId(null);setNotice('Reviewed visual created. Assign it to the relevant part and save the question.');}}/>
+        <details><summary>Preview this question as a student</summary><div className="panel stack" style={{maxWidth:700}}><strong>Question {number} · {data.marks} marks</strong>{data.sharedStem && <p>{data.sharedStem}</p>}{data.visualAssetIds.map((assetId)=><figure key={assetId} style={{margin:0}}><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText||'Question visual'} width={650} height={450} unoptimized style={{maxWidth:'100%',width:'auto',height:'auto',maxHeight:450}}/></figure>)}{data.parts.map((row)=><section key={row.label} className="panel stack"><strong>Part ({row.label}) · {row.marks} marks</strong><p style={{whiteSpace:'pre-wrap'}}>{row.prompt}</p>{row.visualAssetIds.map((assetId)=><figure key={assetId} style={{margin:0}}><Image src={`/api/v1/documents/${paperId}/assets/${assetId}/content`} alt={availableCrops.find((crop)=>crop.assetId===assetId)?.altText||data.visualAltText||'Question visual'} width={650} height={450} unoptimized style={{maxWidth:'100%',width:'auto',height:'auto',maxHeight:450}}/></figure>)}</section>)}</div></details>
+        <output aria-live="polite">{dirty?'Unsaved review changes.':'Saved review state.'}</output>
         <Button disabled={busy || !number.trim()} onClick={() => void act(() => savePaperReviewQuestion(paperId,{number,expectedRevision:revision,status,data}), 'Question review saved.')}>
           Save question review</Button>
       </section>

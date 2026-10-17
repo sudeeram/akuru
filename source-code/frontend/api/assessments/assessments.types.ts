@@ -5,7 +5,7 @@ export type OfficialMaterialReview = {
   versionNumber: number; status: string; kind: 'past_paper' | 'mark_scheme' | 'examiner_report';
   courseId: string; subjectId: string; sourcePaperId?: string | null; sourcePaperVersionId?: string | null;
   expectedItemCount: number; completenessConfirmed: boolean;
-  questions: { number: string; parentNumber?: string | null; prompt: string; sharedStem: string; marks: number; equations: string[]; assetIds: string[]; sourceLocations: SourceLocation[] }[];
+  questions: { number: string; parentNumber?: string | null; prompt: string; sharedStem: string; marks: number; equations: string[]; assetIds: string[]; visualPlacements?: Record<string,string[]>; sourceLocations: SourceLocation[] }[];
   markSchemeEntries: { questionNumber: string; maxMarks: number; markingPoints: { code: string; text: string; kind: 'method' | 'accuracy' | 'independent' | 'communication' | 'other' }[]; alternatives: string[]; sourceLocations: SourceLocation[] }[];
   examinerComments: { questionNumber: string; commonMistakes: string[]; advice: string[]; sourceLocations: SourceLocation[] }[];
 };

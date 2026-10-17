@@ -260,14 +260,15 @@ def generate_review_candidates(db: Session, storage: ObjectStorage, principal: P
         if row.status == "approved":
             continue
         data = dict(row.review_data)
-        prior = list(data.get("visualAssetIds", []))
-        if any(db.get(DocumentAsset, uuid.UUID(asset_id)).asset_metadata.get("reviewApproved") for asset_id in prior):
-            continue
+        prior = list(data.get("candidateVisualAssetIds", []))
+        assigned = set(data.get("visualAssetIds", [])) | {
+            asset_id for part in data.get("parts", []) for asset_id in part.get("visualAssetIds", [])
+        }
         proposed = list(dict.fromkeys([*prior, *(asset_id for source in data.get("paperSources", [])
-            for asset_id in candidates_by_page.get(source["page"], []))]))
+            for asset_id in candidates_by_page.get(source["page"], []) if asset_id not in assigned)]))
         if proposed == prior:
             continue
-        data["visualAssetIds"] = proposed
+        data["candidateVisualAssetIds"] = proposed
         row.review_data = data
         row.revision += 1
         attached += len(proposed) - len(prior)
@@ -380,17 +381,22 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                 raise DomainError("duplicate_marking_code", "Marking-point codes must be unique per part.", 422)
             if any(not point.code.strip() or not point.text.strip() for point in part.markingPoints):
                 raise DomainError("marking_point_incomplete", "Give every marking point a short code and wording before approval.", 422)
+    assigned_ids = set(data.visualAssetIds) | {asset_id for part in data.parts for asset_id in part.visualAssetIds}
     visual_assets = []
-    for asset_id in data.visualAssetIds:
+    asset_by_id = {}
+    for asset_id in assigned_ids | set(data.candidateVisualAssetIds):
         asset = db.scalar(select(DocumentAsset).where(
             DocumentAsset.id == asset_id, DocumentAsset.document_version_id == workspace.paper_version_id))
         if not asset:
             raise DomainError("invalid_question_asset", "The visual must come from this paper version.", 422)
         visual_assets.append(asset)
+        asset_by_id[asset_id] = asset
     if status == "excluded":
         if not data.exclusionReason.strip():
             raise DomainError("exclusion_reason_required", "Explain why this source question is excluded.", 422)
     if status in {"ready_for_approval", "approved"}:
+        if data.candidateVisualAssetIds:
+            raise DomainError("unassigned_visual_candidates", "Assign or remove every candidate visual before approving the question.", 409)
         if not workspace.scheme_document_id or not data.paperSources or not data.prompt.strip() or data.marks <= 0:
             raise DomainError("question_incomplete", "Attach the scheme and review the complete question source.", 409)
         if sum(part.marks for part in data.parts) != data.marks:
@@ -402,17 +408,20 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             raise DomainError("exact_block_required", "Link an exact paper block before question approval.", 409)
         if any(not asset.asset_metadata.get("reviewApproved") for asset in visual_assets):
             raise DomainError("visual_review_required", "Review or replace every proposed visual before approving this question.", 409)
-        if data.visualAssetIds and not data.visualAltText.strip() and any(
+        if assigned_ids and not data.visualAltText.strip() and any(
             not asset.asset_metadata.get("altText", "").strip() for asset in visual_assets
         ):
             raise DomainError("visual_alt_required", "Describe approved visuals for accessibility.", 422)
-        wording = " ".join([data.sharedStem, data.prompt, *(part.prompt for part in data.parts)]).casefold()
-        for keyword, kind in (("diagram", "diagram"), ("figure", "diagram"), ("table", "table")):
-            if keyword in wording and not any(
-                asset.asset_metadata.get("kind") == kind and asset.asset_metadata.get("reviewCrop")
-                for asset in visual_assets
-            ):
-                raise DomainError("required_visual_missing", f"Select and describe a focused {kind} crop before approving this question.", 409)
+        for part in data.parts:
+            visible = set(data.visualAssetIds) | set(part.visualAssetIds)
+            for keyword, kind in (("diagram", "diagram"), ("figure", "diagram"),
+                                  ("graph", "diagram"), ("chromatogram", "diagram"), ("table", "table")):
+                if keyword in part.prompt.casefold() and not any(
+                    asset_by_id[asset_id].asset_metadata.get("kind") == kind
+                    and asset_by_id[asset_id].asset_metadata.get("reviewCrop") for asset_id in visible
+                ):
+                    raise DomainError("required_part_visual_missing",
+                        f"Attach a reviewed {kind} to part {part.label} before approving this question.", 409)
 
 
 def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
@@ -544,12 +553,14 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
         scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
         if not locations or not scheme_locations:
             raise DomainError("exact_block_required", "Every approved question needs exact paper and scheme blocks.", 409)
-        assets = list(dict.fromkeys(data.visualAssetIds or [
-            source.assetId for source in data.paperSources if source.assetId
-        ]))
+        assets = list(dict.fromkeys([*data.visualAssetIds,
+            *(asset_id for part in data.parts for asset_id in part.visualAssetIds)]))
         paper_questions.append(OfficialQuestionReview(
             number=row.number, prompt=data.prompt, sharedStem=data.sharedStem,
-            marks=data.marks, assetIds=assets, sourceLocations=locations,
+            marks=data.marks, assetIds=assets,
+            visualPlacements={"shared": data.visualAssetIds, **{
+                part.label: part.visualAssetIds for part in data.parts if part.visualAssetIds}},
+            sourceLocations=locations,
         ))
         points = []
         alternatives = []
