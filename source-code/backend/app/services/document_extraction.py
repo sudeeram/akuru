@@ -71,8 +71,20 @@ def text_to_latex(text: str) -> str:
 
 
 def _render_page(page: fitz.Page, dpi: int, clip: fitz.Rect | None = None) -> bytes:
+    if clip is not None:
+        clip = clip & page.rect
+        if clip.is_empty or clip.width <= 0 or clip.height <= 0:
+            raise ValueError("The crop is outside the visible page.")
     pixmap = page.get_pixmap(dpi=dpi, alpha=False, clip=clip)
     return pixmap.tobytes("png")
+
+
+def _visible_crop(page: fitz.Page, dpi: int, box: fitz.Rect) -> bytes | None:
+    """A malformed or off-page PDF block must not fail the entire document."""
+    try:
+        return _render_page(page, dpi, box)
+    except (ValueError, fitz.mupdf.FzErrorArgument):
+        return None
 
 
 def _available_languages(command: str) -> set[str]:
@@ -217,9 +229,10 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
             has_math = bool(MATH_RE.search(text))
             notation_review = has_math or bool(SCIENCE_NOTATION_RE.search(text))
             if notation_review:
-                crop = _render_page(page, dpi, fitz.Rect(block["bbox"]))
-                source_asset_index = len(assets)
-                assets.append({"kind": "equation_crop", "mimeType": "image/png", "content": crop, "bbox": bbox_dict(block["bbox"])})
+                crop = _visible_crop(page, dpi, fitz.Rect(block["bbox"]))
+                if crop is not None:
+                    source_asset_index = len(assets)
+                    assets.append({"kind": "equation_crop", "mimeType": "image/png", "content": crop, "bbox": bbox_dict(block["bbox"])})
             native_lines = [{"text": "".join(span.get("text", "") for span in line.get("spans", [])).strip(),
                 "bbox": list(line.get("bbox", ())),
                 "spans": [{"text": span.get("text", ""), "bbox": list(span.get("bbox", ())),
@@ -244,7 +257,9 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
                 })
         elif block.get("type") == 1:
             box = fitz.Rect(block["bbox"])
-            crop = _render_page(page, dpi, box)
+            crop = _visible_crop(page, dpi, box)
+            if crop is None:
+                continue
             raw_image = block.get("image")
             if raw_image:
                 extension = str(block.get("ext") or "bin").lower()
@@ -288,7 +303,9 @@ def _native_blocks(page: fitz.Page, dpi: int) -> tuple[list[dict], list[dict]]:
         box = fitz.Rect(region)
         if box.width < 30 or box.height < 30 or any(box.intersects(image_box) for image_box in image_boxes):
             continue
-        crop = _render_page(page, dpi, box)
+        crop = _visible_crop(page, dpi, box)
+        if crop is None:
+            continue
         asset_index = len(assets)
         assets.append({
             "kind": "diagram_crop", "mimeType": "image/png", "content": crop,

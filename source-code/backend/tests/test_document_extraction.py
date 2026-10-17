@@ -8,7 +8,15 @@ import pymupdf as fitz
 import pytest
 from PIL import Image, ImageDraw
 
-from app.services.document_extraction import _layout_aware_order, extract_document, text_to_latex
+from app.services.document_extraction import _layout_aware_order, _visible_crop, extract_document, text_to_latex
+
+
+def test_off_page_pdf_crop_is_ignored_without_failing_the_page() -> None:
+    document = fitz.open()
+    page = document.new_page(width=200, height=200)
+    assert _visible_crop(page, 144, fitz.Rect(250, 250, 300, 300)) is None
+    assert _visible_crop(page, 144, fitz.Rect(180, 180, 250, 250)) is not None
+    document.close()
 
 
 FIXTURES = Path(__file__).parent / "fixtures" / "extraction" / "subjects.json"
