@@ -1,5 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { BookOpen, ClipboardCheck, GraduationCap, Users } from 'lucide-react';
+import { MetricCard } from '@/components/portal/dashboard-widgets';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -537,18 +539,11 @@ export function AdminWorkspace(p: Props) {
       >
         {p.view === 'today' && (
           <>
-            <div className="metric-grid">
-              {[
-                ['Parent accounts', parents.length],
-                ['Students', p.data.students.length],
-                ['Textbooks', p.data.documents.filter((document) => document.kind === 'Textbook').length],
-                ['Official papers', p.data.officialPapers.length],
-              ].map(([label, value]) => (
-                <section className="panel metric" key={label}>
-                  <strong>{value}</strong>
-                  <span>{label}</span>
-                </section>
-              ))}
+            <div className="ak-metrics">
+              <MetricCard label="Parent accounts" value={parents.length} detail="Linked family accounts" icon={Users} />
+              <MetricCard label="Students" value={p.data.students.length} detail="Learner accounts" icon={GraduationCap} tone="violet" />
+              <MetricCard label="Textbooks" value={p.data.documents.filter(document => document.kind === 'Textbook').length} detail="In the content library" icon={BookOpen} tone="green" />
+              <MetricCard label="Official papers" value={p.data.officialPapers.length} detail="Available paper records" icon={ClipboardCheck} tone="amber" />
             </div>
             <section className="panel spaced">
               <h2>Prepare learning in this order</h2>

@@ -48,6 +48,8 @@ const uiFeatures = readFileSync(
   new URL('../app/ui-features/page.tsx', import.meta.url),
   'utf8',
 );
+const referenceGallery = readFileSync(new URL('../features/ui-reference/component-gallery.tsx', import.meta.url), 'utf8');
+const portalShell = readFileSync(new URL('../components/portal/portal-shell.tsx', import.meta.url), 'utf8');
 const layout = readFileSync(
   new URL('../app/layout.tsx', import.meta.url),
   'utf8',
@@ -123,11 +125,11 @@ test('admin UI reference is routed and API-authorized', () => {
   assert.match(page, /href="\/ui-features"/);
   assert.match(uiFeatures, /getUiFeaturesAccess\(\)/);
   assert.match(uiFeatures, /Admin access required/);
-  assert.match(uiFeatures, /AKURU-owned components/);
-  assert.match(uiFeatures, /UI feature categories/);
-  assert.match(uiFeatures, /Workflow board/);
-  assert.match(uiFeatures, /Charts and trends/);
-  assert.match(uiFeatures, /Access and communication/);
+  assert.match(referenceGallery, /AKURU-owned components/);
+  assert.match(portalShell, /UI feature categories/);
+  assert.match(referenceGallery, /Workflow board/);
+  assert.match(referenceGallery, /Charts and trends/);
+  assert.match(referenceGallery, /Access and communication/);
 });
 
 test('page transitions rotate through AKURU BOT loading scenes', () => {
@@ -142,13 +144,13 @@ test('page transitions rotate through AKURU BOT loading scenes', () => {
   assert.match(styles, /prefers-reduced-motion/);
 });
 
-test('all portal roles receive horizontally scrollable navigation', () => {
-  assert.match(page, /portal-horizontal-nav/);
-  assert.match(page, /aria-current=\{view === id \? 'page'/);
-  assert.match(page, /nav\.map\(\(\[id, label, Icon\]\)/);
-  assert.match(styles, /overflow-x: auto/);
-  assert.match(styles, /-webkit-overflow-scrolling: touch/);
-  assert.doesNotMatch(page, /SidebarProvider|PortalNavigation|app-sidebar/);
+test('all portal roles use the shared responsive navigation without changing route ownership', () => {
+  assert.match(page, /<PortalShell/);
+  assert.match(page, /onNavigate=\{go\}/);
+  assert.match(portalShell, /aria-current=\{active === id \? 'page'/);
+  assert.match(portalShell, /Open navigation/);
+  assert.match(portalShell, /SheetContent/);
+  assert.match(portalShell, /Collapse sidebar/);
 });
 
 test('admin review displays deterministic extraction evidence', () => {
@@ -575,8 +577,8 @@ test('topic hierarchy workflow supports keyboard filters and accessible status c
   assert.match(textbookStructure, /Move topic \$\{topic\.code\} earlier/);
   assert.match(textbookStructure, /Term coverage is managed/);
   assert.match(admin, /Term to review/);
-  assert.match(page, /Skip to page content/);
-  assert.match(page, /<main id="main-content"/);
+  assert.match(portalShell, /Skip to page content/);
+  assert.match(portalShell, /<main id="main-content"/);
   assert.match(styles, /\.skip-link/);
   assert.match(styles, /input:focus-visible/);
   assert.match(styles, /catalogue-filters/);

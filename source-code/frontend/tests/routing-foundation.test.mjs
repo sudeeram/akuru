@@ -65,7 +65,7 @@ test('Flashcard deep links cover decks, modes, sessions and current cards', () =
 test('navigation updates title and focus for keyboard and assistive technology users', () => {
   assert.match(page, /document\.title/);
   assert.match(page, /getElementById\('main-content'\)\?\.focus/);
-  assert.match(page, /tabIndex=\{-1\}/);
+  assert.match(read('../components/portal/portal-shell.tsx'), /tabIndex=\{-1\}/);
 });
 
 test('within-feature card and textbook page navigation does not show the transition loader', () => {

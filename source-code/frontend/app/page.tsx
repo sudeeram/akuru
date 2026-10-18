@@ -10,7 +10,6 @@ import {
   BookOpen,
   CalendarDays,
   Check,
-  ChevronRight,
   ClipboardCheck,
   Clock3,
   LayoutDashboard,
@@ -38,9 +37,9 @@ import {
   errorMessage,
   ApiError,
   type State,
-  type Student,
 } from '@/api';
-import { Heading, SubjectIcon } from '@/features/shared';
+import { PortalShell } from '@/components/portal/portal-shell';
+import { ParentHome, StudentHome } from '@/features/portal-home';
 import {
   Subjects,
   Practice,
@@ -374,91 +373,27 @@ export function Portal() {
     setSelected,
   };
   return <RoleLayout>
-    <div className="portal-shell">
-      <a className="skip-link" href="#main-content">Skip to page content</a>
-      <header className="topbar">
-        <div className="topbar-identity">
-          <div className="brand">
-            <span className="brand-mark">A</span>AKURU
-            <span className="brand-dot">●</span>
-          </div>
-          <div className="breadcrumb">
-            <span>
-              {admin
-                ? 'Admin portal'
-                : parent
-                  ? 'Family portal'
-                  : 'Student portal'}
-            </span>
-            <ChevronRight size={14} />
-            <strong>
-              {nav.find((n) => n[0] === view)?.[1] || 'Learning workspace'}
-            </strong>
-          </div>
-        </div>
-        <div className="topbar-right">
-          <div className="topbar-account-copy">
-            <strong>{data.user.name}</strong>
-            <small>
-              {admin
-                ? 'Administrator'
-                : parent
-                  ? 'Parent'
-                  : `${child.grade} · ${child.term}`}
-            </small>
-          </div>
-          <span className="top-avatar">
-            {admin ? 'A' : parent ? 'P' : child.name[0]}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Sign out"
+    <PortalShell
+      context={admin ? 'Admin portal' : parent ? 'Family portal' : 'Student portal'}
+      title={nav.find(n => n[0] === view)?.[1] ?? 'Learning workspace'}
+      active={view} onNavigate={go}
+      items={[...nav.map(([id, label, icon]) => ({ id, label, icon,
+        group: id === 'security' ? 'Account' : admin
+          ? ['today', 'operations', 'evaluations'].includes(id) ? 'Overview & operations'
+            : ['accounts', 'ai-accounts', 'tutor-presets', 'tutor-quotas'].includes(id) ? 'People & tutors' : 'Learning & content'
+          : ['today', 'progress', 'plan'].includes(id) ? 'Overview' : 'Learning',
+        badge: id === 'reviews' ? data.attempts.filter(a => a.status === 'needs-review').length : undefined,
+      })), ...(admin ? [{ id: 'ui-features', label: 'UI features', icon: Palette, group: 'Design system', href: '/ui-features' }] : [])]}
+      actions={admin ? <Link href="/ui-features" className="ak-return"><Palette size={16} /> UI features</Link> : undefined}
+      account={<><span className="ak-account"><span className="ak-avatar">{data.user.name[0]}</span><span>{data.user.name}<small>{admin ? 'Administrator' : parent ? 'Parent' : child.grade}</small></span></span><Button variant="ghost" size="icon" aria-label="Sign out"
             onClick={async () => {
               const proceed = async () => { await api('auth/logout', {}); setSignedOut(true); await clearPrivateQueryState(); window.dispatchEvent(new Event('akuru:navigation')); await navigate({ to: '/login', replace: true }); };
               const guard = new CustomEvent('akuru:before-navigation', { cancelable: true, detail: { to: '/login', proceed: () => void proceed() } });
               if (window.dispatchEvent(guard)) await proceed();
             }}
-          >
-            <LogOut size={18} />
-          </Button>
-        </div>
-      </header>
-      <nav
-        className="portal-horizontal-nav"
-        aria-label={`${admin ? 'Admin' : parent ? 'Parent' : 'Student'} portal sections`}
-      >
-        <div className="portal-horizontal-nav-track">
-          {nav.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              type="button"
-              data-active={view === id}
-              aria-current={view === id ? 'page' : undefined}
-              onClick={() => go(id)}
-            >
-              <Icon size={17} />
-              <span>{label}</span>
-              {id === 'reviews' &&
-                data.attempts.some((a) => a.status === 'needs-review') && (
-                  <small>
-                    {
-                      data.attempts.filter((a) => a.status === 'needs-review')
-                        .length
-                    }
-                  </small>
-                )}
-            </button>
-          ))}
-          {admin && (
-            <Link href="/ui-features">
-              <Palette size={17} />
-              <span>UI features</span>
-            </Link>
-          )}
-        </div>
-      </nav>
-      <main id="main-content" className="main-content" tabIndex={-1}>
+><LogOut size={18} /></Button></>}
+    >
+      <div className="main-content">
         {error && (
           <div className="error" role="alert">
             {error}
@@ -493,7 +428,7 @@ export function Portal() {
           </section>
         ) : view === 'today' ? (
           parent ? (
-            <ParentHome data={data} go={go} choose={setSelected} />
+            <ParentHome data={data} child={child} go={go} choose={setSelected} />
           ) : (
             <StudentHome data={data} child={child} go={go} />
           )
@@ -526,12 +461,8 @@ export function Portal() {
         ) : view === 'assignments' && parent ? (
           <Assignments {...props} />
         ) : null}
-      </main>
-      <footer className="app-footer">
-        <span>AKURU · A little progress, every day.</span>
-        <span>iGCSE · Admin-reviewed learning material</span>
-      </footer>
-    </div>
+      </div>
+    </PortalShell>
   </RoleLayout>;
 }
 
@@ -629,295 +560,5 @@ function PasswordChange({
         </form>
       </div>
     </div>
-  );
-}
-function StudentHome({
-  data,
-  child,
-  go,
-}: {
-  data: State;
-  child: Student;
-  go: (v: string, s?: string) => void;
-}) {
-  const weekStart = new Date();
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-  const attempts = data.attempts.filter(
-    (a) => Date.parse(a.createdAt) >= weekStart.getTime(),
-  );
-  const pending = data.assignments.filter((a) => !a.completed);
-  return (
-    <>
-      <Heading
-        eyebrow={`${child.grade.toUpperCase()} · YOUR LEARNING JOURNEY`}
-        title={`Hello, ${child.name}. Ready to explore?`}
-      >
-        A fresh question. A new connection. A little more confidence.
-      </Heading>
-      <div className="dashboard-grid">
-        <div>
-          <section className="focus-card">
-            <div className="focus-copy">
-              <span className="focus-label">
-                <span />
-                TODAY’S FOCUS
-              </span>
-              <h2>
-                Small steps.
-                <br />
-                Bigger understanding.
-              </h2>
-              <p>
-                Start with a question and see where
-                <br />
-                your curiosity takes you.
-              </p>
-              <Button
-                className="white-button"
-                onClick={() => go('practice', 'maths')}
-              >
-                Let’s practise
-                <ArrowRight size={18} />
-              </Button>
-            </div>
-            <div
-              className="akuru-focus-bot"
-              aria-label="AKURU BOT studying with a book"
-            />
-          </section>
-          <div className="section-heading">
-            <h2>My subjects</h2>
-            <button className="text-button" onClick={() => go('subjects')}>
-              View all
-              <ArrowRight size={15} />
-            </button>
-          </div>
-          <div className="subject-grid">
-            {data.subjects
-              .filter((s) => child.subjects.includes(s.id))
-              .map((s) => (
-                <button
-                  className="subject-card"
-                  key={s.id}
-                  onClick={() => go('subjects', s.id)}
-                >
-                  <div className="spread">
-                    <SubjectIcon subject={s} />
-                    <ArrowRight size={17} />
-                  </div>
-                  <h3>{s.name}</h3>
-                  <p>{s.topic}</p>
-                  <div className="subject-meta">
-                    <span>{child.courses[s.id]?.level}</span>
-                    <span>
-                      {data.questions.filter((q) => q.subject === s.id).length}{' '}
-                      demo topics
-                    </span>
-                  </div>
-                </button>
-              ))}
-          </div>
-        </div>
-        <aside className="right-rail">
-          <section className="panel">
-            <div className="section-heading compact">
-              <h3>Your week, so far</h3>
-              <TrendingUp size={19} />
-            </div>
-            <div className="week-days">
-              {'MTWTFSS'.split('').map((d, i) => (
-                <span
-                  key={i}
-                  className={
-                    i === (new Date().getDay() + 6) % 7 ? 'current' : ''
-                  }
-                >
-                  {d}
-                  <i>{i === (new Date().getDay() + 6) % 7 ? '•' : ''}</i>
-                </span>
-              ))}
-            </div>
-            <div className="stats-pair">
-              <div>
-                <strong>{attempts.length}</strong>
-                <span>Questions tried</span>
-              </div>
-              <div>
-                <strong>{new Set(attempts.map((a) => a.subject)).size}</strong>
-                <span>Subjects explored</span>
-              </div>
-            </div>
-            <p className="muted small">Every attempt is a step forward.</p>
-          </section>
-          <section className="panel">
-            <div className="section-heading compact">
-              <h3>Up next</h3>
-              <CalendarDays size={18} />
-            </div>
-            {pending.length ? (
-              pending.slice(0, 3).map((a) => (
-                <button
-                  key={a.id}
-                  className="up-next"
-                  onClick={() => {
-                    sessionStorage.setItem('akuru-next-question', a.questionId);
-                    go('practice', a.subject);
-                  }}
-                >
-                  <span className="mini-icon">
-                    <BookOpen size={17} />
-                  </span>
-                  <span>
-                    <strong>{a.title}</strong>
-                    <small>Due {a.due}</small>
-                  </span>
-                  <ChevronRight size={16} />
-                </button>
-              ))
-            ) : (
-              <p className="muted">
-                You’re all caught up. Choose a subject to keep exploring.
-              </p>
-            )}
-            <button className="text-button full" onClick={() => go('plan')}>
-              Open study plan
-              <ArrowRight size={15} />
-            </button>
-          </section>
-          <section className="tip-card">
-            <span className="eyebrow">A GOOD LEARNING HABIT</span>
-            <h3>Explain it out loud.</h3>
-            <p>
-              If you can teach an idea to someone else, you’re starting to make
-              it your own.
-            </p>
-            <span className="tip-line" />
-          </section>
-        </aside>
-      </div>
-    </>
-  );
-}
-function ParentHome({
-  data,
-  go,
-  choose,
-}: {
-  data: State;
-  go: (v: string) => void;
-  choose: (id: string) => void;
-}) {
-  const pending = data.attempts.filter((a) => a.status === 'needs-review');
-  return (
-    <>
-      <Heading
-        eyebrow="A SPACE FOR EVERY LEARNER"
-        title="Your family, moving forward."
-        action={
-          <Button className="primary" onClick={() => go('assignments')}>
-            Assign practice
-            <ArrowRight size={17} />
-          </Button>
-        }
-      >
-        Different grades. Different strengths. Their own paths.
-      </Heading>
-      <div className="metric-grid">
-        {(
-          [
-            ['Learners', data.students.length, Users],
-            ['Questions attempted', data.attempts.length, ClipboardCheck],
-            ['Awaiting review', pending.length, BookOpen],
-            [
-              'Active assignments',
-              data.assignments.filter((a) => !a.completed).length,
-              CalendarDays,
-            ],
-          ] as [string, number, typeof Users][]
-        ).map(([label, value, Icon]) => (
-          <div className="metric panel" key={label}>
-            <Icon size={21} />
-            <strong>{value}</strong>
-            <span>{label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="section-heading">
-        <h2>Your learners</h2>
-        <button className="text-button" onClick={() => go('students')}>
-          View courses
-          <ArrowRight size={16} />
-        </button>
-      </div>
-      <div className="learner-grid">
-        {data.students.map((s, i) => {
-          const attempts = data.attempts.filter((a) => a.studentId === s.id);
-          return (
-            <article className="panel learner-card" key={s.id}>
-              <div className="spread">
-                <span className={`big-avatar shade-${i}`}>{s.name[0]}</span>
-                <span className="pill">{s.grade}</span>
-              </div>
-              <h2>{s.name}</h2>
-              <p>{s.subjects.length} subjects · Individual learning plan</p>
-              <div className="learner-subjects">
-                {s.subjects.map((id) => (
-                  <span key={id}>
-                    {data.subjects.find((x) => x.id === id)?.name}
-                  </span>
-                ))}
-              </div>
-              <div className="learner-summary">
-                <strong>{attempts.length}</strong> questions tried{' '}
-                <span>·</span>{' '}
-                {attempts.filter((a) => a.status === 'needs-review').length} to
-                review
-              </div>
-              <Button
-                variant="outline"
-                className="full"
-                onClick={() => {
-                  choose(s.id);
-                  go('progress');
-                }}
-              >
-                View {s.name}’s progress
-                <ArrowRight size={16} />
-              </Button>
-            </article>
-          );
-        })}
-      </div>
-      <div className="section-heading">
-        <h2>A little attention goes a long way</h2>
-      </div>
-      <div className="two-cols">
-        <button className="panel action-card" onClick={() => go('reviews')}>
-          <span className="subject-icon orange">
-            <ClipboardCheck />
-          </span>
-          <div>
-            <h3>
-              {pending.length
-                ? `${pending.length} answers ready for your review`
-                : 'Ready for their next discovery'}
-            </h3>
-            <p>Give personal feedback on written answers and working.</p>
-          </div>
-          <ArrowRight />
-        </button>
-        <button className="panel action-card" onClick={() => go('library')}>
-          <span className="subject-icon blue">
-            <Library />
-          </span>
-          <div>
-            <h3>Open your learning library</h3>
-            <p>Read resources prepared by your Admin.</p>
-          </div>
-          <ArrowRight />
-        </button>
-      </div>
-    </>
   );
 }

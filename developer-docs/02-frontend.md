@@ -19,7 +19,7 @@ actor-scoped TanStack Query keys and the Student-only API in
 passages, its protected primary-source page image and approved visual assets.
 The UI labels the existing structure version separately from Topic content
 versions; a whole-textbook release version is not implemented yet. The AKURU
-BOT SVG favicon lives at `public/favicon.svg` and is declared in `app/layout.tsx`.
+BOT favicon lives at `public/favicon-friendly-bot.png` and is declared in `app/layout.tsx`.
 
 ## Routed textbook administration
 
@@ -46,13 +46,13 @@ URLs use opaque public references. Reloading a session retrieves its backend-own
 
 ## Stack and entry points
 
-The portal uses React 19, TypeScript, Vite 8 and Vinext. Tailwind CSS and reusable components under `components/ui` provide the visual foundation. `app/layout.tsx` supplies the document shell and `app/page.tsx` owns login restoration, role navigation and the active hash-based workspace. `/ui-features` is an authenticated Admin component reference.
+The portal uses React 19, TypeScript, Vite 8 and Vinext. Tailwind CSS and reusable components under `components/ui` provide the visual foundation. `app/layout.tsx` supplies the document shell and `app/page.tsx` owns login restoration, role navigation and the active routed workspace. `/ui-features` is an authenticated Admin component reference.
 
 `app/page.tsx` deliberately remains the portal coordinator. Domain-sized screens belong in `features`, including Admin, Parent, Student, textbook structure, document review, assessments, flashcards and Tutor modules. Avoid adding substantial domain logic directly to the page coordinator.
 
 ## Navigation and role experience
 
-The application uses one horizontally scrollable navigation for each role. Workspace routes are represented by URL hashes such as `/#units` and `/#library`; full page routes are reserved for independent pages such as `/ui-features`. Role-specific arrays in `app/page.tsx` define visible navigation, but backend authorization remains authoritative.
+The application uses a shared grouped sidebar with search, desktop collapse and a mobile drawer. Role-specific arrays in `app/page.tsx` define visible navigation through the existing route and unsaved-work guards; backend authorization remains authoritative. Parent and Student overviews use shared dashboard cards and existing authorized state. `/ui-features` provides Admin-only interactive synthetic previews, including local filters, notifications and detail drawers. See `source-code/frontend/docs/UI-REFRESH.md` for metric definitions and verification.
 
 The shared route-loading overlay rotates AKURU BOT assets and respects reduced-motion preferences. Internal downloads, modified clicks and same-page documentation anchors do not trigger it.
 
