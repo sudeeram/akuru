@@ -14,3 +14,13 @@ The official-paper workspace is available to Admin users under **Exam Documents 
 For the June 2025 Chemistry pilot, an Admin may import the unreleased draft-bank JSON after uploading the exact matching PDFs. The import checks the PDF hashes and page inventory and seeds **unapproved proposals**. It never publishes material. The private draft-bank, triage JSON, licensed PDFs and rendered pages must stay outside Git.
 
 The 1C and 2C pilot candidates were reassessed against the PDF pages. Their proposed placements remain draft suggestions. In particular, verify that 1C Question 1's atom crop includes all three answer lines, and check every part's wording and crop before approval. Some OCR-derived subpart wording still needs manual correction.
+
+## Navigating the review workspace
+
+The compact header shows the complete inventory, saved questions, approvals and questions needing attention. Expand **View what remains** to see the paper's existing review blockers. **Paper details & source attachments** holds source names and attachment controls; **Candidate visual tools** holds candidate generation.
+
+Use **Find question** and **Review status** to narrow the question list. The selected question is highlighted. **Previous** and **Next** follow the complete saved inventory even when the list is filtered. Switching questions asks before discarding unsaved edits. The first saved question opens automatically when the workspace loads.
+
+On desktop, the question editor and source viewer sit alongside each other. Select **Paper**, **Marking scheme**, **Report** or **Textbook**, or use **Compare sources** to show the question paper and exact scheme together. Source page arrows change only the source view. Clicking linked evidence opens the correct source tab, page and extracted block. At narrower widths the sources and editor stack; the question list scrolls horizontally.
+
+The persistent toolbar shows the save state and **Save question review**. Saving still uses the existing question revision and approval checks. Draft edits, including edits made before entering a question number, are protected on portal navigation and page reload. Advanced crop controls are under **Create or adjust a visual crop**. Once internal review is complete, **Prepare official paper and scheme drafts** remains a separate action; it does not publish content to Students.

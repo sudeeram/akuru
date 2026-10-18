@@ -497,7 +497,7 @@ export function AdminWorkspace(p: Props) {
   );
   return (
     <>
-      <Heading
+      {!officialPaperReviewId && <Heading
         eyebrow="ADMIN · PHASE 1"
         title={
           {
@@ -520,7 +520,7 @@ export function AdminWorkspace(p: Props) {
         }
       >
         iGCSE · Grade 10 and Grade 11 · Term1, Term2 and Term3
-      </Heading>
+      </Heading>}
       {error && (
         <div className="error" role="alert">
           {error}
@@ -529,10 +529,10 @@ export function AdminWorkspace(p: Props) {
       {p.view === 'units' && <nav className="secondary-nav" aria-label="Textbook administration sections">
         {[['/admin/textbooks', 'View Textbooks'], ['/admin/textbooks/new', 'Add Textbook'], ['/admin/textbooks/review', 'Review Textbooks']].map(([path, label]) => <Button key={path} variant={p.pathname === path || (path === '/admin/textbooks' && p.pathname.startsWith('/admin/textbooks/book_')) ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
       </nav>}
-      {p.view === 'library' && <nav className="secondary-nav" aria-label="Exam document sections">
+      {p.view === 'library' && !officialPaperReviewId && <nav className="secondary-nav" aria-label="Exam document sections">
         {[['/admin/exam-documents', 'All Exam Documents'], ['/admin/exam-documents/past-papers', 'Past Papers'], ['/admin/exam-documents/mark-schemes', 'Mark Schemes'], ['/admin/exam-documents/examiner-reports', 'Examiner Reports'], ['/admin/exam-documents/references', 'Reference Materials']].map(([path, label]) => <Button key={path} variant={p.pathname === path ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
       </nav>}
-      {officialPaperReviewId && <OfficialPaperReview paperId={officialPaperReviewId} documents={p.data.documents} navigate={p.navigate}/>}
+      {officialPaperReviewId && <OfficialPaperReview key={officialPaperReviewId} paperId={officialPaperReviewId} documents={p.data.documents} navigate={p.navigate}/>}
       <fieldset
         disabled={busy}
         style={{ border: 0, padding: 0, minWidth: 0 }}
