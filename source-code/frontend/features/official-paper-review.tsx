@@ -1370,6 +1370,11 @@ export function OfficialPaperReview({
                     <p className="small">
                       Linked paper pages: {sourceList(data.paperSources)}
                     </p>
+                    <p className="small">
+                      When you approve, AKURU links an exact question block if
+                      one reviewed source block clearly matches the subpart.
+                      Ambiguous wording still needs a manual block link.
+                    </p>
                     <label>
                       Question status{' '}
                       <select

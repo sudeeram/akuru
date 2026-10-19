@@ -1,6 +1,7 @@
 """Private Admin review state for source-grounded official questions."""
 from datetime import datetime, timezone
 import hashlib
+import re
 import uuid
 
 import pymupdf
@@ -14,7 +15,7 @@ from app.models import (
     OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace, RetrievalChunk, TextbookTopic,
 )
 from app.schemas.official_paper_reviews import (
-    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewQuestionData, ReviewQuestionResponse,
+    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewEvidence, ReviewQuestionData, ReviewQuestionResponse,
     SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
 from app.schemas.official_materials import (
@@ -351,6 +352,66 @@ def _validate_evidence(db: Session, version_id: uuid.UUID | None, sources, label
             raise DomainError("invalid_source_asset", f"The {label} visual does not belong to that page.", 422)
 
 
+def _source_words(value: str) -> list[str]:
+    return re.findall(r"[a-z0-9]+", value.casefold())
+
+
+def _matching_subpart_block(block: DocumentBlock, part) -> bool:
+    if block.block_kind != "subpart" or block.needs_review:
+        return False
+    # OCR may include earlier answer space in the reviewed prompt, but the
+    # candidate must contain the actual subpart wording and its label.
+    block_words = _source_words(block.text)
+    prompt_words = _source_words(part.prompt)
+    label_words = _source_words(part.label)
+    if len(block_words) < 5 or not label_words or not prompt_words:
+        return False
+    prefix = re.match(r"^\s*((?:\([a-zivx]+\)\s*)+)", block.text.casefold())
+    if not prefix:
+        return False
+    block_label = re.findall(r"\(([a-zivx]+)\)", prefix.group(1))
+    if block_label != label_words and not (len(label_words) > 1 and block_label == label_words[-1:]):
+        return False
+    return any(prompt_words[index:index + len(block_words)] == block_words
+               for index in range(len(prompt_words) - len(block_words) + 1))
+
+
+def _auto_link_exact_paper_blocks(db: Session, workspace: OfficialPaperReviewWorkspace,
+                                  data: ReviewQuestionData) -> int:
+    """Fill a missing exact paper citation only when one reviewed subpart block matches."""
+    added = 0
+    for part in data.parts:
+        if part.status not in {"ready_for_approval", "approved"} or any(source.blockId for source in part.paperSources):
+            continue
+        page_numbers = {source.page for source in (part.paperSources or data.paperSources)}
+        if not page_numbers:
+            continue
+        rows = db.execute(select(DocumentBlock, DocumentPage).join(
+            DocumentPage, DocumentPage.id == DocumentBlock.page_id
+        ).where(
+            DocumentBlock.document_version_id == workspace.paper_version_id,
+            DocumentPage.page_number.in_(page_numbers),
+            DocumentBlock.block_kind == "subpart",
+            DocumentBlock.needs_review.is_(False),
+        )).all()
+        matches = [(block, page) for block, page in rows if _matching_subpart_block(block, part)]
+        if len(matches) != 1:
+            continue
+        block, page = matches[0]
+        source = ReviewEvidence(page=page.page_number, blockId=block.id, assetId=page.render_asset_id)
+        part.paperSources.append(source)
+        added += 1
+    if added:
+        seen = {(source.page, source.blockId) for source in data.paperSources}
+        for part in data.parts:
+            for source in part.paperSources:
+                key = (source.page, source.blockId)
+                if source.blockId and key not in seen:
+                    data.paperSources.append(source)
+                    seen.add(key)
+    return added
+
+
 def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                        status: str, data: ReviewQuestionData):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
@@ -434,6 +495,7 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
     revision = row.revision if row else 0
     if revision != payload.expectedRevision:
         raise DomainError("review_conflict", "This question changed in another session. Reload before saving.", 409)
+    auto_linked = _auto_link_exact_paper_blocks(db, workspace, payload.data)
     changed = bool(row and row.review_data != payload.data.model_dump(mode="json"))
     if row and row.status == "approved" and payload.status == "approved" and changed:
         raise DomainError("reopen_required", "Reopen this approved question before editing it.", 409)
@@ -453,7 +515,8 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
     row.reviewed_at = datetime.now(timezone.utc)
     db.add(AuditEvent(actor_id=principal.user.id, action="official_review.question_saved",
                       target_type="document", target_id=str(paper_id),
-                      event_data={"number": payload.number, "revision": row.revision, "status": row.status}))
+                      event_data={"number": payload.number, "revision": row.revision, "status": row.status,
+                                  "autoLinkedPaperBlocks": auto_linked}))
     db.commit()
     return _response(db, workspace)
 

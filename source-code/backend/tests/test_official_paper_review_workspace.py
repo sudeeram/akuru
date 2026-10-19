@@ -118,6 +118,52 @@ def test_admin_can_review_one_question_without_student_release(auth_client):
 
 
 @pytest.mark.integration
+def test_approval_links_one_matching_paper_subpart_without_repeating_manual_work(auth_client):
+    client, headers, session, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    block = DocumentBlock(document_version_id=paper[1].id, page_id=paper[2].id,
+        sequence_number=2, block_kind="subpart", text="(a) Explain the chromatography diagram.",
+        bounding_box={}, extraction_method="native", confidence=1.0,
+        needs_review=False, block_metadata={})
+    session.add(block); session.commit()
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["prompt"] = "(a) Explain the chromatography diagram."
+    page_only = {"page": 1, "assetId": str(paper[4].id)}
+    body["data"]["paperSources"] = [page_only]
+    body["data"]["parts"][0]["paperSources"] = [page_only]
+    saved = client.post(root + "/questions", headers=headers, json=body)
+    assert saved.status_code == 200, saved.text
+    question = saved.json()["questions"][0]
+    assert question["status"] == "approved"
+    assert any(source.get("blockId") == str(block.id) for source in question["data"]["paperSources"])
+    assert any(source.get("blockId") == str(block.id) for source in question["data"]["parts"][0]["paperSources"])
+
+
+@pytest.mark.integration
+def test_approval_does_not_guess_when_paper_blocks_are_ambiguous(auth_client):
+    client, headers, session, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    for sequence in (2, 3):
+        session.add(DocumentBlock(document_version_id=paper[1].id, page_id=paper[2].id,
+            sequence_number=sequence, block_kind="subpart", text="(a) Explain the chromatography diagram.",
+            bounding_box={}, extraction_method="native", confidence=1.0,
+            needs_review=False, block_metadata={}))
+    session.commit()
+    assert client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 1}).status_code == 200
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["prompt"] = "(a) Explain the chromatography diagram."
+    page_only = {"page": 1, "assetId": str(paper[4].id)}
+    body["data"]["paperSources"] = [page_only]
+    body["data"]["parts"][0]["paperSources"] = [page_only]
+    response = client.post(root + "/questions", headers=headers, json=body)
+    assert response.status_code == 409, response.text
+    assert response.json()["error"]["code"] == "exact_block_required"
+
+
+@pytest.mark.integration
 def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
     client, headers, session, paper, scheme, _, topic = _setup(auth_client)
     root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
