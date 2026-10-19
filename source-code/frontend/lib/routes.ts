@@ -20,6 +20,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
     media: '/admin/media',
     evaluations: '/admin/evaluations',
     operations: '/admin/operations',
+    profile: '/admin/profile',
     security: '/admin/security',
   },
   parent: {
@@ -31,6 +32,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
     reviews: '/parent/reviews',
     assignments: '/parent/assignments',
     progress: '/parent/progress',
+    profile: '/parent/profile',
     security: '/parent/security',
   },
   student: {
@@ -44,6 +46,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
     exams: '/student/exams',
     progress: '/student/progress',
     plan: '/student/study-plan',
+    profile: '/student/profile',
     security: '/student/security',
   },
 };
@@ -166,6 +169,7 @@ const titles: Record<string, string> = {
   media: 'Visual media',
   evaluations: 'Evaluation gates',
   operations: 'Operations',
+  profile: 'My profile',
   security: 'Account security',
   students: 'Children & courses',
   tutors: 'Tutors',

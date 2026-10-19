@@ -34,6 +34,8 @@ The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build ar
 
 ## Completed
 
+- [Admin, Student and Parent profiles](completed/TODO-ACCOUNT-PROFILES.md) — implemented locally; no backend changes or deployment.
+
 - [Textbook paragraph reconstruction, newline normalization and final-document review](completed/TODO-TEXTBOOK-PARAGRAPH-RECONSTRUCTION.md) — deterministic reconstruction, Admin correction and final reviewed-document confirmation delivered.
 
 - [Visual Reference and scientific-text review](completed/TODO-VISUAL-REFERENCE-REVIEW.md) — explicit source roles, role-aware readiness, printed-page provenance and restricted scientific notation review.

@@ -53,6 +53,7 @@ import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
 import { StudentFlashcards } from '@/features/flashcards';
 import { StudentTextbooks } from '@/features/student-textbooks';
+import { AccountProfile } from '@/features/account-profile';
 import { AccountSecurity } from '@/features/account-security';
 import {
   AdminLayout,
@@ -85,6 +86,7 @@ const studentNav = [
   ['exams', 'Mock exams', Clock3],
   ['progress', 'My progress', TrendingUp],
   ['plan', 'Study plan', CalendarDays],
+  ['profile', 'My profile', Users],
   ['security', 'Account security', KeyRound],
 ] as const;
 const parentNav = [
@@ -96,6 +98,7 @@ const parentNav = [
   ['reviews', 'Assessment reviews', ClipboardCheck],
   ['assignments', 'Assignments', CalendarDays],
   ['progress', 'Learning progress', TrendingUp],
+  ['profile', 'My profile', Users],
   ['security', 'Account security', KeyRound],
 ] as const;
 const adminNav = [
@@ -115,6 +118,7 @@ const adminNav = [
   ['media', 'Visual media', Images],
   ['evaluations', 'Evaluation gates', FlaskConical],
   ['operations', 'Operations', Activity],
+  ['profile', 'My profile', Users],
   ['security', 'Account security', KeyRound],
 ] as const;
 const router = createAkuruRouter(Portal);
@@ -538,7 +542,7 @@ export function Portal() {
         }
         workspaceContext={
           !admin &&
-          view !== 'security' &&
+          !['security', 'profile'].includes(view) &&
           child.id && (
             <section
               className="workspace-context"
@@ -588,23 +592,22 @@ export function Portal() {
             id,
             label,
             icon,
-            group:
-              id === 'security'
-                ? 'Account'
-                : admin
-                  ? ['today', 'operations', 'evaluations'].includes(id)
-                    ? 'Overview & operations'
-                    : [
-                          'accounts',
-                          'ai-accounts',
-                          'tutor-presets',
-                          'tutor-quotas',
-                        ].includes(id)
-                      ? 'People & tutors'
-                      : 'Learning & content'
-                  : ['today', 'progress', 'plan'].includes(id)
-                    ? 'Overview'
-                    : 'Learning',
+            group: ['security', 'profile'].includes(id)
+              ? 'Account'
+              : admin
+                ? ['today', 'operations', 'evaluations'].includes(id)
+                  ? 'Overview & operations'
+                  : [
+                        'accounts',
+                        'ai-accounts',
+                        'tutor-presets',
+                        'tutor-quotas',
+                      ].includes(id)
+                    ? 'People & tutors'
+                    : 'Learning & content'
+                : ['today', 'progress', 'plan'].includes(id)
+                  ? 'Overview'
+                  : 'Learning',
             badge:
               id === 'reviews'
                 ? data.attempts.filter((a) => a.status === 'needs-review')
@@ -632,7 +635,12 @@ export function Portal() {
         }
         account={
           <>
-            <span className="ak-account">
+            <button
+              type="button"
+              className="ak-account profile-account-button"
+              aria-label="Open my profile"
+              onClick={() => go('profile')}
+            >
               <span className="ak-avatar">{data.user.name[0]}</span>
               <span>
                 {data.user.name}
@@ -640,7 +648,7 @@ export function Portal() {
                   {admin ? 'Administrator' : parent ? 'Parent' : child.grade}
                 </small>
               </span>
-            </span>
+            </button>
             <Button
               variant="ghost"
               size="icon"
@@ -677,7 +685,9 @@ export function Portal() {
               {notice}
             </output>
           )}
-          {view === 'security' ? (
+          {view === 'profile' ? (
+            <AccountProfile data={data} navigate={navigateTo} />
+          ) : view === 'security' ? (
             <AccountSecurity notify={notify} />
           ) : admin ? (
             <AdminWorkspace
