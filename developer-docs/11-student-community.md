@@ -22,7 +22,7 @@ Reports retain the public name at reporting and one row per reporter/target pair
 
 `/api/v1/community`: own settings, course subject choices, paginated discover/following/followers, minimal member reads, follow/unfollow, block/unblock/list, private reports, Feed and own notice read state. Admin-only `/reports` supports a paginated queue and audited review. Mutations require existing CSRF and role checks; private responses use `Cache-Control: no-store`. Pages are bounded to 20 rows and queries to 64 characters.
 
-Student route: `/student/community`, with URL-backed section/course/subject/search/page filters. Preferences also appear on the Student profile. Admin route: `/admin/community-reports`. Query keys include the actor; existing sign-out cache clearing applies. The Feed and top-bar badge share the same stored source and refresh every 60 seconds. Mutations invalidate related actor queries immediately.
+Student route: `/student/community`, with URL-backed section/course/subject/search/page filters. The Student profile keeps its banner and learning details first, followed by a compact Community identity card with public name and visibility. Manage community profile opens the same preferences in a guarded drawer, full-width on mobile. Admin route: `/admin/community-reports`. Query keys include the actor; existing sign-out cache clearing applies. The Feed and top-bar badge share the same stored source and refresh every 60 seconds. Mutations invalidate related actor queries immediately.
 
 ## Verification and release
 

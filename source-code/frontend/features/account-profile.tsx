@@ -95,7 +95,6 @@ export function AccountProfile({
           </Button>
         }
       />
-      {role === 'student' && <CommunitySettingsPanel actorRef={data.user.id} />}
       <section className="profile-banner" aria-label="Profile summary">
         <div className="profile-banner-pattern" aria-hidden="true" />
         <div className="profile-identity">
@@ -268,6 +267,7 @@ export function AccountProfile({
                   />
                 )}
               </DashboardCard>
+              <CommunitySettingsPanel actorRef={data.user.id} compact />
             </>
           )}
           {role === 'parent' && (

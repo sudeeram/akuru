@@ -286,3 +286,17 @@
     display: none;
   }
 }
+
+.community-identity-summary > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.community-identity-summary strong {
+  overflow-wrap: anywhere;
+}
+.community-identity-summary p {
+  margin: 8px 0 12px;
+  font-size: 0.85rem;
+}

@@ -134,7 +134,7 @@ Use Find an exact explanation to search the approved textbook for your active un
 
 ## Community and your public name
 
-Open **Community → Settings**, or **My profile → Your community profile**. Choose a public name (3–32 letters, numbers, spaces, hyphens or underscores), select any enrolled subjects you want to show, and enable participation. Use a name that does not identify you personally. Public names are unique; your login username stays unchanged. Existing accounts start with participation switched off.
+Open **Community → Settings**, or **My profile → Community identity → Manage community profile**. Choose a public name (3–32 letters, numbers, spaces, hyphens or underscores), select any enrolled subjects you want to show, and enable participation. Use a name that does not identify you personally. Public names are unique; your login username stays unchanged. Existing accounts start with participation switched off.
 
 **Discover** shows participating students in your current course, such as iGCSE. You can search public names and optionally filter by visible subjects. You can follow someone in your course even when you study different subjects. Connections continue if either learner later changes course.
 

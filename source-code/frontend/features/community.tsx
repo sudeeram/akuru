@@ -87,7 +87,13 @@ function Pagination({
   );
 }
 
-export function CommunitySettingsPanel({ actorRef }: { actorRef: string }) {
+export function CommunitySettingsPanel({
+  actorRef,
+  compact = false,
+}: {
+  actorRef: string;
+  compact?: boolean;
+}) {
   const query = useQuery({
     queryKey: [...key(actorRef), 'settings'],
     queryFn: getCommunitySettings,
@@ -99,17 +105,26 @@ export function CommunitySettingsPanel({ actorRef }: { actorRef: string }) {
       key={JSON.stringify(query.data)}
       actorRef={actorRef}
       settings={query.data}
+      compact={compact}
     />
   );
 }
 function CommunityPreferences({
   actorRef,
   settings,
+  compact,
 }: {
   actorRef: string;
   settings: CommunitySettings;
+  compact: boolean;
 }) {
   const cache = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const initialDraft = {
+    publicName: settings.publicName,
+    enabled: settings.enabled,
+    visibleSubjectIds: settings.visibleSubjectIds,
+  };
   const [draft, setDraft] = useState<Required<CommunitySettingsDraft>>({
     publicName: settings.publicName,
     enabled: settings.enabled,
@@ -125,8 +140,8 @@ function CommunityPreferences({
       enabled: settings.enabled,
       visibleSubjectIds: settings.visibleSubjectIds,
     });
-  useWorkspaceGuard(dirty, busy);
-  return (
+  useWorkspaceGuard(!compact && dirty, !compact && busy);
+  const editor = (
     <CommunityCard
       title="Your community profile"
       description="Choose how other students see you. Your real name and login details stay private."
@@ -149,7 +164,13 @@ function CommunityPreferences({
           setBusy(true);
           setError('');
           try {
-            await saveCommunitySettings(draft);
+            const saved = await saveCommunitySettings(draft);
+            setDraft({
+              publicName: saved.publicName,
+              enabled: saved.enabled,
+              visibleSubjectIds: saved.visibleSubjectIds,
+            });
+            if (compact) setOpen(false);
             setMessage('Community preferences saved.');
             await cache.invalidateQueries({ queryKey: key(actorRef) });
           } catch (e) {
@@ -234,6 +255,51 @@ function CommunityPreferences({
         {message && <output aria-live="polite">{message}</output>}
       </form>
     </CommunityCard>
+  );
+  if (!compact) return editor;
+  return (
+    <>
+      <CommunityCard
+        title="Community identity"
+        description="Your public name and visibility to other students"
+      >
+        <div className="community-identity-summary">
+          <div>
+            <strong>{settings.publicName || 'No public name yet'}</strong>
+            <span className="pill">
+              {settings.enabled && !settings.nameChangeRequired
+                ? 'Visible'
+                : 'Hidden'}
+            </span>
+          </div>
+          <p>
+            {settings.nameChangeRequired
+              ? 'Choose a new public name before rejoining.'
+              : 'Manage your public name, participation and visible subjects.'}
+          </p>
+          <Button variant="outline" onClick={() => setOpen(true)}>
+            Manage community profile
+          </Button>
+        </div>
+      </CommunityCard>
+      <EditorDrawer
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) {
+            setDraft(initialDraft);
+            setError('');
+            setMessage('');
+          }
+        }}
+        title="Manage community profile"
+        description="Choose what other students can see. Your account details stay private."
+        dirty={dirty}
+        busy={busy}
+      >
+        {editor}
+      </EditorDrawer>
+    </>
   );
 }
 

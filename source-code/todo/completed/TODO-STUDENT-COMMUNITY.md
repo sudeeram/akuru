@@ -138,3 +138,7 @@ Keep connection storage separate from discovery scope and event types versioned.
 - Production deployment evidence: `/data/akuru/release-evidence/deployed-community-4f3b177a21794963e0393607d59967d100b8cb10-20261019T135556Z.txt`. Prior application/build retained for rollback; additive tables are retained if code is rolled back.
 - Disposable local QA accounts were removed after browser acceptance. No production Student identity, follow, notification or learning records were changed by verification.
 - Final documentation-only completion commit follows the application release; no runtime code changes are included in it.
+
+## Profile organization follow-up
+
+The approved UX refinement keeps the profile banner first, with account and learning details before a compact Community identity card. The card shows the public name and visibility, with Manage community profile opening a guarded settings drawer. Community → Settings remains available. Desktop saving updated the summary and closed the drawer; mobile acceptance confirmed 390px drawer/content width at a 390px viewport. Frontend tests (81), type checks, lint and build passed. This refinement changes frontend presentation only; no API, database or backend behavior changes.
