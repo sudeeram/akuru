@@ -33,7 +33,6 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   getDocumentExtraction,
   getPaperReview,
-  getReviewTopicEvidence,
   getReviewTopics,
   savePaperReviewQuestion,
   seedPaperReview,
@@ -464,10 +463,6 @@ export function OfficialPaperReview({
   const [topics, setTopics] = useState<
     { topicRef: string; code: string; title: string }[]
   >([]);
-  const [evidence, setEvidence] = useState<
-    { pageNumber: number; text: string }[]
-  >([]);
-  const [evidenceTopic, setEvidenceTopic] = useState('');
   const [selected, setSelected] = useState('');
   const [number, setNumber] = useState('');
   const [data, setData] = useState<ReviewQuestionData>(emptyQuestion());
@@ -603,19 +598,6 @@ export function OfficialPaperReview({
       active = false;
     };
   }, [review?.reportDocumentId]);
-  useEffect(() => {
-    if (!evidenceTopic) return;
-    let active = true;
-    void getReviewTopicEvidence(paperId, evidenceTopic)
-      .then((value) => {
-        if (active) setEvidence(value.chunks);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [paperId, evidenceTopic]);
-
   async function act(action: () => Promise<PaperReview>, message: string) {
     setBusy(true);
     setError('');
@@ -2238,7 +2220,6 @@ export function OfficialPaperReview({
                       <TabsTrigger value="paper">Paper</TabsTrigger>
                       <TabsTrigger value="scheme">Marking scheme</TabsTrigger>
                       <TabsTrigger value="report">Report</TabsTrigger>
-                      <TabsTrigger value="textbook">Textbook</TabsTrigger>
                     </TabsList>
                     <TabsContent
                       value="paper"
@@ -2306,40 +2287,6 @@ export function OfficialPaperReview({
                             : undefined
                         }
                       />
-                    </TabsContent>
-                    <TabsContent value="textbook">
-                      <section className="pr-source-body stack">
-                        <h3>Published textbook evidence</h3>
-                        <select
-                          aria-label="Textbook topic"
-                          value={evidenceTopic}
-                          onChange={(event) => {
-                            setEvidenceTopic(event.target.value);
-                            setEvidence([]);
-                          }}
-                        >
-                          <option value="">Choose topic</option>
-                          {topics.map((topic) => (
-                            <option value={topic.topicRef} key={topic.topicRef}>
-                              {topic.code} · {topic.title}
-                            </option>
-                          ))}
-                        </select>
-                        <div style={{ maxHeight: 520, overflow: 'auto' }}>
-                          {evidence.map((chunk, index) => (
-                            <details key={`${chunk.pageNumber}-${index}`}>
-                              <summary>
-                                Extracted page {chunk.pageNumber}
-                              </summary>
-                              <p>{chunk.text}</p>
-                            </details>
-                          ))}
-                        </div>
-                        <p className="small">
-                          Text similarity does not approve a mapping; check the
-                          assessed concept and source page.
-                        </p>
-                      </section>
                     </TabsContent>
                   </Tabs>
                 )}

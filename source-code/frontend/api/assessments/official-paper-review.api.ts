@@ -32,8 +32,6 @@ export const seedPaperReview = (paperId: string, draftBank: object, coverageTria
   request<PaperReview>(`${base(paperId)}/seed`, { method: 'POST', body: { draftBank, coverageTriage } });
 export const getReviewTopics = (paperId: string) =>
   request<{topicRef: string; code: string; title: string}[]>(`${base(paperId)}/topics`);
-export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
-  request<{topicRef: string; code: string; title: string; chunks: {pageNumber: number; text: string}[]}>(`${base(paperId)}/topics/${encodeURIComponent(topicRef)}/evidence`);
 export const prepareOfficialReviewDrafts = (paperId: string) =>
   request<{paperDocumentId:string;paperDraftVersion:number;schemeDocumentId:string;schemeDraftVersion:number;published:false}>(`${base(paperId)}/prepare-official-drafts`, {method:'POST',body:{}});
 export const createPaperReviewCrop = (paperId: string, body: {
