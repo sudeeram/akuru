@@ -4,7 +4,6 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Student Community: course discovery and following](ongoing/TODO-STUDENT-COMMUNITY.md) — implementation and local acceptance in progress; commit and production deployment authorized.
 
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
 
@@ -38,6 +37,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [Student Community: course discovery and following](completed/TODO-STUDENT-COMMUNITY.md) — opt-in public names, course discovery and subject filters, following, Feed notifications, blocking and Admin report review; verified and deployed to production.
 
 - [Admin, Student and Parent profiles](completed/TODO-ACCOUNT-PROFILES.md) — implemented locally; no backend changes or deployment.
 

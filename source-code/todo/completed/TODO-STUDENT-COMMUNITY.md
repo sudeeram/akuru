@@ -2,7 +2,7 @@
 
 Proposed 19 October 2026 (Asia/Colombo).
 
-Status: implementation and local acceptance in progress. The user authorized end-to-end implementation, commit and production deployment on 19 October 2026.
+Status: complete; implemented, verified, committed and deployed to production. The user authorized end-to-end implementation, commit and production deployment on 19 October 2026.
 
 ## Goal
 
@@ -103,7 +103,7 @@ Both frontend and backend work, including additive database migrations, will be 
 - [x] Verify privacy in API responses, list counts, search results, notification previews and avatar fallback; no private identity or learning data is disclosed.
 - [x] Verify migration upgrades on a disposable database, API contract parity, relevant backend/frontend suites and production build.
 - [x] Update Student/Admin and developer documentation; complete local browser review with representative participating and nonparticipating accounts.
-- [ ] Record production acceptance results. Commit and deploy through verified encrypted backup, preflight and production acceptance, as subsequently authorized by the user.
+- [x] Record production acceptance results. Commit and deploy through verified encrypted backup, preflight and production acceptance, as subsequently authorized by the user.
 
 ## Acceptance examples
 
@@ -126,4 +126,15 @@ Keep connection storage separate from discovery scope and event types versioned.
 - Fresh local backup restored successfully. Migration upgrade/schema parity/existing row counts, downgrade and re-upgrade passed in a disposable restored database. Local migration applied successfully.
 - Signed-in local browser acceptance used disposable accounts: opt-in/public name, discovery across different subjects, subject filter, follow, recipient top-bar badge and Feed, follow back/mutual state, mark read, private report, block/unblock and Admin hide/name-change review passed. Mobile Feed reported 390px content width at a 390px viewport.
 - Implementation detail: courses derive from current progression; one current course is supported by today's data model. Subject choices use visible enrolled subjects in that course plus the viewer's own subjects. Public names use normalized unique case-insensitive keys; mutations allow 30 successful changes/minute; follow notifications deduplicate for 24 hours.
-- Guides and developer documentation are updated. Production deployment remains pending its encrypted backup and release acceptance.
+- Guides and developer documentation are updated. Production deployment passed its encrypted backup and release acceptance.
+
+## Production acceptance — 19 October 2026
+
+- Application release: `4f3b177a21794963e0393607d59967d100b8cb10`, with avatar refinements in preceding commit `1a6acb0`. Both commits pushed to main.
+- Fresh encrypted database/document backup verified before activation: `akuru-20261019T135426Z.manifest`.
+- Production staged build, type checks, lint and all 81 frontend tests passed. Ten isolated Community HTTP checks also passed on the production runtime without writing production Student records.
+- Migration `0012_student_community` applied; schema parity passed. Verified new community profiles/follows were empty before service restart, leaving existing Students opted out.
+- Isolated preview, new Student/Admin routes, private API rejection of unauthenticated requests, HTTPS/security headers, routing boundaries, services, timers and loopback binding passed.
+- Production deployment evidence: `/data/akuru/release-evidence/deployed-community-4f3b177a21794963e0393607d59967d100b8cb10-20261019T135556Z.txt`. Prior application/build retained for rollback; additive tables are retained if code is rolled back.
+- Disposable local QA accounts were removed after browser acceptance. No production Student identity, follow, notification or learning records were changed by verification.
+- Final documentation-only completion commit follows the application release; no runtime code changes are included in it.
