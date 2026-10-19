@@ -4,7 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'AKURU · Family learning',
   description: 'AKURU is your family’s space to learn, practise and grow.',
-  icons: { icon: [{ url: '/favicon-friendly-bot.png', type: 'image/png' }] },
+  icons: { icon: [{ url: '/favicon-friendly-bot.png?v=2', type: 'image/png' }] },
 };
 export default function RootLayout({
   children,
