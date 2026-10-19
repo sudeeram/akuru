@@ -1,4 +1,5 @@
 'use client';
+import { ReviewBadge } from '@/components/portal/badges';
 import {
   useWorkspaceGuard,
   LoadingState,
@@ -122,13 +123,11 @@ export function FinalDocumentReviewWorkspace({
               : 'Read and correct the exact continuous content AKURU will publish. Every edit updates the underlying review draft.'}
           </p>
         </div>
-        <span
-          className={`review-status-badge ${review.confirmed ? 'review-status-complete' : 'review-status-required'}`}
-        >
+        <ReviewBadge state={review.confirmed ? 'complete' : 'required'}>
           {review.confirmed
             ? 'Final document confirmed'
             : 'Confirmation required'}
-        </span>
+        </ReviewBadge>
       </div>
       {error && (
         <p className="error" role="alert">

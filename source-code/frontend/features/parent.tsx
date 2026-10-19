@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { useState } from 'react';
@@ -555,11 +556,10 @@ export function Assignments(p: FeatureProps) {
                     </TableCell>
                     <TableCell>{a.due}</TableCell>
                     <TableCell>
-                      <span
-                        className={`status ${a.completed ? 'approved' : 'pending'}`}
-                      >
-                        {a.completed ? 'Completed' : 'To do'}
-                      </span>
+                      <StatusBadge
+                        status={a.completed ? 'completed' : 'pending'}
+                        label={a.completed ? 'Completed' : 'To do'}
+                      />
                     </TableCell>
                   </TableRow>
                 ))}

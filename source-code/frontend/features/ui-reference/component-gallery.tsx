@@ -28,7 +28,11 @@ import {
   AvatarFallback,
   AvatarGroup,
 } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import {
+  StatusBadge,
+  MetadataBadge,
+  CountBadge,
+} from '@/components/portal/badges';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -100,9 +104,9 @@ export function ComponentGallery() {
               accessibility needs and family learning context.
             </p>
           </div>
-          <Badge className="ui-status-info">
+          <MetadataBadge>
             <Palette /> Approved palette
-          </Badge>
+          </MetadataBadge>
         </div>
         <div className="ui-feature-grid">
           <Card className="ui-feature-card wide">
@@ -183,10 +187,17 @@ export function ComponentGallery() {
               <CardTitle>Badges</CardTitle>
             </CardHeader>
             <CardContent className="ui-demo-row">
-              <Badge className="ui-status-success">Ready</Badge>
-              <Badge className="ui-status-warning">Needs review</Badge>
-              <Badge className="ui-status-info">In progress</Badge>
-              <Badge variant="outline">Draft</Badge>
+              <StatusBadge status="ready" label="Ready" />
+              <StatusBadge status="review required" label="Needs review" />
+              <StatusBadge status="in progress" label="In progress" />
+              <StatusBadge status="draft" />
+              <StatusBadge status="failed" />
+              <StatusBadge status="visible" />
+              <StatusBadge status="hidden" />
+              <StatusBadge status="following each other" />
+              <MetadataBadge>iGCSE</MetadataBadge>
+              <MetadataBadge>Science</MetadataBadge>
+              <CountBadge count={3} label="unread notifications" />
             </CardContent>
           </Card>
           <Card className="ui-feature-card">
@@ -269,9 +280,7 @@ export function ComponentGallery() {
           {taskColumns.map((column) => (
             <div className="ui-task-column" key={column.title}>
               <div className="ui-task-column-heading">
-                <Badge className={`ui-status-${column.tone}`}>
-                  {column.title}
-                </Badge>
+                <StatusBadge status={column.title} label={column.title} />
                 <Button
                   disabled
                   variant="ghost"
@@ -361,7 +370,7 @@ export function ComponentGallery() {
             <CardHeader>
               <CardTitle>Coverage progress</CardTitle>
               <CardAction>
-                <Badge className="ui-status-success">On track</Badge>
+                <StatusBadge status="on track" label="On track" />
               </CardAction>
             </CardHeader>
             <CardContent className="ui-demo-stack">
@@ -447,7 +456,7 @@ export function ComponentGallery() {
                         <TableCell>Grade 10 · Term 2</TableCell>
                         <TableCell>Maths, Physics, ICT</TableCell>
                         <TableCell>
-                          <Badge className="ui-status-success">Active</Badge>
+                          <StatusBadge status="active" label="Active" />
                         </TableCell>
                       </TableRow>
                       <TableRow>
@@ -455,7 +464,7 @@ export function ComponentGallery() {
                         <TableCell>Grade 11 · Term 1</TableCell>
                         <TableCell>English, Biology, Chemistry</TableCell>
                         <TableCell>
-                          <Badge className="ui-status-warning">Review</Badge>
+                          <StatusBadge status="review" label="Review" />
                         </TableCell>
                       </TableRow>
                     </TableBody>
@@ -488,7 +497,7 @@ export function ComponentGallery() {
               readable data labels.
             </p>
           </div>
-          <Badge className="ui-status-info">Last 6 weeks</Badge>
+          <MetadataBadge>Last 6 weeks</MetadataBadge>
         </div>
         <div className="ui-feature-grid">
           <Card className="ui-feature-card wide">
@@ -638,7 +647,7 @@ export function ComponentGallery() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">Parent</Badge>
+                      <MetadataBadge>Parent</MetadataBadge>
                     </TableCell>
                     <TableCell>2 children</TableCell>
                     <TableCell>
@@ -660,7 +669,7 @@ export function ComponentGallery() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className="ui-status-info">Student</Badge>
+                      <MetadataBadge>Student</MetadataBadge>
                     </TableCell>
                     <TableCell>Grade 10 · Term 2</TableCell>
                     <TableCell>

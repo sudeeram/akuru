@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
 import { useFocusMode, AdvancedPanel } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 /* State effects synchronise API-loaded defaults with the session form. */
@@ -318,7 +319,7 @@ export function TutorSessions({
           />
         )}
         <div>
-          <span className="pill">{session.subjectId.toUpperCase()}</span>
+          <MetadataBadge>{session.subjectId.toUpperCase()}</MetadataBadge>
           <h2>{activeLabel}</h2>
           <p>
             Practice session · Tutor profile version{' '}
@@ -382,9 +383,9 @@ export function TutorSessions({
       >
         <div className="panel-heading">
           <div>
-            <span className="pill">
+            <MetadataBadge>
               <ArrowRightLeft size={13} /> CONTINUOUS HANDOVER
-            </span>
+            </MetadataBadge>
             <h2>Conversation</h2>
           </div>
         </div>
@@ -531,9 +532,9 @@ export function TutorSessions({
         <section className="panel stack tutor-next-topic">
           <div className="panel-heading">
             <div>
-              <span className="pill">
+              <MetadataBadge>
                 <Compass size={13} /> EVIDENCE-BASED
-              </span>
+              </MetadataBadge>
               <h2>What should I improve next?</h2>
             </div>
             <Button
@@ -567,7 +568,7 @@ export function TutorSessions({
             ) : (
               <article className="card stack">
                 <div>
-                  <span className="pill">PRIORITY TOPIC</span>
+                  <MetadataBadge>PRIORITY TOPIC</MetadataBadge>
                   <h3>{`${nextTopic.recommendation.topic.groupCode} · ${nextTopic.recommendation.topic.code} · ${nextTopic.recommendation.topic.title}`}</h3>
                 </div>
                 <p>{nextTopic.recommendation.reason}</p>
@@ -607,9 +608,9 @@ export function TutorSessions({
         <section className="panel stack tutor-sources">
           <div className="panel-heading">
             <div>
-              <span className="pill">
+              <MetadataBadge>
                 <BookMarked size={13} /> APPROVED TEXTBOOK
-              </span>
+              </MetadataBadge>
               <h2>Find an exact explanation</h2>
             </div>
           </div>
@@ -659,9 +660,9 @@ export function TutorSessions({
             >
               <div className="panel-heading">
                 <div>
-                  <span className="pill">
+                  <MetadataBadge>
                     {citation.contentKind.toUpperCase()}
-                  </span>
+                  </MetadataBadge>
                   <h3>
                     {citation.textbookTitle} · {citation.pageReference}
                   </h3>
@@ -726,7 +727,7 @@ export function TutorSessions({
         <section className="panel stack tutor-guided-practice">
           <div className="panel-heading">
             <div>
-              <span className="pill">GUIDED PRACTICE</span>
+              <MetadataBadge>GUIDED PRACTICE</MetadataBadge>
               <h2>Practise one eligible question</h2>
             </div>
             {!practice || practice.status === 'submitted' ? (
@@ -945,7 +946,10 @@ function QuotaSummary({ quota }: { quota: TutorQuota }) {
       aria-label="Tutor allowance"
     >
       <div>
-        <span className="pill">{quota.state.toUpperCase()}</span>
+        <StatusBadge
+          status={quota.state}
+          label={quota.state[0].toUpperCase() + quota.state.slice(1)}
+        />
         <strong>{quota.requests.remaining} tutor requests remaining</strong>
       </div>
       <p>
@@ -972,9 +976,9 @@ function TutorVisualAid({
       aria-label={`${official ? 'Official source visual' : 'Explanatory visual'}: ${visual.title}`}
     >
       <header>
-        <span className="pill">
+        <MetadataBadge>
           {official ? 'OFFICIAL SOURCE' : 'EXPLANATORY AID'}
-        </span>
+        </MetadataBadge>
         <h3>{visual.title}</h3>
       </header>
       {visual.equation ? (

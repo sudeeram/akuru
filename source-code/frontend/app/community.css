@@ -255,16 +255,7 @@
   font-weight: 700;
   overflow-wrap: anywhere;
 }
-.community-unread-count {
-  display: inline-grid;
-  place-items: center;
-  background: #4654ba;
-  color: #fff;
-  border-radius: 20px;
-  min-width: 20px;
-  padding: 1px 5px;
-  font-size: 0.7rem;
-}
+
 @media (max-width: 600px) {
   .community-card-body {
     padding: 12px;

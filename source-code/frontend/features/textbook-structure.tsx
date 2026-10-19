@@ -1,4 +1,5 @@
 'use client';
+import { ReviewBadge, StatusBadge } from '@/components/portal/badges';
 import { AdvancedPanel, EditorDrawer } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import {
@@ -183,11 +184,11 @@ function TopicSourceManager({
         >
           <div className="spread">
             <strong>End-to-end launch readiness</strong>
-            <span
-              className={`review-status-badge ${launch.overallStatus === 'ready' ? 'review-status-complete' : 'review-status-required'}`}
+            <ReviewBadge
+              state={launch.overallStatus === 'ready' ? 'complete' : 'required'}
             >
               {launch.overallStatus}
-            </span>
+            </ReviewBadge>
           </div>
           {launch.checks.map((check) => (
             <div className="spread" key={check.code}>
@@ -596,11 +597,11 @@ function VisualAssetCard({
         <strong>
           {asset.kind} · page {asset.printedPage || asset.page}
         </strong>
-        <span
-          className={`review-status-badge ${asset.status === 'approved' ? 'review-status-complete' : 'review-status-required'}`}
+        <ReviewBadge
+          state={asset.status === 'approved' ? 'complete' : 'required'}
         >
           {asset.status}
-        </span>
+        </ReviewBadge>
       </div>
       <Image
         unoptimized
@@ -1027,7 +1028,7 @@ export function TextbookStructureAdmin({
                         <small>{reviewCount} need review</small>
                       </td>
                       <td>
-                        <span className="status">{item.status}</span>
+                        <StatusBadge status={item.status} />
                       </td>
                       <td>
                         <div className="button-row">

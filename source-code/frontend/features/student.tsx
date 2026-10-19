@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { Equation, LearningImage } from './learning-media';
@@ -105,7 +106,7 @@ export function Subjects(p: FeatureProps) {
             {p.child.courses[active.id]?.level} · {p.child.grade}
           </span>
         </div>
-        <span className="pill">Demo learning collection</span>
+        <MetadataBadge>Demo learning collection</MetadataBadge>
       </div>
       {error && (
         <div className="error" role="alert">
@@ -126,9 +127,9 @@ export function Subjects(p: FeatureProps) {
               <p className="lesson-prompt">{lesson.prompt}</p>
             </section>
             <section className="panel">
-              <span className="pill">
+              <MetadataBadge>
                 <BookOpen size={14} /> Guided explanation
-              </span>
+              </MetadataBadge>
               <h2 className="spaced">Let’s make sense of it.</h2>
               <p className="lesson-explanation">{explain?.explanation}</p>
               <h3 className="spaced">What to include</h3>
@@ -404,15 +405,15 @@ export function Practice(p: FeatureProps) {
           onChange={setQid}
           options={qs.map((q) => ({ value: q.id, label: q.title }))}
         />
-        <span className="pill">
+        <MetadataBadge>
           {p.child.courses[p.subject]?.level} · {p.child.grade}
-        </span>
+        </MetadataBadge>
       </div>
       <div className="workspace-grid">
         <section className="panel question-panel">
           <div className="spread">
             <span className="eyebrow">{q.topic}</span>
-            <span className="pill">{q.marks} marks</span>
+            <MetadataBadge>{q.marks} marks</MetadataBadge>
           </div>
           <h2>{q.title}</h2>
           <p className="question-text">{q.prompt}</p>
@@ -814,7 +815,7 @@ export function Exams(p: FeatureProps) {
             <section className="panel">
               <div className="spread">
                 <h2>{q.title}</h2>
-                <span className="pill">{q.marks} marks</span>
+                <MetadataBadge>{q.marks} marks</MetadataBadge>
               </div>
               <p className="question-text">{q.prompt}</p>
               {!!q.equations?.length && (

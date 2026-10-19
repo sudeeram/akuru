@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 import {
   AdvancedPanel,
   LoadingState,
@@ -462,7 +463,7 @@ export function EvaluationAdmin({
                     {c.name} · {c.workflow} v{c.versionNumber}
                   </strong>
                   <p>
-                    {c.cases.length} cases · {c.status} · hash{' '}
+                    {c.cases.length} cases · <StatusBadge status={c.status} /> · hash{' '}
                     {c.contentHash.slice(0, 12)}…
                   </p>
                   {c.status === 'draft' && (

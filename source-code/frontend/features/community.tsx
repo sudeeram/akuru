@@ -1,4 +1,9 @@
 'use client';
+import {
+  MetadataBadge,
+  StatusBadge,
+  CountBadge,
+} from '@/components/portal/badges';
 import { useState, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Users, ShieldCheck, UserPlus, Search } from 'lucide-react';
@@ -266,11 +271,13 @@ function CommunityPreferences({
         <div className="community-identity-summary">
           <div>
             <strong>{settings.publicName || 'No public name yet'}</strong>
-            <span className="pill">
-              {settings.enabled && !settings.nameChangeRequired
-                ? 'Visible'
-                : 'Hidden'}
-            </span>
+            <StatusBadge
+              status={
+                settings.enabled && !settings.nameChangeRequired
+                  ? 'visible'
+                  : 'hidden'
+              }
+            />
           </div>
           <p>
             {settings.nameChangeRequired
@@ -327,9 +334,7 @@ export function CommunityNotificationButton({
       <Bell size={16} />
       <span className="community-notice-label">Feed</span>
       {count > 0 && (
-        <span className="community-unread-count">
-          {count > 99 ? '99+' : count}
-        </span>
+        <CountBadge count={count} label="unread community notifications" />
       )}
     </Button>
   );
@@ -446,17 +451,26 @@ export function StudentCommunity({
         <div>
           <h3>{member.publicName}</h3>
           {member.subjects.length > 0 && (
-            <p>{member.subjects.map((s) => s.name).join(' · ')}</p>
+            <p className="ak-badge-wrap">
+              {member.subjects.map((s) => (
+                <MetadataBadge size="xs" key={s.id}>
+                  {s.name}
+                </MetadataBadge>
+              ))}
+            </p>
           )}
-          <small>
-            {member.following && member.followsYou
-              ? 'Following each other'
-              : member.followsYou
-                ? 'Follows you'
-                : member.following
-                  ? 'Following'
-                  : ''}
-          </small>
+          {(member.following || member.followsYou) && (
+            <StatusBadge
+              size="xs"
+              status={
+                member.following && member.followsYou
+                  ? 'following each other'
+                  : member.followsYou
+                    ? 'follows you'
+                    : 'following'
+              }
+            />
+          )}
         </div>
       </div>
       {controls && (

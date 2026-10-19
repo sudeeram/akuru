@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 import {
   AdvancedPanel,
   EditorDrawer,
@@ -252,7 +253,7 @@ export function TutorHistory({
                 <strong>
                   {item.studentName} · {item.category.replace('_', ' ')}
                 </strong>
-                <span className="pill">{item.severity}</span>
+                <StatusBadge status={item.severity} tone={item.severity === 'low' ? 'neutral' : undefined} />
               </div>
               <p>{item.action}</p>
               <small>

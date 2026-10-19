@@ -1,4 +1,5 @@
 'use client';
+import { CountBadge } from '@/components/portal/badges';
 
 import Link from 'next/link';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
@@ -222,9 +223,10 @@ export function UiFeaturesExperience({
               }
             >
               <Bell size={18} />
-              <span className="ak-notification-count">
-                {notices.length - read.length}
-              </span>
+              <CountBadge
+                count={notices.length - read.length}
+                label="unread sample notifications"
+              />
             </SheetTrigger>
             <SheetContent className="ak-detail-sheet">
               <SheetHeader>

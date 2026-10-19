@@ -103,3 +103,7 @@ Global tokens and application layout live in `app/globals.css`. AKURU uses a lig
 ## Production build
 
 `npm run build` invokes the root wrapper and creates `frontend/dist`. `frontend/serve-local.mjs` starts the built Vinext server on loopback port `5181`. Nginx handles public HTTPS and routes API traffic separately.
+
+## Status, metadata and count badges
+
+Portal and public screens share the badge components under `frontend/components/portal/badges.tsx`, explicit semantic mapping in `frontend/lib/badges.ts`, and palette/geometry in `frontend/app/badges.css`. Use a status badge for state, quiet outlined metadata for facts, and count badges for real counts. Preserve domain-specific wording and avoid substring status classification. The [badge audit and validation record](../source-code/frontend/docs/badge-system.md) lists the integrated areas and accessibility checks.

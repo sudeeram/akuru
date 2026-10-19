@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 import { AdvancedPanel, LoadingState } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import { MetricCard } from '@/components/portal/dashboard-widgets';
@@ -240,8 +241,11 @@ export function TutorQuotaAdmin({
         <section className="panel stack">
           <h2>Current usage</h2>
           <p>
-            <span className="pill">{draft.state.toUpperCase()}</span> Renews{' '}
-            {new Date(draft.renewsAt).toLocaleString()}
+            <StatusBadge
+              status={draft.state}
+              label={draft.state[0].toUpperCase() + draft.state.slice(1)}
+            />{' '}
+            Renews {new Date(draft.renewsAt).toLocaleString()}
           </p>
           <div className="three-cols">
             {(

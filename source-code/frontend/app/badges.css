@@ -1,0 +1,122 @@
+/* Shared badge geometry and semantic palette; icons always accompany text. */
+.ak-badge,
+.ak-shell .ak-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 23px;
+  padding: 2px 8px;
+  border: 1px solid var(--badge-border, #dce3ec);
+  border-radius: 999px;
+  background: var(--badge-bg, #f5f7fa);
+  color: var(--badge-fg, #475569);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0;
+  vertical-align: middle;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.ak-badge > svg,
+.ak-shell .ak-badge > svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.ak-badge > span,
+.ak-shell .ak-badge > span {
+  min-width: 0;
+}
+.ak-badge[data-size='xs'],
+.ak-shell .ak-badge[data-size='xs'] {
+  min-height: 20px;
+  padding: 1px 6px;
+  font-size: 10px;
+  gap: 4px;
+}
+.ak-badge[data-tone='success'],
+.ak-shell .ak-badge[data-tone='success'] {
+  --badge-bg: #eaf6ef;
+  --badge-fg: #22633f;
+  --badge-border: #c7e6d2;
+}
+.ak-badge[data-tone='warning'],
+.ak-shell .ak-badge[data-tone='warning'] {
+  --badge-bg: #fff6df;
+  --badge-fg: #805014;
+  --badge-border: #ead5a0;
+}
+.ak-badge[data-tone='danger'],
+.ak-shell .ak-badge[data-tone='danger'] {
+  --badge-bg: #fdeef0;
+  --badge-fg: #a0253b;
+  --badge-border: #efc8d0;
+}
+.ak-badge[data-tone='info'],
+.ak-shell .ak-badge[data-tone='info'] {
+  --badge-bg: #edf3ff;
+  --badge-fg: #315a9d;
+  --badge-border: #cfddf4;
+}
+.ak-badge[data-tone='neutral'],
+.ak-shell .ak-badge[data-tone='neutral'] {
+  --badge-bg: #f5f7fa;
+  --badge-fg: #475569;
+  --badge-border: #dce3ec;
+}
+.ak-badge[data-tone='accent'],
+.ak-shell .ak-badge[data-tone='accent'] {
+  --badge-bg: #f0edff;
+  --badge-fg: #6043a0;
+  --badge-border: #dcd2f4;
+}
+.ak-badge-meta,
+.ak-shell .ak-badge-meta {
+  background: transparent;
+  font-weight: 500;
+  border-radius: 6px;
+}
+.ak-badge-count,
+.ak-shell .ak-badge-count {
+  min-width: 21px;
+  min-height: 21px;
+  padding: 1px 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ak-badge-row,
+.ak-shell .ak-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.community-person .ak-badge-status,
+.ak-shell .community-person .ak-badge-status {
+  margin-top: 5px;
+}
+.ak-badge-wrap,
+.ak-shell .ak-badge-wrap {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ak-badge-meta > svg,
+.ak-shell .ak-badge-meta > svg {
+  color: inherit;
+}
+.ak-badge-meta,
+.ak-shell .ak-badge-meta {
+  align-self: center;
+}
+.pr-question-list .ak-badge-status,
+.ak-shell .pr-question-list .ak-badge-status {
+  margin-top: 4px;
+}

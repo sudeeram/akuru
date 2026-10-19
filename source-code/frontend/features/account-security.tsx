@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 import { useState } from 'react';
 import { KeyRound, ShieldCheck } from 'lucide-react';
 import { api, errorMessage } from '@/api';
@@ -62,9 +63,9 @@ export function AccountSecurity({
         )}
         <div className="panel-heading">
           <div>
-            <span className="pill">
+            <MetadataBadge>
               <ShieldCheck size={14} /> PROTECTED ACCOUNT
-            </span>
+            </MetadataBadge>
             <h2>Choose a new password</h2>
           </div>
           <KeyRound />

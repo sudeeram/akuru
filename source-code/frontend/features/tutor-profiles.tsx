@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 import {
   EditorDrawer,
   FilterToolbar,
@@ -106,15 +107,15 @@ function ProfileCard({
       </div>
       <div className="stack tutor-profile-copy">
         <div>
-          <span className="pill">AI TUTOR · VERSION {profile.version}</span>
+          <MetadataBadge>AI TUTOR · VERSION {profile.version}</MetadataBadge>
           <h3>{profile.name}</h3>
           <p>{avatar?.description}</p>
         </div>
         <div className="tutor-tags">
-          <span>{title(profile.presentation)}</span>
-          <span>{title(profile.communicationCharacter)}</span>
-          <span>{title(profile.tone)}</span>
-          <span>{title(profile.teachingStyle)}</span>
+          <MetadataBadge>{title(profile.presentation)}</MetadataBadge>
+          <MetadataBadge>{title(profile.communicationCharacter)}</MetadataBadge>
+          <MetadataBadge>{title(profile.tone)}</MetadataBadge>
+          <MetadataBadge>{title(profile.teachingStyle)}</MetadataBadge>
         </div>
         <p>
           <strong>Voice:</strong> {voice?.name || profile.voiceCode} ·{' '}
@@ -360,9 +361,9 @@ export function TutorProfiles({
               >
                 <div className="panel-heading">
                   <div>
-                    <span className="pill">
+                    <MetadataBadge>
                       <Bot size={14} /> CURATED AKURU BOT
-                    </span>
+                    </MetadataBadge>
                     <h2>{editing ? 'Update your tutor' : 'Create a tutor'}</h2>
                   </div>
                 </div>

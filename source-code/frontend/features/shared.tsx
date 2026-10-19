@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 import {
   BookOpen,
   Calculator,
@@ -105,38 +106,17 @@ export type FeatureProps = {
   setSelected: (id: string) => void;
 };
 export function Status({ status }: { status: string }) {
-  const labels: Record<string, string> = {
-    'needs-review': 'Awaiting review',
-    checked: 'Answer checked',
-    reviewed: 'Parent reviewed',
-    approved: 'Approved',
-    pending: 'Awaiting review',
-    active: 'In progress',
-    submitted: 'Submitted',
-    draft: 'Draft',
-    review: 'In review',
-    review_required: 'Needs review',
-    released: 'Released',
-    rejected: 'Rejected',
-    superseded: 'Superseded',
-    published: 'Published',
-    archived: 'Archived',
-    processing: 'Processing',
-    failed: 'Needs attention',
-  };
-  const label = labels[status] || status.replaceAll('_', ' ');
-  const symbol =
-    status === 'approved' || status === 'published' || status === 'checked'
-      ? '✓'
-      : status === 'failed'
-        ? '!'
-        : status === 'processing'
-          ? '…'
-          : '•';
   return (
-    <span className={`status ${status}`} aria-label={`Status: ${label}`}>
-      <span aria-hidden="true">{symbol}</span> {label}
-    </span>
+    <StatusBadge
+      status={status}
+      label={
+        status === 'checked'
+          ? 'Answer checked'
+          : status === 'reviewed'
+            ? 'Parent reviewed'
+            : undefined
+      }
+    />
   );
 }
 export function Evidence({ attempts }: { attempts: Attempt[] }) {

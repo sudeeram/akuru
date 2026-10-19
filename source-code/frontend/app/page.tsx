@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise authentication, legacy links and document focus. */
 /* eslint-disable react/react-compiler */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
@@ -386,9 +387,9 @@ export function Portal() {
           </div>
           <div className="login-form-wrap">
             <form className="login-form" onSubmit={login}>
-              <span className="pill">
+              <MetadataBadge>
                 <ShieldCheck size={14} /> SECURE FAMILY PORTAL
-              </span>
+              </MetadataBadge>
               <h2>Welcome back.</h2>
               <p>Sign in to your own learning space.</p>
               {sessionExpiryMessage && (
@@ -848,9 +849,9 @@ function PasswordChange({
             }
           }}
         >
-          <span className="pill">
+          <MetadataBadge>
             <ShieldCheck size={14} /> FIRST SIGN-IN
-          </span>
+          </MetadataBadge>
           <h2>Choose your own password.</h2>
           <p>
             Welcome, {data.user.name}. Replace the temporary password before

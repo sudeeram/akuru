@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/portal/badges';
 import { useState } from 'react';
 import type { AvatarConfig } from '@/api';
 import { StudentAvatar } from '@/components/portal/student-avatar';
@@ -55,7 +56,7 @@ function CourseList({ student, data }: { student: Student; data: State }) {
                   .join(' · ') || 'Enrolled course'}
               </small>
             </div>
-            <span className="pill">Enrolled</span>
+            <StatusBadge status="enrolled" />
           </li>
         );
       })}

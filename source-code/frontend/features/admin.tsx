@@ -1,4 +1,9 @@
 'use client';
+import {
+  MetadataBadge,
+  ReviewBadge,
+  StatusBadge,
+} from '@/components/portal/badges';
 import { useEffect, useState } from 'react';
 import { BookOpen, ClipboardCheck, GraduationCap, Users } from 'lucide-react';
 import { MetricCard } from '@/components/portal/dashboard-widgets';
@@ -671,7 +676,11 @@ export function AdminWorkspace(p: Props) {
       label="Subject"
       value={subject}
       onChange={(v) => {
-        if ((coverageDirty || mappingDirty) && !window.confirm('Discard unsaved workspace changes?')) return;
+        if (
+          (coverageDirty || mappingDirty) &&
+          !window.confirm('Discard unsaved workspace changes?')
+        )
+          return;
         setError('');
         if (['coverage', 'questions'].includes(p.view))
           setFilters({ subject: v });
@@ -1148,11 +1157,11 @@ export function AdminWorkspace(p: Props) {
                       {new Date(event.occurredAt).toLocaleString()}
                     </small>
                   </p>
-                  <span className="pill">
+                  <MetadataBadge>
                     {typeof event.details.sessionsRevoked === 'number'
                       ? `${event.details.sessionsRevoked} sessions revoked`
                       : 'Recorded'}
-                  </span>
+                  </MetadataBadge>
                 </div>
               ))}
             </section>
@@ -1597,9 +1606,7 @@ export function AdminWorkspace(p: Props) {
                               )}
                               <td>{document.subject}</td>
                               <td>
-                                <span className={`status ${document.status}`}>
-                                  {document.status.replaceAll('_', ' ')}
-                                </span>
+                                <StatusBadge status={document.status} />
                               </td>
                               <td>
                                 <progress
@@ -2337,13 +2344,17 @@ export function AdminWorkspace(p: Props) {
                                   : 'Review every red item and confirm every Printed page label before publishing this textbook topic.'}
                               </p>
                             </div>
-                            <span
-                              className={`review-status-badge ${extractionReview.pendingPages.length ? 'review-status-required' : 'review-status-complete'}`}
+                            <ReviewBadge
+                              state={
+                                extractionReview.pendingPages.length
+                                  ? 'required'
+                                  : 'complete'
+                              }
                             >
                               {extractionReview.pendingPages.length
                                 ? 'Review required'
                                 : 'Reviewed'}
-                            </span>
+                            </ReviewBadge>
                           </div>
                           <div
                             className="extraction-review-stats"
@@ -2510,11 +2521,7 @@ export function AdminWorkspace(p: Props) {
                                   remaining
                                 </span>
                               </div>
-                              <span
-                                className={`review-status-badge ${pageComplete ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}
-                              >
-                                {pageStatus}
-                              </span>
+                              <ReviewBadge state={pageComplete ? 'complete' : completedReviews > 0 ? 'partial' : 'required'}>{pageStatus}</ReviewBadge>
                             </summary>
                             <div className="stack extraction-page-body">
                               {visualReferenceReview && (
@@ -2703,13 +2710,17 @@ export function AdminWorkspace(p: Props) {
                                               · {group.length} block
                                               {group.length === 1 ? '' : 's'}
                                             </span>
-                                            <span
-                                              className={`review-status-badge ${groupPending ? 'review-status-required' : 'review-status-complete'}`}
+                                            <ReviewBadge
+                                              state={
+                                                groupPending
+                                                  ? 'required'
+                                                  : 'complete'
+                                              }
                                             >
                                               {groupPending
                                                 ? 'Review required'
                                                 : 'Reviewed'}
-                                            </span>
+                                            </ReviewBadge>
                                           </div>
                                           {visual?.sourceAssetId && (
                                             <figure className="stack">
@@ -3271,7 +3282,11 @@ export function AdminWorkspace(p: Props) {
               label="Published past paper"
               value={paperId}
               onChange={(value) => {
-                if (mappingDirty && !window.confirm('Discard unsaved mapping changes?')) return;
+                if (
+                  mappingDirty &&
+                  !window.confirm('Discard unsaved mapping changes?')
+                )
+                  return;
                 setPaperId(value);
                 setPaperMappings(null);
                 setMappingQuestionId('');

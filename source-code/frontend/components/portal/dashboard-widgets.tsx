@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge, MetadataBadge } from './badges';
 
 import type { ReactNode } from 'react';
 import {
@@ -138,7 +139,7 @@ export function StudentSummaryCard({
         </p>
         <div className="ak-chips">
           {subjects.map((subject) => (
-            <span key={subject}>{subject}</span>
+            <MetadataBadge key={subject} size="xs">{subject}</MetadataBadge>
           ))}
         </div>
       </div>
@@ -259,16 +260,7 @@ export function AssignmentList({
   );
 }
 export function StatusPill({ status }: { status: string }) {
-  const tone = /overdue|failed/i.test(status)
-    ? 'rose'
-    : /review|due|pending/i.test(status)
-      ? 'amber'
-      : /complete|published|ready|checked/i.test(status)
-        ? 'green'
-        : /failed|overdue/i.test(status)
-          ? 'rose'
-          : 'blue';
-  return <span className={`ak-status ak-tone-${tone}`}>{status}</span>;
+  return <StatusBadge status={status} label={status} />;
 }
 export function EmptyState({
   title,

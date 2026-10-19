@@ -1,4 +1,5 @@
 'use client';
+import { CountBadge } from '@/components/portal/badges';
 
 import { useEffect, useId, useState, type ReactNode } from 'react';
 import {
@@ -128,7 +129,9 @@ export function PortalShell({
                   <>
                     <Icon size={18} />
                     <span className={compact ? 'sr-only' : ''}>{label}</span>
-                    {!!badge && !compact && <small>{badge}</small>}
+                    {!!badge && !compact && (
+                      <CountBadge count={badge} label={`${label} items`} />
+                    )}
                   </>
                 );
                 return href ? (

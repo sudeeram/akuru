@@ -3,7 +3,13 @@ import { existsSync, readFileSync as readSourceFile } from 'node:fs';
 import test from 'node:test';
 
 // Contract checks ignore formatter whitespace and JSX's explicit spaces.
-const readFileSync = (...args) => readSourceFile(...args).replace(/\{['"] ['"]\}/g, ' ').replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/,? \)/g, ')').replace(/ \./g, '.');
+const readFileSync = (...args) =>
+  readSourceFile(...args)
+    .replace(/\{['"] ['"]\}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\( /g, '(')
+    .replace(/,? \)/g, ')')
+    .replace(/ \./g, '.');
 
 const apiFiles = [
   '../api/core/client.ts',
@@ -222,8 +228,9 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /Pages to review/);
   assert.match(admin, /Blocks to review/);
   assert.match(admin, /extraction-page-\$\{page\.pageNumber\}/);
-  assert.match(admin, /review-status-required/);
-  assert.match(admin, /review-status-complete/);
+  assert.match(admin, /<ReviewBadge/);
+  assert.match(admin, /'required'/);
+  assert.match(admin, /'complete'/);
   assert.match(admin, /Partially reviewed/);
   assert.match(admin, /Needs page label/);
   assert.match(admin, /Fully reviewed/);
@@ -694,8 +701,11 @@ test('topic hierarchy workflow supports keyboard filters and accessible status c
   assert.match(styles, /input:focus-visible/);
   assert.match(styles, /catalogue-filters/);
   assert.match(
-    readFileSync(new URL('../features/shared.tsx', import.meta.url), 'utf8'),
-    /aria-label=\{`Status: \$\{label\}`\}/,
+    readFileSync(
+      new URL('../components/portal/badges.tsx', import.meta.url),
+      'utf8',
+    ),
+    /aria-label=\{`Status: \$\{text\}`\}/,
   );
 });
 

@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import { useEffect, useState, type PointerEvent } from 'react';
@@ -1286,17 +1287,11 @@ export function OfficialPaperReview({
                         }
                         onClick={() => openQuestion(question)}
                       >
-                        <span
-                          className={`pr-state-dot pr-state-${question.status}`}
-                          aria-hidden="true"
-                        />
                         <span>
                           <strong>Question {question.number}</strong>
-                          <small>{label(question.status)}</small>
+                          <StatusBadge status={question.status} label={label(question.status)} size="xs" />
                         </span>
-                        <span className="pr-question-marks">
-                          {question.data.marks}m
-                        </span>
+                        <MetadataBadge size="xs">{question.data.marks}m</MetadataBadge>
                       </button>
                     ))}
                     {!reviewQuestionList(

@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 import { AvatarBuilderPreview } from '@/features/student-avatar-editor';
 import { useState } from 'react';
 import {
@@ -38,7 +39,7 @@ export function WorkflowPatterns() {
       {'Topic review'.toLowerCase().includes(search.toLowerCase()) ? (
         <div className="resource-row">
           <strong>Topic review</strong>
-          <span className="pill">Draft</span>
+          <MetadataBadge>Draft</MetadataBadge>
           <Button variant="outline" onClick={() => setOpen(true)}>
             Review topic
           </Button>

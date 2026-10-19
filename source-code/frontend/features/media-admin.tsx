@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
 import {
   AdvancedPanel,
   EditorDrawer,
@@ -294,8 +295,10 @@ export function MediaAdmin({
             .map((item) => (
               <article className="panel stack" key={item.id}>
                 <span className="eyebrow">
-                  {item.kind.replaceAll('_', ' ')} ·{' '}
-                  {item.status.replaceAll('_', ' ')}
+                  <MetadataBadge>
+                    {item.kind.replaceAll('_', ' ')}
+                  </MetadataBadge>{' '}
+                  <StatusBadge status={item.status} />
                 </span>
                 <h3>{item.title}</h3>
                 <LearningImage

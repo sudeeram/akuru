@@ -1,4 +1,5 @@
 'use client';
+import { MetadataBadge } from '@/components/portal/badges';
 /* eslint-disable react/react-compiler */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, MicOff, Pause, Play, RotateCcw, Snail, Square, Volume2 } from 'lucide-react';
@@ -95,7 +96,7 @@ export function TutorVoice({ sessionRef, subjectId, profileIdentity, disabled, n
 
   const send = (event: object) => { if (channel.current?.readyState === 'open') channel.current.send(JSON.stringify(event)); };
   return <section className="panel stack tutor-voice" aria-label="Realtime voice tutor">
-    <div className="panel-heading"><div><span className="pill"><Mic size={13} /> REALTIME VOICE</span><h2>Talk with your tutor</h2></div><span aria-live="polite">{state === 'live' ? 'Connected' : state}</span></div>
+    <div className="panel-heading"><div><MetadataBadge><Mic size={13} /> REALTIME VOICE</MetadataBadge><h2>Talk with your tutor</h2></div><span aria-live="polite">{state === 'live' ? 'Connected' : state}</span></div>
     {subjectId === 'french' && <label className="tutor-mode"><span>French activity</span><select value={languageMode} disabled={state !== 'idle'} onChange={(event) => setLanguageMode(event.target.value as RealtimeLanguageMode)}><option value="french_conversation">Conversation</option><option value="french_vocabulary">Vocabulary</option><option value="french_pronunciation">Pronunciation</option></select></label>}
     <div className="voice-caption" aria-live="polite">{caption || 'Live captions will appear here. No raw audio is stored.'}</div>
     {error && <div className="error" role="alert">{error}</div>}
