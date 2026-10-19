@@ -4,8 +4,6 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [UI component catalogue: 27 PreSkool references](ongoing/TODO-UI-COMPONENT-CATALOGUE.md) — implementing the frontend-only catalogue in `/ui-features`.
-
 
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
 
@@ -39,6 +37,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [UI component catalogue: 27 PreSkool references](completed/TODO-UI-COMPONENT-CATALOGUE.md) — 27 searchable, interactive component families within `/ui-features`; verified and deployed. Frontend only.
 
 - [Student Community: course discovery and following](completed/TODO-STUDENT-COMMUNITY.md) — opt-in public names, course discovery and subject filters, following, Feed notifications, blocking and Admin report review; verified and deployed to production.
 
