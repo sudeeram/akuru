@@ -5,6 +5,12 @@ import { useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  AdvancedPanel,
+  EditorDrawer,
+  FilterToolbar,
+} from '@/components/portal/workspace';
+import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import { ResultReview } from './result-review';
 import {
   Table,
@@ -25,23 +31,65 @@ import { api, errorMessage, type Attempt } from '@/api';
 import { Heading, Picker, Empty, Status, type FeatureProps } from './shared';
 import { TutorSignals } from './tutor-signals';
 export function Reviews(p: FeatureProps) {
-  const [filter, setFilter] = useState('pending'),
-    [student, setStudent] = useState('all'),
-    [review, setReview] = useState<Attempt | null>(null),
+  const [reviewDirty, setReviewDirty] = useState(false);
+  const [filters, setFilters] = useWorkspaceSearch({
+    q: '',
+    status: 'pending',
+    filter: 'all',
+  });
+  const filter = filters.status,
+    student =
+      filters.filter === 'all'
+        ? 'all'
+        : p.data.students.find((item) => item.accountRef === filters.filter)
+            ?.id || 'all';
+  const setFilter = (status: string) => setFilters({ status });
+  const setStudent = (id: string) =>
+    setFilters({
+      filter:
+        id === 'all'
+          ? 'all'
+          : p.data.students.find((item) => item.id === id)?.accountRef || 'all',
+    });
+  const [review, setReview] = useState<Attempt | null>(null),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const attempts = p.data.attempts.filter(
     (a) =>
       (student === 'all' || a.studentId === student) &&
-      (filter === 'all' || a.status === 'needs-review'),
+      (filter === 'all' || a.status === 'needs-review') &&
+      (!filters.q ||
+        `${a.title} ${p.data.students.find((item) => item.id === a.studentId)?.name}`
+          .toLowerCase()
+          .includes(filters.q.toLowerCase())),
   );
-  const recommendationReviews = Object.values(p.data.recommendations || {}).flat().filter(
-    (item) => item.reviewStatus === 'pending_review' && (student === 'all' || item.studentId === student),
-  );
-  async function reviewRecommendation(id: string, decision: 'approved' | 'rejected') {
-    setBusy(true); setError('');
-    try { await api(`recommendations/${id}/review`, { decision, reason: decision === 'approved' ? 'Reviewed by parent.' : 'Parent declined this recommendation.' }); await p.refresh(); }
-    catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
+  const recommendationReviews = Object.values(p.data.recommendations || {})
+    .flat()
+    .filter(
+      (item) =>
+        item.reviewStatus === 'pending_review' &&
+        (student === 'all' || item.studentId === student),
+    );
+  async function reviewRecommendation(
+    id: string,
+    decision: 'approved' | 'rejected',
+  ) {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`recommendations/${id}/review`, {
+        decision,
+        reason:
+          decision === 'approved'
+            ? 'Reviewed by parent.'
+            : 'Parent declined this recommendation.',
+      });
+      await p.refresh();
+    } catch (e: unknown) {
+      setError(errorMessage(e));
+    } finally {
+      setBusy(false);
+    }
   }
   return (
     <>
@@ -52,7 +100,13 @@ export function Reviews(p: FeatureProps) {
         Review written responses and working, with a separate assessment for
         each child.
       </Heading>
-      <div className="toolbar">
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        placeholder="Find an assessment or learner…"
+        count={attempts.length}
+        onClear={() => setFilters({ q: '', status: 'pending', filter: 'all' })}
+      >
         <Picker
           label="Student"
           value={student}
@@ -74,24 +128,12 @@ export function Reviews(p: FeatureProps) {
             { value: 'all', label: 'All assessments' },
           ]}
         />
-      </div>
-      <div className="section-heading"><h2>Child-by-child learning summary</h2></div>
-      <div className="learner-grid">
-        {p.data.students.filter(child => student === 'all' || child.id === student).map(child => {
-          const topics = p.data.mastery?.[child.id] || [];
-          const groups = p.data.masteryGroups?.[child.id] || [];
-          const pending = (p.data.recommendations?.[child.id] || []).filter(item => item.reviewStatus === 'pending_review').length;
-          const average = topics.length ? topics.reduce((total, topic) => total + topic.score, 0) / topics.length : null;
-          return <section className="panel stack" key={child.id}><div className="spread"><h3>{child.name}</h3><strong>{average == null ? 'More evidence needed' : `${average.toFixed(1)}/10 average`}</strong></div>
-            <p>{child.grade} · {child.term} · {topics.length} measured topic{topics.length === 1 ? '' : 's'} · {pending} review task{pending === 1 ? '' : 's'}</p>
-            {topics.map(topic => <div className="source-note" key={topic.topicRef}><div className="spread"><span>{topic.groupCode} · {topic.topicCode} · {topic.topicTitle}</span><strong>{topic.score.toFixed(1)}/10</strong></div><p className="small">{topic.trend > 0 ? 'Improving' : topic.trend < 0 ? 'Declining' : 'Steady'} ({topic.trend > 0 ? '+' : ''}{topic.trend.toFixed(1)}) · {topic.confidence} confidence</p><details><summary>Latest 10 score changes</summary><ol>{topic.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.newScore.toFixed(1)}/10 — {event.explanation}</li>)}</ol></details></div>)}
-            {groups.map(group => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary>{group.groupLabel} {group.groupCode} · {group.groupTitle} · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.filter(topic => topic.score < 7).map(topic => <p className="small" key={topic.topicRef}><strong>Action:</strong> Topic {topic.topicCode} · {topic.topicTitle} needs focused practice ({topic.score.toFixed(1)}/10).</p>)}</details>)}
-            {!topics.length && <p className="source-note">Insufficient evidence: this child needs assessed work before AKURU can calculate a topic trend.</p>}
-            <TutorSignals studentId={child.id} />
-          </section>;
-        })}
-      </div>
-      {error && <div className="error" role="alert">{error} Retry the review action.</div>}
+      </FilterToolbar>
+      {error && (
+        <div className="error" role="alert">
+          {error} Retry the review action.
+        </div>
+      )}
       <section className="panel">
         {attempts.length ? (
           [...attempts].reverse().map((a) => (
@@ -99,6 +141,7 @@ export function Reviews(p: FeatureProps) {
               className="attempt-row"
               key={a.id}
               onClick={() => {
+                setReviewDirty(false);
                 setReview(a);
                 setError('');
               }}
@@ -123,16 +166,152 @@ export function Reviews(p: FeatureProps) {
           </Empty>
         )}
       </section>
-      <div className="section-heading"><h2>AKURU recommendation review</h2></div>
+      <AdvancedPanel title="Child-by-child learning summary">
+        {' '}
+        <div className="section-heading">
+          <h2>Child-by-child learning summary</h2>
+        </div>
+        <div className="learner-grid">
+          {p.data.students
+            .filter((child) => student === 'all' || child.id === student)
+            .map((child) => {
+              const topics = p.data.mastery?.[child.id] || [];
+              const groups = p.data.masteryGroups?.[child.id] || [];
+              const pending = (p.data.recommendations?.[child.id] || []).filter(
+                (item) => item.reviewStatus === 'pending_review',
+              ).length;
+              const average = topics.length
+                ? topics.reduce((total, topic) => total + topic.score, 0) /
+                  topics.length
+                : null;
+              return (
+                <section className="panel stack" key={child.id}>
+                  <div className="spread">
+                    <h3>{child.name}</h3>
+                    <strong>
+                      {average == null
+                        ? 'More evidence needed'
+                        : `${average.toFixed(1)}/10 average`}
+                    </strong>
+                  </div>
+                  <p>
+                    {child.grade} · {child.term} · {topics.length} measured
+                    topic{topics.length === 1 ? '' : 's'} · {pending} review
+                    task{pending === 1 ? '' : 's'}
+                  </p>
+                  {topics.map((topic) => (
+                    <div className="source-note" key={topic.topicRef}>
+                      <div className="spread">
+                        <span>
+                          {topic.groupCode} · {topic.topicCode} ·{' '}
+                          {topic.topicTitle}
+                        </span>
+                        <strong>{topic.score.toFixed(1)}/10</strong>
+                      </div>
+                      <p className="small">
+                        {topic.trend > 0
+                          ? 'Improving'
+                          : topic.trend < 0
+                            ? 'Declining'
+                            : 'Steady'}{' '}
+                        ({topic.trend > 0 ? '+' : ''}
+                        {topic.trend.toFixed(1)}) · {topic.confidence}{' '}
+                        confidence
+                      </p>
+                      <details>
+                        <summary>Latest 10 score changes</summary>
+                        <ol>
+                          {topic.recentEvents.map((event) => (
+                            <li key={event.id}>
+                              {new Date(event.createdAt).toLocaleDateString()}:{' '}
+                              {event.newScore.toFixed(1)}/10 —{' '}
+                              {event.explanation}
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    </div>
+                  ))}
+                  {groups.map((group) => (
+                    <details
+                      className="source-note"
+                      key={`${group.subjectId}:${group.groupCode}`}
+                    >
+                      <summary>
+                        {group.groupLabel} {group.groupCode} ·{' '}
+                        {group.groupTitle} · {group.score.toFixed(1)}/10
+                      </summary>
+                      <p className="small">{group.explanation}</p>
+                      {group.topics
+                        .filter((topic) => topic.score < 7)
+                        .map((topic) => (
+                          <p className="small" key={topic.topicRef}>
+                            <strong>Action:</strong> Topic {topic.topicCode} ·{' '}
+                            {topic.topicTitle} needs focused practice (
+                            {topic.score.toFixed(1)}/10).
+                          </p>
+                        ))}
+                    </details>
+                  ))}
+                  {!topics.length && (
+                    <p className="source-note">
+                      Insufficient evidence: this child needs assessed work
+                      before AKURU can calculate a topic trend.
+                    </p>
+                  )}
+                  <TutorSignals studentId={child.id} />
+                </section>
+              );
+            })}
+        </div>
+      </AdvancedPanel>
+      <div className="section-heading">
+        <h2>AKURU recommendation review</h2>
+      </div>
       <section className="panel">
-        {recommendationReviews.map((item) => <div className="resource-row" key={item.id}>
-          <div><h3>{item.title}</h3><p>{p.data.students.find((s) => s.id === item.studentId)?.name} · {item.groupCode} · {item.topicCode} · {item.reason}</p><small>Evidence: {item.observedEvidence.join(' ')}</small></div>
-          <Button variant="outline" disabled={busy} onClick={() => reviewRecommendation(item.id, 'rejected')}>Decline</Button>
-          <Button className="primary" disabled={busy} onClick={() => reviewRecommendation(item.id, 'approved')}>Approve</Button>
-        </div>)}
-        {!recommendationReviews.length && <Empty title="No recommendations awaiting review.">Low-confidence and subjective suggestions appear here before students can see them.</Empty>}
+        {recommendationReviews.map((item) => (
+          <div className="resource-row" key={item.id}>
+            <div>
+              <h3>{item.title}</h3>
+              <p>
+                {p.data.students.find((s) => s.id === item.studentId)?.name} ·{' '}
+                {item.groupCode} · {item.topicCode} · {item.reason}
+              </p>
+              <small>Evidence: {item.observedEvidence.join(' ')}</small>
+            </div>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => reviewRecommendation(item.id, 'rejected')}
+            >
+              Decline
+            </Button>
+            <Button
+              className="primary"
+              disabled={busy}
+              onClick={() => reviewRecommendation(item.id, 'approved')}
+            >
+              Approve
+            </Button>
+          </div>
+        ))}
+        {!recommendationReviews.length && (
+          <Empty title="No recommendations awaiting review.">
+            Low-confidence and subjective suggestions appear here before
+            students can see them.
+          </Empty>
+        )}
       </section>
-      <Dialog open={!!review} onOpenChange={(v) => !v && setReview(null)}>
+      <Dialog
+        open={!!review}
+        onOpenChange={(v) => {
+          if (
+            !v &&
+            (!reviewDirty || window.confirm('Discard unsaved review changes?'))
+          )
+            setReview(null);
+        }}
+      >
         <DialogContent className="wide-dialog">
           <DialogHeader>
             <DialogTitle>{review?.title}</DialogTitle>
@@ -149,16 +328,27 @@ export function Reviews(p: FeatureProps) {
                   {review.answer || 'No typed answer.'}
                 </p>
                 {review.fileId && (
-                  <a
-                    href={review.workingUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a href={review.workingUrl} target="_blank" rel="noreferrer">
                     Open handwritten working ↗
                   </a>
                 )}
               </div>
-              <ResultReview key={review.id} resultId={review.id} decisions={review.markingDecisions || []} feedback={review.explanation} improvedAnswer={review.improvedAnswer || ''} strengths={review.strengths || []} smallMistakes={review.smallMistakes || []} conceptualMistakes={review.conceptualMistakes || []} saved={async () => { await p.refresh(); setReview(null); p.notify('Reviewed result published.'); }} />
+              <ResultReview
+                onDirtyChange={setReviewDirty}
+                key={review.id}
+                resultId={review.id}
+                decisions={review.markingDecisions || []}
+                feedback={review.explanation}
+                improvedAnswer={review.improvedAnswer || ''}
+                strengths={review.strengths || []}
+                smallMistakes={review.smallMistakes || []}
+                conceptualMistakes={review.conceptualMistakes || []}
+                saved={async () => {
+                  await p.refresh();
+                  setReview(null);
+                  p.notify('Reviewed result published.');
+                }}
+              />
             </div>
           )}
         </DialogContent>
@@ -171,6 +361,8 @@ function ChevronIcon() {
 }
 
 export function Assignments(p: FeatureProps) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [filters, setFilters] = useWorkspaceSearch({ q: '', status: 'all' });
   const [student, setStudent] = useState(p.child.id),
     [question, setQuestion] = useState('m1'),
     [title, setTitle] = useState(''),
@@ -197,6 +389,7 @@ export function Assignments(p: FeatureProps) {
       });
       await p.refresh();
       setTitle('');
+      setCreateOpen(false);
       p.notify('Activity assigned to ' + child.name + '.');
     } catch (e: unknown) {
       setError(errorMessage(e));
@@ -212,81 +405,123 @@ export function Assignments(p: FeatureProps) {
       >
         Assign a question to one child, with a clear due date.
       </Heading>
-      <div className="library-layout">
-        <form className="panel" onSubmit={create}>
-          <h2>Assign practice</h2>
-          <div className="two-cols spaced">
-            <Picker
-              label="Student"
-              value={student}
-              onChange={setStudent}
-              options={p.data.students.map((s) => ({
-                value: s.id,
-                label: `${s.name} · ${s.grade}`,
-              }))}
-            />
-            <div>
-              <label htmlFor="assignment-due">Due date</label>
-              <Input
-                id="assignment-due"
-                type="date"
-                required
-                value={due}
-                onChange={(e) => setDue(e.target.value)}
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        placeholder="Find an assignment…"
+        onClear={() => setFilters({ q: '', status: 'all' })}
+      >
+        <Picker
+          label="Status"
+          value={filters.status}
+          onChange={(status) => setFilters({ status })}
+          options={[
+            { value: 'all', label: 'All assignments' },
+            { value: 'open', label: 'To do' },
+            { value: 'completed', label: 'Completed' },
+          ]}
+        />
+        <Button
+          onClick={() => {
+            setStudent(p.child.id);
+            setCreateOpen(true);
+          }}
+        >
+          Assign practice
+        </Button>
+      </FilterToolbar>
+      <EditorDrawer
+        busy={busy}
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title="Assign practice"
+        description={`Create a clear next step for ${child.name}.`}
+        dirty={Boolean(title || busy)}
+      >
+        <div className="stack">
+          <form className="panel" onSubmit={create}>
+            <h2>Assign practice</h2>
+            <div className="two-cols spaced">
+              <Picker
+                label="Student"
+                value={student}
+                onChange={setStudent}
+                options={p.data.students.map((s) => ({
+                  value: s.id,
+                  label: `${s.name} · ${s.grade}`,
+                }))}
+              />
+              <div>
+                <label htmlFor="assignment-due">Due date</label>
+                <Input
+                  id="assignment-due"
+                  type="date"
+                  required
+                  value={due}
+                  onChange={(e) => setDue(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="spaced">
+              <Picker
+                label="Practice question"
+                value={activeQuestion}
+                onChange={setQuestion}
+                options={qs.map((q) => ({
+                  value: q.id,
+                  label: `${p.data.subjects.find((s) => s.id === q.subject)?.name}: ${q.title}`,
+                }))}
               />
             </div>
-          </div>
-          <div className="spaced">
-            <Picker
-              label="Practice question"
-              value={activeQuestion}
-              onChange={setQuestion}
-              options={qs.map((q) => ({
-                value: q.id,
-                label: `${p.data.subjects.find((s) => s.id === q.subject)?.name}: ${q.title}`,
-              }))}
+            <label htmlFor="assignment-title" className="spaced">
+              Activity title (optional)
+            </label>
+            <Input
+              id="assignment-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Use the question title"
             />
-          </div>
-          <label htmlFor="assignment-title" className="spaced">
-            Activity title (optional)
-          </label>
-          <Input
-            id="assignment-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Use the question title"
-          />
-          {error && (
-            <div className="error spaced" role="alert">
-              {error}
-            </div>
-          )}
-          <Button type="submit" className="primary spaced" disabled={busy}>
-            Assign to {child.name}
-            <ArrowRight size={16} />
-          </Button>
-        </form>
-        <section className="import-note">
-          <span className="big-avatar">{child.name[0]}</span>
-          <h3>
-            {child.name} · {child.grade}
-          </h3>
-          <p>
-            This activity will appear only in {child.name}’s portal. It is
-            marked complete when they submit an attempt for the assigned
-            question.
-          </p>
-          <p className="small">
-            The questions in this first version are demo activities, not a
-            complete grade-specific curriculum.
-          </p>
-        </section>
-      </div>
+            {error && (
+              <div className="error spaced" role="alert">
+                {error}
+              </div>
+            )}
+            <Button type="submit" className="primary spaced" disabled={busy}>
+              Assign to {child.name}
+              <ArrowRight size={16} />
+            </Button>
+          </form>
+          <section className="import-note">
+            <span className="big-avatar">{child.name[0]}</span>
+            <h3>
+              {child.name} · {child.grade}
+            </h3>
+            <p>
+              This activity will appear only in {child.name}’s portal. It is
+              marked complete when they submit an attempt for the assigned
+              question.
+            </p>
+            <p className="small">
+              The questions in this first version are demo activities, not a
+              complete grade-specific curriculum.
+            </p>
+          </section>
+        </div>
+      </EditorDrawer>
       <div className="section-heading">
         <h2>Family assignments</h2>
       </div>
       <section className="panel table-panel">
-        {p.data.assignments.length ? (
+        {p.data.assignments.filter(
+          (a) =>
+            (filters.status === 'all' ||
+              (filters.status === 'completed' ? a.completed : !a.completed)) &&
+            (!filters.q ||
+              `${a.title} ${p.data.students.find((item) => item.id === a.studentId)?.name}`
+                .toLowerCase()
+                .includes(filters.q.toLowerCase())),
+        ).length ? (
           <Table>
             <TableHeader>
               <TableRow>
@@ -297,24 +532,37 @@ export function Assignments(p: FeatureProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...p.data.assignments].reverse().map((a) => (
-                <TableRow key={a.id}>
-                  <TableCell>
-                    <strong>{a.title}</strong>
-                  </TableCell>
-                  <TableCell>
-                    {p.data.students.find((s) => s.id === a.studentId)?.name}
-                  </TableCell>
-                  <TableCell>{a.due}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`status ${a.completed ? 'approved' : 'pending'}`}
-                    >
-                      {a.completed ? 'Completed' : 'To do'}
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {[...p.data.assignments]
+                .filter(
+                  (a) =>
+                    (filters.status === 'all' ||
+                      (filters.status === 'completed'
+                        ? a.completed
+                        : !a.completed)) &&
+                    (!filters.q ||
+                      `${a.title} ${p.data.students.find((item) => item.id === a.studentId)?.name}`
+                        .toLowerCase()
+                        .includes(filters.q.toLowerCase())),
+                )
+                .sort((a, b) => a.due.localeCompare(b.due))
+                .map((a) => (
+                  <TableRow key={a.id}>
+                    <TableCell>
+                      <strong>{a.title}</strong>
+                    </TableCell>
+                    <TableCell>
+                      {p.data.students.find((s) => s.id === a.studentId)?.name}
+                    </TableCell>
+                    <TableCell>{a.due}</TableCell>
+                    <TableCell>
+                      <span
+                        className={`status ${a.completed ? 'approved' : 'pending'}`}
+                      >
+                        {a.completed ? 'Completed' : 'To do'}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         ) : (

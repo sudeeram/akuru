@@ -1,30 +1,87 @@
 'use client';
+import { AdvancedPanel, EditorDrawer } from '@/components/portal/workspace';
+import { useWorkspaceSearch } from '@/lib/use-workspace-search';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  archiveTextbookStructure, createTextbookStructure, errorMessage, getTextbookStructures, getTopicQualityReport,
-  publishTextbookStructure, removeTextbookGroup, removeTextbookTopic, reorderTextbookGroups,
-  reorderTextbookTopics, saveTextbookGroup, saveTextbookTopic, type Subject,
-  type TextbookStructure, updateTextbookStructure, uploadTopicPart, suggestTopicParts, type Student,
-  publishTextbookTopic, getTopicSources, updateTopicSourceRole, detachTopicSource, getTopicLaunchReadiness, runTopicRetrievalPreflight, type TopicDocumentSource, type TopicLaunchReadiness,
-  applyRecommendedTopicSourceRoles, getTopicReviewChecklist, getTopicVisualAssets,
-  reviewTopicVisualAsset, type TopicReviewChecklist, type TopicVisualAsset,
-  type TopicSourceRole, moveTopicSource, type TextbookStructureTopic,
+  archiveTextbookStructure,
+  createTextbookStructure,
+  errorMessage,
+  getTextbookStructures,
+  getTopicQualityReport,
+  publishTextbookStructure,
+  removeTextbookGroup,
+  removeTextbookTopic,
+  reorderTextbookGroups,
+  reorderTextbookTopics,
+  saveTextbookGroup,
+  saveTextbookTopic,
+  type Subject,
+  type TextbookStructure,
+  updateTextbookStructure,
+  uploadTopicPart,
+  suggestTopicParts,
+  type Student,
+  publishTextbookTopic,
+  getTopicSources,
+  updateTopicSourceRole,
+  detachTopicSource,
+  getTopicLaunchReadiness,
+  runTopicRetrievalPreflight,
+  type TopicDocumentSource,
+  type TopicLaunchReadiness,
+  applyRecommendedTopicSourceRoles,
+  getTopicReviewChecklist,
+  getTopicVisualAssets,
+  reviewTopicVisualAsset,
+  type TopicReviewChecklist,
+  type TopicVisualAsset,
+  type TopicSourceRole,
+  moveTopicSource,
+  type TextbookStructureTopic,
 } from '@/api';
 import { Picker } from './shared';
 
-type Props = { subjects: Subject[]; students: Student[]; notify: (message: string) => void; refreshPortal: () => Promise<void>; pathname: string; navigate: (to: string) => void };
+type Props = {
+  subjects: Subject[];
+  students: Student[];
+  notify: (message: string) => void;
+  refreshPortal: () => Promise<void>;
+  pathname: string;
+  navigate: (to: string) => void;
+};
 const move = (refs: string[], index: number, direction: -1 | 1) => {
   const target = index + direction;
   if (target < 0 || target >= refs.length) return refs;
-  const next = [...refs]; [next[index], next[target]] = [next[target], next[index]]; return next;
+  const next = [...refs];
+  [next[index], next[target]] = [next[target], next[index]];
+  return next;
 };
 
-function TopicSourceManager({ bookRef, topicRef, topics, students, refreshBook, notify }: {
-  bookRef: string; topicRef: string; topics: TextbookStructureTopic[]; students: Student[]; refreshBook: () => Promise<void>; notify: (message: string) => void;
+function TopicSourceManager({
+  bookRef,
+  topicRef,
+  topics,
+  students,
+  refreshBook,
+  notify,
+}: {
+  bookRef: string;
+  topicRef: string;
+  topics: TextbookStructureTopic[];
+  students: Student[];
+  refreshBook: () => Promise<void>;
+  notify: (message: string) => void;
 }) {
   const [sources, setSources] = useState<TopicDocumentSource[]>([]);
   const [launch, setLaunch] = useState<TopicLaunchReadiness | null>(null);
@@ -35,170 +92,1940 @@ function TopicSourceManager({ bookRef, topicRef, topics, students, refreshBook, 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   useEffect(() => {
-    if (expanded) void Promise.all([getTopicSources(bookRef, topicRef), getTopicReviewChecklist(bookRef, topicRef)])
-      .then(([nextSources, nextChecklist]) => { setSources(nextSources); setChecklist(nextChecklist); })
-      .catch((cause) => setError(errorMessage(cause)));
+    if (expanded)
+      void Promise.all([
+        getTopicSources(bookRef, topicRef),
+        getTopicReviewChecklist(bookRef, topicRef),
+      ])
+        .then(([nextSources, nextChecklist]) => {
+          setSources(nextSources);
+          setChecklist(nextChecklist);
+        })
+        .catch((cause) => setError(errorMessage(cause)));
   }, [expanded, bookRef, topicRef]);
-  return <div className="stack topic-source-manager">
-    <div className="button-row"><Button variant="outline" disabled={busy} aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>{expanded ? 'Hide topic sources' : 'Manage topic sources'}</Button><label>Pilot Student<select value={pilotStudentId} onChange={(event) => { setPilotStudentId(event.target.value); setLaunch(null); }}><option value="">Choose a Student</option>{students.map((student) => <option key={student.id} value={student.id}>{student.name}</option>)}</select></label><Button variant="outline" disabled={busy} onClick={() => { setBusy(true); setError(''); void runTopicRetrievalPreflight(bookRef, topicRef).then((result) => { window.alert(`${result.passed ? 'Retrieval preflight passed' : 'Retrieval preflight blocked'}\n\n${result.results.map((item) => `${item.passed ? '✓' : '○'} ${item.query}${item.page ? ` · page ${item.page}` : ''}${item.reasons.length ? ` · ${item.reasons.join(' ')}` : ''}`).join('\n')}`); return getTopicLaunchReadiness(bookRef, topicRef, pilotStudentId || undefined); }).then(setLaunch).catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false)); }}>Run retrieval preflight</Button><Button variant="outline" disabled={busy} aria-expanded={Boolean(launch)} onClick={() => { if (launch) { setLaunch(null); return; } void getTopicLaunchReadiness(bookRef, topicRef, pilotStudentId || undefined).then(setLaunch).catch((cause) => setError(errorMessage(cause))); }}>{launch ? 'Hide launch readiness' : 'View launch readiness'}</Button></div>
-    {launch && <section className="source-note stack" aria-label={`${launch.topicTitle} launch readiness`}><div className="spread"><strong>End-to-end launch readiness</strong><span className={`review-status-badge ${launch.overallStatus === 'ready' ? 'review-status-complete' : 'review-status-required'}`}>{launch.overallStatus}</span></div>{launch.checks.map((check) => <div className="spread" key={check.code}><p><strong>{check.passed ? '✓' : '○'} {check.label}</strong><br/><span className="small">{check.message}</span></p>{!check.passed && <a href={check.href}>Fix this step</a>}</div>)}</section>}
-    {expanded && <div className="source-note stack">
-      <strong>Sources for the next topic publication</strong>
-      <p className="small">Primary, supporting and reference text can enter retrieval after review. A visual reference is retained for provenance and selected diagrams, while its OCR text is excluded.</p>
-      {sources.length >= 2 && <Button variant="outline" disabled={busy} onClick={() => {
-        if (!window.confirm('Set the clean text PDF as the primary source and retain the other scan as a visual reference? Review the preview below before publishing.')) return;
-        setBusy(true); setError(''); void applyRecommendedTopicSourceRoles(bookRef, topicRef)
-          .then(setSources).then(refreshBook).then(() => notify('Recommended canonical and visual-reference roles applied.'))
-          .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-      }}>Apply recommended source roles</Button>}
-      {checklist && <section className="panel stack" aria-label="Topic extraction and visual review checklist">
-        <div className="spread"><strong>Authoritative review checklist</strong><span>{checklist.remainingPages + checklist.remainingBlocks + checklist.pendingVisualAssets} items need attention</span></div>
-        <div className="extraction-review-stats"><div><strong>{checklist.remainingPages}</strong><span>Pages remaining</span></div><div><strong>{checklist.remainingBlocks}</strong><span>Blocks remaining</span></div><div><strong>{checklist.notationBlocks}</strong><span>Formula blocks</span></div><div><strong>{checklist.tableBlocks}</strong><span>Tables</span></div><div><strong>{checklist.pendingVisualAssets}</strong><span>Visuals awaiting approval</span></div><div><strong>{checklist.confirmedVisualPageCount}/{checklist.visualPageCount}</strong><span>Visual page labels</span></div></div>
-        {checklist.checks.map(check => <div className="spread" key={check.code}><p><strong>{check.passed ? '✓' : '○'} {check.label}</strong><br/><span className="small">{check.message}</span></p>{!check.passed && <a href={check.href}>Review</a>}</div>)}
-      </section>}
-      {error && <p className="error" role="alert">{error}</p>}
-      {!sources.length && !error && <p>No sources are attached.</p>}
-      {sources.map((source) => <article className="panel stack" key={source.documentVersionId}>
-        <div className="spread"><strong>{source.filename}</strong><span>{source.reviewStatus.replaceAll('_', ' ')}</span></div>
-        <label className="stack">Source role<select value={source.role} disabled={busy} onChange={(event) => {
-          const role = event.target.value as TopicSourceRole;
-          const effect = role === 'visual_reference' ? 'exclude its OCR text from the next retrieval index' : 'include its reviewed content in the next publication';
-          if (!window.confirm(`Change ${source.filename} to ${role.replaceAll('_', ' ')}? This will ${effect}.`)) return;
-          setBusy(true); setError('');
-          void updateTopicSourceRole(bookRef, topicRef, source.documentId, role)
-            .then(setSources).then(refreshBook).then(() => notify('Topic source role updated.'))
-            .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-        }}><option value="primary">Primary text</option><option value="supporting">Supporting text</option><option value="reference">Reference text</option><option value="visual_reference">Visual reference</option></select></label>
-        <p className="small">{source.role === 'visual_reference' ? `Visual reference: ${source.confirmedPageLabelCount} of ${source.pageCount} Printed page labels confirmed · ${source.missingPageLabelCount} remaining · OCR text excluded from retrieval` : `Library: ${source.libraryReviewState} · document: ${source.documentStatus} · ${source.unresolvedPageCount} pages and ${source.unresolvedBlockCount} blocks unresolved.`}</p>
-        <p className="small"><strong>{source.includedInRetrieval ? 'Included in next retrieval publication' : 'OCR text excluded from retrieval'}</strong> · {source.publishableBlockCount} reviewed text blocks · {source.visualAssetCount} visual assets{source.usedByPublishedVersion ? ' · Used by an existing immutable published version' : ''}</p>
-        {source.role === 'visual_reference' && <><p className="small"><strong>{source.approvedVisualCount} approved visuals</strong> · {source.pendingVisualCount} awaiting approval. Only approved selections enter the next Topic version.</p><VisualAssetManager bookRef={bookRef} topicRef={topicRef} documentId={source.documentId} notify={notify} changed={() => Promise.all([getTopicSources(bookRef, topicRef).then(setSources), getTopicReviewChecklist(bookRef, topicRef).then(setChecklist), refreshBook()]).then(() => undefined)} /></>}
-        {!!source.duplicateOf.length && <p className="error" role="alert">Possible duplicate primary text: {source.duplicateOf.join(', ')}. Choose one canonical primary source before publishing.</p>}
-        <div className="button-row"><label className="stack">Move to another Topic<select value={moveTargets[source.documentId] || ''} disabled={busy} onChange={(event) => setMoveTargets((all) => ({ ...all, [source.documentId]: event.target.value }))}><option value="">Choose destination</option>{topics.filter((topic) => topic.topicRef !== topicRef).map((topic) => <option key={topic.topicRef} value={topic.topicRef}>{topic.code} · {topic.title}</option>)}</select></label><Button variant="outline" disabled={busy || !moveTargets[source.documentId]} onClick={() => { const target = topics.find((topic) => topic.topicRef === moveTargets[source.documentId]); if (!target || !window.confirm(`Move ${source.filename} to ${target.code} · ${target.title}? AKURU blocks the move if published, retrieval or reviewed-visual dependencies exist.`)) return; setBusy(true); setError(''); void moveTopicSource(bookRef, topicRef, source.documentId, target.topicRef).then(refreshBook).then(() => { notify('Textbook source moved to the selected Topic.'); setSources((current) => current.filter((item) => item.documentId !== source.documentId)); }).catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false)); }}>Move source</Button></div>
-        <Button variant="outline" disabled={busy} onClick={() => {
-          if (!window.confirm(`Detach ${source.filename} from this topic? The document and historical published citations will be retained.`)) return;
-          setBusy(true); setError(''); void detachTopicSource(bookRef, topicRef, source.documentId)
-            .then(setSources).then(refreshBook).then(() => notify('Source detached from this topic; the document was retained.'))
-            .catch((cause) => setError(errorMessage(cause))).finally(() => setBusy(false));
-        }}>Detach from topic</Button>
-      </article>)}
-    </div>}
-  </div>;
+  return (
+    <div className="stack topic-source-manager">
+      <div className="button-row">
+        <Button
+          variant="outline"
+          disabled={busy}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? 'Hide topic sources' : 'Manage topic sources'}
+        </Button>
+        <label>
+          Pilot Student
+          <select
+            value={pilotStudentId}
+            onChange={(event) => {
+              setPilotStudentId(event.target.value);
+              setLaunch(null);
+            }}
+          >
+            <option value="">Choose a Student</option>
+            {students.map((student) => (
+              <option key={student.id} value={student.id}>
+                {student.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Button
+          variant="outline"
+          disabled={busy}
+          onClick={() => {
+            setBusy(true);
+            setError('');
+            void runTopicRetrievalPreflight(bookRef, topicRef)
+              .then((result) => {
+                window.alert(
+                  `${result.passed ? 'Retrieval preflight passed' : 'Retrieval preflight blocked'}\n\n${result.results.map((item) => `${item.passed ? '✓' : '○'} ${item.query}${item.page ? ` · page ${item.page}` : ''}${item.reasons.length ? ` · ${item.reasons.join(' ')}` : ''}`).join('\n')}`,
+                );
+                return getTopicLaunchReadiness(
+                  bookRef,
+                  topicRef,
+                  pilotStudentId || undefined,
+                );
+              })
+              .then(setLaunch)
+              .catch((cause) => setError(errorMessage(cause)))
+              .finally(() => setBusy(false));
+          }}
+        >
+          Run retrieval preflight
+        </Button>
+        <Button
+          variant="outline"
+          disabled={busy}
+          aria-expanded={Boolean(launch)}
+          onClick={() => {
+            if (launch) {
+              setLaunch(null);
+              return;
+            }
+            void getTopicLaunchReadiness(
+              bookRef,
+              topicRef,
+              pilotStudentId || undefined,
+            )
+              .then(setLaunch)
+              .catch((cause) => setError(errorMessage(cause)));
+          }}
+        >
+          {launch ? 'Hide launch readiness' : 'View launch readiness'}
+        </Button>
+      </div>
+      {launch && (
+        <section
+          className="source-note stack"
+          aria-label={`${launch.topicTitle} launch readiness`}
+        >
+          <div className="spread">
+            <strong>End-to-end launch readiness</strong>
+            <span
+              className={`review-status-badge ${launch.overallStatus === 'ready' ? 'review-status-complete' : 'review-status-required'}`}
+            >
+              {launch.overallStatus}
+            </span>
+          </div>
+          {launch.checks.map((check) => (
+            <div className="spread" key={check.code}>
+              <p>
+                <strong>
+                  {check.passed ? '✓' : '○'} {check.label}
+                </strong>
+                <br />
+                <span className="small">{check.message}</span>
+              </p>
+              {!check.passed && <a href={check.href}>Fix this step</a>}
+            </div>
+          ))}
+        </section>
+      )}
+      {expanded && (
+        <div className="source-note stack">
+          <strong>Sources for the next topic publication</strong>
+          <p className="small">
+            Primary, supporting and reference text can enter retrieval after
+            review. A visual reference is retained for provenance and selected
+            diagrams, while its OCR text is excluded.
+          </p>
+          {sources.length >= 2 && (
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    'Set the clean text PDF as the primary source and retain the other scan as a visual reference? Review the preview below before publishing.',
+                  )
+                )
+                  return;
+                setBusy(true);
+                setError('');
+                void applyRecommendedTopicSourceRoles(bookRef, topicRef)
+                  .then(setSources)
+                  .then(refreshBook)
+                  .then(() =>
+                    notify(
+                      'Recommended canonical and visual-reference roles applied.',
+                    ),
+                  )
+                  .catch((cause) => setError(errorMessage(cause)))
+                  .finally(() => setBusy(false));
+              }}
+            >
+              Apply recommended source roles
+            </Button>
+          )}
+          {checklist && (
+            <section
+              className="panel stack"
+              aria-label="Topic extraction and visual review checklist"
+            >
+              <div className="spread">
+                <strong>Authoritative review checklist</strong>
+                <span>
+                  {checklist.remainingPages +
+                    checklist.remainingBlocks +
+                    checklist.pendingVisualAssets}{' '}
+                  items need attention
+                </span>
+              </div>
+              <div className="extraction-review-stats">
+                <div>
+                  <strong>{checklist.remainingPages}</strong>
+                  <span>Pages remaining</span>
+                </div>
+                <div>
+                  <strong>{checklist.remainingBlocks}</strong>
+                  <span>Blocks remaining</span>
+                </div>
+                <div>
+                  <strong>{checklist.notationBlocks}</strong>
+                  <span>Formula blocks</span>
+                </div>
+                <div>
+                  <strong>{checklist.tableBlocks}</strong>
+                  <span>Tables</span>
+                </div>
+                <div>
+                  <strong>{checklist.pendingVisualAssets}</strong>
+                  <span>Visuals awaiting approval</span>
+                </div>
+                <div>
+                  <strong>
+                    {checklist.confirmedVisualPageCount}/
+                    {checklist.visualPageCount}
+                  </strong>
+                  <span>Visual page labels</span>
+                </div>
+              </div>
+              {checklist.checks.map((check) => (
+                <div className="spread" key={check.code}>
+                  <p>
+                    <strong>
+                      {check.passed ? '✓' : '○'} {check.label}
+                    </strong>
+                    <br />
+                    <span className="small">{check.message}</span>
+                  </p>
+                  {!check.passed && <a href={check.href}>Review</a>}
+                </div>
+              ))}
+            </section>
+          )}
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          {!sources.length && !error && <p>No sources are attached.</p>}
+          {sources.map((source) => (
+            <article className="panel stack" key={source.documentVersionId}>
+              <div className="spread">
+                <strong>{source.filename}</strong>
+                <span>{source.reviewStatus.replaceAll('_', ' ')}</span>
+              </div>
+              <label className="stack">
+                Source role
+                <select
+                  value={source.role}
+                  disabled={busy}
+                  onChange={(event) => {
+                    const role = event.target.value as TopicSourceRole;
+                    const effect =
+                      role === 'visual_reference'
+                        ? 'exclude its OCR text from the next retrieval index'
+                        : 'include its reviewed content in the next publication';
+                    if (
+                      !window.confirm(
+                        `Change ${source.filename} to ${role.replaceAll('_', ' ')}? This will ${effect}.`,
+                      )
+                    )
+                      return;
+                    setBusy(true);
+                    setError('');
+                    void updateTopicSourceRole(
+                      bookRef,
+                      topicRef,
+                      source.documentId,
+                      role,
+                    )
+                      .then(setSources)
+                      .then(refreshBook)
+                      .then(() => notify('Topic source role updated.'))
+                      .catch((cause) => setError(errorMessage(cause)))
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  <option value="primary">Primary text</option>
+                  <option value="supporting">Supporting text</option>
+                  <option value="reference">Reference text</option>
+                  <option value="visual_reference">Visual reference</option>
+                </select>
+              </label>
+              <p className="small">
+                {source.role === 'visual_reference'
+                  ? `Visual reference: ${source.confirmedPageLabelCount} of ${source.pageCount} Printed page labels confirmed · ${source.missingPageLabelCount} remaining · OCR text excluded from retrieval`
+                  : `Library: ${source.libraryReviewState} · document: ${source.documentStatus} · ${source.unresolvedPageCount} pages and ${source.unresolvedBlockCount} blocks unresolved.`}
+              </p>
+              <p className="small">
+                <strong>
+                  {source.includedInRetrieval
+                    ? 'Included in next retrieval publication'
+                    : 'OCR text excluded from retrieval'}
+                </strong>{' '}
+                · {source.publishableBlockCount} reviewed text blocks ·{' '}
+                {source.visualAssetCount} visual assets
+                {source.usedByPublishedVersion
+                  ? ' · Used by an existing immutable published version'
+                  : ''}
+              </p>
+              {source.role === 'visual_reference' && (
+                <>
+                  <p className="small">
+                    <strong>
+                      {source.approvedVisualCount} approved visuals
+                    </strong>{' '}
+                    · {source.pendingVisualCount} awaiting approval. Only
+                    approved selections enter the next Topic version.
+                  </p>
+                  <VisualAssetManager
+                    bookRef={bookRef}
+                    topicRef={topicRef}
+                    documentId={source.documentId}
+                    notify={notify}
+                    changed={() =>
+                      Promise.all([
+                        getTopicSources(bookRef, topicRef).then(setSources),
+                        getTopicReviewChecklist(bookRef, topicRef).then(
+                          setChecklist,
+                        ),
+                        refreshBook(),
+                      ]).then(() => undefined)
+                    }
+                  />
+                </>
+              )}
+              {!!source.duplicateOf.length && (
+                <p className="error" role="alert">
+                  Possible duplicate primary text:{' '}
+                  {source.duplicateOf.join(', ')}. Choose one canonical primary
+                  source before publishing.
+                </p>
+              )}
+              <div className="button-row">
+                <label className="stack">
+                  Move to another Topic
+                  <select
+                    value={moveTargets[source.documentId] || ''}
+                    disabled={busy}
+                    onChange={(event) =>
+                      setMoveTargets((all) => ({
+                        ...all,
+                        [source.documentId]: event.target.value,
+                      }))
+                    }
+                  >
+                    <option value="">Choose destination</option>
+                    {topics
+                      .filter((topic) => topic.topicRef !== topicRef)
+                      .map((topic) => (
+                        <option key={topic.topicRef} value={topic.topicRef}>
+                          {topic.code} · {topic.title}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <Button
+                  variant="outline"
+                  disabled={busy || !moveTargets[source.documentId]}
+                  onClick={() => {
+                    const target = topics.find(
+                      (topic) =>
+                        topic.topicRef === moveTargets[source.documentId],
+                    );
+                    if (
+                      !target ||
+                      !window.confirm(
+                        `Move ${source.filename} to ${target.code} · ${target.title}? AKURU blocks the move if published, retrieval or reviewed-visual dependencies exist.`,
+                      )
+                    )
+                      return;
+                    setBusy(true);
+                    setError('');
+                    void moveTopicSource(
+                      bookRef,
+                      topicRef,
+                      source.documentId,
+                      target.topicRef,
+                    )
+                      .then(refreshBook)
+                      .then(() => {
+                        notify('Textbook source moved to the selected Topic.');
+                        setSources((current) =>
+                          current.filter(
+                            (item) => item.documentId !== source.documentId,
+                          ),
+                        );
+                      })
+                      .catch((cause) => setError(errorMessage(cause)))
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  Move source
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Detach ${source.filename} from this topic? The document and historical published citations will be retained.`,
+                    )
+                  )
+                    return;
+                  setBusy(true);
+                  setError('');
+                  void detachTopicSource(bookRef, topicRef, source.documentId)
+                    .then(setSources)
+                    .then(refreshBook)
+                    .then(() =>
+                      notify(
+                        'Source detached from this topic; the document was retained.',
+                      ),
+                    )
+                    .catch((cause) => setError(errorMessage(cause)))
+                    .finally(() => setBusy(false));
+                }}
+              >
+                Detach from topic
+              </Button>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function VisualAssetManager({ bookRef, topicRef, documentId, notify, changed }: {
-  bookRef: string; topicRef: string; documentId: string; notify: (message: string) => void; changed: () => Promise<void>;
+function VisualAssetManager({
+  bookRef,
+  topicRef,
+  documentId,
+  notify,
+  changed,
+}: {
+  bookRef: string;
+  topicRef: string;
+  documentId: string;
+  notify: (message: string) => void;
+  changed: () => Promise<void>;
 }) {
-  const [open, setOpen] = useState(false), [assets, setAssets] = useState<TopicVisualAsset[]>([]);
-  const [busy, setBusy] = useState(false), [error, setError] = useState('');
-  function load() { return getTopicVisualAssets(bookRef, topicRef, documentId).then(setAssets); }
-  return <div className="stack"><Button variant="outline" aria-expanded={open} onClick={() => {
-    const next = !open; setOpen(next); if (next) void load().catch(cause => setError(errorMessage(cause)));
-  }}>{open ? 'Hide visual assets' : 'Select and review visual assets'}</Button>
-    {error && <div className="error" role="alert">{error}</div>}
-    {open && <div className="visual-asset-grid">{assets.length ? assets.map(asset =>
-      <VisualAssetCard key={asset.documentAssetId} asset={asset} disabled={busy} save={(status, caption, altText) => {
-        setBusy(true); setError('');
-        void reviewTopicVisualAsset(bookRef, topicRef, documentId, asset.assetRef, status, caption, altText)
-          .then(setAssets).then(changed).then(() => notify(status === 'approved' ? 'Visual approved for the next Topic version.' : 'Visual selection updated.'))
-          .catch(cause => setError(errorMessage(cause))).finally(() => setBusy(false));
-      }}/>) : <p>No extracted diagrams, images or tables were found in this source.</p>}</div>}
-  </div>;
+  const [open, setOpen] = useState(false),
+    [assets, setAssets] = useState<TopicVisualAsset[]>([]);
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  function load() {
+    return getTopicVisualAssets(bookRef, topicRef, documentId).then(setAssets);
+  }
+  return (
+    <div className="stack">
+      <Button
+        variant="outline"
+        aria-expanded={open}
+        onClick={() => {
+          const next = !open;
+          setOpen(next);
+          if (next) void load().catch((cause) => setError(errorMessage(cause)));
+        }}
+      >
+        {open ? 'Hide visual assets' : 'Select and review visual assets'}
+      </Button>
+      {error && (
+        <div className="error" role="alert">
+          {error}
+        </div>
+      )}
+      {open && (
+        <div className="visual-asset-grid">
+          {assets.length ? (
+            assets.map((asset) => (
+              <VisualAssetCard
+                key={asset.documentAssetId}
+                asset={asset}
+                disabled={busy}
+                save={(status, caption, altText) => {
+                  setBusy(true);
+                  setError('');
+                  void reviewTopicVisualAsset(
+                    bookRef,
+                    topicRef,
+                    documentId,
+                    asset.assetRef,
+                    status,
+                    caption,
+                    altText,
+                  )
+                    .then(setAssets)
+                    .then(changed)
+                    .then(() =>
+                      notify(
+                        status === 'approved'
+                          ? 'Visual approved for the next Topic version.'
+                          : 'Visual selection updated.',
+                      ),
+                    )
+                    .catch((cause) => setError(errorMessage(cause)))
+                    .finally(() => setBusy(false));
+                }}
+              />
+            ))
+          ) : (
+            <p>
+              No extracted diagrams, images or tables were found in this source.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function VisualAssetCard({ asset, disabled, save }: { asset: TopicVisualAsset; disabled: boolean; save: (status: 'selected'|'approved'|'rejected', caption: string, altText: string) => void }) {
-  const [caption, setCaption] = useState(asset.caption), [altText, setAltText] = useState(asset.altText);
-  return <article className="panel stack visual-asset-card"><div className="spread"><strong>{asset.kind} · page {asset.printedPage || asset.page}</strong><span className={`review-status-badge ${asset.status === 'approved' ? 'review-status-complete' : 'review-status-required'}`}>{asset.status}</span></div>
-    <Image unoptimized width={640} height={420} src={asset.contentUrl} alt={altText || `Unreviewed ${asset.kind} candidate from page ${asset.printedPage || asset.page}`}/>
-    <label className="stack" htmlFor={`caption-${asset.documentAssetId}`}>Caption<Input id={`caption-${asset.documentAssetId}`} value={caption} onChange={event => setCaption(event.target.value)}/></label>
-    <label className="stack" htmlFor={`alt-${asset.documentAssetId}`}>Accessible text alternative<Textarea id={`alt-${asset.documentAssetId}`} value={altText} onChange={event => setAltText(event.target.value)} placeholder="Describe the educational information shown in this visual."/></label>
-    {asset.extractedCaption && <p className="small">Extracted caption: {asset.extractedCaption}</p>}
-    <div className="button-row"><Button variant="outline" disabled={disabled} onClick={() => save('rejected', caption, altText)}>Exclude</Button><Button variant="outline" disabled={disabled} onClick={() => save('selected', caption, altText)}>Save for review</Button><Button className="primary" disabled={disabled || !altText.trim()} onClick={() => save('approved', caption, altText)}>Approve visual</Button></div>
-  </article>;
+function VisualAssetCard({
+  asset,
+  disabled,
+  save,
+}: {
+  asset: TopicVisualAsset;
+  disabled: boolean;
+  save: (
+    status: 'selected' | 'approved' | 'rejected',
+    caption: string,
+    altText: string,
+  ) => void;
+}) {
+  const [caption, setCaption] = useState(asset.caption),
+    [altText, setAltText] = useState(asset.altText);
+  return (
+    <article className="panel stack visual-asset-card">
+      <div className="spread">
+        <strong>
+          {asset.kind} · page {asset.printedPage || asset.page}
+        </strong>
+        <span
+          className={`review-status-badge ${asset.status === 'approved' ? 'review-status-complete' : 'review-status-required'}`}
+        >
+          {asset.status}
+        </span>
+      </div>
+      <Image
+        unoptimized
+        width={640}
+        height={420}
+        src={asset.contentUrl}
+        alt={
+          altText ||
+          `Unreviewed ${asset.kind} candidate from page ${asset.printedPage || asset.page}`
+        }
+      />
+      <label className="stack" htmlFor={`caption-${asset.documentAssetId}`}>
+        Caption
+        <Input
+          id={`caption-${asset.documentAssetId}`}
+          value={caption}
+          onChange={(event) => setCaption(event.target.value)}
+        />
+      </label>
+      <label className="stack" htmlFor={`alt-${asset.documentAssetId}`}>
+        Accessible text alternative
+        <Textarea
+          id={`alt-${asset.documentAssetId}`}
+          value={altText}
+          onChange={(event) => setAltText(event.target.value)}
+          placeholder="Describe the educational information shown in this visual."
+        />
+      </label>
+      {asset.extractedCaption && (
+        <p className="small">Extracted caption: {asset.extractedCaption}</p>
+      )}
+      <div className="button-row">
+        <Button
+          variant="outline"
+          disabled={disabled}
+          onClick={() => save('rejected', caption, altText)}
+        >
+          Exclude
+        </Button>
+        <Button
+          variant="outline"
+          disabled={disabled}
+          onClick={() => save('selected', caption, altText)}
+        >
+          Save for review
+        </Button>
+        <Button
+          className="primary"
+          disabled={disabled || !altText.trim()}
+          onClick={() => save('approved', caption, altText)}
+        >
+          Approve visual
+        </Button>
+      </div>
+    </article>
+  );
 }
 
-export function TextbookStructureAdmin({ subjects, students, notify, refreshPortal, pathname, navigate }: Props) {
-  const [books, setBooks] = useState<TextbookStructure[]>([]), [selected, setSelected] = useState('');
-  const [search, setSearch] = useState(''), [filterSubject, setFilterSubject] = useState('all'), [filterStatus, setFilterStatus] = useState('all');
-  const [appliedSearch, setAppliedSearch] = useState(''), [appliedSubject, setAppliedSubject] = useState('all'), [appliedStatus, setAppliedStatus] = useState('all');
-  const [subjectId, setSubjectId] = useState(subjects[0]?.id || 'chemistry');
-  const [title, setTitle] = useState(''), [edition, setEdition] = useState(''), [publisher, setPublisher] = useState('');
-  const [groupLabel, setGroupLabel] = useState<'unit' | 'module'>('unit');
-  const [groupCode, setGroupCode] = useState(''), [groupTitle, setGroupTitle] = useState('');
-  const [topicDrafts, setTopicDrafts] = useState<Record<string, { code: string; title: string }>>({});
-  const [uploadRoles, setUploadRoles] = useState<Record<string, TopicSourceRole | ''>>({});
-  const [uploads, setUploads] = useState<Record<string, { fileName: string; fileNumber: number; totalFiles: number; percent: number; status: 'uploading' | 'complete' | 'failed' }>>({});
-  const [busy, setBusy] = useState(false), [error, setError] = useState('');
-  const filteredBooks = books.filter((item) => {
-    const words = [item.title, item.edition, item.publisher, item.status, item.subjectId, ...item.groups.flatMap((group) => [group.code, group.title, group.status, ...group.topics.flatMap((topic) => [topic.code, topic.title, topic.status, topic.content.state])])].join(' ').toLocaleLowerCase();
-    return (appliedSubject === 'all' || item.subjectId === appliedSubject) && (appliedStatus === 'all' || item.status === appliedStatus || item.groups.some((group) => group.status === appliedStatus || group.topics.some((topic) => topic.status === appliedStatus || topic.content.state === appliedStatus))) && (!appliedSearch.trim() || words.includes(appliedSearch.trim().toLocaleLowerCase()));
+export function TextbookStructureAdmin({
+  subjects,
+  students,
+  notify,
+  refreshPortal,
+  pathname,
+  navigate,
+}: Props) {
+  const [books, setBooks] = useState<TextbookStructure[]>([]),
+    [selected, setSelected] = useState('');
+  const [filters, setFilters] = useWorkspaceSearch({
+    q: '',
+    subject: 'all',
+    status: 'all',
   });
+  const [search, setSearch] = useState(filters.q),
+    [filterSubject, setFilterSubject] = useState(filters.subject),
+    [filterStatus, setFilterStatus] = useState(filters.status);
+  const appliedSearch = filters.q,
+    appliedSubject = filters.subject,
+    appliedStatus = filters.status;
+  const [editTarget, setEditTarget] = useState<{
+    kind: 'book' | 'group' | 'topic';
+    ref: string;
+    groupRef?: string;
+  } | null>(null);
+  const [editDraft, setEditDraft] = useState({ title: '', edition: '' });
+  const [qualityReport, setQualityReport] = useState<Awaited<
+    ReturnType<typeof getTopicQualityReport>
+  > | null>(null);
+  const [subjectId, setSubjectId] = useState(subjects[0]?.id || 'chemistry');
+  const [title, setTitle] = useState(''),
+    [edition, setEdition] = useState(''),
+    [publisher, setPublisher] = useState('');
+  const [groupLabel, setGroupLabel] = useState<'unit' | 'module'>('unit');
+  const [groupCode, setGroupCode] = useState(''),
+    [groupTitle, setGroupTitle] = useState('');
+  const [topicDrafts, setTopicDrafts] = useState<
+    Record<string, { code: string; title: string }>
+  >({});
+  const [uploadRoles, setUploadRoles] = useState<
+    Record<string, TopicSourceRole | ''>
+  >({});
+  const [uploads, setUploads] = useState<
+    Record<
+      string,
+      {
+        fileName: string;
+        fileNumber: number;
+        totalFiles: number;
+        percent: number;
+        status: 'uploading' | 'complete' | 'failed';
+      }
+    >
+  >({});
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const filteredBooks = books.filter((item) => {
+    const words = [
+      item.title,
+      item.edition,
+      item.publisher,
+      item.status,
+      item.subjectId,
+      ...item.groups.flatMap((group) => [
+        group.code,
+        group.title,
+        group.status,
+        ...group.topics.flatMap((topic) => [
+          topic.code,
+          topic.title,
+          topic.status,
+          topic.content.state,
+        ]),
+      ]),
+    ]
+      .join(' ')
+      .toLocaleLowerCase();
+    return (
+      (appliedSubject === 'all' || item.subjectId === appliedSubject) &&
+      (appliedStatus === 'all' ||
+        item.status === appliedStatus ||
+        item.groups.some(
+          (group) =>
+            group.status === appliedStatus ||
+            group.topics.some(
+              (topic) =>
+                topic.status === appliedStatus ||
+                topic.content.state === appliedStatus,
+            ),
+        )) &&
+      (!appliedSearch.trim() ||
+        words.includes(appliedSearch.trim().toLocaleLowerCase()))
+    );
+  });
+  const managedTopicRef = pathname.match(/\/topics\/(topic_[^/]+)$/)?.[1];
   const managedRef = pathname.match(/^\/admin\/textbooks\/(book_[^/]+)/)?.[1];
-  const mode = pathname === '/admin/textbooks/new' ? 'new' : managedRef ? 'manage' : 'list';
-  const book = books.find((item) => item.textbookRef === (managedRef || selected)) || (mode === 'manage' ? undefined : filteredBooks[0]);
-  const refresh = async (preferred?: string) => { const result = await getTextbookStructures(); setBooks(result.textbooks); const next = preferred || selected || result.textbooks[0]?.textbookRef || ''; setSelected(next); };
-  useEffect(() => { void getTextbookStructures().then((result) => { setBooks(result.textbooks); setSelected(result.textbooks[0]?.textbookRef || ''); }).catch((cause) => setError(errorMessage(cause))); }, []);
-  const run = async (action: () => Promise<TextbookStructure>, message: string) => {
-    setBusy(true); setError('');
-    try { const result = await action(); await refresh(result.status === 'archived' ? undefined : result.textbookRef); notify(message); }
-    catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); }
+  const mode =
+    pathname === '/admin/textbooks/new'
+      ? 'new'
+      : managedRef
+        ? 'manage'
+        : 'list';
+  const book =
+    books.find((item) => item.textbookRef === (managedRef || selected)) ||
+    (mode === 'manage' ? undefined : filteredBooks[0]);
+  const refresh = async (preferred?: string) => {
+    const result = await getTextbookStructures();
+    setBooks(result.textbooks);
+    const next =
+      preferred || selected || result.textbooks[0]?.textbookRef || '';
+    setSelected(next);
   };
-  const uploadFiles = async (topicRef: string, topicCode: string, files: FileList | null) => {
+  useEffect(() => {
+    void getTextbookStructures()
+      .then((result) => {
+        setBooks(result.textbooks);
+        setSelected(result.textbooks[0]?.textbookRef || '');
+      })
+      .catch((cause) => setError(errorMessage(cause)));
+  }, []);
+  const run = async (
+    action: () => Promise<TextbookStructure>,
+    message: string,
+  ) => {
+    setBusy(true);
+    setError('');
+    try {
+      const result = await action();
+      await refresh(
+        result.status === 'archived' ? undefined : result.textbookRef,
+      );
+      notify(message);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
+  };
+  const uploadFiles = async (
+    topicRef: string,
+    topicCode: string,
+    files: FileList | null,
+  ) => {
     if (!files?.length || !book) return;
     const role = uploadRoles[topicRef];
-    if (!role) { setError('Choose how AKURU will use and review this source before uploading.'); return; }
-    setBusy(true); setError('');
+    if (!role) {
+      setError(
+        'Choose how AKURU will use and review this source before uploading.',
+      );
+      return;
+    }
+    setBusy(true);
+    setError('');
     try {
       const selectedFiles = Array.from(files);
-      const suggestions = await suggestTopicParts(book.textbookRef, selectedFiles.map((file) => file.name));
-      const conflicts = suggestions.filter((item) => item.suggestedTopicRef && item.suggestedTopicRef !== topicRef);
-      if (conflicts.length && !window.confirm(`AKURU's filename check suggests a different topic for ${conflicts.map((item) => item.filename).join(', ')}. Upload to Topic ${topicCode} anyway?`)) return;
+      const suggestions = await suggestTopicParts(
+        book.textbookRef,
+        selectedFiles.map((file) => file.name),
+      );
+      const conflicts = suggestions.filter(
+        (item) => item.suggestedTopicRef && item.suggestedTopicRef !== topicRef,
+      );
+      if (
+        conflicts.length &&
+        !window.confirm(
+          `AKURU's filename check suggests a different topic for ${conflicts.map((item) => item.filename).join(', ')}. Upload to Topic ${topicCode} anyway?`,
+        )
+      )
+        return;
       for (const [index, file] of selectedFiles.entries()) {
-        setUploads((all) => ({ ...all, [topicRef]: { fileName: file.name, fileNumber: index + 1,
-          totalFiles: selectedFiles.length, percent: Math.round((index / selectedFiles.length) * 100), status: 'uploading' } }));
-        await uploadTopicPart(book.textbookRef, topicRef, file, role, (filePercent) => {
-          const percent = Math.round(((index + filePercent / 100) / selectedFiles.length) * 100);
-          setUploads((all) => ({ ...all, [topicRef]: { fileName: file.name, fileNumber: index + 1,
-            totalFiles: selectedFiles.length, percent, status: 'uploading' } }));
-        });
+        setUploads((all) => ({
+          ...all,
+          [topicRef]: {
+            fileName: file.name,
+            fileNumber: index + 1,
+            totalFiles: selectedFiles.length,
+            percent: Math.round((index / selectedFiles.length) * 100),
+            status: 'uploading',
+          },
+        }));
+        await uploadTopicPart(
+          book.textbookRef,
+          topicRef,
+          file,
+          role,
+          (filePercent) => {
+            const percent = Math.round(
+              ((index + filePercent / 100) / selectedFiles.length) * 100,
+            );
+            setUploads((all) => ({
+              ...all,
+              [topicRef]: {
+                fileName: file.name,
+                fileNumber: index + 1,
+                totalFiles: selectedFiles.length,
+                percent,
+                status: 'uploading',
+              },
+            }));
+          },
+        );
       }
-      setUploads((all) => ({ ...all, [topicRef]: { fileName: selectedFiles.at(-1)?.name || '',
-        fileNumber: selectedFiles.length, totalFiles: selectedFiles.length, percent: 100, status: 'complete' } }));
-      await Promise.all([refresh(book.textbookRef), refreshPortal()]); notify(`${selectedFiles.length} textbook part${selectedFiles.length === 1 ? '' : 's'} uploaded for processing.`);
+      setUploads((all) => ({
+        ...all,
+        [topicRef]: {
+          fileName: selectedFiles.at(-1)?.name || '',
+          fileNumber: selectedFiles.length,
+          totalFiles: selectedFiles.length,
+          percent: 100,
+          status: 'complete',
+        },
+      }));
+      await Promise.all([refresh(book.textbookRef), refreshPortal()]);
+      notify(
+        `${selectedFiles.length} textbook part${selectedFiles.length === 1 ? '' : 's'} uploaded for processing.`,
+      );
     } catch (cause) {
-      setUploads((all) => all[topicRef] ? { ...all, [topicRef]: { ...all[topicRef], status: 'failed' } } : all);
+      setUploads((all) =>
+        all[topicRef]
+          ? { ...all, [topicRef]: { ...all[topicRef], status: 'failed' } }
+          : all,
+      );
       setError(errorMessage(cause));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
-  return <div className="stack">
-    {error && <div className="error" role="alert">{error}</div>}
-    {mode === 'list' && <section className="panel stack"><h2>View Textbooks</h2><p>Find a textbook, then open its focused management or review workspace.</p>
-      <fieldset className="catalogue-filters"><legend>Find textbook content</legend><div className="three-cols"><label className="stack" htmlFor="catalogue-search">Search textbook, Unit, Module or Topic<Input id="catalogue-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="For example: acids or Topic 2" /></label><Picker label="Subject" value={filterSubject} onChange={setFilterSubject} options={[{ value: 'all', label: 'All subjects' }, ...subjects.map((subject) => ({ value: subject.id, label: subject.name }))]} /><Picker label="Content status" value={filterStatus} onChange={setFilterStatus} options={[{ value: 'all', label: 'All statuses' }, ...['draft', 'published', 'archived', 'processing', 'failed'].map((value) => ({ value, label: value[0].toUpperCase() + value.slice(1) }))]} /></div><div className="button-row"><Button onClick={() => { setAppliedSearch(search); setAppliedSubject(filterSubject); setAppliedStatus(filterStatus); }}>Apply filters</Button><Button variant="outline" onClick={() => { setSearch(''); setFilterSubject('all'); setFilterStatus('all'); setAppliedSearch(''); setAppliedSubject('all'); setAppliedStatus('all'); }}>Clear filters</Button><span className="small" aria-live="polite">{filteredBooks.length} textbook{filteredBooks.length === 1 ? '' : 's'} found. Term coverage is managed in <strong>Grade & term coverage</strong>.</span></div></fieldset>
-      <div className="admin-table-wrap"><table className="admin-table"><caption className="sr-only">Textbooks and management actions</caption><thead><tr><th>Textbook</th><th>Subject</th><th>Edition</th><th>Structure</th><th>Topics</th><th>Status</th><th>Actions</th></tr></thead><tbody>{filteredBooks.map((item) => { const topicCount = item.groups.reduce((total, group) => total + group.topics.length, 0); const reviewCount = item.groups.flatMap((group) => group.topics).filter((topic) => topic.content.state === 'needs_review').length; return <tr key={item.textbookRef}><td><strong>{item.title}</strong><br/><small>{item.publisher || 'Publisher not recorded'}</small></td><td>{subjects.find((subject) => subject.id === item.subjectId)?.name || item.subjectId}</td><td>{item.edition}</td><td>{item.groups.length} {item.groupDisplayLabel}{item.groups.length === 1 ? '' : 's'}</td><td>{topicCount}<br/><small>{reviewCount} need review</small></td><td><span className="status">{item.status}</span></td><td><div className="button-row"><Button aria-label={`Manage ${item.title}`} onClick={() => navigate(`/admin/textbooks/${item.textbookRef}`)}>Manage</Button><Button variant="outline" aria-label={`Review ${item.title}`} onClick={() => navigate(`/admin/textbooks/review?textbook=${item.textbookRef}`)}>Review</Button></div></td></tr>; })}</tbody></table></div>
-      {!filteredBooks.length && <output>No textbook structures match these filters.</output>}
-    </section>}
-    {mode === 'new' && <section className="panel stack"><div><span className="eyebrow">NEW TEXTBOOK</span><h2>Add Textbook</h2><p>Create the textbook identity first. AKURU will then open its Manage page for Units, Modules, Topics and files.</p></div>
-      <form className="stack" onSubmit={async (event) => { event.preventDefault(); setBusy(true); setError(''); try { const result = await createTextbookStructure({ courseId: 'igcse', subjectId, title, edition, publisher, groupLabel }); await refresh(result.textbookRef); notify('Textbook structure created.'); navigate(`/admin/textbooks/${result.textbookRef}`); } catch (cause) { setError(errorMessage(cause)); } finally { setBusy(false); } }}>
-        <div className="two-cols"><Picker label="Subject" value={subjectId} onChange={setSubjectId} options={subjects.map((s) => ({ value: s.id, label: s.name }))}/><Picker label="Structure label" value={groupLabel} onChange={(value) => setGroupLabel(value as 'unit' | 'module')} options={[{ value: 'unit', label: 'Unit' }, { value: 'module', label: 'Module' }]}/></div>
-        <div className="two-cols"><label className="stack" htmlFor="structure-title">Textbook title<Input id="structure-title" required value={title} onChange={(e) => setTitle(e.target.value)}/></label><label className="stack" htmlFor="structure-edition">Edition<Input id="structure-edition" required value={edition} onChange={(e) => setEdition(e.target.value)}/></label></div>
-        <label className="stack" htmlFor="structure-publisher">Publisher<Input id="structure-publisher" value={publisher} onChange={(e) => setPublisher(e.target.value)}/></label><Button className="primary" type="submit" disabled={busy}>Create textbook</Button>
-      </form>
-    </section>}
-    {mode === 'manage' && !book && <section className="panel"><h2>Textbook unavailable</h2><p>The textbook reference is invalid or no longer available.</p><Button onClick={() => navigate('/admin/textbooks')}>Return to View Textbooks</Button></section>}
-    {mode === 'manage' && book && <section className="panel stack"><div className="spread"><div><span className="eyebrow">{book.status} · STRUCTURE VERSION {book.structureVersion}</span><h2>{book.title}</h2><p>{book.edition} · {book.publisher || 'Publisher not recorded'} · {book.groups.length} {book.groupDisplayLabel.toLowerCase()} groups · {book.groups.reduce((total, group) => total + group.topics.length, 0)} topics</p><p><strong>{book.groups.flatMap((group) => group.topics).filter((topic) => topic.content.contentVersion > 0).length} of {book.groups.flatMap((group) => group.topics).length} topics published</strong></p></div><div className="button-row"><Button variant="outline" onClick={() => navigate('/admin/textbooks')}>Back to textbooks</Button><Button variant="outline" onClick={() => navigate(`/admin/textbooks/review?textbook=${book.textbookRef}`)}>Review files</Button><Button variant="outline" disabled={busy} onClick={() => { if (window.confirm(`Archive ${book.title}? This hides it from future selection but keeps the published learning history.`)) void run(() => archiveTextbookStructure(book.textbookRef), 'Textbook archived.'); }}>Archive textbook</Button><Button className="primary" disabled={busy || !book.groups.length || book.groups.some((g) => !g.topics.length)} onClick={() => { if (window.confirm(`Publish this ${book.groupDisplayLabel} and topic structure? Future edits create a new structure version.`)) void run(() => publishTextbookStructure(book.textbookRef), 'Textbook structure published.'); }}>Publish structure</Button></div></div>
-      <form className="structure-create-form group-create-form stack" onSubmit={(e) => { e.preventDefault(); void run(() => saveTextbookGroup(book.textbookRef, { code: groupCode, title: groupTitle, summary: '', sequence: book.groups.length + 1 }), `${book.groupDisplayLabel} added.`); setGroupCode(''); setGroupTitle(''); }}>
-        <div><span className="eyebrow">STEP 1 · TEXTBOOK ORGANISATION</span><h3>Add a new {book.groupDisplayLabel}</h3><p>Create the larger textbook section first. Topics will be added inside it.</p></div>
-        <div className="two-cols"><label className="stack" htmlFor="group-code">{book.groupDisplayLabel} code<Input id="group-code" required value={groupCode} onChange={(e) => setGroupCode(e.target.value)} placeholder={book.groupLabel === 'unit' ? 'For example: CHEM-U1' : 'For example: BIO-M1'}/></label><label className="stack" htmlFor="group-title">{book.groupDisplayLabel} title<Input id="group-title" required value={groupTitle} onChange={(e) => setGroupTitle(e.target.value)} placeholder="For example: Principles of Chemistry"/></label></div>
-        <Button className="primary" type="submit" disabled={busy}>Add {book.groupDisplayLabel}</Button>
-      </form>
-      <Button variant="outline" disabled={busy} onClick={() => { const nextTitle = window.prompt('Textbook title', book.title); const nextEdition = window.prompt('Edition', book.edition); if (nextTitle?.trim() && nextEdition?.trim()) void run(() => updateTextbookStructure(book.textbookRef, { title: nextTitle, edition: nextEdition, publisher: book.publisher, groupLabel: book.groupLabel }), 'Textbook details saved.'); }}>Edit textbook details</Button>
-      {book.groups.filter((group) => !search.trim() || [group.code, group.title, ...group.topics.flatMap((topic) => [topic.code, topic.title])].join(' ').toLowerCase().includes(search.trim().toLowerCase())).map((group) => { const groupIndex = book.groups.indexOf(group); const draft = topicDrafts[group.groupRef] || { code: '', title: '' }; return <article className="card stack" key={group.groupRef}><div className="spread"><div><h3>{group.code} · {group.title}</h3><small>{group.status} · Owned by iGCSE {subjects.find((item) => item.id === book.subjectId)?.name || book.subjectId}</small><div className="extraction-review-stats" aria-label={`${group.code} topic readiness summary`}><div><strong>{group.totalTopicCount}</strong><span>Total topics</span></div><div><strong>{group.reviewedTopicCount}</strong><span>Reviewed</span></div><div><strong>{group.publishedTopicCount}</strong><span>Published</span></div><div><strong>{group.studentEligibleTopicCount}</strong><span>Student eligible</span></div></div><p className="small">Topics are independent records. Adding later topics or {book.groupDisplayLabel.toLowerCase()}s does not change existing topic identities or published versions.</p></div><div className="button-row" aria-label={`${book.groupDisplayLabel} ${group.code} actions`}><Button variant="outline" disabled={busy} onClick={() => { const next = window.prompt(`${book.groupDisplayLabel} title`, group.title); if (next?.trim()) void run(() => saveTextbookGroup(book.textbookRef, { code: group.code, title: next, summary: group.summary, sequence: group.sequence }, group.groupRef), `${book.groupDisplayLabel} saved.`); }}>Edit</Button><Button variant="outline" aria-label={`Move ${group.code} earlier`} disabled={busy || groupIndex === 0} onClick={() => void run(() => reorderTextbookGroups(book.textbookRef, move(book.groups.map((g) => g.groupRef), groupIndex, -1)), 'Order saved.')}>Earlier</Button><Button variant="outline" aria-label={`Move ${group.code} later`} disabled={busy || groupIndex === book.groups.length - 1} onClick={() => void run(() => reorderTextbookGroups(book.textbookRef, move(book.groups.map((g) => g.groupRef), groupIndex, 1)), 'Order saved.')}>Later</Button><Button variant="outline" disabled={busy || !group.removable} title={group.removable ? 'Remove this unpublished group' : 'Published or referenced groups are protected'} onClick={() => { if (window.confirm(`Remove ${group.code} · ${group.title}? This cannot be undone.`)) void run(() => removeTextbookGroup(book.textbookRef, group.groupRef), `${book.groupDisplayLabel} removed.`); }}>Remove</Button></div></div>
-        {group.topics.filter((topic) => !search.trim() || [topic.code, topic.title, topic.status, topic.content.state].join(' ').toLowerCase().includes(search.trim().toLowerCase())).map((topic) => { const topicIndex = group.topics.indexOf(topic); const upload = uploads[topic.topicRef]; const destination = `${book.groupDisplayLabel} ${group.code} → Topic ${topic.code} — ${topic.title}`; return <div className="stack topic-record" key={topic.topicRef}><div className="spread"><p><strong>{topic.code} · {topic.title}</strong><br/><small>Content: {topic.content.state.replaceAll('_', ' ')}{topic.content.contentVersion ? ` · version ${topic.content.contentVersion}` : ''}{topic.content.supersededVersionCount ? ` · ${topic.content.supersededVersionCount} superseded version${topic.content.supersededVersionCount === 1 ? '' : 's'}` : ''} · {topic.documentCount ? `${topic.documentCount} textbook parts` : 'No textbook parts yet'}{topic.content.averageConfidence ? ` · ${Math.round(topic.content.averageConfidence * 100)}% extraction confidence` : ''}</small></p><div className="button-row" aria-label={`Topic ${topic.code} actions`}><Button variant="outline" disabled={busy} onClick={() => { const next = window.prompt('Topic title', topic.title); if (next?.trim()) void run(() => saveTextbookTopic(book.textbookRef, group.groupRef, { code: topic.code, title: next, sequence: topic.sequence, syllabusRef: topic.syllabusRef, description: topic.description }, topic.topicRef), 'Topic saved.'); }}>Edit</Button><Button variant="outline" aria-label={`Move topic ${topic.code} earlier`} disabled={busy || topicIndex === 0} onClick={() => void run(() => reorderTextbookTopics(book.textbookRef, group.groupRef, move(group.topics.map((t) => t.topicRef), topicIndex, -1)), 'Topic order saved.')}>Earlier</Button><Button variant="outline" aria-label={`Move topic ${topic.code} later`} disabled={busy || topicIndex === group.topics.length - 1} onClick={() => void run(() => reorderTextbookTopics(book.textbookRef, group.groupRef, move(group.topics.map((t) => t.topicRef), topicIndex, 1)), 'Topic order saved.')}>Later</Button><Button variant="outline" disabled={busy || !topic.removable} title={topic.removable ? 'Remove this unpublished topic' : 'Published or referenced topics are protected'} onClick={() => { if (window.confirm(`Remove ${topic.code} · ${topic.title}? This cannot be undone.`)) void run(() => removeTextbookTopic(book.textbookRef, topic.topicRef), 'Topic removed.'); }}>Remove</Button></div></div><div className="source-note"><strong>Publication readiness</strong>{topic.content.checks.map((check) => <p key={check.code}><span aria-hidden="true">{check.passed ? '✓' : '○'}</span> {check.passed ? 'Ready: ' : 'Needs attention: '}{check.message}</p>)}<Button variant="outline" disabled={busy} onClick={() => { void getTopicQualityReport(book.textbookRef, topic.topicRef).then((report) => window.alert(`${report.passed ? 'Quality gate passed' : 'Quality gate blocked'}\n\n${report.documents.map((document) => `${document.filename}: ${document.passed ? 'pass' : 'needs review'} · ${document.pageCount} pages · ${document.equationCount} equations · ${document.diagramCount} diagrams`).join('\n')}\n\n${report.resolution}`)).catch((cause) => setError(errorMessage(cause))); }}>View topic PDF quality report</Button><Button className="primary" disabled={busy || !topic.content.ready} onClick={() => { if (window.confirm(`Publish reviewed content for ${topic.code} · ${topic.title}? Existing citations keep their current version.`)) void run(() => publishTextbookTopic(book.textbookRef, topic.topicRef), 'Topic content published independently.'); }}>Publish topic content</Button></div><TopicSourceManager bookRef={book.textbookRef} topicRef={topic.topicRef} topics={book.groups.flatMap((item) => item.topics)} students={students} refreshBook={() => refresh(book.textbookRef)} notify={notify}/><section className="topic-upload-panel" aria-label={`Upload files to ${topic.code}`}><div><span className="eyebrow">UPLOAD DESTINATION</span><strong>Uploading to: {destination}</strong><p className="small">PDF, PNG or JPEG · up to 50 MB per file</p></div><Picker label="Source role (required)" value={uploadRoles[topic.topicRef] || ''} onChange={(value) => setUploadRoles((all) => ({ ...all, [topic.topicRef]: value as TopicSourceRole }))} options={[{ value: '', label: 'Choose how AKURU will use this source' }, { value: 'primary', label: 'Primary text — canonical learning and retrieval text' }, { value: 'supporting', label: 'Supporting text — reviewed additional learning content' }, { value: 'reference', label: 'Reference text — reviewed supplementary content' }, { value: 'visual_reference', label: 'Visual reference — page labels and selected visuals only' }]}/><p className="small">Text roles require complete OCR review. Visual reference OCR is excluded from retrieval; its Printed page labels and selected visuals are reviewed instead.</p><label className="topic-upload-picker" htmlFor={`topic-files-${topic.topicRef}`}>Choose files<Input id={`topic-files-${topic.topicRef}`} type="file" multiple accept="application/pdf,image/png,image/jpeg" disabled={busy || !uploadRoles[topic.topicRef]} onChange={(event) => { void uploadFiles(topic.topicRef, topic.code, event.target.files); event.target.value = ''; }}/></label>{upload && <div className={`topic-upload-progress ${upload.status}`} aria-live="polite"><div className="spread"><span>{upload.status === 'complete' ? 'Upload complete' : upload.status === 'failed' ? 'Upload failed' : `Uploading file ${upload.fileNumber} of ${upload.totalFiles}`}</span><strong>{upload.percent}%</strong></div><progress value={upload.percent} max={100} aria-label={`${upload.percent}% uploaded`}/><small>{upload.fileName}{upload.status === 'complete' ? ` · ${uploadRoles[topic.topicRef]?.replaceAll('_', ' ')} · queued for extraction · ${destination}` : ''}</small></div>}</section></div>; })}
-        <form className="structure-create-form topic-create-form stack" onSubmit={(e) => { e.preventDefault(); void run(() => saveTextbookTopic(book.textbookRef, group.groupRef, { ...draft, sequence: group.topics.length + 1, syllabusRef: '', description: '' }), 'Topic added.'); setTopicDrafts((all) => ({ ...all, [group.groupRef]: { code: '', title: '' } })); }}>
-          <div><span className="eyebrow">STEP 2 · LEARNING CONTENT</span><h3>Add a topic to {group.code}</h3><p>Create the specific textbook topic that will receive PDFs, images and published learning content.</p></div>
-          <div className="two-cols"><label className="stack" htmlFor={`topic-code-${group.groupRef}`}>Topic code<Input id={`topic-code-${group.groupRef}`} required value={draft.code} onChange={(e) => setTopicDrafts((all) => ({ ...all, [group.groupRef]: { ...draft, code: e.target.value } }))} placeholder="For example: CHEM-U1-T01"/></label><label className="stack" htmlFor={`topic-title-${group.groupRef}`}>Topic title<Input id={`topic-title-${group.groupRef}`} required value={draft.title} onChange={(e) => setTopicDrafts((all) => ({ ...all, [group.groupRef]: { ...draft, title: e.target.value } }))} placeholder="For example: States of Matter"/></label></div>
-          <Button type="submit" disabled={busy}>Add topic to {group.code}</Button>
+  return (
+    <div className="stack">
+      {error && (
+        <div className="error" role="alert">
+          {error}
+        </div>
+      )}
+      {mode === 'list' && (
+        <section className="panel stack">
+          <h2>View Textbooks</h2>
+          <p>
+            Find a textbook, then open its focused management or review
+            workspace.
+          </p>
+          <fieldset className="catalogue-filters">
+            <legend>Find textbook content</legend>
+            <div className="three-cols">
+              <label className="stack" htmlFor="catalogue-search">
+                Search textbook, Unit, Module or Topic
+                <Input
+                  id="catalogue-search"
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="For example: acids or Topic 2"
+                />
+              </label>
+              <Picker
+                label="Subject"
+                value={filterSubject}
+                onChange={setFilterSubject}
+                options={[
+                  { value: 'all', label: 'All subjects' },
+                  ...subjects.map((subject) => ({
+                    value: subject.id,
+                    label: subject.name,
+                  })),
+                ]}
+              />
+              <Picker
+                label="Content status"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={[
+                  { value: 'all', label: 'All statuses' },
+                  ...[
+                    'draft',
+                    'published',
+                    'archived',
+                    'processing',
+                    'failed',
+                  ].map((value) => ({
+                    value,
+                    label: value[0].toUpperCase() + value.slice(1),
+                  })),
+                ]}
+              />
+            </div>
+            <div className="button-row">
+              <Button
+                onClick={() => {
+                  setFilters({
+                    q: search,
+                    subject: filterSubject,
+                    status: filterStatus,
+                  });
+                }}
+              >
+                Apply filters
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearch('');
+                  setFilterSubject('all');
+                  setFilterStatus('all');
+                  setFilters({ q: '', subject: 'all', status: 'all' });
+                }}
+              >
+                Clear filters
+              </Button>
+              <span className="small" aria-live="polite">
+                {filteredBooks.length} textbook
+                {filteredBooks.length === 1 ? '' : 's'} found. Term coverage is
+                managed in <strong>Grade & term coverage</strong>.
+              </span>
+            </div>
+          </fieldset>
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <caption className="sr-only">
+                Textbooks and management actions
+              </caption>
+              <thead>
+                <tr>
+                  <th>Textbook</th>
+                  <th>Subject</th>
+                  <th>Edition</th>
+                  <th>Structure</th>
+                  <th>Topics</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredBooks.map((item) => {
+                  const topicCount = item.groups.reduce(
+                    (total, group) => total + group.topics.length,
+                    0,
+                  );
+                  const reviewCount = item.groups
+                    .flatMap((group) => group.topics)
+                    .filter(
+                      (topic) => topic.content.state === 'needs_review',
+                    ).length;
+                  return (
+                    <tr key={item.textbookRef}>
+                      <td>
+                        <strong>{item.title}</strong>
+                        <br />
+                        <small>
+                          {item.publisher || 'Publisher not recorded'}
+                        </small>
+                      </td>
+                      <td>
+                        {subjects.find(
+                          (subject) => subject.id === item.subjectId,
+                        )?.name || item.subjectId}
+                      </td>
+                      <td>{item.edition}</td>
+                      <td>
+                        {item.groups.length} {item.groupDisplayLabel}
+                        {item.groups.length === 1 ? '' : 's'}
+                      </td>
+                      <td>
+                        {topicCount}
+                        <br />
+                        <small>{reviewCount} need review</small>
+                      </td>
+                      <td>
+                        <span className="status">{item.status}</span>
+                      </td>
+                      <td>
+                        <div className="button-row">
+                          <Button
+                            aria-label={`Manage ${item.title}`}
+                            onClick={() =>
+                              navigate(`/admin/textbooks/${item.textbookRef}`)
+                            }
+                          >
+                            Manage
+                          </Button>
+                          <Button
+                            variant="outline"
+                            aria-label={`Review ${item.title}`}
+                            onClick={() =>
+                              navigate(
+                                `/admin/textbooks/review?textbook=${item.textbookRef}`,
+                              )
+                            }
+                          >
+                            Review
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {!filteredBooks.length && (
+            <output>No textbook structures match these filters.</output>
+          )}
+        </section>
+      )}
+      {mode === 'new' && (
+        <section className="panel stack">
+          <div>
+            <span className="eyebrow">NEW TEXTBOOK</span>
+            <h2>Add Textbook</h2>
+            <p>
+              Create the textbook identity first. AKURU will then open its
+              Manage page for Units, Modules, Topics and files.
+            </p>
+          </div>
+          <form
+            className="stack"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              setBusy(true);
+              setError('');
+              try {
+                const result = await createTextbookStructure({
+                  courseId: 'igcse',
+                  subjectId,
+                  title,
+                  edition,
+                  publisher,
+                  groupLabel,
+                });
+                await refresh(result.textbookRef);
+                notify('Textbook structure created.');
+                navigate(`/admin/textbooks/${result.textbookRef}`);
+              } catch (cause) {
+                setError(errorMessage(cause));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            <div className="two-cols">
+              <Picker
+                label="Subject"
+                value={subjectId}
+                onChange={setSubjectId}
+                options={subjects.map((s) => ({ value: s.id, label: s.name }))}
+              />
+              <Picker
+                label="Structure label"
+                value={groupLabel}
+                onChange={(value) => setGroupLabel(value as 'unit' | 'module')}
+                options={[
+                  { value: 'unit', label: 'Unit' },
+                  { value: 'module', label: 'Module' },
+                ]}
+              />
+            </div>
+            <div className="two-cols">
+              <label className="stack" htmlFor="structure-title">
+                Textbook title
+                <Input
+                  id="structure-title"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+              </label>
+              <label className="stack" htmlFor="structure-edition">
+                Edition
+                <Input
+                  id="structure-edition"
+                  required
+                  value={edition}
+                  onChange={(e) => setEdition(e.target.value)}
+                />
+              </label>
+            </div>
+            <label className="stack" htmlFor="structure-publisher">
+              Publisher
+              <Input
+                id="structure-publisher"
+                value={publisher}
+                onChange={(e) => setPublisher(e.target.value)}
+              />
+            </label>
+            <Button className="primary" type="submit" disabled={busy}>
+              Create textbook
+            </Button>
+          </form>
+        </section>
+      )}
+      {mode === 'manage' && !book && (
+        <section className="panel">
+          <h2>Textbook unavailable</h2>
+          <p>The textbook reference is invalid or no longer available.</p>
+          <Button onClick={() => navigate('/admin/textbooks')}>
+            Return to View Textbooks
+          </Button>
+        </section>
+      )}
+      {mode === 'manage' && book && (
+        <section className="panel stack">
+          <div className="spread">
+            <div>
+              <span className="eyebrow">
+                {book.status} · STRUCTURE VERSION {book.structureVersion}
+              </span>
+              <h2>{book.title}</h2>
+              <p>
+                {book.edition} · {book.publisher || 'Publisher not recorded'} ·{' '}
+                {book.groups.length} {book.groupDisplayLabel.toLowerCase()}{' '}
+                groups ·{' '}
+                {book.groups.reduce(
+                  (total, group) => total + group.topics.length,
+                  0,
+                )}{' '}
+                topics
+              </p>
+              <p>
+                <strong>
+                  {
+                    book.groups
+                      .flatMap((group) => group.topics)
+                      .filter((topic) => topic.content.contentVersion > 0)
+                      .length
+                  }{' '}
+                  of {book.groups.flatMap((group) => group.topics).length}{' '}
+                  topics published
+                </strong>
+              </p>
+            </div>
+            <div className="button-row">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/admin/textbooks')}
+              >
+                Back to textbooks
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  navigate(
+                    `/admin/textbooks/review?textbook=${book.textbookRef}`,
+                  )
+                }
+              >
+                Review files
+              </Button>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Archive ${book.title}? This hides it from future selection but keeps the published learning history.`,
+                    )
+                  )
+                    void run(
+                      () => archiveTextbookStructure(book.textbookRef),
+                      'Textbook archived.',
+                    );
+                }}
+              >
+                Archive textbook
+              </Button>
+              <Button
+                className="primary"
+                disabled={
+                  busy ||
+                  !book.groups.length ||
+                  book.groups.some((g) => !g.topics.length)
+                }
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Publish this ${book.groupDisplayLabel} and topic structure? Future edits create a new structure version.`,
+                    )
+                  )
+                    void run(
+                      () => publishTextbookStructure(book.textbookRef),
+                      'Textbook structure published.',
+                    );
+                }}
+              >
+                Publish structure
+              </Button>
+            </div>
+          </div>
+          <AdvancedPanel title="Add a Unit or Module">
+            <form
+              className="structure-create-form group-create-form stack"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void run(
+                  () =>
+                    saveTextbookGroup(book.textbookRef, {
+                      code: groupCode,
+                      title: groupTitle,
+                      summary: '',
+                      sequence: book.groups.length + 1,
+                    }),
+                  `${book.groupDisplayLabel} added.`,
+                );
+                setGroupCode('');
+                setGroupTitle('');
+              }}
+            >
+              <div>
+                <span className="eyebrow">STEP 1 · TEXTBOOK ORGANISATION</span>
+                <h3>Add a new {book.groupDisplayLabel}</h3>
+                <p>
+                  Create the larger textbook section first. Topics will be added
+                  inside it.
+                </p>
+              </div>
+              <div className="two-cols">
+                <label className="stack" htmlFor="group-code">
+                  {book.groupDisplayLabel} code
+                  <Input
+                    id="group-code"
+                    required
+                    value={groupCode}
+                    onChange={(e) => setGroupCode(e.target.value)}
+                    placeholder={
+                      book.groupLabel === 'unit'
+                        ? 'For example: CHEM-U1'
+                        : 'For example: BIO-M1'
+                    }
+                  />
+                </label>
+                <label className="stack" htmlFor="group-title">
+                  {book.groupDisplayLabel} title
+                  <Input
+                    id="group-title"
+                    required
+                    value={groupTitle}
+                    onChange={(e) => setGroupTitle(e.target.value)}
+                    placeholder="For example: Principles of Chemistry"
+                  />
+                </label>
+              </div>
+              <Button className="primary" type="submit" disabled={busy}>
+                Add {book.groupDisplayLabel}
+              </Button>
+            </form>
+          </AdvancedPanel>
+          <Button
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setEditDraft({ title: book.title, edition: book.edition });
+              setEditTarget({ kind: 'book', ref: book.textbookRef });
+            }}
+          >
+            Edit textbook details
+          </Button>
+          {book.groups
+            .filter(
+              (group) =>
+                !managedTopicRef ||
+                group.topics.some(
+                  (topic) => topic.topicRef === managedTopicRef,
+                ),
+            )
+            .filter(
+              (group) =>
+                !search.trim() ||
+                [
+                  group.code,
+                  group.title,
+                  ...group.topics.flatMap((topic) => [topic.code, topic.title]),
+                ]
+                  .join(' ')
+                  .toLowerCase()
+                  .includes(search.trim().toLowerCase()),
+            )
+            .map((group) => {
+              const groupIndex = book.groups.indexOf(group);
+              const draft = topicDrafts[group.groupRef] || {
+                code: '',
+                title: '',
+              };
+              return (
+                <article className="card stack" key={group.groupRef}>
+                  <div className="spread">
+                    <div>
+                      <h3>
+                        {group.code} · {group.title}
+                      </h3>
+                      <small>
+                        {group.status} · Owned by iGCSE{' '}
+                        {subjects.find((item) => item.id === book.subjectId)
+                          ?.name || book.subjectId}
+                      </small>
+                      <div
+                        className="extraction-review-stats"
+                        aria-label={`${group.code} topic readiness summary`}
+                      >
+                        <div>
+                          <strong>{group.totalTopicCount}</strong>
+                          <span>Total topics</span>
+                        </div>
+                        <div>
+                          <strong>{group.reviewedTopicCount}</strong>
+                          <span>Reviewed</span>
+                        </div>
+                        <div>
+                          <strong>{group.publishedTopicCount}</strong>
+                          <span>Published</span>
+                        </div>
+                        <div>
+                          <strong>{group.studentEligibleTopicCount}</strong>
+                          <span>Student eligible</span>
+                        </div>
+                      </div>
+                      <p className="small">
+                        Topics are independent records. Adding later topics or{' '}
+                        {book.groupDisplayLabel.toLowerCase()}s does not change
+                        existing topic identities or published versions.
+                      </p>
+                    </div>
+                    <div
+                      className="button-row"
+                      aria-label={`${book.groupDisplayLabel} ${group.code} actions`}
+                    >
+                      <Button
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          setEditDraft({ title: group.title, edition: '' });
+                          setEditTarget({ kind: 'group', ref: group.groupRef });
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        aria-label={`Move ${group.code} earlier`}
+                        disabled={busy || groupIndex === 0}
+                        onClick={() =>
+                          void run(
+                            () =>
+                              reorderTextbookGroups(
+                                book.textbookRef,
+                                move(
+                                  book.groups.map((g) => g.groupRef),
+                                  groupIndex,
+                                  -1,
+                                ),
+                              ),
+                            'Order saved.',
+                          )
+                        }
+                      >
+                        Earlier
+                      </Button>
+                      <Button
+                        variant="outline"
+                        aria-label={`Move ${group.code} later`}
+                        disabled={busy || groupIndex === book.groups.length - 1}
+                        onClick={() =>
+                          void run(
+                            () =>
+                              reorderTextbookGroups(
+                                book.textbookRef,
+                                move(
+                                  book.groups.map((g) => g.groupRef),
+                                  groupIndex,
+                                  1,
+                                ),
+                              ),
+                            'Order saved.',
+                          )
+                        }
+                      >
+                        Later
+                      </Button>
+                      <Button
+                        variant="outline"
+                        disabled={busy || !group.removable}
+                        title={
+                          group.removable
+                            ? 'Remove this unpublished group'
+                            : 'Published or referenced groups are protected'
+                        }
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Remove ${group.code} · ${group.title}? This cannot be undone.`,
+                            )
+                          )
+                            void run(
+                              () =>
+                                removeTextbookGroup(
+                                  book.textbookRef,
+                                  group.groupRef,
+                                ),
+                              `${book.groupDisplayLabel} removed.`,
+                            );
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                  {group.topics
+                    .filter(
+                      (topic) =>
+                        !managedTopicRef || topic.topicRef === managedTopicRef,
+                    )
+                    .filter(
+                      (topic) =>
+                        !search.trim() ||
+                        [
+                          topic.code,
+                          topic.title,
+                          topic.status,
+                          topic.content.state,
+                        ]
+                          .join(' ')
+                          .toLowerCase()
+                          .includes(search.trim().toLowerCase()),
+                    )
+                    .map((topic) => {
+                      const topicIndex = group.topics.indexOf(topic);
+                      const upload = uploads[topic.topicRef];
+                      const destination = `${book.groupDisplayLabel} ${group.code} → Topic ${topic.code} — ${topic.title}`;
+                      return (
+                        <div
+                          className="stack topic-record"
+                          data-focused={managedTopicRef === topic.topicRef}
+                          id={topic.topicRef}
+                          key={topic.topicRef}
+                        >
+                          <div className="spread">
+                            <p>
+                              <strong>
+                                {topic.code} · {topic.title}
+                              </strong>
+                              <br />
+                              <small>
+                                Content:{' '}
+                                {topic.content.state.replaceAll('_', ' ')}
+                                {topic.content.contentVersion
+                                  ? ` · version ${topic.content.contentVersion}`
+                                  : ''}
+                                {topic.content.supersededVersionCount
+                                  ? ` · ${topic.content.supersededVersionCount} superseded version${topic.content.supersededVersionCount === 1 ? '' : 's'}`
+                                  : ''}{' '}
+                                ·{' '}
+                                {topic.documentCount
+                                  ? `${topic.documentCount} textbook parts`
+                                  : 'No textbook parts yet'}
+                                {topic.content.averageConfidence
+                                  ? ` · ${Math.round(topic.content.averageConfidence * 100)}% extraction confidence`
+                                  : ''}
+                              </small>
+                            </p>
+                            <div
+                              className="button-row"
+                              aria-label={`Topic ${topic.code} actions`}
+                            >
+                              {!managedTopicRef && (
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    navigate(
+                                      `/admin/textbooks/${book.textbookRef}/topics/${topic.topicRef}`,
+                                    )
+                                  }
+                                >
+                                  Open topic
+                                </Button>
+                              )}
+                              <Button
+                                variant="outline"
+                                disabled={busy}
+                                onClick={() => {
+                                  setEditDraft({
+                                    title: topic.title,
+                                    edition: '',
+                                  });
+                                  setEditTarget({
+                                    kind: 'topic',
+                                    ref: topic.topicRef,
+                                    groupRef: group.groupRef,
+                                  });
+                                }}
+                              >
+                                Edit
+                              </Button>
+                              <Button
+                                variant="outline"
+                                aria-label={`Move topic ${topic.code} earlier`}
+                                disabled={busy || topicIndex === 0}
+                                onClick={() =>
+                                  void run(
+                                    () =>
+                                      reorderTextbookTopics(
+                                        book.textbookRef,
+                                        group.groupRef,
+                                        move(
+                                          group.topics.map((t) => t.topicRef),
+                                          topicIndex,
+                                          -1,
+                                        ),
+                                      ),
+                                    'Topic order saved.',
+                                  )
+                                }
+                              >
+                                Earlier
+                              </Button>
+                              <Button
+                                variant="outline"
+                                aria-label={`Move topic ${topic.code} later`}
+                                disabled={
+                                  busy || topicIndex === group.topics.length - 1
+                                }
+                                onClick={() =>
+                                  void run(
+                                    () =>
+                                      reorderTextbookTopics(
+                                        book.textbookRef,
+                                        group.groupRef,
+                                        move(
+                                          group.topics.map((t) => t.topicRef),
+                                          topicIndex,
+                                          1,
+                                        ),
+                                      ),
+                                    'Topic order saved.',
+                                  )
+                                }
+                              >
+                                Later
+                              </Button>
+                              <Button
+                                variant="outline"
+                                disabled={busy || !topic.removable}
+                                title={
+                                  topic.removable
+                                    ? 'Remove this unpublished topic'
+                                    : 'Published or referenced topics are protected'
+                                }
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Remove ${topic.code} · ${topic.title}? This cannot be undone.`,
+                                    )
+                                  )
+                                    void run(
+                                      () =>
+                                        removeTextbookTopic(
+                                          book.textbookRef,
+                                          topic.topicRef,
+                                        ),
+                                      'Topic removed.',
+                                    );
+                                }}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="source-note">
+                            <strong>Publication readiness</strong>
+                            {topic.content.checks.map((check) => (
+                              <p key={check.code}>
+                                <span aria-hidden="true">
+                                  {check.passed ? '✓' : '○'}
+                                </span>{' '}
+                                {check.passed ? 'Ready: ' : 'Needs attention: '}
+                                {check.message}
+                              </p>
+                            ))}
+                            <Button
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => {
+                                void getTopicQualityReport(
+                                  book.textbookRef,
+                                  topic.topicRef,
+                                )
+                                  .then(setQualityReport)
+                                  .catch((cause) =>
+                                    setError(errorMessage(cause)),
+                                  );
+                              }}
+                            >
+                              View topic PDF quality report
+                            </Button>
+                            <Button
+                              className="primary"
+                              disabled={busy || !topic.content.ready}
+                              onClick={() => {
+                                if (
+                                  window.confirm(
+                                    `Publish reviewed content for ${topic.code} · ${topic.title}? Existing citations keep their current version.`,
+                                  )
+                                )
+                                  void run(
+                                    () =>
+                                      publishTextbookTopic(
+                                        book.textbookRef,
+                                        topic.topicRef,
+                                      ),
+                                    'Topic content published independently.',
+                                  );
+                              }}
+                            >
+                              Publish topic content
+                            </Button>
+                          </div>
+                          <TopicSourceManager
+                            bookRef={book.textbookRef}
+                            topicRef={topic.topicRef}
+                            topics={book.groups.flatMap((item) => item.topics)}
+                            students={students}
+                            refreshBook={() => refresh(book.textbookRef)}
+                            notify={notify}
+                          />
+                          <section
+                            className="topic-upload-panel"
+                            aria-label={`Upload files to ${topic.code}`}
+                          >
+                            <div>
+                              <span className="eyebrow">
+                                UPLOAD DESTINATION
+                              </span>
+                              <strong>Uploading to: {destination}</strong>
+                              <p className="small">
+                                PDF, PNG or JPEG · up to 50 MB per file
+                              </p>
+                            </div>
+                            <Picker
+                              label="Source role (required)"
+                              value={uploadRoles[topic.topicRef] || ''}
+                              onChange={(value) =>
+                                setUploadRoles((all) => ({
+                                  ...all,
+                                  [topic.topicRef]: value as TopicSourceRole,
+                                }))
+                              }
+                              options={[
+                                {
+                                  value: '',
+                                  label:
+                                    'Choose how AKURU will use this source',
+                                },
+                                {
+                                  value: 'primary',
+                                  label:
+                                    'Primary text — canonical learning and retrieval text',
+                                },
+                                {
+                                  value: 'supporting',
+                                  label:
+                                    'Supporting text — reviewed additional learning content',
+                                },
+                                {
+                                  value: 'reference',
+                                  label:
+                                    'Reference text — reviewed supplementary content',
+                                },
+                                {
+                                  value: 'visual_reference',
+                                  label:
+                                    'Visual reference — page labels and selected visuals only',
+                                },
+                              ]}
+                            />
+                            <p className="small">
+                              Text roles require complete OCR review. Visual
+                              reference OCR is excluded from retrieval; its
+                              Printed page labels and selected visuals are
+                              reviewed instead.
+                            </p>
+                            <label
+                              className="topic-upload-picker"
+                              htmlFor={`topic-files-${topic.topicRef}`}
+                            >
+                              Choose files
+                              <Input
+                                id={`topic-files-${topic.topicRef}`}
+                                type="file"
+                                multiple
+                                accept="application/pdf,image/png,image/jpeg"
+                                disabled={busy || !uploadRoles[topic.topicRef]}
+                                onChange={(event) => {
+                                  void uploadFiles(
+                                    topic.topicRef,
+                                    topic.code,
+                                    event.target.files,
+                                  );
+                                  event.target.value = '';
+                                }}
+                              />
+                            </label>
+                            {upload && (
+                              <div
+                                className={`topic-upload-progress ${upload.status}`}
+                                aria-live="polite"
+                              >
+                                <div className="spread">
+                                  <span>
+                                    {upload.status === 'complete'
+                                      ? 'Upload complete'
+                                      : upload.status === 'failed'
+                                        ? 'Upload failed'
+                                        : `Uploading file ${upload.fileNumber} of ${upload.totalFiles}`}
+                                  </span>
+                                  <strong>{upload.percent}%</strong>
+                                </div>
+                                <progress
+                                  value={upload.percent}
+                                  max={100}
+                                  aria-label={`${upload.percent}% uploaded`}
+                                />
+                                <small>
+                                  {upload.fileName}
+                                  {upload.status === 'complete'
+                                    ? ` · ${uploadRoles[topic.topicRef]?.replaceAll('_', ' ')} · queued for extraction · ${destination}`
+                                    : ''}
+                                </small>
+                              </div>
+                            )}
+                          </section>
+                        </div>
+                      );
+                    })}
+                  {!managedTopicRef && (
+                    <AdvancedPanel title={`Add a topic to ${group.code}`}>
+                      <form
+                        className="structure-create-form topic-create-form stack"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void run(
+                            () =>
+                              saveTextbookTopic(
+                                book.textbookRef,
+                                group.groupRef,
+                                {
+                                  ...draft,
+                                  sequence: group.topics.length + 1,
+                                  syllabusRef: '',
+                                  description: '',
+                                },
+                              ),
+                            'Topic added.',
+                          );
+                          setTopicDrafts((all) => ({
+                            ...all,
+                            [group.groupRef]: { code: '', title: '' },
+                          }));
+                        }}
+                      >
+                        <div>
+                          <span className="eyebrow">
+                            STEP 2 · LEARNING CONTENT
+                          </span>
+                          <h3>Add a topic to {group.code}</h3>
+                          <p>
+                            Create the specific textbook topic that will receive
+                            PDFs, images and published learning content.
+                          </p>
+                        </div>
+                        <div className="two-cols">
+                          <label
+                            className="stack"
+                            htmlFor={`topic-code-${group.groupRef}`}
+                          >
+                            Topic code
+                            <Input
+                              id={`topic-code-${group.groupRef}`}
+                              required
+                              value={draft.code}
+                              onChange={(e) =>
+                                setTopicDrafts((all) => ({
+                                  ...all,
+                                  [group.groupRef]: {
+                                    ...draft,
+                                    code: e.target.value,
+                                  },
+                                }))
+                              }
+                              placeholder="For example: CHEM-U1-T01"
+                            />
+                          </label>
+                          <label
+                            className="stack"
+                            htmlFor={`topic-title-${group.groupRef}`}
+                          >
+                            Topic title
+                            <Input
+                              id={`topic-title-${group.groupRef}`}
+                              required
+                              value={draft.title}
+                              onChange={(e) =>
+                                setTopicDrafts((all) => ({
+                                  ...all,
+                                  [group.groupRef]: {
+                                    ...draft,
+                                    title: e.target.value,
+                                  },
+                                }))
+                              }
+                              placeholder="For example: States of Matter"
+                            />
+                          </label>
+                        </div>
+                        <Button type="submit" disabled={busy}>
+                          Add topic to {group.code}
+                        </Button>
+                      </form>
+                    </AdvancedPanel>
+                  )}
+                </article>
+              );
+            })}
+        </section>
+      )}
+
+      {managedTopicRef && book && (
+        <div className="workspace-sticky-actions">
+          <span>Focused topic workspace</span>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/admin/textbooks/${book.textbookRef}`)}
+          >
+            All textbook topics
+          </Button>
+        </div>
+      )}
+      {managedTopicRef &&
+        book &&
+        !book.groups.some((group) =>
+          group.topics.some((topic) => topic.topicRef === managedTopicRef),
+        ) && (
+          <p role="alert">
+            This topic is not available in the selected textbook.
+          </p>
+        )}
+      <EditorDrawer
+        busy={busy}
+        open={Boolean(editTarget)}
+        onOpenChange={(open) => {
+          if (!open) setEditTarget(null);
+        }}
+        title={`Edit ${editTarget?.kind || 'content'}`}
+      >
+        <form
+          className="stack"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!book || !editTarget) return;
+            void run(async () => {
+              let result: TextbookStructure;
+              if (editTarget.kind === 'book')
+                result = await updateTextbookStructure(book.textbookRef, {
+                  title: editDraft.title.trim(),
+                  edition: editDraft.edition.trim(),
+                  publisher: book.publisher,
+                  groupLabel: book.groupLabel,
+                });
+              else if (editTarget.kind === 'group') {
+                const group = book.groups.find(
+                  (item) => item.groupRef === editTarget.ref,
+                )!;
+                result = await saveTextbookGroup(
+                  book.textbookRef,
+                  {
+                    code: group.code,
+                    title: editDraft.title.trim(),
+                    summary: group.summary,
+                    sequence: group.sequence,
+                  },
+                  group.groupRef,
+                );
+              } else {
+                const group = book.groups.find(
+                  (item) => item.groupRef === editTarget.groupRef,
+                )!;
+                const topic = group.topics.find(
+                  (item) => item.topicRef === editTarget.ref,
+                )!;
+                result = await saveTextbookTopic(
+                  book.textbookRef,
+                  group.groupRef,
+                  {
+                    code: topic.code,
+                    title: editDraft.title.trim(),
+                    sequence: topic.sequence,
+                    syllabusRef: topic.syllabusRef,
+                    description: topic.description,
+                  },
+                  topic.topicRef,
+                );
+              }
+              setEditTarget(null);
+              return result;
+            }, 'Details saved.');
+          }}
+        >
+          <label htmlFor="structure-edit-title">
+            Title
+            <Input
+              id="structure-edit-title"
+              required
+              value={editDraft.title}
+              onChange={(event) =>
+                setEditDraft({ ...editDraft, title: event.target.value })
+              }
+            />
+          </label>
+          {editTarget?.kind === 'book' && (
+            <label htmlFor="structure-edit-edition">
+              Edition
+              <Input
+                id="structure-edit-edition"
+                required
+                value={editDraft.edition}
+                onChange={(event) =>
+                  setEditDraft({ ...editDraft, edition: event.target.value })
+                }
+              />
+            </label>
+          )}
+          <Button type="submit" disabled={busy}>
+            Save details
+          </Button>
         </form>
-      </article>; })}
-    </section>}
-  </div>;
+      </EditorDrawer>
+      <Dialog
+        open={Boolean(qualityReport)}
+        onOpenChange={(open) => {
+          if (!open) setQualityReport(null);
+        }}
+      >
+        <DialogContent className="wide-dialog">
+          <DialogHeader>
+            <DialogTitle>Topic PDF quality report</DialogTitle>
+            <DialogDescription>
+              Review the source checks before publishing this topic.
+            </DialogDescription>
+          </DialogHeader>
+          {qualityReport && (
+            <div className="stack">
+              <strong>
+                {qualityReport.passed
+                  ? 'Quality gate passed'
+                  : 'Quality gate blocked'}
+              </strong>
+              {qualityReport.documents.map((document) => (
+                <section className="panel" key={document.filename}>
+                  <h3>{document.filename}</h3>
+                  <p>
+                    {document.passed ? 'Passed' : 'Needs review'} ·{' '}
+                    {document.pageCount} pages · {document.equationCount}{' '}
+                    equations · {document.diagramCount} diagrams
+                  </p>
+                </section>
+              ))}
+              <p>{qualityReport.resolution}</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 }

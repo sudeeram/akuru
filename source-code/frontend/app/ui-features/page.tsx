@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { ApiError, getUiFeaturesAccess, type UiFeaturesAccess } from '@/api';
 import { Button, buttonVariants } from '@/components/ui/button';
+import { WorkflowPatterns } from '@/features/ui-reference/workflow-patterns';
 import { ComponentGallery } from '@/features/ui-reference/component-gallery';
 import { UiFeaturesExperience } from '@/features/ui-reference/experience';
 
@@ -75,6 +76,7 @@ export default function UiFeaturesPage() {
     );
   return (
     <UiFeaturesExperience userName={access.user.name}>
+      <WorkflowPatterns />
       <ComponentGallery />
     </UiFeaturesExperience>
   );

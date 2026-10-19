@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync as readSourceFile } from 'node:fs';
 import test from 'node:test';
+
+// Contract checks ignore formatter whitespace and JSX's explicit spaces.
+const readFileSync = (...args) => readSourceFile(...args).replace(/\{['"] ['"]\}/g, ' ').replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/,? \)/g, ')').replace(/ \./g, '.');
 
 const apiFiles = [
   '../api/core/client.ts',
@@ -25,21 +28,51 @@ const apiFiles = [
 const api = apiFiles
   .map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
   .join('\n');
-const apiClient = readFileSync(new URL('../api/core/client.ts', import.meta.url), 'utf8');
-const documentApi = readFileSync(new URL('../api/documents/documents.api.ts', import.meta.url), 'utf8');
-const textbookApiClient = readFileSync(new URL('../api/textbooks/textbooks.api.ts', import.meta.url), 'utf8');
+const apiClient = readFileSync(
+  new URL('../api/core/client.ts', import.meta.url),
+  'utf8',
+);
+const documentApi = readFileSync(
+  new URL('../api/documents/documents.api.ts', import.meta.url),
+  'utf8',
+);
+const textbookApiClient = readFileSync(
+  new URL('../api/textbooks/textbooks.api.ts', import.meta.url),
+  'utf8',
+);
 const page = readFileSync(new URL('../app/page.tsx', import.meta.url), 'utf8');
-const routes = readFileSync(new URL('../lib/routes.ts', import.meta.url), 'utf8');
-const tutorSessions = readFileSync(new URL('../features/tutor-sessions.tsx', import.meta.url), 'utf8');
-const learningMedia = readFileSync(new URL('../features/learning-media.tsx', import.meta.url), 'utf8');
+const routes = readFileSync(
+  new URL('../lib/routes.ts', import.meta.url),
+  'utf8',
+);
+const tutorSessions = readFileSync(
+  new URL('../features/tutor-sessions.tsx', import.meta.url),
+  'utf8',
+);
+const learningMedia = readFileSync(
+  new URL('../features/learning-media.tsx', import.meta.url),
+  'utf8',
+);
 const admin = readFileSync(
   new URL('../features/admin.tsx', import.meta.url),
   'utf8',
 );
-const textbookStructure = readFileSync(new URL('../features/textbook-structure.tsx', import.meta.url), 'utf8');
-const scientificEditor = readFileSync(new URL('../components/scientific-text-editor.tsx', import.meta.url), 'utf8');
-const finalDocumentReview = readFileSync(new URL('../features/final-document-review.tsx', import.meta.url), 'utf8');
-const student = readFileSync(new URL('../features/student.tsx', import.meta.url), 'utf8');
+const textbookStructure = readFileSync(
+  new URL('../features/textbook-structure.tsx', import.meta.url),
+  'utf8',
+);
+const scientificEditor = readFileSync(
+  new URL('../components/scientific-text-editor.tsx', import.meta.url),
+  'utf8',
+);
+const finalDocumentReview = readFileSync(
+  new URL('../features/final-document-review.tsx', import.meta.url),
+  'utf8',
+);
+const student = readFileSync(
+  new URL('../features/student.tsx', import.meta.url),
+  'utf8',
+);
 const vite = readFileSync(
   new URL('../vite.config.ts', import.meta.url),
   'utf8',
@@ -48,8 +81,14 @@ const uiFeatures = readFileSync(
   new URL('../app/ui-features/page.tsx', import.meta.url),
   'utf8',
 );
-const referenceGallery = readFileSync(new URL('../features/ui-reference/component-gallery.tsx', import.meta.url), 'utf8');
-const portalShell = readFileSync(new URL('../components/portal/portal-shell.tsx', import.meta.url), 'utf8');
+const referenceGallery = readFileSync(
+  new URL('../features/ui-reference/component-gallery.tsx', import.meta.url),
+  'utf8',
+);
+const portalShell = readFileSync(
+  new URL('../components/portal/portal-shell.tsx', import.meta.url),
+  'utf8',
+);
 const layout = readFileSync(
   new URL('../app/layout.tsx', import.meta.url),
   'utf8',
@@ -66,19 +105,37 @@ const tutorProfiles = readFileSync(
   new URL('../features/tutor-profiles.tsx', import.meta.url),
   'utf8',
 );
-const tutorSignals = readFileSync(new URL('../features/tutor-signals.tsx', import.meta.url), 'utf8');
-const tutorHistory = readFileSync(new URL('../features/tutor-history.tsx', import.meta.url), 'utf8');
-const tutorVoice = readFileSync(new URL('../features/tutor-voice.tsx', import.meta.url), 'utf8');
-const flashcards = readFileSync(new URL('../features/flashcards.tsx', import.meta.url), 'utf8');
-const accountSecurity = readFileSync(new URL('../features/account-security.tsx', import.meta.url), 'utf8');
+const tutorSignals = readFileSync(
+  new URL('../features/tutor-signals.tsx', import.meta.url),
+  'utf8',
+);
+const tutorHistory = readFileSync(
+  new URL('../features/tutor-history.tsx', import.meta.url),
+  'utf8',
+);
+const tutorVoice = readFileSync(
+  new URL('../features/tutor-voice.tsx', import.meta.url),
+  'utf8',
+);
+const flashcards = readFileSync(
+  new URL('../features/flashcards.tsx', import.meta.url),
+  'utf8',
+);
+const accountSecurity = readFileSync(
+  new URL('../features/account-security.tsx', import.meta.url),
+  'utf8',
+);
 
 test('password lifecycle UI uses opaque references and one-time disclosure', () => {
   assert.match(admin, /reset-password/);
   assert.match(admin, /requestKey/);
   assert.match(admin, /shown only once/);
   assert.match(admin, /Copy password/);
-  assert.match(admin, /publicRef: s\.accountRef/);
-  assert.doesNotMatch(admin, /password.*localStorage|password.*sessionStorage/s);
+  assert.match(admin, /publicRef:\s*item\.accountRef/);
+  assert.doesNotMatch(
+    admin,
+    /password.*localStorage|password.*sessionStorage/s,
+  );
   assert.match(accountSecurity, /currentPassword/);
   assert.match(accountSecurity, /newPassword/);
   assert.match(accountSecurity, /The new passwords do not match/);
@@ -104,8 +161,8 @@ test('frontend API is split by domain behind one typed public barrel', () => {
 test('account UUIDs remain internal identifiers', () => {
   assert.doesNotMatch(admin, /label: `\$\{a\.name\} \(\$\{a\.id\}\)`/);
   assert.doesNotMatch(admin, /\{s\.id\} · Parent: \{s\.parentId\}/);
-  assert.match(admin, /@\{s\.username\}/);
-  assert.match(admin, /@\{a\.username\}/);
+  assert.match(admin, /@\{item\.username\}/);
+  assert.match(admin, /parents\.filter[\s\S]*@\{item\.username\}/);
 });
 
 test('frontend contains no bundled mock credentials', () => {
@@ -118,7 +175,10 @@ test('login submits from the keyboard', () => {
   assert.match(page, /submitLoginOnEnter/);
   assert.match(page, /e\.key !== 'Enter'/);
   assert.match(page, /e\.currentTarget\.form\?\.requestSubmit\(\)/);
-  assert.equal((page.match(/onKeyDown=\{submitLoginOnEnter\}/g) ?? []).length, 2);
+  assert.equal(
+    (page.match(/onKeyDown=\{submitLoginOnEnter\}/g) ?? []).length,
+    2,
+  );
 });
 
 test('admin UI reference is routed and API-authorized', () => {
@@ -174,7 +234,10 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(styles, /\.review-status-required/);
   assert.match(styles, /\.review-status-partial/);
   assert.match(styles, /\.review-status-complete/);
-  assert.match(styles, /\.extraction-review-summary\s*\{[^}]*position:\s*static/s);
+  assert.match(
+    styles,
+    /\.extraction-review-summary\s*\{[^}]*position:\s*static/s,
+  );
   assert.match(admin, /renderAssetId/);
   assert.match(admin, /block\.latex/);
   assert.match(admin, /block\.sourceAssetId/);
@@ -187,7 +250,7 @@ test('admin review displays deterministic extraction evidence', () => {
   assert.match(admin, /reviewedCaption/);
   assert.match(admin, /extractFigureCaption/);
   assert.match(styles, /\.extraction-visual-caption-group/);
-  assert.match(admin, />Retry</);
+  assert.match(admin, />\s*Retry\s*</);
   assert.match(admin, /removeDocument/);
   assert.doesNotMatch(admin, /api\('documents\/review'/);
   assert.match(admin, /TextbookStructureAdmin/);
@@ -202,7 +265,10 @@ test('admin manages versioned Unit or Module textbook structures with public ref
   assert.match(textbookStructure, /Publish structure/);
   assert.match(textbookStructure, /reorderTextbookGroups/);
   assert.match(textbookStructure, /reorderTextbookTopics/);
-  assert.match(textbookStructure, /Published or referenced topics are protected/);
+  assert.match(
+    textbookStructure,
+    /Published or referenced topics are protected/,
+  );
   assert.doesNotMatch(textbookStructure, /book\.id|group\.id|topic\.id|UUID/);
 });
 
@@ -251,7 +317,10 @@ test('admin publishes reviewed topics independently with readiness and version h
   assert.match(textbookStructure, /Publish topic content/);
   assert.match(textbookStructure, /topics published/);
   assert.match(textbookStructure, /superseded version/);
-  assert.match(textbookStructure, /Existing citations keep their current version/);
+  assert.match(
+    textbookStructure,
+    /Existing citations keep their current version/,
+  );
 });
 
 test('admin builds incremental versioned topic coverage without exposing internal ids', () => {
@@ -337,7 +406,10 @@ test('progress uses backend-calculated explainable topic mastery', () => {
   assert.match(api, /confidence: 'low' \| 'medium' \| 'high'/);
   assert.match(api, /mastery: Record<string, TopicMastery\[\]>/);
   assert.match(student, /topic\.score\.toFixed\(1\)\}\/10/);
-  assert.match(student, /topic\.provisional \? 'Provisional' : topic\.confidence/);
+  assert.match(
+    student,
+    /topic\.provisional \? 'Provisional' : topic\.confidence/,
+  );
   assert.match(student, /evidenceCount/);
   assert.match(student, /topic\.trend/);
   assert.match(student, /questions\/\$\{q\.id\}\/hint/);
@@ -345,12 +417,18 @@ test('progress uses backend-calculated explainable topic mastery', () => {
 
 test('frontend presents source-linked improvement recommendations for review', () => {
   assert.match(api, /type ImprovementRecommendation/);
-  assert.match(api, /recommendations: Record<string, ImprovementRecommendation\[\]>/);
+  assert.match(
+    api,
+    /recommendations: Record<string, ImprovementRecommendation\[\]>/,
+  );
   assert.match(student, /AKURU next steps/);
   assert.match(student, /successCondition/);
   assert.match(student, /sourceUrl/);
   assert.match(student, /reviewStatus === 'approved'/);
-  assert.match(readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8'), /recommendations\/\$\{id\}\/review/);
+  assert.match(
+    readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8'),
+    /recommendations\/\$\{id\}\/review/,
+  );
 });
 
 test('study planner uses persisted adaptive plans and completion APIs', () => {
@@ -374,9 +452,18 @@ test('handwritten working uses the private authenticated assessment endpoint', (
 });
 
 test('role-specific experiences expose evidence, trends, review tasks and audit controls', () => {
-  const parent = readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8');
-  const admin = readFileSync(new URL('../features/admin.tsx', import.meta.url), 'utf8');
-  const diagram = readFileSync(new URL('../features/diagram.tsx', import.meta.url), 'utf8');
+  const parent = readFileSync(
+    new URL('../features/parent.tsx', import.meta.url),
+    'utf8',
+  );
+  const admin = readFileSync(
+    new URL('../features/admin.tsx', import.meta.url),
+    'utf8',
+  );
+  const diagram = readFileSync(
+    new URL('../features/diagram.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(student, /How each mark was decided/);
   assert.match(student, /studentEvidence/);
   assert.match(student, /mastery-dimensions/);
@@ -391,8 +478,14 @@ test('role-specific experiences expose evidence, trends, review tasks and audit 
 });
 
 test('visual media is source-grounded, private until reviewed, and learner scoped', () => {
-  const admin = readFileSync(new URL('../features/media-admin.tsx', import.meta.url), 'utf8');
-  const gallery = readFileSync(new URL('../features/media-gallery.tsx', import.meta.url), 'utf8');
+  const admin = readFileSync(
+    new URL('../features/media-admin.tsx', import.meta.url),
+    'utf8',
+  );
+  const gallery = readFileSync(
+    new URL('../features/media-gallery.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(admin, /media\/admin\/deterministic/);
   assert.match(admin, /media\/admin\/illustrations/);
   assert.match(admin, /Publish illustration/);
@@ -403,7 +496,10 @@ test('visual media is source-grounded, private until reviewed, and learner scope
 });
 
 test('admin evaluation gates require reviewed corpora and passing releases', () => {
-  const evaluation = readFileSync(new URL('../features/evaluation-admin.tsx', import.meta.url), 'utf8');
+  const evaluation = readFileSync(
+    new URL('../features/evaluation-admin.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(page, /Evaluation gates/);
   assert.match(admin, /EvaluationAdmin/);
   assert.match(evaluation, /missingApprovedSubjects/);
@@ -422,7 +518,10 @@ test('admin evaluation gates require reviewed corpora and passing releases', () 
 });
 
 test('admin operations exposes alerts, usage and audit without secrets', () => {
-  const operations = readFileSync(new URL('../features/operations-admin.tsx', import.meta.url), 'utf8');
+  const operations = readFileSync(
+    new URL('../features/operations-admin.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(page, /Security & operations|Operations/);
   assert.match(admin, /OperationsAdmin/);
   assert.match(operations, /operations\/admin\/status/);
@@ -441,7 +540,10 @@ test('role-scoped tutor profiles use curated AKURU heroes and immutable API vers
   assert.match(tutorProfiles, /Save new version/);
   assert.match(tutorProfiles, /Child-safe AKURU hero|CURATED AKURU BOT/i);
   assert.match(tutorProfiles, /getTutorAdminPresets/);
-  assert.doesNotMatch(tutorProfiles, /providerVoice|provider_voice|generated avatar/i);
+  assert.doesNotMatch(
+    tutorProfiles,
+    /providerVoice|provider_voice|generated avatar/i,
+  );
   assert.doesNotMatch(tutorProfiles, />\{item\.id\}</);
 });
 
@@ -487,11 +589,17 @@ test('structured text tutor supports teaching modes, evidence and recoverable ke
   assert.match(tutorSessions, /followUpChoices/);
   assert.match(tutorSessions, /setMessage\(''\)/);
   assert.match(tutorSessions, /<form className="tutor-composer" onSubmit=/);
-  assert.match(tutorSessions, /Proposed tutor observations do not change mastery/);
+  assert.match(
+    tutorSessions,
+    /Proposed tutor observations do not change mastery/,
+  );
 });
 
 test('guided tutor practice uses authoritative assessment feedback and bounded observations', () => {
-  const parent = readFileSync(new URL('../features/parent.tsx', import.meta.url), 'utf8');
+  const parent = readFileSync(
+    new URL('../features/parent.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(api, /startTutorPractice/);
   assert.match(api, /getTutorPracticeHint/);
   assert.match(api, /saveTutorPracticeAnswer/);
@@ -507,7 +615,10 @@ test('guided tutor practice uses authoritative assessment feedback and bounded o
 });
 
 test('per-child tutor allowances are visible and Admin controlled without UUIDs or provider secrets', () => {
-  const quotas = readFileSync(new URL('../features/tutor-quotas.tsx', import.meta.url), 'utf8');
+  const quotas = readFileSync(
+    new URL('../features/tutor-quotas.tsx', import.meta.url),
+    'utf8',
+  );
   assert.match(api, /getTutorQuota/);
   assert.match(api, /updateTutorAdminQuota/);
   assert.match(tutorSessions, /tutor requests remaining/);
@@ -582,13 +693,28 @@ test('topic hierarchy workflow supports keyboard filters and accessible status c
   assert.match(styles, /\.skip-link/);
   assert.match(styles, /input:focus-visible/);
   assert.match(styles, /catalogue-filters/);
-  assert.match(readFileSync(new URL('../features/shared.tsx', import.meta.url), 'utf8'), /aria-label=\{`Status: \$\{label\}`\}/);
+  assert.match(
+    readFileSync(new URL('../features/shared.tsx', import.meta.url), 'utf8'),
+    /aria-label=\{`Status: \$\{label\}`\}/,
+  );
 });
 
 test('topic PDFs have an Admin-only quality report and publication quality gate', () => {
-  const backendQuality = readFileSync(new URL('../../backend/app/services/topic_quality.py', import.meta.url), 'utf8');
-  const textbookApi = readFileSync(new URL('../../backend/app/api/v1/textbook_structures.py', import.meta.url), 'utf8');
-  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
+  const backendQuality = readFileSync(
+    new URL('../../backend/app/services/topic_quality.py', import.meta.url),
+    'utf8',
+  );
+  const textbookApi = readFileSync(
+    new URL('../../backend/app/api/v1/textbook_structures.py', import.meta.url),
+    'utf8',
+  );
+  const textbookService = readFileSync(
+    new URL(
+      '../../backend/app/services/textbook_structures.py',
+      import.meta.url,
+    ),
+    'utf8',
+  );
   assert.match(api, /getTopicQualityReport/);
   assert.match(textbookStructure, /View topic PDF quality report/);
   assert.match(textbookApi, /topics\/\{topic_ref\}\/quality/);
@@ -602,21 +728,42 @@ test('topic PDFs have an Admin-only quality report and publication quality gate'
 });
 
 test('admin can designate canonical text and non-retrievable visual references', () => {
-  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
-  const documentsService = readFileSync(new URL('../../backend/app/services/documents.py', import.meta.url), 'utf8');
+  const textbookService = readFileSync(
+    new URL(
+      '../../backend/app/services/textbook_structures.py',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  const documentsService = readFileSync(
+    new URL('../../backend/app/services/documents.py', import.meta.url),
+    'utf8',
+  );
   assert.match(api, /getTopicSources/);
   assert.match(api, /updateTopicSourceRole/);
   assert.match(textbookStructure, /Manage topic sources/);
   assert.match(textbookStructure, /Visual reference/);
   assert.match(textbookStructure, /OCR text excluded from retrieval/);
-  assert.match(textbookService, /TextbookTopicDocument\.role != "visual_reference"/);
-  assert.match(documentsService, /version\.status = "completed" if complete else "needs_review"/);
-  assert.match(documentsService, /document\.review_state = "reviewed" if complete else "pending"/);
+  assert.match(
+    textbookService,
+    /TextbookTopicDocument\.role != "visual_reference"/,
+  );
+  assert.match(
+    documentsService,
+    /version\.status = "completed" if complete else "needs_review"/,
+  );
+  assert.match(
+    documentsService,
+    /document\.review_state = "reviewed" if complete else "pending"/,
+  );
 });
 
 test('source roles drive visual review and restricted scientific notation editing', () => {
   assert.match(textbookStructure, /Source role \(required\)/);
-  assert.match(textbookStructure, /Visual reference — page labels and selected visuals only/);
+  assert.match(
+    textbookStructure,
+    /Visual reference — page labels and selected visuals only/,
+  );
   assert.match(admin, /Visual reference review — OCR excluded from retrieval/);
   assert.match(admin, /pageLabelComplete && pendingBlocks === 0/);
   assert.match(admin, /scientificContent/);
@@ -640,8 +787,20 @@ test('admins reconstruct paragraphs and confirm the exact continuous reviewed do
 });
 
 test('admin sees group-level Topic 1 launch readiness without coupling later topics', () => {
-  const textbookSchema = readFileSync(new URL('../../backend/app/schemas/textbook_structures.py', import.meta.url), 'utf8');
-  const textbookService = readFileSync(new URL('../../backend/app/services/textbook_structures.py', import.meta.url), 'utf8');
+  const textbookSchema = readFileSync(
+    new URL(
+      '../../backend/app/schemas/textbook_structures.py',
+      import.meta.url,
+    ),
+    'utf8',
+  );
+  const textbookService = readFileSync(
+    new URL(
+      '../../backend/app/services/textbook_structures.py',
+      import.meta.url,
+    ),
+    'utf8',
+  );
   assert.match(textbookSchema, /totalTopicCount/);
   assert.match(textbookSchema, /reviewedTopicCount/);
   assert.match(textbookSchema, /publishedTopicCount/);
@@ -649,7 +808,10 @@ test('admin sees group-level Topic 1 launch readiness without coupling later top
   assert.match(textbookService, /CurriculumPlan\.status == "published"/);
   assert.match(textbookStructure, /Total topics/);
   assert.match(textbookStructure, /Student eligible/);
-  assert.match(textbookStructure, /does not change existing topic identities or published versions/);
+  assert.match(
+    textbookStructure,
+    /does not change existing topic identities or published versions/,
+  );
   assert.match(textbookStructure, /Owned by iGCSE/);
   assert.match(api, /getTopicLaunchReadiness/);
   assert.match(textbookStructure, /View launch readiness/);

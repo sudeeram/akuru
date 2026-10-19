@@ -1,14 +1,21 @@
-"use client";
-import { BookOpen, Calculator, FlaskConical, Monitor, Feather } from "lucide-react";
+'use client';
+import {
+  BookOpen,
+  Calculator,
+  FlaskConical,
+  Monitor,
+  Feather,
+} from 'lucide-react';
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
-import type { Subject, State, Student, Attempt } from "@/api";
+} from '@/components/ui/select';
+import { PageHeader, EmptyState } from '@/components/portal/dashboard-widgets';
+import { Progress } from '@/components/ui/progress';
+import type { Subject, State, Student, Attempt } from '@/api';
 export const subjectIcons: Record<string, typeof BookOpen> = {
   maths: Calculator,
   science: FlaskConical,
@@ -35,25 +42,24 @@ export function Heading({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="page-heading">
-      <div>
-        {eyebrow && <div className="eyebrow">{eyebrow}</div>}
-        <h1>{title}</h1>
-        {children && <p>{children}</p>}
-      </div>
-      {action}
-    </div>
+    <PageHeader
+      eyebrow={eyebrow}
+      title={title}
+      description={children}
+      action={action}
+    />
   );
 }
-export function Empty({ title, children }: { title: string; children?: React.ReactNode }) {
-  return (
-    <div className="empty">
-      <BookOpen size={30} />
-      <h3>{title}</h3>
-      <p>{children}</p>
-    </div>
-  );
+export function Empty({
+  title,
+  children,
+}: {
+  title: string;
+  children?: React.ReactNode;
+}) {
+  return <EmptyState title={title} description={children} />;
 }
+
 export function Picker({
   label,
   value,
@@ -100,14 +106,33 @@ export type FeatureProps = {
 };
 export function Status({ status }: { status: string }) {
   const labels: Record<string, string> = {
-    "needs-review": "Awaiting review", checked: "Answer checked", reviewed: "Parent reviewed",
-    approved: "Approved", pending: "Awaiting review", active: "In progress", submitted: "Submitted",
-    draft: "Draft", review: "In review", review_required: "Needs review", released: "Released", rejected: "Rejected",
-    superseded: "Superseded", published: "Published", archived: "Archived", processing: "Processing", failed: "Needs attention",
+    'needs-review': 'Awaiting review',
+    checked: 'Answer checked',
+    reviewed: 'Parent reviewed',
+    approved: 'Approved',
+    pending: 'Awaiting review',
+    active: 'In progress',
+    submitted: 'Submitted',
+    draft: 'Draft',
+    review: 'In review',
+    review_required: 'Needs review',
+    released: 'Released',
+    rejected: 'Rejected',
+    superseded: 'Superseded',
+    published: 'Published',
+    archived: 'Archived',
+    processing: 'Processing',
+    failed: 'Needs attention',
   };
   const label = labels[status] || status.replaceAll('_', ' ');
-  const symbol = status === 'approved' || status === 'published' || status === 'checked' ? '✓' :
-    status === 'failed' ? '!' : status === 'processing' ? '…' : '•';
+  const symbol =
+    status === 'approved' || status === 'published' || status === 'checked'
+      ? '✓'
+      : status === 'failed'
+        ? '!'
+        : status === 'processing'
+          ? '…'
+          : '•';
   return (
     <span className={`status ${status}`} aria-label={`Status: ${label}`}>
       <span aria-hidden="true">{symbol}</span> {label}
@@ -122,9 +147,14 @@ export function Evidence({ attempts }: { attempts: Attempt[] }) {
     <>
       <div className="spread small">
         <span>Marks on assessed attempts</span>
-        <strong>{possible ? `${earned} / ${possible}` : "No assessed attempts"}</strong>
+        <strong>
+          {possible ? `${earned} / ${possible}` : 'No assessed attempts'}
+        </strong>
       </div>
-      <Progress value={possible ? (100 * earned) / possible : 0} className="evidence-progress" />
+      <Progress
+        value={possible ? (100 * earned) / possible : 0}
+        className="evidence-progress"
+      />
     </>
   );
 }

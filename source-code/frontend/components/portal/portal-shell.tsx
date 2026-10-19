@@ -42,6 +42,10 @@ export function PortalShell({
   children,
   footer,
   preview = false,
+  breadcrumbs,
+  onNavigatePath,
+  workspaceContext,
+  focusAvailable = false,
 }: {
   items: PortalNavItem[];
   active: string;
@@ -53,7 +57,21 @@ export function PortalShell({
   children: ReactNode;
   footer?: ReactNode;
   preview?: boolean;
+  breadcrumbs?: { label: string; path?: string }[];
+  onNavigatePath?: (path: string) => void;
+  workspaceContext?: ReactNode;
+  focusAvailable?: boolean;
 }) {
+  const [focused, setFocused] = useState(false);
+  useEffect(() => {
+    const change = (event: Event) =>
+      setFocused(Boolean((event as CustomEvent<boolean>).detail));
+    window.addEventListener('akuru:learning-focus', change);
+    return () => window.removeEventListener('akuru:learning-focus', change);
+  }, []);
+  useEffect(() => {
+    if (!focusAvailable) setFocused(false);
+  }, [focusAvailable]);
   const searchId = useId();
   const [density, setDensity] = useState<'compact' | 'comfortable'>('compact');
   useEffect(() => {
@@ -144,7 +162,12 @@ export function PortalShell({
     </>
   );
   return (
-    <div className="ak-shell" data-collapsed={collapsed} data-density={density}>
+    <div
+      className="ak-shell"
+      data-collapsed={collapsed}
+      data-density={density}
+      data-focus={focused && focusAvailable}
+    >
       <a className="skip-link" href="#main-content">
         Skip to page content
       </a>
@@ -218,12 +241,50 @@ export function PortalShell({
               {navigation(false, true)}
             </SheetContent>
           </Sheet>
-          <div className="ak-breadcrumb">
+          <nav className="ak-breadcrumb" aria-label="Breadcrumb">
             <span>{context}</span>
             <ChevronRight size={14} />
-            <strong>{title}</strong>
-          </div>
+            {breadcrumbs?.length ? (
+              <ol>
+                {breadcrumbs.map((crumb, index) => (
+                  <li key={`${crumb.label}-${index}`}>
+                    {crumb.path && onNavigatePath ? (
+                      <button
+                        type="button"
+                        onClick={() => onNavigatePath(crumb.path!)}
+                      >
+                        {crumb.label}
+                      </button>
+                    ) : (
+                      <strong
+                        aria-current={
+                          index === breadcrumbs.length - 1 ? 'page' : undefined
+                        }
+                      >
+                        {crumb.label}
+                      </strong>
+                    )}
+                    {index < breadcrumbs.length - 1 && (
+                      <ChevronRight size={12} />
+                    )}
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <strong>{title}</strong>
+            )}
+          </nav>
           <div className="ak-header-actions">
+            {focusAvailable && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setFocused(!focused)}
+                aria-pressed={focused}
+              >
+                {focused ? 'Exit focus' : 'Focus view'}
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -245,6 +306,7 @@ export function PortalShell({
           </div>
         </header>
         <main id="main-content" tabIndex={-1} className="ak-main">
+          {workspaceContext}
           {children}
         </main>
         <footer className="ak-footer">

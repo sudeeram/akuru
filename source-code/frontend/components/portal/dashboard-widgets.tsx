@@ -20,13 +20,13 @@ export function PageHeader({
 }: {
   eyebrow?: string;
   title: string;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
   level?: 1 | 2;
 }) {
   const Title = level === 1 ? 'h1' : 'h2';
   return (
-    <div className="ak-page-heading">
+    <div className="ak-page-heading page-heading">
       <div>
         {eyebrow && <span className="ak-eyebrow">{eyebrow}</span>}
         <Title>{title}</Title>
@@ -44,7 +44,7 @@ export function DashboardCard({
   className = '',
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
@@ -154,7 +154,7 @@ export function SubjectProgressCard({
   onOpen,
 }: {
   title: string;
-  description: string;
+  description: ReactNode;
   value: number | null;
   label: string;
   onOpen?: () => void;
@@ -277,7 +277,7 @@ export function EmptyState({
   error = false,
 }: {
   title: string;
-  description: string;
+  description: ReactNode;
   action?: ReactNode;
   error?: boolean;
 }) {

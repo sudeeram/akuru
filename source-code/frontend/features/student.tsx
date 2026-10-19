@@ -2,6 +2,9 @@
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
 import { Equation, LearningImage } from './learning-media';
+import { useFocusMode, FilterToolbar } from '@/components/portal/workspace';
+import { MetricCard } from '@/components/portal/dashboard-widgets';
+import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import { MediaGallery } from './media-gallery';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -49,6 +52,7 @@ import {
 import { Diagram } from './diagram';
 
 export function Subjects(p: FeatureProps) {
+  const [filters, setFilters] = useWorkspaceSearch({ q: '' });
   const enrolled = p.data.subjects.filter((s) =>
     p.child.subjects.includes(s.id),
   );
@@ -74,6 +78,11 @@ export function Subjects(p: FeatureProps) {
       >
         Build understanding, one topic at a time.
       </Heading>
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        placeholder="Find a topic or lesson…"
+      />
       <div className="subject-tabs">
         {enrolled.map((s) => (
           <button
@@ -149,7 +158,14 @@ export function Subjects(p: FeatureProps) {
       ) : (
         <div className="topic-list">
           {p.data.questions
-            .filter((q) => q.subject === active.id)
+            .filter(
+              (q) =>
+                q.subject === active.id &&
+                (!filters.q ||
+                  `${q.topic} ${q.title}`
+                    .toLowerCase()
+                    .includes(filters.q.toLowerCase())),
+            )
             .map((q, i) => (
               <button
                 className="panel topic-row"
@@ -205,8 +221,15 @@ export function Subjects(p: FeatureProps) {
 }
 
 export function Practice(p: FeatureProps) {
-  const practice = p.data.exams.find((e) => e.status === 'active' && e.mode === 'practice');
-  const qs = practice ? practice.questionIds.map((id) => p.data.questions.find((q) => q.id === id)!).filter(Boolean) : [];
+  const practice = p.data.exams.find(
+    (e) => e.status === 'active' && e.mode === 'practice',
+  );
+  useFocusMode(Boolean(practice));
+  const qs = practice
+    ? practice.questionIds
+        .map((id) => p.data.questions.find((q) => q.id === id)!)
+        .filter(Boolean)
+    : [];
   const [qid, setQid] = useState(() => {
     const next =
       typeof window !== 'undefined'
@@ -243,7 +266,10 @@ export function Practice(p: FeatureProps) {
     setBusy(true);
     try {
       if (!practice) return;
-      const r = await api(`assessments/${practice.id}/questions/${q.id}/hint`, { idempotencyKey: crypto.randomUUID() }) as { hint: string; total: number };
+      const r = (await api(
+        `assessments/${practice.id}/questions/${q.id}/hint`,
+        { idempotencyKey: crypto.randomUUID() },
+      )) as { hint: string; total: number };
       if (hints.length < r.total) setHints([...hints, r.hint]);
       else p.notify('You have opened all hints for this question.');
     } catch (e: unknown) {
@@ -264,20 +290,43 @@ export function Practice(p: FeatureProps) {
         fileId: file?.id,
         idempotencyKey: crypto.randomUUID(),
       });
-      const completed = await api(`assessments/${practice.id}/submit`, { idempotencyKey: crypto.randomUUID() }) as AssessmentApiResponse;
-      const assessed = await api(`assessments/${practice.id}/evaluate`, { idempotencyKey: crypto.randomUUID() }) as AssessmentApiResponse;
+      const completed = (await api(`assessments/${practice.id}/submit`, {
+        idempotencyKey: crypto.randomUUID(),
+      })) as AssessmentApiResponse;
+      const assessed = (await api(`assessments/${practice.id}/evaluate`, {
+        idempotencyKey: crypto.randomUUID(),
+      })) as AssessmentApiResponse;
       const frozen = assessed.questions[0];
       const feedback = frozen.result;
-      setResult({ id: completed.id, studentId: p.child.id, subject: completed.subjectId,
-        questionId: q.id, title: q.title, answer, fileId: file?.id || '', hints: hints.length,
-        mark: feedback?.status === 'published' ? feedback.awardedMarks : null, maxMarks: q.marks,
-        status: feedback?.status === 'needs_review' ? 'needs-review' : 'assessed',
-        feedback: [...(feedback?.strengths || []), ...(feedback?.smallMistakes || []), ...(feedback?.conceptualMistakes || [])].join(' ') || 'AKURU completed the assessment.',
+      setResult({
+        id: completed.id,
+        studentId: p.child.id,
+        subject: completed.subjectId,
+        questionId: q.id,
+        title: q.title,
+        answer,
+        fileId: file?.id || '',
+        hints: hints.length,
+        mark: feedback?.status === 'published' ? feedback.awardedMarks : null,
+        maxMarks: q.marks,
+        status:
+          feedback?.status === 'needs_review' ? 'needs-review' : 'assessed',
+        feedback:
+          [
+            ...(feedback?.strengths || []),
+            ...(feedback?.smallMistakes || []),
+            ...(feedback?.conceptualMistakes || []),
+          ].join(' ') || 'AKURU completed the assessment.',
         explanation: feedback?.teachingExplanation || '',
-        points: feedback?.markingDecisions.map((point) => `${point.awarded ? 'Awarded' : 'Missed'}: ${point.rationale} Evidence: ${point.studentEvidence}`) || [],
+        points:
+          feedback?.markingDecisions.map(
+            (point) =>
+              `${point.awarded ? 'Awarded' : 'Missed'}: ${point.rationale} Evidence: ${point.studentEvidence}`,
+          ) || [],
         improvedAnswer: feedback?.improvedAnswer,
         recommendations: feedback?.recommendations,
-        createdAt: completed.submittedAt || new Date().toISOString() });
+        createdAt: completed.submittedAt || new Date().toISOString(),
+      });
       await p.refresh();
     } catch (e: unknown) {
       setError(errorMessage(e));
@@ -288,15 +337,34 @@ export function Practice(p: FeatureProps) {
   if (!q)
     return (
       <Empty title="No questions available for this term">
-        <Button className="primary spaced" onClick={async () => {
-          setBusy(true); setError('');
-          try { await api('assessments/start', { mode: 'practice', subjectId: p.subject }); await p.refresh(); }
-          catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
-        }} disabled={busy}>Start eligible practice</Button>
-        {error || 'AKURU selects from all mapped units covered up to your current term.'}
+        <Button
+          className="primary spaced"
+          onClick={async () => {
+            setBusy(true);
+            setError('');
+            try {
+              await api('assessments/start', {
+                mode: 'practice',
+                subjectId: p.subject,
+              });
+              await p.refresh();
+            } catch (e: unknown) {
+              setError(errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+          disabled={busy}
+        >
+          Start eligible practice
+        </Button>
+        {error ||
+          'AKURU selects from all mapped units covered up to your current term.'}
       </Empty>
     );
-  const active = p.data.exams.find((e) => e.status === 'active' && e.mode !== 'practice');
+  const active = p.data.exams.find(
+    (e) => e.status === 'active' && e.mode !== 'practice',
+  );
   if (active)
     return (
       <>
@@ -348,10 +416,37 @@ export function Practice(p: FeatureProps) {
           </div>
           <h2>{q.title}</h2>
           <p className="question-text">{q.prompt}</p>
-          {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
+          {!!q.equations?.length && (
+            <div
+              className="equations"
+              aria-label="Equations supplied with this question"
+            >
+              {q.equations.map((equation) => (
+                <Equation key={equation} value={equation} />
+              ))}
+            </div>
+          )}
           <Diagram kind={q.diagram} />
           {q.assetIds?.map((assetId) => (
-            <div key={assetId} className="stack"><strong>{Object.entries(q.visualPlacements||{}).filter(([,ids])=>ids.includes(assetId)).map(([part])=>part==='shared'?'Shared question visual':`Part (${part})`).join(', ') || 'Question visual'}</strong><LearningImage src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} /></div>
+            <div key={assetId} className="stack">
+              <strong>
+                {Object.entries(q.visualPlacements || {})
+                  .filter(([, ids]) => ids.includes(assetId))
+                  .map(([part]) =>
+                    part === 'shared'
+                      ? 'Shared question visual'
+                      : `Part (${part})`,
+                  )
+                  .join(', ') || 'Question visual'}
+              </strong>
+              <LearningImage
+                src={`/api/v1/assessments/${q.assessmentId}/assets/${assetId}`}
+                description={
+                  q.assetDescriptions?.[assetId] ||
+                  `Source visual for ${q.title}: ${q.prompt}`
+                }
+              />
+            </div>
           ))}
           <div className="source-note">
             <BookOpen size={14} />
@@ -398,9 +493,17 @@ export function Practice(p: FeatureProps) {
                         setBusy(true);
                         try {
                           if (!practice) return;
-                          const uploaded = await uploadWorking(f, practice.id, q.id);
+                          const uploaded = await uploadWorking(
+                            f,
+                            practice.id,
+                            q.id,
+                          );
                           setFile(uploaded);
-                          p.notify(uploaded.needsReview ? 'Working uploaded. AKURU will keep it for review.' : 'Working uploaded and read by AKURU.');
+                          p.notify(
+                            uploaded.needsReview
+                              ? 'Working uploaded. AKURU will keep it for review.'
+                              : 'Working uploaded and read by AKURU.',
+                          );
                         } catch (e: unknown) {
                           setError(errorMessage(e));
                         } finally {
@@ -412,7 +515,7 @@ export function Practice(p: FeatureProps) {
                   <span className="muted small">Image or PDF · up to 5 MB</span>
                 </div>
                 {!result && (
-                  <div className="button-row">
+                  <div className="button-row workspace-sticky-actions">
                     <Button
                       variant="ghost"
                       type="button"
@@ -420,7 +523,12 @@ export function Practice(p: FeatureProps) {
                       onClick={async () => {
                         try {
                           if (!practice) return;
-                          await api(`assessments/${practice.id}/answers`, { questionId: q.id, answer, fileId: file?.id, idempotencyKey: crypto.randomUUID() });
+                          await api(`assessments/${practice.id}/answers`, {
+                            questionId: q.id,
+                            answer,
+                            fileId: file?.id,
+                            idempotencyKey: crypto.randomUUID(),
+                          });
                           await p.refresh();
                           p.notify('Draft saved privately to your account.');
                         } catch (e: unknown) {
@@ -477,7 +585,12 @@ export function Practice(p: FeatureProps) {
                   )}
                   <h3 className="spaced">Worked explanation</h3>
                   <p className="spaced">{result.explanation}</p>
-                  {result.improvedAnswer && <><h3 className="spaced">An exam-ready answer</h3><p className="preserve">{result.improvedAnswer}</p></>}
+                  {result.improvedAnswer && (
+                    <>
+                      <h3 className="spaced">An exam-ready answer</h3>
+                      <p className="preserve">{result.improvedAnswer}</p>
+                    </>
+                  )}
                   <ol className="steps">
                     {result.points.map((x, i) => (
                       <li key={x}>
@@ -523,7 +636,9 @@ export function Practice(p: FeatureProps) {
                   variant="outline"
                   onClick={async () => {
                     try {
-                      setExplanation(await api<Lesson>(`lesson?question=${q.id}`));
+                      setExplanation(
+                        await api<Lesson>(`lesson?question=${q.id}`),
+                      );
                     } catch (e: unknown) {
                       setError(errorMessage(e));
                     }
@@ -572,7 +687,10 @@ export function Exams(p: FeatureProps) {
     [index, setIndex] = useState(0),
     [draft, setDraft] = useState(''),
     [dirty, setDirty] = useState(false);
-  const exam = p.data.exams.find((e) => e.status === 'active' && e.mode !== 'practice');
+  const exam = p.data.exams.find(
+    (e) => e.status === 'active' && e.mode !== 'practice',
+  );
+  useFocusMode(Boolean(exam));
   const qs = exam
     ? exam.questionIds.map((id) => p.data.questions.find((q) => q.id === id)!)
     : [];
@@ -594,7 +712,9 @@ export function Exams(p: FeatureProps) {
     const timer = window.setTimeout(async () => {
       try {
         await api(`assessments/${exam.id}/answers`, {
-          questionId: q.id, answer: draft, idempotencyKey: crypto.randomUUID(),
+          questionId: q.id,
+          answer: draft,
+          idempotencyKey: crypto.randomUUID(),
         });
         setDirty(false);
         await p.refresh();
@@ -608,7 +728,11 @@ export function Exams(p: FeatureProps) {
     if (!exam) return;
     setBusy(true);
     try {
-      await api(`assessments/${exam.id}/answers`, { questionId: q.id, answer: draft, idempotencyKey: crypto.randomUUID() });
+      await api(`assessments/${exam.id}/answers`, {
+        questionId: q.id,
+        answer: draft,
+        idempotencyKey: crypto.randomUUID(),
+      });
       setDirty(false);
       await p.refresh();
       p.notify('Answer saved.');
@@ -630,10 +754,13 @@ export function Exams(p: FeatureProps) {
           idempotencyKey: crypto.randomUUID(),
         });
       const storageKey = `akuru-submit-${exam.id}`;
-      const idempotencyKey = sessionStorage.getItem(storageKey) || crypto.randomUUID();
+      const idempotencyKey =
+        sessionStorage.getItem(storageKey) || crypto.randomUUID();
       sessionStorage.setItem(storageKey, idempotencyKey);
       await api(`assessments/${exam.id}/submit`, { idempotencyKey });
-      await api(`assessments/${exam.id}/evaluate`, { idempotencyKey: crypto.randomUUID() });
+      await api(`assessments/${exam.id}/evaluate`, {
+        idempotencyKey: crypto.randomUUID(),
+      });
       sessionStorage.removeItem(storageKey);
       setConfirm(false);
       setIndex(0);
@@ -690,10 +817,37 @@ export function Exams(p: FeatureProps) {
                 <span className="pill">{q.marks} marks</span>
               </div>
               <p className="question-text">{q.prompt}</p>
-              {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
+              {!!q.equations?.length && (
+                <div
+                  className="equations"
+                  aria-label="Equations supplied with this question"
+                >
+                  {q.equations.map((equation) => (
+                    <Equation key={equation} value={equation} />
+                  ))}
+                </div>
+              )}
               <Diagram kind={q.diagram} />
               {q.assetIds?.map((assetId) => (
-                <div key={assetId} className="stack"><strong>{Object.entries(q.visualPlacements||{}).filter(([,ids])=>ids.includes(assetId)).map(([part])=>part==='shared'?'Shared question visual':`Part (${part})`).join(', ') || 'Question visual'}</strong><LearningImage src={`/api/v1/assessments/${exam.id}/assets/${assetId}`} description={q.assetDescriptions?.[assetId] || `Source visual for ${q.title}: ${q.prompt}`} /></div>
+                <div key={assetId} className="stack">
+                  <strong>
+                    {Object.entries(q.visualPlacements || {})
+                      .filter(([, ids]) => ids.includes(assetId))
+                      .map(([part]) =>
+                        part === 'shared'
+                          ? 'Shared question visual'
+                          : `Part (${part})`,
+                      )
+                      .join(', ') || 'Question visual'}
+                  </strong>
+                  <LearningImage
+                    src={`/api/v1/assessments/${exam.id}/assets/${assetId}`}
+                    description={
+                      q.assetDescriptions?.[assetId] ||
+                      `Source visual for ${q.title}: ${q.prompt}`
+                    }
+                  />
+                </div>
               ))}
             </section>
             <section className="panel">
@@ -799,8 +953,14 @@ export function Exams(p: FeatureProps) {
                 mock
               </h2>
               <p>
-                {p.data.assessmentBlueprints.find((b) => b.subjectId === p.subject)?.questionCount || 'Configured'} questions ·{' '}
-                {p.data.assessmentBlueprints.find((b) => b.subjectId === p.subject)?.targetMarks || 'configured'} marks
+                {p.data.assessmentBlueprints.find(
+                  (b) => b.subjectId === p.subject,
+                )?.questionCount || 'Configured'}{' '}
+                questions ·{' '}
+                {p.data.assessmentBlueprints.find(
+                  (b) => b.subjectId === p.subject,
+                )?.targetMarks || 'configured'}{' '}
+                marks
               </p>
               <p className="small spaced">
                 Choose a quiet spot. You can upload working or type answers.
@@ -810,11 +970,19 @@ export function Exams(p: FeatureProps) {
             <div className="stack">
               <Button
                 className="primary"
-                disabled={busy || !p.data.assessmentBlueprints.some((b) => b.subjectId === p.subject)}
+                disabled={
+                  busy ||
+                  !p.data.assessmentBlueprints.some(
+                    (b) => b.subjectId === p.subject,
+                  )
+                }
                 onClick={async () => {
                   setBusy(true);
                   try {
-                    await api('assessments/start', { mode: 'mock', subjectId: p.subject });
+                    await api('assessments/start', {
+                      mode: 'mock',
+                      subjectId: p.subject,
+                    });
                     setIndex(0);
                     await p.refresh();
                   } catch (e: unknown) {
@@ -827,13 +995,34 @@ export function Exams(p: FeatureProps) {
                 Start mock exam
                 <ArrowRight size={16} />
               </Button>
-              {p.data.officialPapers.filter((paper) => paper.subjectId === p.subject).map((paper) => (
-                <Button key={paper.id} variant="outline" disabled={busy} onClick={async () => {
-                  setBusy(true); setError('');
-                  try { await api('assessments/start', { mode: 'official_paper', subjectId: p.subject, paperId: paper.id }); setIndex(0); await p.refresh(); }
-                  catch (e: unknown) { setError(errorMessage(e)); } finally { setBusy(false); }
-                }}>Take {paper.title}</Button>
-              ))}
+              {p.data.officialPapers
+                .filter((paper) => paper.subjectId === p.subject)
+                .map((paper) => (
+                  <Button
+                    key={paper.id}
+                    variant="outline"
+                    disabled={busy}
+                    onClick={async () => {
+                      setBusy(true);
+                      setError('');
+                      try {
+                        await api('assessments/start', {
+                          mode: 'official_paper',
+                          subjectId: p.subject,
+                          paperId: paper.id,
+                        });
+                        setIndex(0);
+                        await p.refresh();
+                      } catch (e: unknown) {
+                        setError(errorMessage(e));
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                  >
+                    Take {paper.title}
+                  </Button>
+                ))}
               <Button variant="outline" onClick={() => window.print()}>
                 <Download size={16} />
                 Print practice paper
@@ -854,7 +1043,16 @@ export function Exams(p: FeatureProps) {
                   {i + 1}. {q.title} ({q.marks} marks)
                 </h3>
                 <p>{q.prompt}</p>
-                {!!q.equations?.length && <div className="equations" aria-label="Equations supplied with this question">{q.equations.map((equation) => <Equation key={equation} value={equation} />)}</div>}
+                {!!q.equations?.length && (
+                  <div
+                    className="equations"
+                    aria-label="Equations supplied with this question"
+                  >
+                    {q.equations.map((equation) => (
+                      <Equation key={equation} value={equation} />
+                    ))}
+                  </div>
+                )}
                 <Diagram kind={q.diagram} />
                 <div className="writing-lines" />
               </section>
@@ -863,10 +1061,18 @@ export function Exams(p: FeatureProps) {
           <div className="section-heading">
             <h2>Previous mock exams</h2>
           </div>
-          {p.data.exams.filter((e) => ['submitted', 'expired'].includes(e.status) && e.mode !== 'practice').length ? (
+          {p.data.exams.filter(
+            (e) =>
+              ['submitted', 'expired'].includes(e.status) &&
+              e.mode !== 'practice',
+          ).length ? (
             <div className="panel">
               {p.data.exams
-                .filter((e) => ['submitted', 'expired'].includes(e.status) && e.mode !== 'practice')
+                .filter(
+                  (e) =>
+                    ['submitted', 'expired'].includes(e.status) &&
+                    e.mode !== 'practice',
+                )
                 .map((e) => (
                   <button
                     className="resource-row"
@@ -923,11 +1129,14 @@ function ClipboardIcon() {
 }
 
 export function ProgressView(p: FeatureProps) {
+  const [filters, setFilters] = useWorkspaceSearch({ q: '', subject: 'all' });
   const [chosen, setChosen] = useState<Attempt | null>(null);
   const own = p.data.attempts.filter((a) => a.studentId === p.child.id);
   const topicMastery = p.data.mastery?.[p.child.id] || [];
   const masteryGroups = p.data.masteryGroups?.[p.child.id] || [];
-  const nextSteps = (p.data.recommendations?.[p.child.id] || []).filter((item) => item.reviewStatus === 'approved');
+  const nextSteps = (p.data.recommendations?.[p.child.id] || []).filter(
+    (item) => item.reviewStatus === 'approved',
+  );
   return (
     <>
       <Heading
@@ -959,18 +1168,38 @@ export function ProgressView(p: FeatureProps) {
           ],
           ['Hints used', own.reduce((n, a) => n + a.hints, 0)],
         ].map(([label, value]) => (
-          <div className="panel metric" key={label}>
-            <strong>{value}</strong>
-            <span>{label}</span>
-          </div>
+          <MetricCard
+            key={label}
+            label={String(label)}
+            value={value}
+            detail="Selected learner's authorized work"
+            icon={BookOpen}
+          />
         ))}
       </div>
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        placeholder="Find a subject or topic…"
+        onClear={() => setFilters({ q: '', subject: 'all' })}
+      />
       <div className="section-heading">
         <h2>Subject by subject</h2>
       </div>
       <div className="subject-grid">
         {p.data.subjects
-          .filter((s) => p.child.subjects.includes(s.id))
+          .filter(
+            (s) =>
+              p.child.subjects.includes(s.id) &&
+              (filters.subject === 'all' || s.id === filters.subject) &&
+              (!filters.q ||
+                `${s.name} ${topicMastery
+                  .filter((item) => item.subjectId === s.id)
+                  .map((item) => item.topicTitle)
+                  .join(' ')}`
+                  .toLowerCase()
+                  .includes(filters.q.toLowerCase())),
+          )
           .map((s) => (
             <div className="panel" key={s.id}>
               <div className="subject-progress-heading">
@@ -982,38 +1211,172 @@ export function ProgressView(p: FeatureProps) {
               </div>
               <Evidence attempts={own.filter((a) => a.subject === s.id)} />
               <div className="stack spaced">
-                {masteryGroups.filter((group) => group.subjectId === s.id).map((group) => <details className="source-note" key={`${group.subjectId}:${group.groupCode}`}><summary><strong>{group.groupLabel} {group.groupCode} · {group.groupTitle}</strong> · {group.score.toFixed(1)}/10</summary><p className="small">{group.explanation}</p>{group.topics.map((topic) => <div className="source-note" key={topic.topicRef}><div className="spread"><strong>Topic {topic.topicCode} · {topic.topicTitle}</strong><strong>{topic.score.toFixed(1)}/10</strong></div><p className="small">{topic.confidence} confidence · {topic.evidenceCount} assessed evidence item{topic.evidenceCount === 1 ? '' : 's'}</p></div>)}</details>)}
-                {topicMastery.filter((topic) => topic.subjectId === s.id).map((topic) => (
-                  <div className="source-note" key={topic.topicRef}>
-                        <div className="spread"><strong>{topic.groupCode} · {topic.topicCode} · {topic.topicTitle}</strong><strong>{topic.score.toFixed(1)}/10</strong></div>
-                      <div className="spread small"><span>{topic.provisional ? 'Provisional' : topic.confidence} · {topic.confidence} confidence</span><span>{topic.trend > 0 ? '↑' : topic.trend < 0 ? '↓' : '→'} {Math.abs(topic.trend).toFixed(1)} recent trend</span></div>
-                    <p className="small">{topic.evidenceCount} assessed evidence item{topic.evidenceCount === 1 ? '' : 's'}</p>
-                    <div className="mastery-dimensions" aria-label={`${topic.topicTitle} skill dimensions`}>
-                      {topic.dimensions.map((dimension) => <div key={dimension.dimension}><div className="spread small"><span>{dimension.dimension.replaceAll('_', ' ')}</span><span>{dimension.score.toFixed(1)}/10</span></div><progress max="10" value={dimension.score}>{dimension.score} out of 10</progress></div>)}
+                {masteryGroups
+                  .filter((group) => group.subjectId === s.id)
+                  .map((group) => (
+                    <details
+                      className="source-note"
+                      key={`${group.subjectId}:${group.groupCode}`}
+                    >
+                      <summary>
+                        <strong>
+                          {group.groupLabel} {group.groupCode} ·{' '}
+                          {group.groupTitle}
+                        </strong>{' '}
+                        · {group.score.toFixed(1)}/10
+                      </summary>
+                      <p className="small">{group.explanation}</p>
+                      {group.topics.map((topic) => (
+                        <div className="source-note" key={topic.topicRef}>
+                          <div className="spread">
+                            <strong>
+                              Topic {topic.topicCode} · {topic.topicTitle}
+                            </strong>
+                            <strong>{topic.score.toFixed(1)}/10</strong>
+                          </div>
+                          <p className="small">
+                            {topic.confidence} confidence ·{' '}
+                            {topic.evidenceCount} assessed evidence item
+                            {topic.evidenceCount === 1 ? '' : 's'}
+                          </p>
+                        </div>
+                      ))}
+                    </details>
+                  ))}
+                {topicMastery
+                  .filter((topic) => topic.subjectId === s.id)
+                  .map((topic) => (
+                    <div className="source-note" key={topic.topicRef}>
+                      <div className="spread">
+                        <strong>
+                          {topic.groupCode} · {topic.topicCode} ·{' '}
+                          {topic.topicTitle}
+                        </strong>
+                        <strong>{topic.score.toFixed(1)}/10</strong>
+                      </div>
+                      <div className="spread small">
+                        <span>
+                          {topic.provisional ? 'Provisional' : topic.confidence}{' '}
+                          · {topic.confidence} confidence
+                        </span>
+                        <span>
+                          {topic.trend > 0 ? '↑' : topic.trend < 0 ? '↓' : '→'}{' '}
+                          {Math.abs(topic.trend).toFixed(1)} recent trend
+                        </span>
+                      </div>
+                      <p className="small">
+                        {topic.evidenceCount} assessed evidence item
+                        {topic.evidenceCount === 1 ? '' : 's'}
+                      </p>
+                      <div
+                        className="mastery-dimensions"
+                        aria-label={`${topic.topicTitle} skill dimensions`}
+                      >
+                        {topic.dimensions.map((dimension) => (
+                          <div key={dimension.dimension}>
+                            <div className="spread small">
+                              <span>
+                                {dimension.dimension.replaceAll('_', ' ')}
+                              </span>
+                              <span>{dimension.score.toFixed(1)}/10</span>
+                            </div>
+                            <progress max="10" value={dimension.score}>
+                              {dimension.score} out of 10
+                            </progress>
+                          </div>
+                        ))}
+                      </div>
+                      {!!topic.recentEvents.length && (
+                        <details>
+                          <summary>Latest 10 score changes</summary>
+                          <ol>
+                            {topic.recentEvents.map((event) => (
+                              <li key={event.id}>
+                                {new Date(event.createdAt).toLocaleDateString()}
+                                :{' '}
+                                {event.previousScore == null
+                                  ? 'Started'
+                                  : `${event.previousScore.toFixed(1)} →`}{' '}
+                                {event.newScore.toFixed(1)}/10.{' '}
+                                {event.explanation}
+                              </li>
+                            ))}
+                          </ol>
+                        </details>
+                      )}
+                      {(p.data.recommendations?.[p.child.id] || [])
+                        .filter(
+                          (item) =>
+                            item.topicRef === topic.topicRef &&
+                            item.reviewStatus !== 'rejected',
+                        )
+                        .filter(
+                          (item, index, items) =>
+                            items.findIndex(
+                              (other) => other.diagnosisId === item.diagnosisId,
+                            ) === index,
+                        )
+                        .map((item) => (
+                          <div className="small" key={item.id}>
+                            <strong>Mistake pattern:</strong>{' '}
+                            {item.category.replaceAll('_', ' ')} (
+                            {item.occurrenceCount} observation
+                            {item.occurrenceCount === 1 ? '' : 's'})
+                            <ul>
+                              {item.observedEvidence.map((evidence) => (
+                                <li key={evidence}>{evidence}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
                     </div>
-                    {!!topic.recentEvents.length && <details><summary>Latest 10 score changes</summary><ol>{topic.recentEvents.map(event => <li key={event.id}>{new Date(event.createdAt).toLocaleDateString()}: {event.previousScore == null ? 'Started' : `${event.previousScore.toFixed(1)} →`} {event.newScore.toFixed(1)}/10. {event.explanation}</li>)}</ol></details>}
-                    {(p.data.recommendations?.[p.child.id] || []).filter(item => item.topicRef === topic.topicRef && item.reviewStatus !== 'rejected').filter((item, index, items) => items.findIndex(other => other.diagnosisId === item.diagnosisId) === index).map(item => <div className="small" key={item.id}><strong>Mistake pattern:</strong> {item.category.replaceAll('_', ' ')} ({item.occurrenceCount} observation{item.occurrenceCount === 1 ? '' : 's'})<ul>{item.observedEvidence.map(evidence => <li key={evidence}>{evidence}</li>)}</ul></div>)}
-                  </div>
-                ))}
-                {!topicMastery.some((topic) => topic.subjectId === s.id) && <p className="muted small">Complete assessed work to build topic mastery.</p>}
+                  ))}
+                {!topicMastery.some((topic) => topic.subjectId === s.id) && (
+                  <p className="muted small">
+                    Complete assessed work to build topic mastery.
+                  </p>
+                )}
               </div>
             </div>
           ))}
       </div>
-          <p className="source-note">
-            Topic scores use assessed evidence and are not predicted exam grades. Provisional scores need more varied evidence; pending reviews are excluded.
-          </p>
-          <div className="section-heading"><h2>AKURU next steps</h2></div>
-          <div className="subject-grid">
-            {nextSteps.map((item) => <article className="panel" key={item.id}>
-              <span className="eyebrow">{item.groupCode} · {item.topicCode} · {item.category.replaceAll('_', ' ')}</span>
-              <h3>{item.title}</h3><p>{item.reason}</p>
-              <p className="small spaced"><strong>Try this:</strong> {item.action}</p>
-              <p className="small"><strong>Success:</strong> {item.successCondition}</p>
-              <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.sourceTitle} · page {item.sourcePage} ↗</a>
-            </article>)}
-            {!nextSteps.length && <div className="panel"><Empty title="No approved next steps yet.">AKURU will add source-linked activities when assessed work shows a specific improvement area.</Empty></div>}
+      <p className="source-note">
+        Topic scores use assessed evidence and are not predicted exam grades.
+        Provisional scores need more varied evidence; pending reviews are
+        excluded.
+      </p>
+      <div className="section-heading">
+        <h2>AKURU next steps</h2>
+      </div>
+      <div className="subject-grid">
+        {nextSteps.map((item) => (
+          <article className="panel" key={item.id}>
+            <span className="eyebrow">
+              {item.groupCode} · {item.topicCode} ·{' '}
+              {item.category.replaceAll('_', ' ')}
+            </span>
+            <h3>{item.title}</h3>
+            <p>{item.reason}</p>
+            <p className="small spaced">
+              <strong>Try this:</strong> {item.action}
+            </p>
+            <p className="small">
+              <strong>Success:</strong> {item.successCondition}
+            </p>
+            <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+              {item.sourceTitle} · page {item.sourcePage} ↗
+            </a>
+          </article>
+        ))}
+        {!nextSteps.length && (
+          <div className="panel">
+            <Empty title="No approved next steps yet.">
+              AKURU will add source-linked activities when assessed work shows a
+              specific improvement area.
+            </Empty>
           </div>
+        )}
+      </div>
       <div className="section-heading">
         <h2>Recent work & feedback</h2>
       </div>
@@ -1057,32 +1420,102 @@ export function ProgressView(p: FeatureProps) {
           {chosen && (
             <>
               <Status status={chosen.status} />
-              <div className="source-note"><strong>{chosen.mark === null ? 'Awaiting human review' : `${chosen.mark}/${chosen.maxMarks} marks`}</strong>{chosen.confidence != null && <> · {Math.round(chosen.confidence * 100)}% confidence · result version {chosen.resultVersion}</>}</div>
-              {!!chosen.reviewReasons?.length && <output className="error">This result needs review: {chosen.reviewReasons.join(' ')}</output>}
+              <div className="source-note">
+                <strong>
+                  {chosen.mark === null
+                    ? 'Awaiting human review'
+                    : `${chosen.mark}/${chosen.maxMarks} marks`}
+                </strong>
+                {chosen.confidence != null && (
+                  <>
+                    {' '}
+                    · {Math.round(chosen.confidence * 100)}% confidence · result
+                    version {chosen.resultVersion}
+                  </>
+                )}
+              </div>
+              {!!chosen.reviewReasons?.length && (
+                <output className="error">
+                  This result needs review: {chosen.reviewReasons.join(' ')}
+                </output>
+              )}
               <h3>Your answer</h3>
               <p className="preserve">
                 {chosen.answer || 'Working uploaded without typed text.'}
               </p>
               {chosen.fileId && (
-                <a
-                  target="_blank"
-                  rel="noreferrer"
-                  href={chosen.workingUrl}
-                >
+                <a target="_blank" rel="noreferrer" href={chosen.workingUrl}>
                   Open submitted working ↗
                 </a>
               )}
               <h3>Feedback</h3>
               <p>{chosen.feedback}</p>
-              {!!chosen.strengths?.length && <><h3>What you did well</h3><ul>{chosen.strengths.map(item => <li key={item}>{item}</li>)}</ul></>}
-              {!!chosen.smallMistakes?.length && <><h3>Small mistakes to fix</h3><ul>{chosen.smallMistakes.map(item => <li key={item}>{item}</li>)}</ul></>}
-              {!!chosen.conceptualMistakes?.length && <><h3>Ideas to revisit</h3><ul>{chosen.conceptualMistakes.map(item => <li key={item}>{item}</li>)}</ul></>}
+              {!!chosen.strengths?.length && (
+                <>
+                  <h3>What you did well</h3>
+                  <ul>
+                    {chosen.strengths.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {!!chosen.smallMistakes?.length && (
+                <>
+                  <h3>Small mistakes to fix</h3>
+                  <ul>
+                    {chosen.smallMistakes.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {!!chosen.conceptualMistakes?.length && (
+                <>
+                  <h3>Ideas to revisit</h3>
+                  <ul>
+                    {chosen.conceptualMistakes.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <h3>Worked explanation</h3>
               <p>{chosen.explanation}</p>
-              {chosen.improvedAnswer && <><h3>An exam-ready answer</h3><p className="preserve">{chosen.improvedAnswer}</p></>}
+              {chosen.improvedAnswer && (
+                <>
+                  <h3>An exam-ready answer</h3>
+                  <p className="preserve">{chosen.improvedAnswer}</p>
+                </>
+              )}
               <h3>How each mark was decided</h3>
-              {(chosen.markingDecisions || []).map(point => <article className="source-note" key={point.pointId}><div className="spread"><strong>{point.pointId} · {point.criterion}</strong><strong>{point.marksAwarded}/{point.maxMarks}</strong></div><p><strong>Evidence in your answer:</strong> {point.studentEvidence}</p><p>{point.rationale}</p></article>)}
-              {!!chosen.recommendations?.length && <><h3>What to do next</h3><ul>{chosen.recommendations.map((item) => <li key={item}>{item}</li>)}</ul></>}
+              {(chosen.markingDecisions || []).map((point) => (
+                <article className="source-note" key={point.pointId}>
+                  <div className="spread">
+                    <strong>
+                      {point.pointId} · {point.criterion}
+                    </strong>
+                    <strong>
+                      {point.marksAwarded}/{point.maxMarks}
+                    </strong>
+                  </div>
+                  <p>
+                    <strong>Evidence in your answer:</strong>{' '}
+                    {point.studentEvidence}
+                  </p>
+                  <p>{point.rationale}</p>
+                </article>
+              ))}
+              {!!chosen.recommendations?.length && (
+                <>
+                  <h3>What to do next</h3>
+                  <ul>
+                    {chosen.recommendations.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )}
         </DialogContent>
@@ -1095,9 +1528,12 @@ export function Plan(p: FeatureProps) {
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const plan = p.data.plans[p.child.id];
-  const assignments = p.data.assignments.filter(
-    (a) => a.studentId === p.child.id,
-  );
+  const assignments = p.data.assignments
+    .filter((a) => a.studentId === p.child.id)
+    .sort(
+      (a, b) =>
+        Number(a.completed) - Number(b.completed) || a.due.localeCompare(b.due),
+    );
   return (
     <>
       <Heading
@@ -1120,7 +1556,11 @@ export function Plan(p: FeatureProps) {
               }
             }}
           >
-                {busy ? 'Preparing…' : plan?.items.length ? 'Refresh my plan' : 'Create my plan'}
+            {busy
+              ? 'Preparing…'
+              : plan?.items.length
+                ? 'Refresh my plan'
+                : 'Create my plan'}
             <ArrowRight size={16} />
           </Button>
         }
@@ -1131,41 +1571,80 @@ export function Plan(p: FeatureProps) {
       <div className="two-cols">
         <section className="panel">
           <h2>Suggested revision</h2>
-              {plan?.items.length ? (
+          {plan?.items.length ? (
             <>
               <p className="source-note">
                 Updated {new Date(plan.updatedAt).toLocaleDateString()} ·
                 Rule-based local suggestions
               </p>
-              {plan.items.map((item) => (
-                <div className="plan-item" key={item.subject}>
-                  <span className="mini-icon">
-                    <BookOpen size={17} />
-                  </span>
-                  <div>
-                    <h3>{item.topic}</h3>
-                        <p>{item.reason}</p>
-                    <span className="small muted">
-                      {p.data.subjects.find((s) => s.id === item.subject)?.name}{' '}
-                          · {item.minutes} min
-                        </span>
-                        <p className="small spaced"><strong>Source:</strong> <a href={item.sourceUrl} target="_blank" rel="noreferrer">{item.source} ↗</a></p>
-                        <p className="small"><strong>Success:</strong> {item.successCondition}</p>
-                        <p className="small">Scheduled {new Date(item.scheduledFor).toLocaleDateString()}</p>
-                        <button
-                          className="text-button spaced"
-                          onClick={async () => {
-                            if (item.status === 'completed') return p.go('practice', item.subject);
-                            try { await api(`plans/items/${item.id}/complete`, {}); await p.refresh(); p.notify('Study activity completed.'); }
-                            catch (e: unknown) { setError(errorMessage(e)); }
-                          }}
+              {[...plan.items]
+                .sort(
+                  (a, b) =>
+                    Number(a.status === 'completed') -
+                      Number(b.status === 'completed') ||
+                    a.scheduledFor.localeCompare(b.scheduledFor),
+                )
+                .map((item) => (
+                  <div className="plan-item" key={item.subject}>
+                    <span className="mini-icon">
+                      <BookOpen size={17} />
+                    </span>
+                    <div>
+                      <h3>{item.topic}</h3>
+                      <Status
+                        status={
+                          item.status === 'completed'
+                            ? 'Completed'
+                            : 'Suggested revision'
+                        }
+                      />
+                      <p>{item.reason}</p>
+                      <span className="small muted">
+                        {
+                          p.data.subjects.find((s) => s.id === item.subject)
+                            ?.name
+                        }{' '}
+                        · {item.minutes} min
+                      </span>
+                      <p className="small spaced">
+                        <strong>Source:</strong>{' '}
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          {item.status === 'completed' ? 'Practise again' : 'Mark complete'}
-                      <ArrowRight size={14} />
-                    </button>
+                          {item.source} ↗
+                        </a>
+                      </p>
+                      <p className="small">
+                        <strong>Success:</strong> {item.successCondition}
+                      </p>
+                      <p className="small">
+                        Scheduled{' '}
+                        {new Date(item.scheduledFor).toLocaleDateString()}
+                      </p>
+                      <button
+                        className="text-button spaced"
+                        onClick={async () => {
+                          if (item.status === 'completed')
+                            return p.go('practice', item.subject);
+                          try {
+                            await api(`plans/items/${item.id}/complete`, {});
+                            await p.refresh();
+                            p.notify('Study activity completed.');
+                          } catch (e: unknown) {
+                            setError(errorMessage(e));
+                          }
+                        }}
+                      >
+                        {item.status === 'completed'
+                          ? 'Practise again'
+                          : 'Mark complete'}
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </>
           ) : (
             <Empty title="Make a little time for learning.">

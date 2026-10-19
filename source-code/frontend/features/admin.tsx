@@ -2,12 +2,25 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, ClipboardCheck, GraduationCap, Users } from 'lucide-react';
 import { MetricCard } from '@/components/portal/dashboard-widgets';
+import {
+  FilterToolbar,
+  EditorDrawer,
+  AdvancedPanel,
+  useWorkspaceGuard,
+} from '@/components/portal/workspace';
+import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import {
   api,
   errorMessage,
@@ -47,7 +60,10 @@ import {
   confirmVisualReferenceLabels,
   type ScientificTextContent,
 } from '@/api';
-import { ScientificTextEditor, scientificPlainText } from '@/components/scientific-text-editor';
+import {
+  ScientificTextEditor,
+  scientificPlainText,
+} from '@/components/scientific-text-editor';
 import { ResultReview } from './result-review';
 import { MediaAdmin } from './media-admin';
 import { EvaluationAdmin } from './evaluation-admin';
@@ -86,16 +102,22 @@ type AIAccount = {
 const options = (items: string[]) =>
   items.map((value) => ({ value, label: value }));
 
-const isVisualBlock = (block: ExtractionBlock) => ['image', 'diagram'].includes(block.kind);
+const isVisualBlock = (block: ExtractionBlock) =>
+  ['image', 'diagram'].includes(block.kind);
 const isFigureCaption = (block: ExtractionBlock) => {
-  const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(block.text.trim());
+  const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(
+    block.text.trim(),
+  );
   // OCR can prefix a caption with a panel label or diagram labels, and may
   // classify the combined caption as a paragraph or equation. Keep the match
   // conservative so later body references to figures are not joined.
   return Boolean(match && match.index <= 80);
 };
 const extractFigureCaption = (value: string) => {
-  const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  const lines = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
   for (const line of lines) {
     const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(line);
     if (match && match.index <= 80) return line.slice(match.index).trim();
@@ -103,17 +125,25 @@ const extractFigureCaption = (value: string) => {
   const match = /\b(?:figure|fig\.?)\s*\d+(?:\.\d+)?\b/i.exec(value);
   if (!match || match.index > 80) return '';
   const candidate = value.slice(match.index).trim();
-  return candidate.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() || candidate.slice(0, 1000);
+  return (
+    candidate.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ||
+    candidate.slice(0, 1000)
+  );
 };
 function groupExtractionBlocks(blocks: ExtractionBlock[]): ExtractionBlock[][] {
-  const ordered = [...blocks].sort((left, right) => left.sequenceNumber - right.sequenceNumber);
+  const ordered = [...blocks].sort(
+    (left, right) => left.sequenceNumber - right.sequenceNumber,
+  );
   const groups: ExtractionBlock[][] = [];
   for (let index = 0; index < ordered.length; index += 1) {
-    const current = ordered[index], next = ordered[index + 1];
+    const current = ordered[index],
+      next = ordered[index + 1];
     if (isVisualBlock(current) && next && isFigureCaption(next)) {
-      groups.push([current, next]); index += 1;
+      groups.push([current, next]);
+      index += 1;
     } else if (isFigureCaption(current) && next && isVisualBlock(next)) {
-      groups.push([next, current]); index += 1;
+      groups.push([next, current]);
+      index += 1;
     } else groups.push([current]);
   }
   return groups;
@@ -196,6 +226,17 @@ function Checks({
   );
 }
 export function AdminWorkspace(p: Props) {
+  const [filters, setFilters] = useWorkspaceSearch({
+    q: '',
+    subject: 'all',
+    status: 'all',
+    record: '',
+    grade: 'Grade 10',
+    term: 'Term1',
+    section: 'all',
+  });
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [queueSearch, setQueueSearch] = useState('');
   const [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
   const [role, setRole] = useState('parent'),
@@ -204,15 +245,30 @@ export function AdminWorkspace(p: Props) {
     [password, setPassword] = useState('');
   const [parentId, setParentId] = useState(''),
     [editId, setEditId] = useState('');
-  const [resetTarget, setResetTarget] = useState<{ publicRef: string; name: string; username: string } | null>(null);
-  const [resetResult, setResetResult] = useState<{ username: string; temporaryPassword: string; sessionsRevoked: number } | null>(null);
-  const [securityEvents, setSecurityEvents] = useState<Array<{ action: string; actorName: string; targetRef: string; occurredAt: string; details: Record<string, unknown> }>>([]);
+  const [resetTarget, setResetTarget] = useState<{
+    publicRef: string;
+    name: string;
+    username: string;
+  } | null>(null);
+  const [resetResult, setResetResult] = useState<{
+    username: string;
+    temporaryPassword: string;
+    sessionsRevoked: number;
+  } | null>(null);
+  const [securityEvents, setSecurityEvents] = useState<
+    Array<{
+      action: string;
+      actorName: string;
+      targetRef: string;
+      occurredAt: string;
+      details: Record<string, unknown>;
+    }>
+  >([]);
   const [grade, setGrade] = useState('Grade 10'),
     [term, setTerm] = useState('Term1'),
-    [coverageTerm, setCoverageTerm] = useState('all'),
     [progression, setProgression] = useState<string[]>(['Grade 10|Term1']),
     [enrolled, setEnrolled] = useState<string[]>(['maths']);
-  const [subject, setSubject] = useState('maths'),
+  const [localSubject, setSubject] = useState('maths'),
     [kind, setKind] = useState('Textbook'),
     [textbookId, setTextbookId] = useState(''),
     [paperId, setPaperId] = useState('');
@@ -224,34 +280,88 @@ export function AdminWorkspace(p: Props) {
     [publisher, setPublisher] = useState(''),
     [isbn, setIsbn] = useState(''),
     [sourceUrl, setSourceUrl] = useState('');
-  const [docId, setDocId] = useState('');
-  const [reviewSearch, setReviewSearch] = useState(''), [reviewSubject, setReviewSubject] = useState('all'), [reviewStatus, setReviewStatus] = useState('all');
+  const subject =
+    ['coverage', 'questions'].includes(p.view) &&
+    p.data.subjects.some((item) => item.id === filters.subject)
+      ? filters.subject
+      : localSubject;
+  const coverageTerm = ['1', '2', '3'].includes(filters.section)
+    ? filters.section
+    : 'all';
+  const setCoverageTerm = (section: string) => setFilters({ section });
+  const [selectedDocId, setDocId] = useState('');
+  const docId =
+    ['library', 'units'].includes(p.view) && filters.record
+      ? p.data.documents.find(
+          (item) => (item.publicRef || item.id) === filters.record,
+        )?.id || selectedDocId
+      : selectedDocId;
+  const reviewSearch = filters.q,
+    reviewSubject = filters.subject,
+    reviewStatus = filters.status;
+  const setReviewSearch = (q: string) => setFilters({ q });
+  const setReviewSubject = (subject: string) => setFilters({ subject });
+  const setReviewStatus = (status: string) => setFilters({ status });
   const [extraction, setExtraction] = useState<DocumentExtraction | null>(null);
   const [documentJob, setDocumentJob] = useState<DocumentJob | null>(null);
   const [extractionError, setExtractionError] = useState('');
-  const [hideReviewedBlocks, setHideReviewedBlocks] = useState<Record<string, boolean>>({});
+  const [hideReviewedBlocks, setHideReviewedBlocks] = useState<
+    Record<string, boolean>
+  >({});
   const [showFinalDocument, setShowFinalDocument] = useState(false);
-  const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(null);
-  const [officialReview, setOfficialReview] = useState<OfficialMaterialReview | null>(null);
-  const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(null);
+  const [curriculumPlan, setCurriculumPlan] = useState<CurriculumPlan | null>(
+    null,
+  );
+  const [officialReview, setOfficialReview] =
+    useState<OfficialMaterialReview | null>(null);
+  const [paperMappings, setPaperMappings] = useState<PaperMappings | null>(
+    null,
+  );
   const [mappingQuestionId, setMappingQuestionId] = useState('');
   const [mappingDraft, setMappingDraft] = useState<TopicMapping[]>([]);
+  const [coverageSaved, setCoverageSaved] = useState('');
+  const coverageDirty =
+    p.view === 'coverage' &&
+    Boolean(curriculumPlan) &&
+    JSON.stringify(curriculumPlan?.periods) !== coverageSaved;
+  const mappingDirty =
+    p.view === 'questions' &&
+    Boolean(mappingQuestionId) &&
+    JSON.stringify(mappingDraft) !==
+      JSON.stringify(
+        paperMappings?.questions.find(
+          (item) => item.questionId === mappingQuestionId,
+        )?.mappings || [],
+      );
+  useWorkspaceGuard(coverageDirty || mappingDirty, busy);
   const [blueprintName, setBlueprintName] = useState('Term mock'),
     [blueprintMarks, setBlueprintMarks] = useState('20'),
     [blueprintMinutes, setBlueprintMinutes] = useState('30'),
     [blueprintQuestions, setBlueprintQuestions] = useState('4'),
     [blueprintSkills, setBlueprintSkills] = useState('knowledge, application');
   const parents = p.data.accounts.filter((a) => a.role === 'parent');
-  const lastLogin = (value?: string | null) => value ? new Date(value).toLocaleString() : 'Never signed in';
+  const lastLogin = (value?: string | null) =>
+    value ? new Date(value).toLocaleString() : 'Never signed in';
   async function resetPassword() {
     if (!resetTarget) return;
-    setBusy(true); setError('');
+    setBusy(true);
+    setError('');
     try {
-      const result = await api<{username: string; temporaryPassword: string; sessionsRevoked: number}>(
-        `admin/accounts/${resetTarget.publicRef}/reset-password`, { requestKey: crypto.randomUUID() });
-      setResetResult(result); setResetTarget(null); await p.refresh();
-    } catch (cause) { setError(errorMessage(cause)); }
-    finally { setBusy(false); }
+      const result = await api<{
+        username: string;
+        temporaryPassword: string;
+        sessionsRevoked: number;
+      }>(`admin/accounts/${resetTarget.publicRef}/reset-password`, {
+        requestKey: crypto.randomUUID(),
+      });
+      setResetResult(result);
+      setResetTarget(null);
+      await p.refresh();
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
   }
   const books = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Textbook',
@@ -259,19 +369,38 @@ export function AdminWorkspace(p: Props) {
   const papers = p.data.documents.filter(
     (d) => d.subject === subject && d.kind === 'Past paper' && !d.legacy,
   );
-  const doc = p.data.documents.find((d) => d.id === docId);
+  const selectedDocument =
+    ['library', 'units'].includes(p.view) && filters.record
+      ? p.data.documents.find(
+          (item) => (item.publicRef || item.id) === filters.record,
+        )
+      : undefined;
+  const doc = selectedDocument || p.data.documents.find((d) => d.id === docId);
   const visualReferenceReview = doc?.sourceRole === 'visual_reference';
-  const extractionReview = extraction ? {
-    totalPages: extraction.pages.length,
-    pendingPages: extraction.pages.filter((page) => visualReferenceReview
-      ? !page.printedPageLabel?.trim() || page.metadata.printedPageLabelConfirmed !== true
-      : page.needsReview || !page.printedPageLabel?.trim()),
-    totalBlocks: visualReferenceReview ? 0 : extraction.pages.reduce((total, page) => total + page.blocks.length, 0),
-    pendingBlocks: visualReferenceReview ? 0 : extraction.pages.reduce(
-      (total, page) => total + page.blocks.filter((block) => block.needsReview).length,
-      0,
-    ),
-  } : null;
+  const extractionReview = extraction
+    ? {
+        totalPages: extraction.pages.length,
+        pendingPages: extraction.pages.filter((page) =>
+          visualReferenceReview
+            ? !page.printedPageLabel?.trim() ||
+              page.metadata.printedPageLabelConfirmed !== true
+            : page.needsReview || !page.printedPageLabel?.trim(),
+        ),
+        totalBlocks: visualReferenceReview
+          ? 0
+          : extraction.pages.reduce(
+              (total, page) => total + page.blocks.length,
+              0,
+            ),
+        pendingBlocks: visualReferenceReview
+          ? 0
+          : extraction.pages.reduce(
+              (total, page) =>
+                total + page.blocks.filter((block) => block.needsReview).length,
+              0,
+            ),
+      }
+    : null;
   const documentKinds = {
     Textbook: 'textbook',
     'Reference material': 'reference',
@@ -280,21 +409,47 @@ export function AdminWorkspace(p: Props) {
     'Examiner report': 'examiner_report',
   } as const;
   const textbookReviewMode = p.pathname.startsWith('/admin/textbooks/review');
-  const officialPaperReviewId = p.pathname.match(/^\/admin\/exam-documents\/review\/([0-9a-f-]{36})$/)?.[1];
-  const requestedReviewDocument = p.pathname.match(/^\/admin\/textbooks\/review\/([^/]+)$/)?.[1];
-  const examSection = p.pathname.match(/^\/admin\/exam-documents\/([^/]+)$/)?.[1] || 'all';
-  const examKind = ({ 'past-papers': 'Past paper', 'mark-schemes': 'Marking scheme',
-    'examiner-reports': 'Examiner report', references: 'Reference material' } as Record<string, string>)[examSection];
+  const officialPaperReviewId = p.pathname.match(
+    /^\/admin\/exam-documents\/review\/([0-9a-f-]{36})$/,
+  )?.[1];
+  const requestedReviewDocument = p.pathname.match(
+    /^\/admin\/textbooks\/review\/([^/]+)$/,
+  )?.[1];
+  const examSection =
+    p.pathname.match(/^\/admin\/exam-documents\/([^/]+)$/)?.[1] || 'all';
+  const examKind = (
+    {
+      'past-papers': 'Past paper',
+      'mark-schemes': 'Marking scheme',
+      'examiner-reports': 'Examiner report',
+      references: 'Reference material',
+    } as Record<string, string>
+  )[examSection];
   const requestedTextbook = new URLSearchParams(p.search).get('textbook');
   const visibleDocuments = textbookReviewMode
     ? p.data.documents.filter((document) => document.kind === 'Textbook')
-    : p.data.documents.filter((document) => document.kind !== 'Textbook' && (!examKind || document.kind === examKind));
-  const filteredDocuments = visibleDocuments.filter((document) =>
-    (reviewSubject === 'all' || document.subject === reviewSubject) &&
-    (reviewStatus === 'all' || document.status === reviewStatus) &&
-    (!requestedTextbook || document.textbookRef === requestedTextbook) &&
-    (!reviewSearch.trim() || [document.name, document.textbookTitle, document.groupTitle,
-      document.topicTitle].filter(Boolean).join(' ').toLowerCase().includes(reviewSearch.trim().toLowerCase())));
+    : p.data.documents.filter(
+        (document) =>
+          document.kind !== 'Textbook' &&
+          (!examKind || document.kind === examKind),
+      );
+  const filteredDocuments = visibleDocuments.filter(
+    (document) =>
+      (reviewSubject === 'all' || document.subject === reviewSubject) &&
+      (reviewStatus === 'all' || document.status === reviewStatus) &&
+      (!requestedTextbook || document.textbookRef === requestedTextbook) &&
+      (!reviewSearch.trim() ||
+        [
+          document.name,
+          document.textbookTitle,
+          document.groupTitle,
+          document.topicTitle,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+          .includes(reviewSearch.trim().toLowerCase())),
+  );
   const processingDocuments = p.data.documents.some((document) =>
     ['queued', 'processing'].includes(document.status),
   );
@@ -302,9 +457,16 @@ export function AdminWorkspace(p: Props) {
   const refreshPortal = p.refresh;
   useEffect(() => {
     if (!textbookReviewMode) return;
-    const selected = p.data.documents.find((document) => (document.publicRef || document.id) === requestedReviewDocument);
+    const selected = p.data.documents.find(
+      (document) =>
+        (document.publicRef || document.id) === requestedReviewDocument,
+    );
     if ((selected?.id || '') === docId) {
-      if (selected?.status === 'published' && selected.sourceRole !== 'visual_reference' && !showFinalDocument)
+      if (
+        selected?.status === 'published' &&
+        selected.sourceRole !== 'visual_reference' &&
+        !showFinalDocument
+      )
         queueMicrotask(() => setShowFinalDocument(true));
       return;
     }
@@ -313,16 +475,31 @@ export function AdminWorkspace(p: Props) {
       setExtraction(null);
       setDocumentJob(null);
       setExtractionError('');
-      setShowFinalDocument(selected?.status === 'published' && selected.sourceRole !== 'visual_reference');
+      setShowFinalDocument(
+        selected?.status === 'published' &&
+          selected.sourceRole !== 'visual_reference',
+      );
     });
-  }, [textbookReviewMode, requestedReviewDocument, p.data.documents, docId, showFinalDocument]);
+  }, [
+    textbookReviewMode,
+    requestedReviewDocument,
+    p.data.documents,
+    docId,
+    showFinalDocument,
+  ]);
   useEffect(() => {
     if (currentView !== 'accounts') return;
     let active = true;
     void api<typeof securityEvents>('admin/accounts/security-events')
-      .then((events) => { if (active) setSecurityEvents(events); })
-      .catch((cause) => { if (active) setError(errorMessage(cause)); });
-    return () => { active = false; };
+      .then((events) => {
+        if (active) setSecurityEvents(events);
+      })
+      .catch((cause) => {
+        if (active) setError(errorMessage(cause));
+      });
+    return () => {
+      active = false;
+    };
   }, [currentView]);
   useEffect(() => {
     if (currentView !== 'library' || !processingDocuments) return;
@@ -334,16 +511,24 @@ export function AdminWorkspace(p: Props) {
     const selected = p.data.documents.find((document) => document.id === docId);
     if (!selected) return;
     let active = true;
-    const extractionRequest = selected.kind === 'Textbook' || ['needs_review', 'completed'].includes(selected.status)
-      ? getDocumentExtraction(docId)
-      : Promise.resolve(null);
+    const extractionRequest =
+      selected.kind === 'Textbook' ||
+      ['needs_review', 'completed'].includes(selected.status)
+        ? getDocumentExtraction(docId)
+        : Promise.resolve(null);
     void Promise.all([getLatestDocumentJob(docId), extractionRequest])
       .then(([job, extracted]) => {
         if (active) {
           setDocumentJob(job);
           setExtraction(extracted);
-          if (['Past paper', 'Marking scheme', 'Examiner report'].includes(selected.kind))
-            void getOfficialMaterialReview(docId).then(setOfficialReview).catch(() => setOfficialReview(null));
+          if (
+            ['Past paper', 'Marking scheme', 'Examiner report'].includes(
+              selected.kind,
+            )
+          )
+            void getOfficialMaterialReview(docId)
+              .then(setOfficialReview)
+              .catch(() => setOfficialReview(null));
           else setOfficialReview(null);
         }
       })
@@ -359,7 +544,10 @@ export function AdminWorkspace(p: Props) {
     let active = true;
     void getCurriculumPlan(subject)
       .then((plan) => {
-        if (active) setCurriculumPlan(plan);
+        if (active) {
+          setCurriculumPlan(plan);
+          setCoverageSaved(JSON.stringify(plan.periods));
+        }
       })
       .catch((cause) => {
         if (active) {
@@ -367,21 +555,30 @@ export function AdminWorkspace(p: Props) {
           setError(errorMessage(cause));
         }
       });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [currentView, subject]);
   useEffect(() => {
     if (currentView !== 'questions' || !paperId) return;
     let active = true;
-    void getPaperMappings(paperId).then((response) => {
-      if (!active) return;
-      setPaperMappings(response);
-      const first = response.questions[0];
-      setMappingQuestionId(first?.questionId || '');
-      setMappingDraft(first?.mappings || []);
-    }).catch((cause) => {
-      if (active) { setPaperMappings(null); setError(errorMessage(cause)); }
-    });
-    return () => { active = false; };
+    void getPaperMappings(paperId)
+      .then((response) => {
+        if (!active) return;
+        setPaperMappings(response);
+        const first = response.questions[0];
+        setMappingQuestionId(first?.questionId || '');
+        setMappingDraft(first?.mappings || []);
+      })
+      .catch((cause) => {
+        if (active) {
+          setPaperMappings(null);
+          setError(errorMessage(cause));
+        }
+      });
+    return () => {
+      active = false;
+    };
   }, [currentView, paperId]);
   async function run(action: () => Promise<unknown>, message: string) {
     setBusy(true);
@@ -406,24 +603,47 @@ export function AdminWorkspace(p: Props) {
       for (const page of draft.pages) {
         const previous = savedPages.get(page.id);
         if (!previous) continue;
-        if ((page.printedPageLabel || '') !== (previous.printedPageLabel || '')) {
-          await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '');
+        if (
+          (page.printedPageLabel || '') !== (previous.printedPageLabel || '')
+        ) {
+          await updateExtractionPage(
+            doc.id,
+            page.id,
+            page.printedPageLabel || '',
+          );
           changes++;
         }
-        const savedBlocks = new Map(previous.blocks.map((block) => [block.id, block]));
+        const savedBlocks = new Map(
+          previous.blocks.map((block) => [block.id, block]),
+        );
         for (const block of page.blocks) {
           const before = savedBlocks.get(block.id);
           if (!before) continue;
-          const content = block.metadata.scientificContent as ScientificTextContent | undefined;
+          const content = block.metadata.scientificContent as
+            | ScientificTextContent
+            | undefined;
           const priorContent = before.metadata.scientificContent;
-          const caption = typeof block.metadata.reviewedCaption === 'string' ? block.metadata.reviewedCaption : undefined;
-          if (block.kind === before.kind && block.text === before.text && block.latex === before.latex &&
-              block.sequenceNumber === before.sequenceNumber &&
-              caption === before.metadata.reviewedCaption &&
-              JSON.stringify(content) === JSON.stringify(priorContent)) continue;
-          await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text,
-            latex: block.latex, sequenceNumber: block.sequenceNumber, caption,
-            scientificContent: content });
+          const caption =
+            typeof block.metadata.reviewedCaption === 'string'
+              ? block.metadata.reviewedCaption
+              : undefined;
+          if (
+            block.kind === before.kind &&
+            block.text === before.text &&
+            block.latex === before.latex &&
+            block.sequenceNumber === before.sequenceNumber &&
+            caption === before.metadata.reviewedCaption &&
+            JSON.stringify(content) === JSON.stringify(priorContent)
+          )
+            continue;
+          await updateExtractionBlock(doc.id, block.id, {
+            kind: block.kind,
+            text: block.text,
+            latex: block.latex,
+            sequenceNumber: block.sequenceNumber,
+            caption,
+            scientificContent: content,
+          });
           changes++;
         }
       }
@@ -432,6 +652,7 @@ export function AdminWorkspace(p: Props) {
     }, 'All changed sections saved. Review the complete document before publishing the Topic.');
   }
   function edit(s: Student) {
+    setAccountOpen(true);
     setEditId(s.id);
     setRole('student');
     setName(s.name);
@@ -450,7 +671,10 @@ export function AdminWorkspace(p: Props) {
       label="Subject"
       value={subject}
       onChange={(v) => {
+        if ((coverageDirty || mappingDirty) && !window.confirm('Discard unsaved workspace changes?')) return;
         setError('');
+        if (['coverage', 'questions'].includes(p.view))
+          setFilters({ subject: v });
         setSubject(v);
         setTextbookId('');
         setPaperId('');
@@ -497,82 +721,163 @@ export function AdminWorkspace(p: Props) {
   );
   return (
     <>
-      {!officialPaperReviewId && <Heading
-        eyebrow="ADMIN · PHASE 1"
-        title={
-          {
-            today: 'Curriculum administration',
-            accounts: 'Accounts & enrolments',
-            library: 'Exam Documents',
-            units: 'Textbooks',
-            coverage: 'Grade & term coverage',
-            questions: 'Question mapping',
-            blueprints: 'Mock paper blueprints',
-            'ai-accounts': 'OpenAI account routing',
-            'tutor-presets': 'Tutor presets',
-            'tutor-quotas': 'Tutor allowances',
-            'tutor-history': 'Tutor history and safety',
-            'assessment-audit': 'Assessment audit',
-            media: 'Visual media',
-            evaluations: 'Evaluation & release gates',
-            operations: 'Security & operations',
-          }[p.view] || 'Administration'
-        }
-      >
-        iGCSE · Grade 10 and Grade 11 · Term1, Term2 and Term3
-      </Heading>}
+      {!officialPaperReviewId && (
+        <Heading
+          eyebrow="ADMIN · PHASE 1"
+          title={
+            {
+              today: 'Curriculum administration',
+              accounts: 'Accounts & enrolments',
+              library: 'Exam Documents',
+              units: 'Textbooks',
+              coverage: 'Grade & term coverage',
+              questions: 'Question mapping',
+              blueprints: 'Mock paper blueprints',
+              'ai-accounts': 'OpenAI account routing',
+              'tutor-presets': 'Tutor presets',
+              'tutor-quotas': 'Tutor allowances',
+              'tutor-history': 'Tutor history and safety',
+              'assessment-audit': 'Assessment audit',
+              media: 'Visual media',
+              evaluations: 'Evaluation & release gates',
+              operations: 'Security & operations',
+            }[p.view] || 'Administration'
+          }
+        >
+          iGCSE · Grade 10 and Grade 11 · Term1, Term2 and Term3
+        </Heading>
+      )}
       {error && (
         <div className="error" role="alert">
           {error}
         </div>
       )}
-      {p.view === 'units' && <nav className="secondary-nav" aria-label="Textbook administration sections">
-        {[['/admin/textbooks', 'View Textbooks'], ['/admin/textbooks/new', 'Add Textbook'], ['/admin/textbooks/review', 'Review Textbooks']].map(([path, label]) => <Button key={path} variant={p.pathname === path || (path === '/admin/textbooks' && p.pathname.startsWith('/admin/textbooks/book_')) ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
-      </nav>}
-      {p.view === 'library' && !officialPaperReviewId && <nav className="secondary-nav" aria-label="Exam document sections">
-        {[['/admin/exam-documents', 'All Exam Documents'], ['/admin/exam-documents/past-papers', 'Past Papers'], ['/admin/exam-documents/mark-schemes', 'Mark Schemes'], ['/admin/exam-documents/examiner-reports', 'Examiner Reports'], ['/admin/exam-documents/references', 'Reference Materials']].map(([path, label]) => <Button key={path} variant={p.pathname === path ? 'default' : 'outline'} aria-current={p.pathname === path ? 'page' : undefined} onClick={() => p.navigate(path)}>{label}</Button>)}
-      </nav>}
-      {officialPaperReviewId && <OfficialPaperReview key={officialPaperReviewId} paperId={officialPaperReviewId} documents={p.data.documents} navigate={p.navigate}/>}
-      <fieldset
-        disabled={busy}
-        style={{ border: 0, padding: 0, minWidth: 0 }}
-      >
+      {p.view === 'units' && (
+        <nav
+          className="secondary-nav"
+          aria-label="Textbook administration sections"
+        >
+          {[
+            ['/admin/textbooks', 'View Textbooks'],
+            ['/admin/textbooks/new', 'Add Textbook'],
+            ['/admin/textbooks/review', 'Review Textbooks'],
+          ].map(([path, label]) => (
+            <Button
+              key={path}
+              variant={
+                p.pathname === path ||
+                (path === '/admin/textbooks' &&
+                  p.pathname.startsWith('/admin/textbooks/book_'))
+                  ? 'default'
+                  : 'outline'
+              }
+              aria-current={p.pathname === path ? 'page' : undefined}
+              onClick={() => p.navigate(path)}
+            >
+              {label}
+            </Button>
+          ))}
+        </nav>
+      )}
+      {p.view === 'library' && !officialPaperReviewId && (
+        <nav className="secondary-nav" aria-label="Exam document sections">
+          {[
+            ['/admin/exam-documents', 'All Exam Documents'],
+            ['/admin/exam-documents/past-papers', 'Past Papers'],
+            ['/admin/exam-documents/mark-schemes', 'Mark Schemes'],
+            ['/admin/exam-documents/examiner-reports', 'Examiner Reports'],
+            ['/admin/exam-documents/references', 'Reference Materials'],
+          ].map(([path, label]) => (
+            <Button
+              key={path}
+              variant={p.pathname === path ? 'default' : 'outline'}
+              aria-current={p.pathname === path ? 'page' : undefined}
+              onClick={() => p.navigate(path)}
+            >
+              {label}
+            </Button>
+          ))}
+        </nav>
+      )}
+      {officialPaperReviewId && (
+        <OfficialPaperReview
+          key={officialPaperReviewId}
+          paperId={officialPaperReviewId}
+          documents={p.data.documents}
+          navigate={p.navigate}
+        />
+      )}
+      <fieldset disabled={busy} style={{ border: 0, padding: 0, minWidth: 0 }}>
         {p.view === 'today' && (
           <>
             <div className="ak-metrics">
-              <MetricCard label="Parent accounts" value={parents.length} detail="Linked family accounts" icon={Users} />
-              <MetricCard label="Students" value={p.data.students.length} detail="Learner accounts" icon={GraduationCap} tone="violet" />
-              <MetricCard label="Textbooks" value={p.data.documents.filter(document => document.kind === 'Textbook').length} detail="In the content library" icon={BookOpen} tone="green" />
-              <MetricCard label="Official papers" value={p.data.officialPapers.length} detail="Available paper records" icon={ClipboardCheck} tone="amber" />
+              <MetricCard
+                label="Parent accounts"
+                value={parents.length}
+                detail="Linked family accounts"
+                icon={Users}
+              />
+              <MetricCard
+                label="Students"
+                value={p.data.students.length}
+                detail="Learner accounts"
+                icon={GraduationCap}
+                tone="violet"
+              />
+              <MetricCard
+                label="Textbooks"
+                value={
+                  p.data.documents.filter(
+                    (document) => document.kind === 'Textbook',
+                  ).length
+                }
+                detail="In the content library"
+                icon={BookOpen}
+                tone="green"
+              />
+              <MetricCard
+                label="Official papers"
+                value={p.data.officialPapers.length}
+                detail="Available paper records"
+                icon={ClipboardCheck}
+                tone="amber"
+              />
             </div>
             <section className="panel spaced">
-              <h2>Prepare learning in this order</h2>
-              <ol className="spaced">
-                <li>
-                  Create parent accounts, then children linked to those parents.
-                </li>
-                <li>
-                  Assign each child iGCSE subjects, Grade 10 or 11, and a
-                  current term.
-                </li>
-                <li>
-                  Upload a subject textbook and review its deterministic extraction.
-                </li>
-                <li>Choose the units covered in each grade and term.</li>
-                <li>
-                  Upload a past paper after that subject textbook, then its
-                  marking scheme and examiner report.
-                </li>
-                <li>
-                  Enter and map every question to one or more units. Review each
-                  question, then approve the complete paper.
-                </li>
-              </ol>
-              <p className="spaced">
-                PDF and image extraction is connected and requires Admin review.
-                Unit editing, curriculum coverage, question mapping and publication
-                are implemented in later roadmap steps before term mocks are enabled.
-              </p>
+              <h2>Prepare the next learning release</h2>
+              <div className="workspace-summary-grid">
+                {[
+                  [
+                    '/admin/accounts',
+                    '1. Accounts & enrolments',
+                    `${p.data.students.length} learners · confirm grade, term and subjects`,
+                  ],
+                  [
+                    '/admin/textbooks',
+                    '2. Textbook content',
+                    `${p.data.documents.filter((item) => item.kind === 'Textbook').length} source files · review and publish topics`,
+                  ],
+                  [
+                    '/admin/coverage',
+                    '3. Grade & term coverage',
+                    'Choose the published topics included in each term',
+                  ],
+                  [
+                    '/admin/exam-documents/past-papers',
+                    '4. Exam paper review',
+                    'Check the exact paper, scheme, visuals and question mappings',
+                  ],
+                ].map(([path, title, description]) => (
+                  <button
+                    type="button"
+                    key={path}
+                    onClick={() => p.navigate(path)}
+                  >
+                    <strong>{title}</strong>
+                    <small>{description}</small>
+                  </button>
+                ))}
+              </div>
             </section>
             {p.data.students.some((s) => s.needsConfiguration) && (
               <div className="error spaced">
@@ -584,535 +889,2166 @@ export function AdminWorkspace(p: Props) {
         )}
         {p.view === 'accounts' && (
           <>
-            <form
-              className="panel stack"
-              onSubmit={(e) => {
-                e.preventDefault();
-                void run(
-                  async () => {
-                    await api(
-                      editId ? 'admin/students' : 'admin/accounts',
-                      editId || role === 'student'
-                        ? {
-                            id: editId,
-                            username,
-                            name,
-                            password,
-                            role,
-                            parentId,
-                            level: 'iGCSE',
-                            grade,
-                            term,
-                            progression,
-                            subjects: enrolled,
-                          }
-                        : { username, name, password, role },
-                    );
-                    setPassword('');
-                    setEditId('');
-                    setUsername('');
-                    setName('');
-                  },
-                  editId ? 'Enrolment saved.' : 'Account created.',
-                );
-              }}
+            <FilterToolbar
+              search={filters.q}
+              onSearch={(q) => setFilters({ q })}
+              placeholder="Find learner or parent…"
+              onClear={() => setFilters({ q: '' })}
             >
-              <h2>{editId ? `Edit ${name}` : 'Create an account'}</h2>
-              {!editId && (
-                <>
-                  <Picker
-                    label="Role"
-                    value={role}
-                    onChange={setRole}
-                    options={options(['parent', 'student'])}
-                  />
-                  <Field
-                    label="Username"
-                    value={username}
-                    onChange={setUsername}
-                    minLength={3}
-                    maxLength={40}
-                  />
-                  <Field
-                    label="Temporary password (at least 12 characters)"
-                    type="password"
-                    value={password}
-                    onChange={setPassword}
-                    minLength={12}
-                    maxLength={200}
-                  />
-                </>
-              )}
-              <Field label="Full name" value={name} onChange={setName} />
-              {role === 'student' && (
-                <>
-                  <Picker
-                    label="Parent account"
-                    value={parentId}
-                    onChange={setParentId}
-                    options={parents.map((a) => ({
-                      value: a.id,
-                      label: `${a.name} (@${a.username})`,
-                    }))}
-                  />
-                  <Picker
-                    label="Course"
-                    value="iGCSE"
-                    onChange={() => {}}
-                    options={options(p.data.catalog.activeCourses)}
-                  />
-                  {gradeTerm}
-                  {progressionPicker}
-                  <Checks
-                    label="Subjects"
-                    items={p.data.subjects}
-                    selected={enrolled}
-                    change={setEnrolled}
-                  />
-                </>
-              )}
-              <div className="button-row">
-                <Button type="submit" className="primary">
-                  {editId ? 'Save enrolment' : 'Create account'}
-                </Button>
-                {editId && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
+              <Button
+                onClick={() => {
+                  setEditId('');
+                  setUsername('');
+                  setName('');
+                  setPassword('');
+                  setRole('parent');
+                  setAccountOpen(true);
+                }}
+              >
+                Create account
+              </Button>
+            </FilterToolbar>
+            <EditorDrawer
+              busy={busy}
+              open={accountOpen}
+              onOpenChange={(open) => {
+                setAccountOpen(open);
+                if (!open) setPassword('');
+              }}
+              title={editId ? 'Edit learner enrolment' : 'Create account'}
+              dirty={Boolean(password || username || name)}
+              description="Account access and enrolment changes retain the existing Admin checks."
+            >
+              <form
+                className="panel stack"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void run(
+                    async () => {
+                      await api(
+                        editId ? 'admin/students' : 'admin/accounts',
+                        editId || role === 'student'
+                          ? {
+                              id: editId,
+                              username,
+                              name,
+                              password,
+                              role,
+                              parentId,
+                              level: 'iGCSE',
+                              grade,
+                              term,
+                              progression,
+                              subjects: enrolled,
+                            }
+                          : { username, name, password, role },
+                      );
+                      setAccountOpen(false);
+                      setPassword('');
                       setEditId('');
+                      setUsername('');
                       setName('');
-                    }}
-                  >
-                    Cancel edit
-                  </Button>
+                    },
+                    editId ? 'Enrolment saved.' : 'Account created.',
+                  );
+                }}
+              >
+                <h2>{editId ? `Edit ${name}` : 'Create an account'}</h2>
+                {!editId && (
+                  <>
+                    <Picker
+                      label="Role"
+                      value={role}
+                      onChange={setRole}
+                      options={options(['parent', 'student'])}
+                    />
+                    <Field
+                      label="Username"
+                      value={username}
+                      onChange={setUsername}
+                      minLength={3}
+                      maxLength={40}
+                    />
+                    <Field
+                      label="Temporary password (at least 12 characters)"
+                      type="password"
+                      value={password}
+                      onChange={setPassword}
+                      minLength={12}
+                      maxLength={200}
+                    />
+                  </>
                 )}
-              </div>
-            </form>
-            <div className="learner-grid spaced">
-              {p.data.students.map((s) => (
-                <section className="panel" key={s.id}>
-                  <h3>{s.name}</h3>
-                  <p>
-                    @{s.username} · Parent:{' '}
-                    {parents.find((account) => account.id === s.parentId)
-                      ?.name || 'Not available'}
-                  </p>
-                  <p><strong>Last login:</strong> {lastLogin(s.lastLoginAt)}</p>
-                  <p>
-                    {s.grade} · {s.term || 'Term not configured'} ·{' '}
-                    {(s.progression || []).length} progression step(s)
-                  </p>
-                  <p>
-                    {s.needsConfiguration
-                      ? 'Admin configuration required'
-                      : 'iGCSE'}
-                  </p>
-                  <Button
-                    className="spaced"
-                    variant="outline"
-                    onClick={() => edit(s)}
-                  >
-                    Edit {s.name}
+                <Field label="Full name" value={name} onChange={setName} />
+                {role === 'student' && (
+                  <>
+                    <Picker
+                      label="Parent account"
+                      value={parentId}
+                      onChange={setParentId}
+                      options={parents.map((a) => ({
+                        value: a.id,
+                        label: `${a.name} (@${a.username})`,
+                      }))}
+                    />
+                    <Picker
+                      label="Course"
+                      value="iGCSE"
+                      onChange={() => {}}
+                      options={options(p.data.catalog.activeCourses)}
+                    />
+                    {gradeTerm}
+                    {progressionPicker}
+                    <Checks
+                      label="Subjects"
+                      items={p.data.subjects}
+                      selected={enrolled}
+                      change={setEnrolled}
+                    />
+                  </>
+                )}
+                <div className="button-row">
+                  <Button type="submit" className="primary">
+                    {editId ? 'Save enrolment' : 'Create account'}
                   </Button>
-                  <Button className="spaced" variant="outline" onClick={() => setResetTarget({ publicRef: s.accountRef, name: s.name, username: s.username })}>Reset password</Button>
-                </section>
-              ))}
-            </div>
-            <section className="panel spaced">
-              <h2>Parent accounts</h2>
-              {parents.map((a) => (
-                <div className="spread" key={a.id}><p>{a.name} · @{a.username}<br/><small>Last login: {lastLogin(a.lastLoginAt)}</small></p><Button variant="outline" onClick={() => setResetTarget(a)}>Reset password</Button></div>
-              ))}
+                  {editId && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setEditId('');
+                        setName('');
+                      }}
+                    >
+                      Cancel edit
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </EditorDrawer>
+            <section className="panel">
+              <h2>Learners & family accounts</h2>
+              <div className="admin-table-wrap">
+                <table
+                  className="admin-table"
+                  aria-label="Learners and family accounts"
+                >
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role / learning context</th>
+                      <th>Last login</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {p.data.students
+                      .filter(
+                        (item) =>
+                          !filters.q ||
+                          `${item.name} ${item.username} ${item.grade}`
+                            .toLowerCase()
+                            .includes(filters.q.toLowerCase()),
+                      )
+                      .map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>{item.name}</strong>
+                            <br />
+                            <small>@{item.username}</small>
+                          </td>
+                          <td>
+                            Student · {item.grade} · {item.term}
+                            <br />
+                            <small>
+                              {item.needsConfiguration
+                                ? 'Configuration required'
+                                : `${item.subjects.length} enrolled subjects`}
+                            </small>
+                          </td>
+                          <td>{lastLogin(item.lastLoginAt)}</td>
+                          <td>
+                            <div className="button-row">
+                              <Button
+                                variant="outline"
+                                aria-label={`Edit ${item.name}`}
+                                onClick={() => edit(item)}
+                              >
+                                Edit {item.name}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  setResetTarget({
+                                    publicRef: item.accountRef,
+                                    name: item.name,
+                                    username: item.username,
+                                  })
+                                }
+                              >
+                                Reset password
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    {parents
+                      .filter(
+                        (item) =>
+                          !filters.q ||
+                          `${item.name} ${item.username}`
+                            .toLowerCase()
+                            .includes(filters.q.toLowerCase()),
+                      )
+                      .map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <strong>{item.name}</strong>
+                            <br />
+                            <small>@{item.username}</small>
+                          </td>
+                          <td>Parent</td>
+                          <td>{lastLogin(item.lastLoginAt)}</td>
+                          <td>
+                            <Button
+                              variant="outline"
+                              onClick={() => setResetTarget(item)}
+                            >
+                              Reset password
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              {!p.data.students.some((item) =>
+                `${item.name} ${item.username} ${item.grade}`
+                  .toLowerCase()
+                  .includes(filters.q.toLowerCase()),
+              ) &&
+                !parents.some((item) =>
+                  `${item.name} ${item.username}`
+                    .toLowerCase()
+                    .includes(filters.q.toLowerCase()),
+                ) && <Empty title="No accounts match this search" />}
             </section>
             <section className="panel spaced">
               <h2>Recent account security activity</h2>
               <p>Passwords are never included in this record.</p>
-              {!securityEvents.length && <p>No password lifecycle events yet.</p>}
-              {securityEvents.map((event, index) => <div className="spread" key={`${event.occurredAt}-${index}`}>
-                <p><strong>{event.action.replaceAll('.', ' ')}</strong><br/><small>{event.actorName} · {new Date(event.occurredAt).toLocaleString()}</small></p>
-                <span className="pill">{typeof event.details.sessionsRevoked === 'number' ? `${event.details.sessionsRevoked} sessions revoked` : 'Recorded'}</span>
-              </div>)}
+              {!securityEvents.length && (
+                <p>No password lifecycle events yet.</p>
+              )}
+              {securityEvents.map((event, index) => (
+                <div className="spread" key={`${event.occurredAt}-${index}`}>
+                  <p>
+                    <strong>{event.action.replaceAll('.', ' ')}</strong>
+                    <br />
+                    <small>
+                      {event.actorName} ·{' '}
+                      {new Date(event.occurredAt).toLocaleString()}
+                    </small>
+                  </p>
+                  <span className="pill">
+                    {typeof event.details.sessionsRevoked === 'number'
+                      ? `${event.details.sessionsRevoked} sessions revoked`
+                      : 'Recorded'}
+                  </span>
+                </div>
+              ))}
             </section>
-            <Dialog open={Boolean(resetTarget)} onOpenChange={(open) => { if (!open) setResetTarget(null); }}><DialogContent><DialogHeader><DialogTitle>Reset {resetTarget?.name}&apos;s password?</DialogTitle><DialogDescription>AKURU will revoke every active session and generate a temporary password. The password will be shown only once.</DialogDescription></DialogHeader><div className="button-row"><Button variant="outline" onClick={() => setResetTarget(null)}>Cancel</Button><Button disabled={busy} onClick={() => void resetPassword()}>{busy ? 'Resetting…' : 'Reset password'}</Button></div></DialogContent></Dialog>
-            <Dialog open={Boolean(resetResult)} onOpenChange={(open) => { if (!open) setResetResult(null); }}><DialogContent><DialogHeader><DialogTitle>Temporary password created</DialogTitle><DialogDescription>Give this password securely to @{resetResult?.username}. AKURU cannot show it again. The user must replace it at the next login.</DialogDescription></DialogHeader><div className="temporary-password" aria-label="Generated temporary password"><code>{resetResult?.temporaryPassword}</code></div><p>{resetResult?.sessionsRevoked || 0} existing session(s) revoked.</p><div className="button-row"><Button variant="outline" onClick={() => void navigator.clipboard.writeText(resetResult?.temporaryPassword || '').then(() => p.notify('Temporary password copied.'))}>Copy password</Button><Button onClick={() => setResetResult(null)}>Done</Button></div></DialogContent></Dialog>
+            <Dialog
+              open={Boolean(resetTarget)}
+              onOpenChange={(open) => {
+                if (!open) setResetTarget(null);
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>
+                    Reset {resetTarget?.name}&apos;s password?
+                  </DialogTitle>
+                  <DialogDescription>
+                    AKURU will revoke every active session and generate a
+                    temporary password. The password will be shown only once.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="button-row">
+                  <Button
+                    variant="outline"
+                    onClick={() => setResetTarget(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button disabled={busy} onClick={() => void resetPassword()}>
+                    {busy ? 'Resetting…' : 'Reset password'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog
+              open={Boolean(resetResult)}
+              onOpenChange={(open) => {
+                if (!open) setResetResult(null);
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Temporary password created</DialogTitle>
+                  <DialogDescription>
+                    Give this password securely to @{resetResult?.username}.
+                    AKURU cannot show it again. The user must replace it at the
+                    next login.
+                  </DialogDescription>
+                </DialogHeader>
+                <div
+                  className="temporary-password"
+                  aria-label="Generated temporary password"
+                >
+                  <code>{resetResult?.temporaryPassword}</code>
+                </div>
+                <p>
+                  {resetResult?.sessionsRevoked || 0} existing session(s)
+                  revoked.
+                </p>
+                <div className="button-row">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      void navigator.clipboard
+                        .writeText(resetResult?.temporaryPassword || '')
+                        .then(() => p.notify('Temporary password copied.'))
+                    }
+                  >
+                    Copy password
+                  </Button>
+                  <Button onClick={() => setResetResult(null)}>Done</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </>
         )}
         {p.view === 'ai-accounts' && <AIAccountsPanel notify={p.notify} />}
         {p.view === 'tutor-presets' && <TutorPresetAdmin notify={p.notify} />}
         {p.view === 'tutor-quotas' && <TutorQuotaAdmin notify={p.notify} />}
         {p.view === 'tutor-history' && <TutorHistory admin notify={p.notify} />}
-        {p.view === 'assessment-audit' && <AssessmentAuditPanel notify={p.notify} />}
+        {p.view === 'assessment-audit' && (
+          <AssessmentAuditPanel notify={p.notify} />
+        )}
         {p.view === 'media' && <MediaAdmin data={p.data} notify={p.notify} />}
-        {p.view === 'evaluations' && <EvaluationAdmin data={p.data} notify={p.notify} />}
+        {p.view === 'evaluations' && (
+          <EvaluationAdmin data={p.data} notify={p.notify} />
+        )}
         {p.view === 'operations' && <OperationsAdmin />}
         {p.view === 'flashcards' && <FlashcardAdmin notify={p.notify} />}
         {p.view === 'blueprints' && (
           <>
-            <form className="panel stack" onSubmit={(event) => {
-              event.preventDefault();
-              void run(() => api('assessments/admin/blueprints', {
-                name: blueprintName, subjectId: subject,
-                grade: Number(grade.replace('Grade ', '')), term: Number(term.replace('Term', '')),
-                mode: 'mock', targetMarks: Number(blueprintMarks), durationMinutes: Number(blueprintMinutes),
-                questionCount: Number(blueprintQuestions), skills: blueprintSkills.split(',').map((x) => x.trim()).filter(Boolean),
-                difficultyProfile: { mixed: Number(blueprintQuestions) },
-              }), 'Published mock blueprint created.');
-            }}>
-              {subjectPicker}
-              {gradeTerm}
-              <Field label="Blueprint name" value={blueprintName} onChange={setBlueprintName} />
-              <div className="three-cols">
-                <Field label="Target marks" type="number" value={blueprintMarks} onChange={setBlueprintMarks} />
-                <Field label="Duration in minutes" type="number" value={blueprintMinutes} onChange={setBlueprintMinutes} />
-                <Field label="Question count" type="number" value={blueprintQuestions} onChange={setBlueprintQuestions} />
-              </div>
-              <Field label="Skills, separated by commas" value={blueprintSkills} onChange={setBlueprintSkills} />
-              <p className="source-note">AKURU reports a shortage if approved eligible questions cannot meet the exact marks and question count.</p>
-              <Button className="primary" type="submit" disabled={busy}>Create and publish blueprint</Button>
-            </form>
+            <AdvancedPanel title="Create a mock blueprint">
+              {' '}
+              <form
+                className="panel stack"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void run(
+                    () =>
+                      api('assessments/admin/blueprints', {
+                        name: blueprintName,
+                        subjectId: subject,
+                        grade: Number(grade.replace('Grade ', '')),
+                        term: Number(term.replace('Term', '')),
+                        mode: 'mock',
+                        targetMarks: Number(blueprintMarks),
+                        durationMinutes: Number(blueprintMinutes),
+                        questionCount: Number(blueprintQuestions),
+                        skills: blueprintSkills
+                          .split(',')
+                          .map((x) => x.trim())
+                          .filter(Boolean),
+                        difficultyProfile: {
+                          mixed: Number(blueprintQuestions),
+                        },
+                      }),
+                    'Published mock blueprint created.',
+                  );
+                }}
+              >
+                {subjectPicker}
+                {gradeTerm}
+                <Field
+                  label="Blueprint name"
+                  value={blueprintName}
+                  onChange={setBlueprintName}
+                />
+                <div className="three-cols">
+                  <Field
+                    label="Target marks"
+                    type="number"
+                    value={blueprintMarks}
+                    onChange={setBlueprintMarks}
+                  />
+                  <Field
+                    label="Duration in minutes"
+                    type="number"
+                    value={blueprintMinutes}
+                    onChange={setBlueprintMinutes}
+                  />
+                  <Field
+                    label="Question count"
+                    type="number"
+                    value={blueprintQuestions}
+                    onChange={setBlueprintQuestions}
+                  />
+                </div>
+                <Field
+                  label="Skills, separated by commas"
+                  value={blueprintSkills}
+                  onChange={setBlueprintSkills}
+                />
+                <p className="source-note">
+                  AKURU reports a shortage if approved eligible questions cannot
+                  meet the exact marks and question count.
+                </p>
+                <Button className="primary" type="submit" disabled={busy}>
+                  Create and publish blueprint
+                </Button>
+              </form>
+            </AdvancedPanel>
             <div className="learner-grid spaced">
               {p.data.assessmentBlueprints.map((blueprint) => (
                 <section className="panel" key={blueprint.id}>
                   <h3>{blueprint.name}</h3>
-                  <p>{p.data.subjects.find((item) => item.id === blueprint.subjectId)?.name} · Grade {blueprint.grade} · Term{blueprint.term}</p>
-                  <p>{blueprint.questionCount} questions · {blueprint.targetMarks} marks · {blueprint.durationMinutes} minutes</p>
+                  <p>
+                    {
+                      p.data.subjects.find(
+                        (item) => item.id === blueprint.subjectId,
+                      )?.name
+                    }{' '}
+                    · Grade {blueprint.grade} · Term{blueprint.term}
+                  </p>
+                  <p>
+                    {blueprint.questionCount} questions ·{' '}
+                    {blueprint.targetMarks} marks · {blueprint.durationMinutes}{' '}
+                    minutes
+                  </p>
                 </section>
               ))}
             </div>
           </>
         )}
-        {(p.view === 'library' || textbookReviewMode) && !officialPaperReviewId && (
-          <>
-            {!textbookReviewMode && <section className="panel stack">
-              <h2>Upload a learning document</h2>
-              {subjectPicker}
-              <Picker
-                label="Document type"
-                value={kind}
-                onChange={setKind}
-                options={options(p.data.catalog.kinds.filter((item) => item !== 'Textbook'))}
-              />
-              {kind === 'Past paper' && (
-                <>
-                  <Picker
-                    label="Existing subject textbook"
-                    value={textbookId}
-                    onChange={setTextbookId}
-                    options={books.map((b) => ({ value: b.id, label: b.name }))}
-                  />
-                  <p>A same-subject textbook must exist before a past paper can be uploaded. Unit approval is added in Step 6.</p>
-                </>
-              )}
-              <Field label="Edition" value={edition} onChange={setEdition} />
-              <Field label="Publication year" value={publicationYear} onChange={setPublicationYear} type="number" />
-              <Field label="Exam session" value={examSession} onChange={setExamSession} />
-              <Field label="Component" value={component} onChange={setComponent} />
-              <Field label="Variant" value={variant} onChange={setVariant} />
-              <Field label="Publisher" value={publisher} onChange={setPublisher} />
-              <Field label="ISBN" value={isbn} onChange={setIsbn} />
-              <Field label="Source URL" value={sourceUrl} onChange={setSourceUrl} type="url" />
-              {['Marking scheme', 'Examiner report'].includes(kind) && (
-                <Picker
-                  label="Related past paper"
-                  value={paperId}
-                  onChange={setPaperId}
-                  options={papers.map((b) => ({ value: b.id, label: b.name }))}
-                />
-              )}
-              <label htmlFor="admin-document-file">
-                Document file · PDF, PNG or JPEG, up to 50 MB
-                <Input
-                  id="admin-document-file"
-                  type="file"
-                  aria-label="Document file"
-                  accept="application/pdf,image/png,image/jpeg"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f)
-                      void run(
-                        () =>
-                          uploadLearningDocument(f, {
-                            courseId: 'igcse',
-                            subjectId: subject,
-                            kind:
-                              documentKinds[
-                                kind as keyof typeof documentKinds
-                              ],
-                            title: f.name.replace(/\.[^.]+$/, ''),
-                            edition: edition || undefined,
-                            year: publicationYear || undefined,
-                            session: examSession || undefined,
-                            component: component || undefined,
-                            variant: variant || undefined,
-                            publisher: publisher || undefined,
-                            isbn: isbn || undefined,
-                            sourceUrl: sourceUrl || undefined,
-                            sourceDocumentId: ['Marking scheme', 'Examiner report'].includes(kind)
-                              ? paperId
-                              : undefined,
-                          }),
-                        'Uploaded for admin review.',
-                      );
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-            </section>}
-            <section className="panel spaced stack">
-              <div className="spread"><h2>{requestedReviewDocument && doc ? doc.name : textbookReviewMode ? 'Review textbook documents' : 'Review exam documents'}</h2>{textbookReviewMode && requestedReviewDocument && <Button variant="outline" onClick={() => p.navigate(requestedTextbook ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}` : '/admin/textbooks/review')}>Return to review list</Button>}</div>
-              {(!textbookReviewMode || !requestedReviewDocument) && <>
-              <fieldset className="catalogue-filters"><legend>Filter review work</legend><div className="three-cols"><label className="stack" htmlFor="review-document-search">Search<Input id="review-document-search" type="search" value={reviewSearch} onChange={(event) => setReviewSearch(event.target.value)} placeholder="Document, textbook, Unit or Topic"/></label><Picker label="Subject" value={reviewSubject} onChange={setReviewSubject} options={[{value:'all',label:'All subjects'},...p.data.subjects.map((item) => ({value:item.id,label:item.name}))]}/><Picker label="Status" value={reviewStatus} onChange={setReviewStatus} options={[{value:'all',label:'All statuses'},...Array.from(new Set(visibleDocuments.map((item) => item.status))).map((value) => ({value,label:value.replaceAll('_',' ')}))]}/></div><div className="button-row"><Button variant="outline" onClick={() => { setReviewSearch(''); setReviewSubject('all'); setReviewStatus('all'); }}>Clear filters</Button><span>{filteredDocuments.length} document{filteredDocuments.length === 1 ? '' : 's'}</span></div></fieldset>
-              <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>Document</th>{textbookReviewMode && <><th>Textbook</th><th>Unit/Module</th><th>Topic</th></>}<th>Subject</th><th>Status</th><th>Progress</th><th>Actions</th></tr></thead><tbody>{filteredDocuments.map((document) => <tr key={document.id}><td><strong>{document.name}</strong>{document.processingError && <p className="error">{document.processingError}</p>}</td>{textbookReviewMode && <><td>{document.textbookTitle || 'Not attached'}</td><td>{document.groupCode ? `${document.groupCode} · ${document.groupTitle}` : '—'}</td><td>{document.topicCode ? `${document.topicCode} · ${document.topicTitle}` : '—'}</td></>}<td>{document.subject}</td><td><span className={`status ${document.status}`}>{document.status.replaceAll('_',' ')}</span></td><td><progress value={document.processingProgress ?? 0} max={100} aria-label={`${document.processingProgress ?? 0}% processed`}/></td><td><div className="button-row"><Button onClick={() => { setDocId(document.id); setExtraction(null); setDocumentJob(null); if (textbookReviewMode) p.navigate(`/admin/textbooks/review/${document.publicRef || document.id}`); }}>{document.status === 'published' ? 'View published source' : 'Review'}</Button>{document.kind === 'Past paper' && <Button variant="outline" onClick={() => p.navigate(`/admin/exam-documents/review/${document.id}`)}>Review questions</Button>}{document.status === 'failed' && <Button variant="outline" onClick={() => void run(() => retryDocument(document.id), 'Document processing queued again.')}>Retry</Button>}<Button variant="outline" onClick={() => { if (window.confirm(`Remove ${document.name} from AKURU?`)) void run(() => removeDocument(document.id), 'Document removed.'); }}>Remove</Button></div></td></tr>)}</tbody></table></div>
-              {!filteredDocuments.length && <p>No documents match these filters.</p>}
-              </>}
-              {!textbookReviewMode && <Picker
-                label="Document to review"
-                value={docId}
-                onChange={(v) => {
-                  setDocId(v);
-                  setExtraction(null);
-                  setDocumentJob(null);
-                  setExtractionError('');
-                }}
-                options={filteredDocuments.map((d) => ({
-                  value: d.id,
-                  label: `${d.name} · ${d.subject} · ${d.kind} · ${d.status}`,
-                }))}
-              />}
-              {requestedReviewDocument && !doc && <p role="alert">This textbook document is unavailable. Return to the review list and select a document.</p>}
-              {doc && (
-                <>
-                  <a
-                    href={`/api/v1/documents/${doc.id}/content`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Open original document
-                  </a>
-                  {documentJob && (
-                    <div className="small panel">
-                      <strong>Extraction job history</strong>
-                      <p>
-                        {documentJob.stage.replaceAll('_', ' ')} · {documentJob.status === 'needs_review' ? 'finished; review was requested after extraction' : documentJob.status.replaceAll('_', ' ')} ·{' '}
-                        {documentJob.progress}% · attempt {documentJob.attemptCount}
-                      </p>
-                      <p>{doc.kind === 'Textbook' ? 'Current Topic source status' : 'Current document status'}: <strong>{doc.status.replaceAll('_', ' ')}</strong></p>
-                      <p>Extractor: {documentJob.extractionVersion}</p>
-                    </div>
-                  )}
-                  {doc.kind === 'Textbook' && (
-                    <section className="panel stack">
-                      <strong>Topic-based textbook workflow</strong>
-                      <p>Create the textbook, its Unit or Module groups, and topics in Textbook structure. Attach each scanned PDF or image directly to its topic, review extraction quality, then publish that topic independently.</p>
-                    </section>
-                  )}
-                  {['Past paper', 'Marking scheme', 'Examiner report'].includes(doc.kind) && ['needs_review', 'completed'].includes(doc.status) && (
-                    <section className="panel stack">
-                      <div className="spread">
-                        <div>
-                          <strong>Official material review</strong>
-                          <p>Reconcile every question or linked entry against the rendered source before publication.</p>
-                        </div>
-                        <Button variant="outline" onClick={() => void run(async () => {
-                          setOfficialReview(await proposeOfficialMaterialReview(doc.id));
-                        }, 'Official material proposal created from extracted evidence.')}>Propose inventory</Button>
-                      </div>
-                      {officialReview && (
-                        <>
-                          <div className="two-cols">
-                            <Field label="Expected complete item count" type="number" value={String(officialReview.expectedItemCount)} onChange={(value) => setOfficialReview({ ...officialReview, expectedItemCount: Number(value) })} />
-                            <div className="check-label spaced"><Checkbox aria-label="Confirm the complete source inventory" checked={officialReview.completenessConfirmed} onCheckedChange={(yes) => setOfficialReview({ ...officialReview, completenessConfirmed: Boolean(yes) })} /><span>I checked the entire source and this inventory is complete</span></div>
-                          </div>
-                          {officialReview.questions.map((question, index) => (
-                            <article className="panel stack" key={`${question.number}-${index}`}>
-                              <div className="two-cols">
-                                <Field label="Question / subpart number" value={question.number} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, number: value } : row) })} />
-                                <Field label="Marks" type="number" value={String(question.marks)} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, marks: Number(value) } : row) })} />
-                              </div>
-                              <Field label="Shared stem" multiline value={question.sharedStem} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, sharedStem: value } : row) })} />
-                              <Field label="Complete question prompt" multiline value={question.prompt} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, prompt: value } : row) })} />
-                              <Field label="Equations · one per line" multiline value={question.equations.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, questions: officialReview.questions.map((row, i) => i === index ? { ...row, equations: value.split('\n').filter(Boolean) } : row) })} />
-                              <p className="small">Source: {question.sourceLocations.map((source) => `page ${source.page}`).join(', ')} · {question.assetIds.length} retained asset(s)</p>
-                            </article>
-                          ))}
-                          {officialReview.markSchemeEntries.map((entry, index) => (
-                            <article className="panel stack" key={`${entry.questionNumber}-${index}`}>
-                              <div className="two-cols">
-                                <Field label="Question / subpart number" value={entry.questionNumber} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, questionNumber: value } : row) })} />
-                                <Field label="Maximum marks" type="number" value={String(entry.maxMarks)} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, maxMarks: Number(value) } : row) })} />
-                              </div>
-                              <Field label="Marking points · one per line" multiline value={entry.markingPoints.map((point) => `${point.code}|${point.kind}|${point.text}`).join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, markingPoints: value.split('\n').filter(Boolean).map((line, pointIndex) => { const [codeValue, kindValue, ...textValue] = line.split('|'); return { code: codeValue || `P${pointIndex + 1}`, kind: ['method', 'accuracy', 'independent', 'communication'].includes(kindValue) ? kindValue as 'method' | 'accuracy' | 'independent' | 'communication' : 'other', text: textValue.join('|') || kindValue || line }; }) } : row) })} />
-                              <Field label="Accepted alternatives · one per line" multiline value={entry.alternatives.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, markSchemeEntries: officialReview.markSchemeEntries.map((row, i) => i === index ? { ...row, alternatives: value.split('\n').filter(Boolean) } : row) })} />
-                              <p className="small">Source: {entry.sourceLocations.map((source) => `page ${source.page}`).join(', ')}</p>
-                            </article>
-                          ))}
-                          {officialReview.examinerComments.map((comment, index) => (
-                            <article className="panel stack" key={`${comment.questionNumber}-${index}`}>
-                              <Field label="Question / subpart number" value={comment.questionNumber} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, questionNumber: value } : row) })} />
-                              <Field label="Common mistakes · one per line" multiline value={comment.commonMistakes.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, commonMistakes: value.split('\n').filter(Boolean) } : row) })} />
-                              <Field label="Examiner advice · one per line" multiline value={comment.advice.join('\n')} onChange={(value) => setOfficialReview({ ...officialReview, examinerComments: officialReview.examinerComments.map((row, i) => i === index ? { ...row, advice: value.split('\n').filter(Boolean) } : row) })} />
-                              <p className="small">Source: {comment.sourceLocations.map((source) => `page ${source.page}`).join(', ')}</p>
-                            </article>
-                          ))}
-                          <div className="button-row">
-                            <Button variant="outline" onClick={() => void run(async () => { setOfficialReview(await saveOfficialMaterialReview(doc.id, officialReview)); }, 'Official material review saved.')}>Save review</Button>
-                            <Button className="primary" disabled={officialReview.status === 'published' || !officialReview.completenessConfirmed} onClick={() => {
-                              if (window.confirm(`Publish the attested ${officialReview.expectedItemCount}-item inventory for ${doc.name}?`)) void run(async () => { setOfficialReview(await publishOfficialMaterialReview(doc.id, officialReview.kind !== 'past_paper')); }, 'Official material published.');
-                            }}>Publish official material</Button>
-                          </div>
-                        </>
+        {(p.view === 'library' || textbookReviewMode) &&
+          !officialPaperReviewId && (
+            <>
+              {!textbookReviewMode && (
+                <AdvancedPanel title="Upload an exam document">
+                  <section className="panel stack">
+                    <h2>Upload a learning document</h2>
+                    {subjectPicker}
+                    <Picker
+                      label="Document type"
+                      value={kind}
+                      onChange={setKind}
+                      options={options(
+                        p.data.catalog.kinds.filter(
+                          (item) => item !== 'Textbook',
+                        ),
                       )}
-                    </section>
+                    />
+                    {kind === 'Past paper' && (
+                      <>
+                        <Picker
+                          label="Existing subject textbook"
+                          value={textbookId}
+                          onChange={setTextbookId}
+                          options={books.map((b) => ({
+                            value: b.id,
+                            label: b.name,
+                          }))}
+                        />
+                        <p>
+                          A same-subject textbook must exist before a past paper
+                          can be uploaded. Unit approval is added in Step 6.
+                        </p>
+                      </>
+                    )}
+                    <Field
+                      label="Edition"
+                      value={edition}
+                      onChange={setEdition}
+                    />
+                    <Field
+                      label="Publication year"
+                      value={publicationYear}
+                      onChange={setPublicationYear}
+                      type="number"
+                    />
+                    <Field
+                      label="Exam session"
+                      value={examSession}
+                      onChange={setExamSession}
+                    />
+                    <Field
+                      label="Component"
+                      value={component}
+                      onChange={setComponent}
+                    />
+                    <Field
+                      label="Variant"
+                      value={variant}
+                      onChange={setVariant}
+                    />
+                    <Field
+                      label="Publisher"
+                      value={publisher}
+                      onChange={setPublisher}
+                    />
+                    <Field label="ISBN" value={isbn} onChange={setIsbn} />
+                    <Field
+                      label="Source URL"
+                      value={sourceUrl}
+                      onChange={setSourceUrl}
+                      type="url"
+                    />
+                    {['Marking scheme', 'Examiner report'].includes(kind) && (
+                      <Picker
+                        label="Related past paper"
+                        value={paperId}
+                        onChange={setPaperId}
+                        options={papers.map((b) => ({
+                          value: b.id,
+                          label: b.name,
+                        }))}
+                      />
+                    )}
+                    <label htmlFor="admin-document-file">
+                      Document file · PDF, PNG or JPEG, up to 50 MB
+                      <Input
+                        id="admin-document-file"
+                        type="file"
+                        aria-label="Document file"
+                        accept="application/pdf,image/png,image/jpeg"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f)
+                            void run(
+                              () =>
+                                uploadLearningDocument(f, {
+                                  courseId: 'igcse',
+                                  subjectId: subject,
+                                  kind: documentKinds[
+                                    kind as keyof typeof documentKinds
+                                  ],
+                                  title: f.name.replace(/\.[^.]+$/, ''),
+                                  edition: edition || undefined,
+                                  year: publicationYear || undefined,
+                                  session: examSession || undefined,
+                                  component: component || undefined,
+                                  variant: variant || undefined,
+                                  publisher: publisher || undefined,
+                                  isbn: isbn || undefined,
+                                  sourceUrl: sourceUrl || undefined,
+                                  sourceDocumentId: [
+                                    'Marking scheme',
+                                    'Examiner report',
+                                  ].includes(kind)
+                                    ? paperId
+                                    : undefined,
+                                }),
+                              'Uploaded for admin review.',
+                            );
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </section>
+                </AdvancedPanel>
+              )}
+              <section className="panel spaced stack">
+                <div className="spread">
+                  <h2>
+                    {requestedReviewDocument && doc
+                      ? doc.name
+                      : textbookReviewMode
+                        ? 'Review textbook documents'
+                        : 'Review exam documents'}
+                  </h2>
+                  {textbookReviewMode && requestedReviewDocument && (
+                    <Button
+                      variant="outline"
+                      onClick={() =>
+                        p.navigate(
+                          requestedTextbook
+                            ? `/admin/textbooks/review?textbook=${encodeURIComponent(requestedTextbook)}`
+                            : '/admin/textbooks/review',
+                        )
+                      }
+                    >
+                      Return to review list
+                    </Button>
                   )}
-                  {extractionError && <p className="error" role="alert">{extractionError}</p>}
-                  {doc.status === 'published' && <div className="source-note stack"><strong>Published source · read-only.</strong><p>Create a separate review revision to correct several sections. Students keep the current published version until you confirm the revised document and publish the Topic again.</p>
-                    {doc.kind === 'Textbook' && doc.sourceRole !== 'visual_reference' && <Button variant="outline" disabled={busy} onClick={() => {
-                      if (!window.confirm('Create an editable copy of this published textbook source? The current Student version will stay available until you publish the Topic again.')) return;
-                      void run(async () => {
-                        const revision = await createDocumentReviewRevision(doc.id);
-                        await p.refresh();
-                        setDocId(revision.id);
-                        setExtraction(await getDocumentExtraction(revision.id));
-                        setShowFinalDocument(false);
-                        p.navigate(`/admin/textbooks/review/document_${revision.id.replaceAll('-', '')}`);
-                      }, 'Review revision created. Edit and save the sections you want to correct.');
-                    }}>Create review revision</Button>}
-                  </div>}
-                  {doc.kind === 'Textbook' && doc.status !== 'published' && doc.sourceRole !== 'visual_reference' && <div className="source-note stack"><strong>Editing reviewed text</strong><p>You can change several sections before republishing. Save changed sections, inspect the complete revised document, and publish the Topic once from Textbook structure.</p><Button variant="outline" disabled={busy || !extraction} onClick={() => { void saveAllReviewChanges(); }}>Save all changed sections</Button></div>}
-                  {(textbookReviewMode || doc.kind === 'Reference material') && extraction && !visualReferenceReview && doc.status !== 'published' && <div className="button-row">
-                    <Button className={showFinalDocument ? '' : 'primary'} variant={showFinalDocument ? 'outline' : 'default'} onClick={() => setShowFinalDocument(false)}>Review pages and blocks</Button>
-                    <Button className={showFinalDocument ? 'primary' : ''} variant={showFinalDocument ? 'default' : 'outline'} onClick={() => setShowFinalDocument(true)}>Review complete document</Button>
-                  </div>}
-                  {showFinalDocument && doc && extraction && !visualReferenceReview && <FinalDocumentReviewWorkspace key={doc.id} documentId={doc.id} notify={p.notify} extractionChanged={setExtraction} readOnly={doc.status === 'published'}/>}
-                  {doc.kind === 'Reference material' && doc.status === 'completed' && <div className="source-note stack"><strong>Release this reviewed reference to students</strong><p>First confirm the complete document above. Only students enrolled in this subject will be able to open the original PDF.</p><Button className="primary" disabled={busy} onClick={() => { if (window.confirm(`Publish ${doc.name} for enrolled students?`)) void run(() => publishReferenceDocument(doc.id), 'Reference published for enrolled students.'); }}>Publish student reference</Button></div>}
-                  {!showFinalDocument && doc.status !== 'published' && extractionReview && (
-                    <section className="extraction-review-summary stack" aria-labelledby="extraction-review-summary-title">
-                      <div className="spread">
-                        <div>
-                          <strong id="extraction-review-summary-title">Extraction review progress</strong>
-                          <p className="small">{visualReferenceReview ? 'Confirm every Printed page label. OCR text is excluded from retrieval and does not need correction.' : 'Review every red item and confirm every Printed page label before publishing this textbook topic.'}</p>
-                        </div>
-                        <span className={`review-status-badge ${extractionReview.pendingPages.length ? 'review-status-required' : 'review-status-complete'}`}>
-                          {extractionReview.pendingPages.length ? 'Review required' : 'Reviewed'}
-                        </span>
+                </div>
+                {(!textbookReviewMode || !requestedReviewDocument) && (
+                  <>
+                    <fieldset className="catalogue-filters">
+                      <legend>Filter review work</legend>
+                      <div className="three-cols">
+                        <label
+                          className="stack"
+                          htmlFor="review-document-search"
+                        >
+                          Search
+                          <Input
+                            id="review-document-search"
+                            type="search"
+                            value={reviewSearch}
+                            onChange={(event) =>
+                              setReviewSearch(event.target.value)
+                            }
+                            placeholder="Document, textbook, Unit or Topic"
+                          />
+                        </label>
+                        <Picker
+                          label="Subject"
+                          value={reviewSubject}
+                          onChange={setReviewSubject}
+                          options={[
+                            { value: 'all', label: 'All subjects' },
+                            ...p.data.subjects.map((item) => ({
+                              value: item.id,
+                              label: item.name,
+                            })),
+                          ]}
+                        />
+                        <Picker
+                          label="Status"
+                          value={reviewStatus}
+                          onChange={setReviewStatus}
+                          options={[
+                            { value: 'all', label: 'All statuses' },
+                            ...Array.from(
+                              new Set(
+                                visibleDocuments.map((item) => item.status),
+                              ),
+                            ).map((value) => ({
+                              value,
+                              label: value.replaceAll('_', ' '),
+                            })),
+                          ]}
+                        />
                       </div>
-                      <div className="extraction-review-stats" aria-label="Extraction review statistics">
-                        <div><strong>{extractionReview.totalPages}</strong><span>Total pages</span></div>
-                        <div><strong>{extractionReview.pendingPages.length}</strong><span>Pages to review</span></div>
-                        <div><strong>{extractionReview.totalPages - extractionReview.pendingPages.length}</strong><span>Reviewed pages</span></div>
-                        <div><strong>{extractionReview.pendingBlocks}</strong><span>Blocks to review</span></div>
-                        <div><strong>{extractionReview.totalBlocks - extractionReview.pendingBlocks}</strong><span>Cleared blocks</span></div>
-                      </div>
-                      {visualReferenceReview && extractionReview.pendingPages.length > 0 && extraction?.pages.every((page) => page.printedPageLabel?.trim()) &&
-                        <div className="source-note stack"><p>The Printed page labels are present but some have not been confirmed by an Admin. Compare them with the original pages before confirming.</p>
-                          <Button variant="outline" disabled={busy} onClick={() => {
-                            if (!window.confirm(`Have you checked the saved Printed page labels against all ${extraction?.pages.length ?? 0} original pages? Unsaved edits are not included.`)) return;
-                            void run(async () => { setExtraction(await confirmVisualReferenceLabels(doc.id)); }, 'All saved Visual Reference page labels confirmed.');
-                          }}>Confirm all saved page labels</Button>
-                        </div>}
-                      {extractionReview.pendingPages.length > 0 && (
-                        <nav className="extraction-page-links" aria-label="Pages requiring review">
-                          <strong>Go to page:</strong>
-                          {extractionReview.pendingPages.map((page) => (
-                            <a key={page.id} href={`#extraction-page-${page.pageNumber}`}>Page {page.pageNumber}</a>
-                          ))}
-                        </nav>
-                      )}
-                    </section>
-                  )}
-                  {!showFinalDocument && (doc.status !== 'published' || visualReferenceReview) && extraction?.pages.map((page) => {
-                    const pendingBlocks = visualReferenceReview ? 0 : page.blocks.filter((block) => block.needsReview).length;
-                    const blockReviews = page.blocks.filter((block) => block.metadata.adminReviewed === true).length;
-                    const pageLabelComplete = Boolean(page.printedPageLabel?.trim()) && (!visualReferenceReview || page.metadata.printedPageLabelConfirmed === true);
-                    const completedReviews = visualReferenceReview ? Number(pageLabelComplete) : blockReviews + Number(pageLabelComplete);
-                    const requiredReviews = visualReferenceReview ? 1 : pendingBlocks + blockReviews + 1;
-                    const pageComplete = pageLabelComplete && pendingBlocks === 0;
-                    const pageStatus = pageComplete ? 'Fully reviewed' : completedReviews > 0 ? 'Partially reviewed' :
-                      visualReferenceReview && page.printedPageLabel?.trim() ? 'Confirm page label' : 'Needs page label';
-                    const hideReviewed = Boolean(hideReviewedBlocks[page.id]);
-                    const reviewGroups = groupExtractionBlocks(page.blocks);
-                    const visibleGroups = hideReviewed
-                      ? reviewGroups.filter((group) => group.some((block) => block.needsReview))
-                      : reviewGroups;
-                    const visibleBlockCount = visibleGroups.reduce((count, group) => count + group.length, 0);
-                    return (
-                    <details className="panel extraction-page-review" id={`extraction-page-${page.pageNumber}`} key={`page-${page.pageNumber}`}>
-                      <summary className="extraction-page-header">
-                        <div>
-                          <strong>Extracted page {page.pageNumber}</strong>
-                          <p>{page.method} · {Math.round(page.confidence * 100)}% extraction confidence</p>
-                        </div>
-                        <div className="extraction-page-review-counts" aria-label={`Page ${page.pageNumber} review summary`}>
-                          <span><strong>{requiredReviews}</strong> required</span>
-                          <span><strong>{completedReviews}</strong> completed</span>
-                          <span><strong>{visualReferenceReview ? requiredReviews - completedReviews : pendingBlocks}</strong> remaining</span>
-                        </div>
-                        <span className={`review-status-badge ${pageComplete ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}>
-                          {pageStatus}
-                        </span>
-                      </summary>
-                      <div className="stack extraction-page-body">
-                      {visualReferenceReview && <div className="source-note"><strong>Visual reference review — OCR excluded from retrieval</strong><p>Confirm the Printed page label. Extracted OCR blocks remain available as read-only provenance and are not required review work.</p>{doc?.textbookRef && <Button variant="outline" onClick={() => p.navigate(`/admin/textbooks/${doc.textbookRef}`)}>Manage selected visuals</Button>}<details><summary>View OCR provenance</summary><pre className="source-note">{page.blocks.map((block) => block.text).filter(Boolean).join('\n\n') || 'No OCR text was extracted from this page.'}</pre></details></div>}
-                      {!visualReferenceReview && <div className="button-row extraction-block-visibility">
+                      <div className="button-row">
                         <Button
                           variant="outline"
-                          aria-pressed={hideReviewed}
-                          onClick={() => setHideReviewedBlocks((current) => ({ ...current, [page.id]: !hideReviewed }))}
+                          onClick={() =>
+                            setFilters({ q: '', subject: 'all', status: 'all' })
+                          }
                         >
-                          {hideReviewed ? 'Show reviewed blocks' : 'Hide reviewed blocks'}
+                          Clear filters
                         </Button>
-                        <span className="small">Showing {visibleBlockCount} of {page.blocks.length} extracted content blocks in {visibleGroups.length} review boxes</span>
-                      </div>}
-                      <div className="two-cols">{doc.status === 'published' ? <p><strong>Printed page label:</strong> {page.printedPageLabel || 'Not recorded'}</p> : <><Field label="Printed page label" value={page.printedPageLabel || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, printedPageLabel: value } : row) })}/><Button variant="outline" onClick={() => void run(async () => { setExtraction(await updateExtractionPage(doc.id, page.id, page.printedPageLabel || '')); }, 'Printed page label saved.')}>Save page label</Button></>}</div>
-                      <div className="extraction-review-grid"><div><strong className="small">Original page</strong><Image
-                        src={`/api/v1/documents/${doc.id}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
-                        alt={`Rendered source page ${page.pageNumber}`}
-                        width={Math.max(1, Math.round(page.widthPoints))}
-                        height={Math.max(1, Math.round(page.heightPoints))}
-                        unoptimized
-                        loading="lazy"
-                        style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
-                      /></div><div><strong className="small">Normalized review page</strong><Image
-                        src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
-                        alt={`Normalized review page ${page.pageNumber}`}
-                        width={Math.max(1, Math.round(page.widthPoints))} height={Math.max(1, Math.round(page.heightPoints))}
-                        unoptimized loading="lazy" style={{ maxWidth: '100%', maxHeight: '32rem', objectFit: 'contain' }}
-                      /></div>{!visualReferenceReview && <div><strong className="small">Extracted content</strong>{visibleGroups.map((group) => {
-                        const visual = group.find(isVisualBlock), caption = group.find(isFigureCaption);
-                        const reviewedCaption = visual && typeof visual.metadata.reviewedCaption === 'string'
-                          ? visual.metadata.reviewedCaption : caption ? extractFigureCaption(caption.text) : '';
-                        const groupPending = group.some((block) => block.needsReview);
-                        return <section className={`small stack extraction-block-group ${visual && caption ? 'extraction-visual-caption-group' : ''}`} key={`${page.pageNumber}-${group.map((block) => block.id).join('-')}`}>
-                          <div className="spread"><span><strong>{visual && caption ? 'Diagram and caption' : group[0].kind}</strong> · {group.length} block{group.length === 1 ? '' : 's'}</span><span className={`review-status-badge ${groupPending ? 'review-status-required' : 'review-status-complete'}`}>{groupPending ? 'Review required' : 'Reviewed'}</span></div>
-                          {visual?.sourceAssetId && <figure className="stack"><Image src={`/api/v1/documents/${doc.id}/assets/${visual.sourceAssetId}/content`} alt={reviewedCaption || `Source crop for ${visual.kind} on page ${page.pageNumber}`} width={420} height={260} unoptimized loading="lazy" style={{ maxWidth: '26rem', height: 'auto', objectFit: 'contain' }}/>{reviewedCaption && <figcaption><strong>Caption preview:</strong> {reviewedCaption}</figcaption>}</figure>}
-                          {visual && caption && <Field label="Reviewed figure caption" value={reviewedCaption} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === visual.id ? { ...item, metadata: { ...item.metadata, reviewedCaption: value } } : item) } : row) })}/>}
-                          {group.map((block) => <div className="stack extraction-group-member" key={block.id}>
-                            <div className="spread"><span><strong>{block === caption ? 'Figure caption' : block.kind}</strong> · {block.method} · {Math.round(block.confidence * 100)}%</span><span>Reading order {block.sequenceNumber}</span></div>
-                            <div className="two-cols"><Field label="Block type" value={block.kind} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, kind: value } : item) } : row) })}/><Field label="Reading order" type="number" value={String(block.sequenceNumber)} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, sequenceNumber: Number(value) } : item) } : row) })}/></div>
-                            <ScientificTextEditor id={`scientific-text-${block.id}`} content={(block.metadata.scientificContent as ScientificTextContent | undefined) || { version: 1, text: block.text, plainText: scientificPlainText(block.text), marks: [] }} proposal={block.metadata.scientificProposal as { marks?: Array<{ type: string; start: number; end: number; confidence: number }>; ambiguousTokens?: string[] } | undefined} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, text: value.text, metadata: { ...item.metadata, scientificContent: value, searchAlias: value.plainText } } : item) } : row) })}/>
-                            <Field label="Equation or formula (LaTeX)" multiline value={block.latex || ''} onChange={(value) => setExtraction({ ...extraction, pages: extraction.pages.map((row) => row.id === page.id ? { ...row, blocks: row.blocks.map((item) => item.id === block.id ? { ...item, latex: value } : item) } : row) })}/>
-                            {!visual && block.sourceAssetId && <Image src={`/api/v1/documents/${doc.id}/assets/${block.sourceAssetId}/content`} alt={`Source crop for ${block.kind} on page ${page.pageNumber}`} width={320} height={180} unoptimized loading="lazy" style={{ maxWidth: '20rem', height: 'auto', objectFit: 'contain' }}/>}
-                          </div>)}
-                          <Button variant="outline" onClick={() => void run(async () => {
-                            let next = extraction;
-                            for (const block of group) next = await updateExtractionBlock(doc.id, block.id, { kind: block.kind, text: block.text, latex: block.latex, caption: block === visual ? reviewedCaption : undefined, sequenceNumber: block.sequenceNumber, scientificContent: block.metadata.scientificContent as ScientificTextContent | undefined });
-                            setExtraction(next);
-                          }, visual && caption ? 'Diagram and caption reviewed and saved.' : 'Extracted block reviewed and saved.')}>{visual && caption ? 'Save reviewed diagram and caption' : 'Save reviewed block'}</Button>
-                        </section>;
-                      })}{!visibleGroups.length && <p className="source-note">All extracted content blocks on this page have been reviewed.</p>}</div>}</div>
+                        <span>
+                          {filteredDocuments.length} document
+                          {filteredDocuments.length === 1 ? '' : 's'}
+                        </span>
                       </div>
-                    </details>
-                  );})}
-                  <p className="small">
-                    Editing extracted blocks, saving review notes, and publishing documents are part of the Step 6 Admin approval workflow.
+                    </fieldset>
+                    <div className="admin-table-wrap">
+                      <table className="admin-table">
+                        <thead>
+                          <tr>
+                            <th>Document</th>
+                            {textbookReviewMode && (
+                              <>
+                                <th>Textbook</th>
+                                <th>Unit/Module</th>
+                                <th>Topic</th>
+                              </>
+                            )}
+                            <th>Subject</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredDocuments.map((document) => (
+                            <tr key={document.id}>
+                              <td>
+                                <strong>{document.name}</strong>
+                                {document.processingError && (
+                                  <p className="error">
+                                    {document.processingError}
+                                  </p>
+                                )}
+                              </td>
+                              {textbookReviewMode && (
+                                <>
+                                  <td>
+                                    {document.textbookTitle || 'Not attached'}
+                                  </td>
+                                  <td>
+                                    {document.groupCode
+                                      ? `${document.groupCode} · ${document.groupTitle}`
+                                      : '—'}
+                                  </td>
+                                  <td>
+                                    {document.topicCode
+                                      ? `${document.topicCode} · ${document.topicTitle}`
+                                      : '—'}
+                                  </td>
+                                </>
+                              )}
+                              <td>{document.subject}</td>
+                              <td>
+                                <span className={`status ${document.status}`}>
+                                  {document.status.replaceAll('_', ' ')}
+                                </span>
+                              </td>
+                              <td>
+                                <progress
+                                  value={document.processingProgress ?? 0}
+                                  max={100}
+                                  aria-label={`${document.processingProgress ?? 0}% processed`}
+                                />
+                              </td>
+                              <td>
+                                <div className="button-row">
+                                  <Button
+                                    onClick={() => {
+                                      setDocId(document.id);
+                                      setFilters({
+                                        record:
+                                          document.publicRef || document.id,
+                                      });
+                                      setExtraction(null);
+                                      setDocumentJob(null);
+                                      if (textbookReviewMode)
+                                        p.navigate(
+                                          `/admin/textbooks/review/${document.publicRef || document.id}`,
+                                        );
+                                    }}
+                                  >
+                                    {document.status === 'published'
+                                      ? 'View published source'
+                                      : 'Review'}
+                                  </Button>
+                                  {document.kind === 'Past paper' && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() =>
+                                        p.navigate(
+                                          `/admin/exam-documents/review/${document.id}`,
+                                        )
+                                      }
+                                    >
+                                      Review questions
+                                    </Button>
+                                  )}
+                                  {document.status === 'failed' && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() =>
+                                        void run(
+                                          () => retryDocument(document.id),
+                                          'Document processing queued again.',
+                                        )
+                                      }
+                                    >
+                                      Retry
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      if (
+                                        window.confirm(
+                                          `Remove ${document.name} from AKURU?`,
+                                        )
+                                      )
+                                        void run(
+                                          () => removeDocument(document.id),
+                                          'Document removed.',
+                                        );
+                                    }}
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {!filteredDocuments.length && (
+                      <p>No documents match these filters.</p>
+                    )}
+                  </>
+                )}
+                {!textbookReviewMode && (
+                  <Picker
+                    label="Document to review"
+                    value={docId}
+                    onChange={(v) => {
+                      setDocId(v);
+                      setExtraction(null);
+                      setDocumentJob(null);
+                      setExtractionError('');
+                    }}
+                    options={filteredDocuments.map((d) => ({
+                      value: d.id,
+                      label: `${d.name} · ${d.subject} · ${d.kind} · ${d.status}`,
+                    }))}
+                  />
+                )}
+                {requestedReviewDocument && !doc && (
+                  <p role="alert">
+                    This textbook document is unavailable. Return to the review
+                    list and select a document.
                   </p>
-                </>
-              )}
-            </section>
-          </>
-        )}
+                )}
+                {doc && (
+                  <>
+                    <a
+                      href={`/api/v1/documents/${doc.id}/content`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Open original document
+                    </a>
+                    {documentJob && (
+                      <div className="small panel">
+                        <strong>Extraction job history</strong>
+                        <p>
+                          {documentJob.stage.replaceAll('_', ' ')} ·{' '}
+                          {documentJob.status === 'needs_review'
+                            ? 'finished; review was requested after extraction'
+                            : documentJob.status.replaceAll('_', ' ')}{' '}
+                          · {documentJob.progress}% · attempt{' '}
+                          {documentJob.attemptCount}
+                        </p>
+                        <p>
+                          {doc.kind === 'Textbook'
+                            ? 'Current Topic source status'
+                            : 'Current document status'}
+                          : <strong>{doc.status.replaceAll('_', ' ')}</strong>
+                        </p>
+                        <p>Extractor: {documentJob.extractionVersion}</p>
+                      </div>
+                    )}
+                    {doc.kind === 'Textbook' && (
+                      <section className="panel stack">
+                        <strong>Topic-based textbook workflow</strong>
+                        <p>
+                          Create the textbook, its Unit or Module groups, and
+                          topics in Textbook structure. Attach each scanned PDF
+                          or image directly to its topic, review extraction
+                          quality, then publish that topic independently.
+                        </p>
+                      </section>
+                    )}
+                    {[
+                      'Past paper',
+                      'Marking scheme',
+                      'Examiner report',
+                    ].includes(doc.kind) &&
+                      ['needs_review', 'completed'].includes(doc.status) && (
+                        <section className="panel stack">
+                          <div className="spread">
+                            <div>
+                              <strong>Official material review</strong>
+                              <p>
+                                Reconcile every question or linked entry against
+                                the rendered source before publication.
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                void run(async () => {
+                                  setOfficialReview(
+                                    await proposeOfficialMaterialReview(doc.id),
+                                  );
+                                }, 'Official material proposal created from extracted evidence.')
+                              }
+                            >
+                              Propose inventory
+                            </Button>
+                          </div>
+                          {officialReview && (
+                            <>
+                              <div className="two-cols">
+                                <Field
+                                  label="Expected complete item count"
+                                  type="number"
+                                  value={String(
+                                    officialReview.expectedItemCount,
+                                  )}
+                                  onChange={(value) =>
+                                    setOfficialReview({
+                                      ...officialReview,
+                                      expectedItemCount: Number(value),
+                                    })
+                                  }
+                                />
+                                <div className="check-label spaced">
+                                  <Checkbox
+                                    aria-label="Confirm the complete source inventory"
+                                    checked={
+                                      officialReview.completenessConfirmed
+                                    }
+                                    onCheckedChange={(yes) =>
+                                      setOfficialReview({
+                                        ...officialReview,
+                                        completenessConfirmed: Boolean(yes),
+                                      })
+                                    }
+                                  />
+                                  <span>
+                                    I checked the entire source and this
+                                    inventory is complete
+                                  </span>
+                                </div>
+                              </div>
+                              {officialReview.questions.map(
+                                (question, index) => (
+                                  <article
+                                    className="panel stack"
+                                    key={`${question.number}-${index}`}
+                                  >
+                                    <div className="two-cols">
+                                      <Field
+                                        label="Question / subpart number"
+                                        value={question.number}
+                                        onChange={(value) =>
+                                          setOfficialReview({
+                                            ...officialReview,
+                                            questions:
+                                              officialReview.questions.map(
+                                                (row, i) =>
+                                                  i === index
+                                                    ? { ...row, number: value }
+                                                    : row,
+                                              ),
+                                          })
+                                        }
+                                      />
+                                      <Field
+                                        label="Marks"
+                                        type="number"
+                                        value={String(question.marks)}
+                                        onChange={(value) =>
+                                          setOfficialReview({
+                                            ...officialReview,
+                                            questions:
+                                              officialReview.questions.map(
+                                                (row, i) =>
+                                                  i === index
+                                                    ? {
+                                                        ...row,
+                                                        marks: Number(value),
+                                                      }
+                                                    : row,
+                                              ),
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <Field
+                                      label="Shared stem"
+                                      multiline
+                                      value={question.sharedStem}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          questions:
+                                            officialReview.questions.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      sharedStem: value,
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <Field
+                                      label="Complete question prompt"
+                                      multiline
+                                      value={question.prompt}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          questions:
+                                            officialReview.questions.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? { ...row, prompt: value }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <Field
+                                      label="Equations · one per line"
+                                      multiline
+                                      value={question.equations.join('\n')}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          questions:
+                                            officialReview.questions.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      equations: value
+                                                        .split('\n')
+                                                        .filter(Boolean),
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <p className="small">
+                                      Source:{' '}
+                                      {question.sourceLocations
+                                        .map((source) => `page ${source.page}`)
+                                        .join(', ')}{' '}
+                                      · {question.assetIds.length} retained
+                                      asset(s)
+                                    </p>
+                                  </article>
+                                ),
+                              )}
+                              {officialReview.markSchemeEntries.map(
+                                (entry, index) => (
+                                  <article
+                                    className="panel stack"
+                                    key={`${entry.questionNumber}-${index}`}
+                                  >
+                                    <div className="two-cols">
+                                      <Field
+                                        label="Question / subpart number"
+                                        value={entry.questionNumber}
+                                        onChange={(value) =>
+                                          setOfficialReview({
+                                            ...officialReview,
+                                            markSchemeEntries:
+                                              officialReview.markSchemeEntries.map(
+                                                (row, i) =>
+                                                  i === index
+                                                    ? {
+                                                        ...row,
+                                                        questionNumber: value,
+                                                      }
+                                                    : row,
+                                              ),
+                                          })
+                                        }
+                                      />
+                                      <Field
+                                        label="Maximum marks"
+                                        type="number"
+                                        value={String(entry.maxMarks)}
+                                        onChange={(value) =>
+                                          setOfficialReview({
+                                            ...officialReview,
+                                            markSchemeEntries:
+                                              officialReview.markSchemeEntries.map(
+                                                (row, i) =>
+                                                  i === index
+                                                    ? {
+                                                        ...row,
+                                                        maxMarks: Number(value),
+                                                      }
+                                                    : row,
+                                              ),
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <Field
+                                      label="Marking points · one per line"
+                                      multiline
+                                      value={entry.markingPoints
+                                        .map(
+                                          (point) =>
+                                            `${point.code}|${point.kind}|${point.text}`,
+                                        )
+                                        .join('\n')}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          markSchemeEntries:
+                                            officialReview.markSchemeEntries.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      markingPoints: value
+                                                        .split('\n')
+                                                        .filter(Boolean)
+                                                        .map(
+                                                          (
+                                                            line,
+                                                            pointIndex,
+                                                          ) => {
+                                                            const [
+                                                              codeValue,
+                                                              kindValue,
+                                                              ...textValue
+                                                            ] = line.split('|');
+                                                            return {
+                                                              code:
+                                                                codeValue ||
+                                                                `P${pointIndex + 1}`,
+                                                              kind: [
+                                                                'method',
+                                                                'accuracy',
+                                                                'independent',
+                                                                'communication',
+                                                              ].includes(
+                                                                kindValue,
+                                                              )
+                                                                ? (kindValue as
+                                                                    | 'method'
+                                                                    | 'accuracy'
+                                                                    | 'independent'
+                                                                    | 'communication')
+                                                                : 'other',
+                                                              text:
+                                                                textValue.join(
+                                                                  '|',
+                                                                ) ||
+                                                                kindValue ||
+                                                                line,
+                                                            };
+                                                          },
+                                                        ),
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <Field
+                                      label="Accepted alternatives · one per line"
+                                      multiline
+                                      value={entry.alternatives.join('\n')}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          markSchemeEntries:
+                                            officialReview.markSchemeEntries.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      alternatives: value
+                                                        .split('\n')
+                                                        .filter(Boolean),
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <p className="small">
+                                      Source:{' '}
+                                      {entry.sourceLocations
+                                        .map((source) => `page ${source.page}`)
+                                        .join(', ')}
+                                    </p>
+                                  </article>
+                                ),
+                              )}
+                              {officialReview.examinerComments.map(
+                                (comment, index) => (
+                                  <article
+                                    className="panel stack"
+                                    key={`${comment.questionNumber}-${index}`}
+                                  >
+                                    <Field
+                                      label="Question / subpart number"
+                                      value={comment.questionNumber}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          examinerComments:
+                                            officialReview.examinerComments.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      questionNumber: value,
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <Field
+                                      label="Common mistakes · one per line"
+                                      multiline
+                                      value={comment.commonMistakes.join('\n')}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          examinerComments:
+                                            officialReview.examinerComments.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      commonMistakes: value
+                                                        .split('\n')
+                                                        .filter(Boolean),
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <Field
+                                      label="Examiner advice · one per line"
+                                      multiline
+                                      value={comment.advice.join('\n')}
+                                      onChange={(value) =>
+                                        setOfficialReview({
+                                          ...officialReview,
+                                          examinerComments:
+                                            officialReview.examinerComments.map(
+                                              (row, i) =>
+                                                i === index
+                                                  ? {
+                                                      ...row,
+                                                      advice: value
+                                                        .split('\n')
+                                                        .filter(Boolean),
+                                                    }
+                                                  : row,
+                                            ),
+                                        })
+                                      }
+                                    />
+                                    <p className="small">
+                                      Source:{' '}
+                                      {comment.sourceLocations
+                                        .map((source) => `page ${source.page}`)
+                                        .join(', ')}
+                                    </p>
+                                  </article>
+                                ),
+                              )}
+                              <div className="button-row">
+                                <Button
+                                  variant="outline"
+                                  onClick={() =>
+                                    void run(async () => {
+                                      setOfficialReview(
+                                        await saveOfficialMaterialReview(
+                                          doc.id,
+                                          officialReview,
+                                        ),
+                                      );
+                                    }, 'Official material review saved.')
+                                  }
+                                >
+                                  Save review
+                                </Button>
+                                <Button
+                                  className="primary"
+                                  disabled={
+                                    officialReview.status === 'published' ||
+                                    !officialReview.completenessConfirmed
+                                  }
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        `Publish the attested ${officialReview.expectedItemCount}-item inventory for ${doc.name}?`,
+                                      )
+                                    )
+                                      void run(async () => {
+                                        setOfficialReview(
+                                          await publishOfficialMaterialReview(
+                                            doc.id,
+                                            officialReview.kind !==
+                                              'past_paper',
+                                          ),
+                                        );
+                                      }, 'Official material published.');
+                                  }}
+                                >
+                                  Publish official material
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </section>
+                      )}
+                    {extractionError && (
+                      <p className="error" role="alert">
+                        {extractionError}
+                      </p>
+                    )}
+                    {doc.status === 'published' && (
+                      <div className="source-note stack">
+                        <strong>Published source · read-only.</strong>
+                        <p>
+                          Create a separate review revision to correct several
+                          sections. Students keep the current published version
+                          until you confirm the revised document and publish the
+                          Topic again.
+                        </p>
+                        {doc.kind === 'Textbook' &&
+                          doc.sourceRole !== 'visual_reference' && (
+                            <Button
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() => {
+                                if (
+                                  !window.confirm(
+                                    'Create an editable copy of this published textbook source? The current Student version will stay available until you publish the Topic again.',
+                                  )
+                                )
+                                  return;
+                                void run(async () => {
+                                  const revision =
+                                    await createDocumentReviewRevision(doc.id);
+                                  await p.refresh();
+                                  setDocId(revision.id);
+                                  setExtraction(
+                                    await getDocumentExtraction(revision.id),
+                                  );
+                                  setShowFinalDocument(false);
+                                  p.navigate(
+                                    `/admin/textbooks/review/document_${revision.id.replaceAll('-', '')}`,
+                                  );
+                                }, 'Review revision created. Edit and save the sections you want to correct.');
+                              }}
+                            >
+                              Create review revision
+                            </Button>
+                          )}
+                      </div>
+                    )}
+                    {doc.kind === 'Textbook' &&
+                      doc.status !== 'published' &&
+                      doc.sourceRole !== 'visual_reference' && (
+                        <div className="source-note stack">
+                          <strong>Editing reviewed text</strong>
+                          <p>
+                            You can change several sections before republishing.
+                            Save changed sections, inspect the complete revised
+                            document, and publish the Topic once from Textbook
+                            structure.
+                          </p>
+                          <Button
+                            variant="outline"
+                            disabled={busy || !extraction}
+                            onClick={() => {
+                              void saveAllReviewChanges();
+                            }}
+                          >
+                            Save all changed sections
+                          </Button>
+                        </div>
+                      )}
+                    {(textbookReviewMode ||
+                      doc.kind === 'Reference material') &&
+                      extraction &&
+                      !visualReferenceReview &&
+                      doc.status !== 'published' && (
+                        <div className="button-row">
+                          <Button
+                            className={showFinalDocument ? '' : 'primary'}
+                            variant={showFinalDocument ? 'outline' : 'default'}
+                            onClick={() => setShowFinalDocument(false)}
+                          >
+                            Review pages and blocks
+                          </Button>
+                          <Button
+                            className={showFinalDocument ? 'primary' : ''}
+                            variant={showFinalDocument ? 'default' : 'outline'}
+                            onClick={() => setShowFinalDocument(true)}
+                          >
+                            Review complete document
+                          </Button>
+                        </div>
+                      )}
+                    {showFinalDocument &&
+                      doc &&
+                      extraction &&
+                      !visualReferenceReview && (
+                        <FinalDocumentReviewWorkspace
+                          key={doc.id}
+                          documentId={doc.id}
+                          notify={p.notify}
+                          extractionChanged={setExtraction}
+                          readOnly={doc.status === 'published'}
+                        />
+                      )}
+                    {doc.kind === 'Reference material' &&
+                      doc.status === 'completed' && (
+                        <div className="source-note stack">
+                          <strong>
+                            Release this reviewed reference to students
+                          </strong>
+                          <p>
+                            First confirm the complete document above. Only
+                            students enrolled in this subject will be able to
+                            open the original PDF.
+                          </p>
+                          <Button
+                            className="primary"
+                            disabled={busy}
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Publish ${doc.name} for enrolled students?`,
+                                )
+                              )
+                                void run(
+                                  () => publishReferenceDocument(doc.id),
+                                  'Reference published for enrolled students.',
+                                );
+                            }}
+                          >
+                            Publish student reference
+                          </Button>
+                        </div>
+                      )}
+                    {!showFinalDocument &&
+                      doc.status !== 'published' &&
+                      extractionReview && (
+                        <section
+                          className="extraction-review-summary stack"
+                          aria-labelledby="extraction-review-summary-title"
+                        >
+                          <div className="spread">
+                            <div>
+                              <strong id="extraction-review-summary-title">
+                                Extraction review progress
+                              </strong>
+                              <p className="small">
+                                {visualReferenceReview
+                                  ? 'Confirm every Printed page label. OCR text is excluded from retrieval and does not need correction.'
+                                  : 'Review every red item and confirm every Printed page label before publishing this textbook topic.'}
+                              </p>
+                            </div>
+                            <span
+                              className={`review-status-badge ${extractionReview.pendingPages.length ? 'review-status-required' : 'review-status-complete'}`}
+                            >
+                              {extractionReview.pendingPages.length
+                                ? 'Review required'
+                                : 'Reviewed'}
+                            </span>
+                          </div>
+                          <div
+                            className="extraction-review-stats"
+                            aria-label="Extraction review statistics"
+                          >
+                            <div>
+                              <strong>{extractionReview.totalPages}</strong>
+                              <span>Total pages</span>
+                            </div>
+                            <div>
+                              <strong>
+                                {extractionReview.pendingPages.length}
+                              </strong>
+                              <span>Pages to review</span>
+                            </div>
+                            <div>
+                              <strong>
+                                {extractionReview.totalPages -
+                                  extractionReview.pendingPages.length}
+                              </strong>
+                              <span>Reviewed pages</span>
+                            </div>
+                            <div>
+                              <strong>{extractionReview.pendingBlocks}</strong>
+                              <span>Blocks to review</span>
+                            </div>
+                            <div>
+                              <strong>
+                                {extractionReview.totalBlocks -
+                                  extractionReview.pendingBlocks}
+                              </strong>
+                              <span>Cleared blocks</span>
+                            </div>
+                          </div>
+                          {visualReferenceReview &&
+                            extractionReview.pendingPages.length > 0 &&
+                            extraction?.pages.every((page) =>
+                              page.printedPageLabel?.trim(),
+                            ) && (
+                              <div className="source-note stack">
+                                <p>
+                                  The Printed page labels are present but some
+                                  have not been confirmed by an Admin. Compare
+                                  them with the original pages before
+                                  confirming.
+                                </p>
+                                <Button
+                                  variant="outline"
+                                  disabled={busy}
+                                  onClick={() => {
+                                    if (
+                                      !window.confirm(
+                                        `Have you checked the saved Printed page labels against all ${extraction?.pages.length ?? 0} original pages? Unsaved edits are not included.`,
+                                      )
+                                    )
+                                      return;
+                                    void run(async () => {
+                                      setExtraction(
+                                        await confirmVisualReferenceLabels(
+                                          doc.id,
+                                        ),
+                                      );
+                                    }, 'All saved Visual Reference page labels confirmed.');
+                                  }}
+                                >
+                                  Confirm all saved page labels
+                                </Button>
+                              </div>
+                            )}
+                          {extractionReview.pendingPages.length > 0 && (
+                            <nav
+                              className="extraction-page-links"
+                              aria-label="Pages requiring review"
+                            >
+                              <strong>Go to page:</strong>
+                              {extractionReview.pendingPages.map((page) => (
+                                <a
+                                  key={page.id}
+                                  href={`#extraction-page-${page.pageNumber}`}
+                                >
+                                  Page {page.pageNumber}
+                                </a>
+                              ))}
+                            </nav>
+                          )}
+                        </section>
+                      )}
+                    {!showFinalDocument &&
+                      (doc.status !== 'published' || visualReferenceReview) &&
+                      extraction?.pages.map((page) => {
+                        const pendingBlocks = visualReferenceReview
+                          ? 0
+                          : page.blocks.filter((block) => block.needsReview)
+                              .length;
+                        const blockReviews = page.blocks.filter(
+                          (block) => block.metadata.adminReviewed === true,
+                        ).length;
+                        const pageLabelComplete =
+                          Boolean(page.printedPageLabel?.trim()) &&
+                          (!visualReferenceReview ||
+                            page.metadata.printedPageLabelConfirmed === true);
+                        const completedReviews = visualReferenceReview
+                          ? Number(pageLabelComplete)
+                          : blockReviews + Number(pageLabelComplete);
+                        const requiredReviews = visualReferenceReview
+                          ? 1
+                          : pendingBlocks + blockReviews + 1;
+                        const pageComplete =
+                          pageLabelComplete && pendingBlocks === 0;
+                        const pageStatus = pageComplete
+                          ? 'Fully reviewed'
+                          : completedReviews > 0
+                            ? 'Partially reviewed'
+                            : visualReferenceReview &&
+                                page.printedPageLabel?.trim()
+                              ? 'Confirm page label'
+                              : 'Needs page label';
+                        const hideReviewed = Boolean(
+                          hideReviewedBlocks[page.id],
+                        );
+                        const reviewGroups = groupExtractionBlocks(page.blocks);
+                        const visibleGroups = hideReviewed
+                          ? reviewGroups.filter((group) =>
+                              group.some((block) => block.needsReview),
+                            )
+                          : reviewGroups;
+                        const visibleBlockCount = visibleGroups.reduce(
+                          (count, group) => count + group.length,
+                          0,
+                        );
+                        return (
+                          <details
+                            className="panel extraction-page-review"
+                            id={`extraction-page-${page.pageNumber}`}
+                            key={`page-${page.pageNumber}`}
+                          >
+                            <summary className="extraction-page-header">
+                              <div>
+                                <strong>
+                                  Extracted page {page.pageNumber}
+                                </strong>
+                                <p>
+                                  {page.method} ·{' '}
+                                  {Math.round(page.confidence * 100)}%
+                                  extraction confidence
+                                </p>
+                              </div>
+                              <div
+                                className="extraction-page-review-counts"
+                                aria-label={`Page ${page.pageNumber} review summary`}
+                              >
+                                <span>
+                                  <strong>{requiredReviews}</strong> required
+                                </span>
+                                <span>
+                                  <strong>{completedReviews}</strong> completed
+                                </span>
+                                <span>
+                                  <strong>
+                                    {visualReferenceReview
+                                      ? requiredReviews - completedReviews
+                                      : pendingBlocks}
+                                  </strong>{' '}
+                                  remaining
+                                </span>
+                              </div>
+                              <span
+                                className={`review-status-badge ${pageComplete ? 'review-status-complete' : completedReviews > 0 ? 'review-status-partial' : 'review-status-required'}`}
+                              >
+                                {pageStatus}
+                              </span>
+                            </summary>
+                            <div className="stack extraction-page-body">
+                              {visualReferenceReview && (
+                                <div className="source-note">
+                                  <strong>
+                                    Visual reference review — OCR excluded from
+                                    retrieval
+                                  </strong>
+                                  <p>
+                                    Confirm the Printed page label. Extracted
+                                    OCR blocks remain available as read-only
+                                    provenance and are not required review work.
+                                  </p>
+                                  {doc?.textbookRef && (
+                                    <Button
+                                      variant="outline"
+                                      onClick={() =>
+                                        p.navigate(
+                                          `/admin/textbooks/${doc.textbookRef}`,
+                                        )
+                                      }
+                                    >
+                                      Manage selected visuals
+                                    </Button>
+                                  )}
+                                  <details>
+                                    <summary>View OCR provenance</summary>
+                                    <pre className="source-note">
+                                      {page.blocks
+                                        .map((block) => block.text)
+                                        .filter(Boolean)
+                                        .join('\n\n') ||
+                                        'No OCR text was extracted from this page.'}
+                                    </pre>
+                                  </details>
+                                </div>
+                              )}
+                              {!visualReferenceReview && (
+                                <div className="button-row extraction-block-visibility">
+                                  <Button
+                                    variant="outline"
+                                    aria-pressed={hideReviewed}
+                                    onClick={() =>
+                                      setHideReviewedBlocks((current) => ({
+                                        ...current,
+                                        [page.id]: !hideReviewed,
+                                      }))
+                                    }
+                                  >
+                                    {hideReviewed
+                                      ? 'Show reviewed blocks'
+                                      : 'Hide reviewed blocks'}
+                                  </Button>
+                                  <span className="small">
+                                    Showing {visibleBlockCount} of{' '}
+                                    {page.blocks.length} extracted content
+                                    blocks in {visibleGroups.length} review
+                                    boxes
+                                  </span>
+                                </div>
+                              )}
+                              <div className="two-cols">
+                                {doc.status === 'published' ? (
+                                  <p>
+                                    <strong>Printed page label:</strong>{' '}
+                                    {page.printedPageLabel || 'Not recorded'}
+                                  </p>
+                                ) : (
+                                  <>
+                                    <Field
+                                      label="Printed page label"
+                                      value={page.printedPageLabel || ''}
+                                      onChange={(value) =>
+                                        setExtraction({
+                                          ...extraction,
+                                          pages: extraction.pages.map((row) =>
+                                            row.id === page.id
+                                              ? {
+                                                  ...row,
+                                                  printedPageLabel: value,
+                                                }
+                                              : row,
+                                          ),
+                                        })
+                                      }
+                                    />
+                                    <Button
+                                      variant="outline"
+                                      onClick={() =>
+                                        void run(async () => {
+                                          setExtraction(
+                                            await updateExtractionPage(
+                                              doc.id,
+                                              page.id,
+                                              page.printedPageLabel || '',
+                                            ),
+                                          );
+                                        }, 'Printed page label saved.')
+                                      }
+                                    >
+                                      Save page label
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                              <div className="extraction-review-grid">
+                                <div>
+                                  <strong className="small">
+                                    Original page
+                                  </strong>
+                                  <Image
+                                    src={`/api/v1/documents/${doc.id}/assets/${page.originalRenderAssetId || page.renderAssetId}/content`}
+                                    alt={`Rendered source page ${page.pageNumber}`}
+                                    width={Math.max(
+                                      1,
+                                      Math.round(page.widthPoints),
+                                    )}
+                                    height={Math.max(
+                                      1,
+                                      Math.round(page.heightPoints),
+                                    )}
+                                    unoptimized
+                                    loading="lazy"
+                                    style={{
+                                      maxWidth: '100%',
+                                      maxHeight: '32rem',
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <strong className="small">
+                                    Normalized review page
+                                  </strong>
+                                  <Image
+                                    src={`/api/v1/documents/${doc.id}/assets/${page.renderAssetId}/content`}
+                                    alt={`Normalized review page ${page.pageNumber}`}
+                                    width={Math.max(
+                                      1,
+                                      Math.round(page.widthPoints),
+                                    )}
+                                    height={Math.max(
+                                      1,
+                                      Math.round(page.heightPoints),
+                                    )}
+                                    unoptimized
+                                    loading="lazy"
+                                    style={{
+                                      maxWidth: '100%',
+                                      maxHeight: '32rem',
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                </div>
+                                {!visualReferenceReview && (
+                                  <div>
+                                    <strong className="small">
+                                      Extracted content
+                                    </strong>
+                                    {visibleGroups.map((group) => {
+                                      const visual = group.find(isVisualBlock),
+                                        caption = group.find(isFigureCaption);
+                                      const reviewedCaption =
+                                        visual &&
+                                        typeof visual.metadata
+                                          .reviewedCaption === 'string'
+                                          ? visual.metadata.reviewedCaption
+                                          : caption
+                                            ? extractFigureCaption(caption.text)
+                                            : '';
+                                      const groupPending = group.some(
+                                        (block) => block.needsReview,
+                                      );
+                                      return (
+                                        <section
+                                          className={`small stack extraction-block-group ${visual && caption ? 'extraction-visual-caption-group' : ''}`}
+                                          key={`${page.pageNumber}-${group.map((block) => block.id).join('-')}`}
+                                        >
+                                          <div className="spread">
+                                            <span>
+                                              <strong>
+                                                {visual && caption
+                                                  ? 'Diagram and caption'
+                                                  : group[0].kind}
+                                              </strong>{' '}
+                                              · {group.length} block
+                                              {group.length === 1 ? '' : 's'}
+                                            </span>
+                                            <span
+                                              className={`review-status-badge ${groupPending ? 'review-status-required' : 'review-status-complete'}`}
+                                            >
+                                              {groupPending
+                                                ? 'Review required'
+                                                : 'Reviewed'}
+                                            </span>
+                                          </div>
+                                          {visual?.sourceAssetId && (
+                                            <figure className="stack">
+                                              <Image
+                                                src={`/api/v1/documents/${doc.id}/assets/${visual.sourceAssetId}/content`}
+                                                alt={
+                                                  reviewedCaption ||
+                                                  `Source crop for ${visual.kind} on page ${page.pageNumber}`
+                                                }
+                                                width={420}
+                                                height={260}
+                                                unoptimized
+                                                loading="lazy"
+                                                style={{
+                                                  maxWidth: '26rem',
+                                                  height: 'auto',
+                                                  objectFit: 'contain',
+                                                }}
+                                              />
+                                              {reviewedCaption && (
+                                                <figcaption>
+                                                  <strong>
+                                                    Caption preview:
+                                                  </strong>{' '}
+                                                  {reviewedCaption}
+                                                </figcaption>
+                                              )}
+                                            </figure>
+                                          )}
+                                          {visual && caption && (
+                                            <Field
+                                              label="Reviewed figure caption"
+                                              value={reviewedCaption}
+                                              onChange={(value) =>
+                                                setExtraction({
+                                                  ...extraction,
+                                                  pages: extraction.pages.map(
+                                                    (row) =>
+                                                      row.id === page.id
+                                                        ? {
+                                                            ...row,
+                                                            blocks:
+                                                              row.blocks.map(
+                                                                (item) =>
+                                                                  item.id ===
+                                                                  visual.id
+                                                                    ? {
+                                                                        ...item,
+                                                                        metadata:
+                                                                          {
+                                                                            ...item.metadata,
+                                                                            reviewedCaption:
+                                                                              value,
+                                                                          },
+                                                                      }
+                                                                    : item,
+                                                              ),
+                                                          }
+                                                        : row,
+                                                  ),
+                                                })
+                                              }
+                                            />
+                                          )}
+                                          {group.map((block) => (
+                                            <div
+                                              className="stack extraction-group-member"
+                                              key={block.id}
+                                            >
+                                              <div className="spread">
+                                                <span>
+                                                  <strong>
+                                                    {block === caption
+                                                      ? 'Figure caption'
+                                                      : block.kind}
+                                                  </strong>{' '}
+                                                  · {block.method} ·{' '}
+                                                  {Math.round(
+                                                    block.confidence * 100,
+                                                  )}
+                                                  %
+                                                </span>
+                                                <span>
+                                                  Reading order{' '}
+                                                  {block.sequenceNumber}
+                                                </span>
+                                              </div>
+                                              <div className="two-cols">
+                                                <Field
+                                                  label="Block type"
+                                                  value={block.kind}
+                                                  onChange={(value) =>
+                                                    setExtraction({
+                                                      ...extraction,
+                                                      pages:
+                                                        extraction.pages.map(
+                                                          (row) =>
+                                                            row.id === page.id
+                                                              ? {
+                                                                  ...row,
+                                                                  blocks:
+                                                                    row.blocks.map(
+                                                                      (item) =>
+                                                                        item.id ===
+                                                                        block.id
+                                                                          ? {
+                                                                              ...item,
+                                                                              kind: value,
+                                                                            }
+                                                                          : item,
+                                                                    ),
+                                                                }
+                                                              : row,
+                                                        ),
+                                                    })
+                                                  }
+                                                />
+                                                <Field
+                                                  label="Reading order"
+                                                  type="number"
+                                                  value={String(
+                                                    block.sequenceNumber,
+                                                  )}
+                                                  onChange={(value) =>
+                                                    setExtraction({
+                                                      ...extraction,
+                                                      pages:
+                                                        extraction.pages.map(
+                                                          (row) =>
+                                                            row.id === page.id
+                                                              ? {
+                                                                  ...row,
+                                                                  blocks:
+                                                                    row.blocks.map(
+                                                                      (item) =>
+                                                                        item.id ===
+                                                                        block.id
+                                                                          ? {
+                                                                              ...item,
+                                                                              sequenceNumber:
+                                                                                Number(
+                                                                                  value,
+                                                                                ),
+                                                                            }
+                                                                          : item,
+                                                                    ),
+                                                                }
+                                                              : row,
+                                                        ),
+                                                    })
+                                                  }
+                                                />
+                                              </div>
+                                              <ScientificTextEditor
+                                                id={`scientific-text-${block.id}`}
+                                                content={
+                                                  (block.metadata
+                                                    .scientificContent as
+                                                    | ScientificTextContent
+                                                    | undefined) || {
+                                                    version: 1,
+                                                    text: block.text,
+                                                    plainText:
+                                                      scientificPlainText(
+                                                        block.text,
+                                                      ),
+                                                    marks: [],
+                                                  }
+                                                }
+                                                proposal={
+                                                  block.metadata
+                                                    .scientificProposal as
+                                                    | {
+                                                        marks?: Array<{
+                                                          type: string;
+                                                          start: number;
+                                                          end: number;
+                                                          confidence: number;
+                                                        }>;
+                                                        ambiguousTokens?: string[];
+                                                      }
+                                                    | undefined
+                                                }
+                                                onChange={(value) =>
+                                                  setExtraction({
+                                                    ...extraction,
+                                                    pages: extraction.pages.map(
+                                                      (row) =>
+                                                        row.id === page.id
+                                                          ? {
+                                                              ...row,
+                                                              blocks:
+                                                                row.blocks.map(
+                                                                  (item) =>
+                                                                    item.id ===
+                                                                    block.id
+                                                                      ? {
+                                                                          ...item,
+                                                                          text: value.text,
+                                                                          metadata:
+                                                                            {
+                                                                              ...item.metadata,
+                                                                              scientificContent:
+                                                                                value,
+                                                                              searchAlias:
+                                                                                value.plainText,
+                                                                            },
+                                                                        }
+                                                                      : item,
+                                                                ),
+                                                            }
+                                                          : row,
+                                                    ),
+                                                  })
+                                                }
+                                              />
+                                              <Field
+                                                label="Equation or formula (LaTeX)"
+                                                multiline
+                                                value={block.latex || ''}
+                                                onChange={(value) =>
+                                                  setExtraction({
+                                                    ...extraction,
+                                                    pages: extraction.pages.map(
+                                                      (row) =>
+                                                        row.id === page.id
+                                                          ? {
+                                                              ...row,
+                                                              blocks:
+                                                                row.blocks.map(
+                                                                  (item) =>
+                                                                    item.id ===
+                                                                    block.id
+                                                                      ? {
+                                                                          ...item,
+                                                                          latex:
+                                                                            value,
+                                                                        }
+                                                                      : item,
+                                                                ),
+                                                            }
+                                                          : row,
+                                                    ),
+                                                  })
+                                                }
+                                              />
+                                              {!visual &&
+                                                block.sourceAssetId && (
+                                                  <Image
+                                                    src={`/api/v1/documents/${doc.id}/assets/${block.sourceAssetId}/content`}
+                                                    alt={`Source crop for ${block.kind} on page ${page.pageNumber}`}
+                                                    width={320}
+                                                    height={180}
+                                                    unoptimized
+                                                    loading="lazy"
+                                                    style={{
+                                                      maxWidth: '20rem',
+                                                      height: 'auto',
+                                                      objectFit: 'contain',
+                                                    }}
+                                                  />
+                                                )}
+                                            </div>
+                                          ))}
+                                          <Button
+                                            variant="outline"
+                                            onClick={() =>
+                                              void run(
+                                                async () => {
+                                                  let next = extraction;
+                                                  for (const block of group)
+                                                    next =
+                                                      await updateExtractionBlock(
+                                                        doc.id,
+                                                        block.id,
+                                                        {
+                                                          kind: block.kind,
+                                                          text: block.text,
+                                                          latex: block.latex,
+                                                          caption:
+                                                            block === visual
+                                                              ? reviewedCaption
+                                                              : undefined,
+                                                          sequenceNumber:
+                                                            block.sequenceNumber,
+                                                          scientificContent:
+                                                            block.metadata
+                                                              .scientificContent as
+                                                              | ScientificTextContent
+                                                              | undefined,
+                                                        },
+                                                      );
+                                                  setExtraction(next);
+                                                },
+                                                visual && caption
+                                                  ? 'Diagram and caption reviewed and saved.'
+                                                  : 'Extracted block reviewed and saved.',
+                                              )
+                                            }
+                                          >
+                                            {visual && caption
+                                              ? 'Save reviewed diagram and caption'
+                                              : 'Save reviewed block'}
+                                          </Button>
+                                        </section>
+                                      );
+                                    })}
+                                    {!visibleGroups.length && (
+                                      <p className="source-note">
+                                        All extracted content blocks on this
+                                        page have been reviewed.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </details>
+                        );
+                      })}
+                    <p className="small">
+                      Editing extracted blocks, saving review notes, and
+                      publishing documents are part of the Step 6 Admin approval
+                      workflow.
+                    </p>
+                  </>
+                )}
+              </section>
+            </>
+          )}
         {p.view === 'units' && !textbookReviewMode && (
-          <TextbookStructureAdmin subjects={p.data.subjects} students={p.data.students} notify={p.notify} refreshPortal={p.refresh} pathname={p.pathname} navigate={p.navigate} />
+          <TextbookStructureAdmin
+            subjects={p.data.subjects}
+            students={p.data.students}
+            notify={p.notify}
+            refreshPortal={p.refresh}
+            pathname={p.pathname}
+            navigate={p.navigate}
+          />
         )}
         {p.view === 'coverage' && (
           <section className="panel stack">
@@ -1122,97 +3058,497 @@ export function AdminWorkspace(p: Props) {
                 <div className="spread">
                   <div>
                     <h2>{curriculumPlan.textbookTitle}</h2>
-                    <p>Edition {curriculumPlan.textbookEdition} · Plan {curriculumPlan.versionNumber || 'not saved'} · {curriculumPlan.status.replaceAll('_', ' ')}</p>
+                    <p>
+                      Edition {curriculumPlan.textbookEdition} · Plan{' '}
+                      {curriculumPlan.versionNumber || 'not saved'} ·{' '}
+                      {curriculumPlan.status.replaceAll('_', ' ')}
+                    </p>
                   </div>
                 </div>
-                <p>Assign each published topic to the Grade and Term where it is first taught. Grade 10 Term1 and Term2 are combined for a student who has reached Term2, and coverage continues accumulating through later periods.</p>
-                {curriculumPlan.status === 'published' && <Button variant="outline" onClick={() => void run(async () => {
-                  setCurriculumPlan(await createCurriculumPlanDraft(subject));
-                }, `Plan ${curriculumPlan.versionNumber + 1} draft created from the published plan.`)}>Add topics covered now</Button>}
-                <div className="toolbar"><Picker label="Term to review" value={coverageTerm} onChange={setCoverageTerm} options={[{ value: 'all', label: 'All terms' }, ...[1, 2, 3].map((value) => ({ value: String(value), label: `Term ${value}` }))]} /><p className="small">Use this keyboard-friendly filter to focus on the term being planned. A student receives cumulative coverage from earlier terms.</p></div>
-                {curriculumPlan.periods.filter((period) => coverageTerm === 'all' || String(period.term) === coverageTerm).map((period) => {
-                  const index = curriculumPlan.periods.findIndex((row) => row.grade === period.grade && row.term === period.term);
-                  const cumulativeIds = curriculumPlan.periods
-                    .filter((row) => (row.grade < period.grade) || (row.grade === period.grade && row.term <= period.term))
-                    .flatMap((row) => row.topicRefs || []);
-                  const publishedIds = curriculumPlan.publishedPeriods.find((row) => row.grade === period.grade && row.term === period.term)?.topicRefs || [];
-                  return (
-                    <section className="panel stack" aria-labelledby={`coverage-${period.grade}-${period.term}`} key={`${period.grade}-${period.term}`}>
-                      <h3 id={`coverage-${period.grade}-${period.term}`}>Grade {period.grade} · Term{period.term}</h3>
-                      {curriculumPlan.groups.map((group) => <Checks key={group.groupRef}
-                        label={`${curriculumPlan.groupLabel === 'module' ? 'Module' : 'Unit'} ${group.code} · ${group.title}`}
-                        items={group.topics.map((topic) => ({ id: topic.topicRef, name: `${topic.code} · ${topic.title}${publishedIds.includes(topic.topicRef) ? ' · published' : ''}` }))}
-                        selected={period.topicRefs || []}
-                        change={(ids) => setCurriculumPlan({ ...curriculumPlan, periods: curriculumPlan.periods.map((row, i) => i === index
-                          ? { ...row, topicRefs: [...(row.topicRefs || []).filter((ref) => !group.topics.some((topic) => topic.topicRef === ref)), ...ids] }
-                          : { ...row, topicRefs: (row.topicRefs || []).filter((ref) => !ids.includes(ref)) }) })} />)}
-                      <p className="small"><strong>Cumulative coverage preview:</strong>{' '}{curriculumPlan.groups.flatMap((group) => group.topics).filter((topic) => cumulativeIds.includes(topic.topicRef)).map((topic) => topic.code).join(', ') || 'No topics configured'}</p>
-                    </section>
-                  );
-                })}
-                {!!curriculumPlan.changes.length && <section className="callout stack"><strong>Changes from published plan {curriculumPlan.basedOnVersion}</strong>
-                  {curriculumPlan.changes.map((change) => <span key={change.topicRef}>{change.code} · {change.change}{change.fromPeriod ? ` from ${change.fromPeriod}` : ''}{change.toPeriod ? ` to ${change.toPeriod}` : ''}</span>)}
-                  {curriculumPlan.requiresPublishedChangeConfirmation && <p>Moving or removing published coverage can change future practice, mock papers and Tutor access. Existing assessments retain their original snapshot.</p>}
-                </section>}
-                <div className="button-row">
-                  <Button variant="outline" onClick={() => void run(async () => {
-                    setCurriculumPlan(await saveCurriculumPlan(subject, curriculumPlan.periods));
-                  }, 'Curriculum plan draft saved.')}>Save draft</Button>
-                  <Button className="primary" disabled={curriculumPlan.status !== 'draft'} onClick={() => {
-                    if (window.confirm(`Publish curriculum plan ${curriculumPlan.versionNumber} for ${curriculumPlan.textbookTitle}? Existing assessments keep their current snapshot.`))
-                      void run(async () => { setCurriculumPlan(await publishCurriculumPlan(subject, curriculumPlan.requiresPublishedChangeConfirmation)); }, 'Curriculum plan published.');
-                  }}>Publish plan</Button>
+                <p>
+                  Assign each published topic to the Grade and Term where it is
+                  first taught. Grade 10 Term1 and Term2 are combined for a
+                  student who has reached Term2, and coverage continues
+                  accumulating through later periods.
+                </p>
+                {curriculumPlan.status === 'published' && (
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      void run(
+                        async () => {
+                          setCurriculumPlan(
+                            await createCurriculumPlanDraft(subject),
+                          );
+                        },
+                        `Plan ${curriculumPlan.versionNumber + 1} draft created from the published plan.`,
+                      )
+                    }
+                  >
+                    Add topics covered now
+                  </Button>
+                )}
+                <div className="toolbar">
+                  <Picker
+                    label="Term to review"
+                    value={coverageTerm}
+                    onChange={setCoverageTerm}
+                    options={[
+                      { value: 'all', label: 'All terms' },
+                      ...[1, 2, 3].map((value) => ({
+                        value: String(value),
+                        label: `Term ${value}`,
+                      })),
+                    ]}
+                  />
+                  <p className="small">
+                    Use this keyboard-friendly filter to focus on the term being
+                    planned. A student receives cumulative coverage from earlier
+                    terms.
+                  </p>
+                </div>
+                {curriculumPlan.periods
+                  .filter(
+                    (period) =>
+                      coverageTerm === 'all' ||
+                      String(period.term) === coverageTerm,
+                  )
+                  .map((period) => {
+                    const index = curriculumPlan.periods.findIndex(
+                      (row) =>
+                        row.grade === period.grade && row.term === period.term,
+                    );
+                    const cumulativeIds = curriculumPlan.periods
+                      .filter(
+                        (row) =>
+                          row.grade < period.grade ||
+                          (row.grade === period.grade &&
+                            row.term <= period.term),
+                      )
+                      .flatMap((row) => row.topicRefs || []);
+                    const publishedIds =
+                      curriculumPlan.publishedPeriods.find(
+                        (row) =>
+                          row.grade === period.grade &&
+                          row.term === period.term,
+                      )?.topicRefs || [];
+                    return (
+                      <section
+                        className="panel stack"
+                        aria-labelledby={`coverage-${period.grade}-${period.term}`}
+                        key={`${period.grade}-${period.term}`}
+                      >
+                        <h3 id={`coverage-${period.grade}-${period.term}`}>
+                          Grade {period.grade} · Term{period.term}
+                        </h3>
+                        {curriculumPlan.groups.map((group) => (
+                          <Checks
+                            key={group.groupRef}
+                            label={`${curriculumPlan.groupLabel === 'module' ? 'Module' : 'Unit'} ${group.code} · ${group.title}`}
+                            items={group.topics.map((topic) => ({
+                              id: topic.topicRef,
+                              name: `${topic.code} · ${topic.title}${publishedIds.includes(topic.topicRef) ? ' · published' : ''}`,
+                            }))}
+                            selected={period.topicRefs || []}
+                            change={(ids) =>
+                              setCurriculumPlan({
+                                ...curriculumPlan,
+                                periods: curriculumPlan.periods.map((row, i) =>
+                                  i === index
+                                    ? {
+                                        ...row,
+                                        topicRefs: [
+                                          ...(row.topicRefs || []).filter(
+                                            (ref) =>
+                                              !group.topics.some(
+                                                (topic) =>
+                                                  topic.topicRef === ref,
+                                              ),
+                                          ),
+                                          ...ids,
+                                        ],
+                                      }
+                                    : {
+                                        ...row,
+                                        topicRefs: (row.topicRefs || []).filter(
+                                          (ref) => !ids.includes(ref),
+                                        ),
+                                      },
+                                ),
+                              })
+                            }
+                          />
+                        ))}
+                        <p className="small">
+                          <strong>Cumulative coverage preview:</strong>{' '}
+                          {curriculumPlan.groups
+                            .flatMap((group) => group.topics)
+                            .filter((topic) =>
+                              cumulativeIds.includes(topic.topicRef),
+                            )
+                            .map((topic) => topic.code)
+                            .join(', ') || 'No topics configured'}
+                        </p>
+                      </section>
+                    );
+                  })}
+                {!!curriculumPlan.changes.length && (
+                  <section className="callout stack">
+                    <strong>
+                      Changes from published plan{' '}
+                      {curriculumPlan.basedOnVersion}
+                    </strong>
+                    {curriculumPlan.changes.map((change) => (
+                      <span key={change.topicRef}>
+                        {change.code} · {change.change}
+                        {change.fromPeriod ? ` from ${change.fromPeriod}` : ''}
+                        {change.toPeriod ? ` to ${change.toPeriod}` : ''}
+                      </span>
+                    ))}
+                    {curriculumPlan.requiresPublishedChangeConfirmation && (
+                      <p>
+                        Moving or removing published coverage can change future
+                        practice, mock papers and Tutor access. Existing
+                        assessments retain their original snapshot.
+                      </p>
+                    )}
+                  </section>
+                )}
+                <div className="workspace-sticky-actions">
+                  <output>
+                    {coverageDirty
+                      ? 'Unsaved coverage changes'
+                      : 'Coverage changes saved'}
+                  </output>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() =>
+                      void run(async () => {
+                        const saved = await saveCurriculumPlan(
+                          subject,
+                          curriculumPlan.periods,
+                        );
+                        setCurriculumPlan(saved);
+                        setCoverageSaved(JSON.stringify(saved.periods));
+                      }, 'Curriculum plan draft saved.')
+                    }
+                  >
+                    Save draft
+                  </Button>
+                  <Button
+                    className="primary"
+                    disabled={curriculumPlan.status !== 'draft'}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          `Publish curriculum plan ${curriculumPlan.versionNumber} for ${curriculumPlan.textbookTitle}? Existing assessments keep their current snapshot.`,
+                        )
+                      )
+                        void run(async () => {
+                          setCurriculumPlan(
+                            await publishCurriculumPlan(
+                              subject,
+                              curriculumPlan.requiresPublishedChangeConfirmation,
+                            ),
+                          );
+                        }, 'Curriculum plan published.');
+                    }}
+                  >
+                    Publish plan
+                  </Button>
                 </div>
               </>
-            ) : <p>Loading the published textbook and curriculum plan…</p>}
+            ) : (
+              <p>Loading the published textbook and curriculum plan…</p>
+            )}
           </section>
         )}
         {p.view === 'questions' && (
           <section className="panel stack">
             {subjectPicker}
-            <Picker label="Published past paper" value={paperId} onChange={(value) => {
-              setPaperId(value); setPaperMappings(null); setMappingQuestionId(''); setMappingDraft([]);
-            }} options={papers.map((item) => ({ value: item.id, label: item.name }))} />
+            <Picker
+              label="Published past paper"
+              value={paperId}
+              onChange={(value) => {
+                if (mappingDirty && !window.confirm('Discard unsaved mapping changes?')) return;
+                setPaperId(value);
+                setPaperMappings(null);
+                setMappingQuestionId('');
+                setMappingDraft([]);
+              }}
+              options={papers.map((item) => ({
+                value: item.id,
+                label: item.name,
+              }))}
+            />
             {paperMappings && (
               <>
-                <p><strong>{paperMappings.paperTitle}</strong> · {paperMappings.textbookTitle}, {paperMappings.textbookEdition} · {paperMappings.confirmedQuestionCount}/{paperMappings.totalQuestionCount} questions confirmed</p>
+                <p>
+                  <strong>{paperMappings.paperTitle}</strong> ·{' '}
+                  {paperMappings.textbookTitle}, {paperMappings.textbookEdition}{' '}
+                  · {paperMappings.confirmedQuestionCount}/
+                  {paperMappings.totalQuestionCount} questions confirmed
+                </p>
                 <div className="button-row">
-                  {paperMappings.questions.map((question) => (
-                    <Button key={question.questionId} variant={mappingQuestionId === question.questionId ? 'default' : 'outline'} onClick={() => {
-                      setMappingQuestionId(question.questionId); setMappingDraft(question.mappings);
-                    }}>Q{question.number} · {question.status}</Button>
-                  ))}
+                  <FilterToolbar
+                    search={queueSearch}
+                    onSearch={setQueueSearch}
+                    placeholder="Search questions…"
+                  />
+                  {paperMappings.questions
+                    .filter(
+                      (question) =>
+                        !queueSearch ||
+                        `${question.number} ${question.prompt}`
+                          .toLowerCase()
+                          .includes(queueSearch.toLowerCase()),
+                    )
+                    .map((question) => (
+                      <Button
+                        key={question.questionId}
+                        variant={
+                          mappingQuestionId === question.questionId
+                            ? 'default'
+                            : 'outline'
+                        }
+                        onClick={() => {
+                          if (
+                            mappingDirty &&
+                            !window.confirm('Discard unsaved mapping changes?')
+                          )
+                            return;
+                          setMappingQuestionId(question.questionId);
+                          setMappingDraft(question.mappings);
+                        }}
+                      >
+                        Q{question.number} · {question.status}
+                      </Button>
+                    ))}
                 </div>
-                {paperMappings.questions.filter((question) => question.questionId === mappingQuestionId).map((question) => (
-                  <article className="panel stack" key={question.questionId}>
-                    <h2>Question {question.number} · {question.marks} marks</h2>
-                    {question.sharedStem && <p><strong>Shared evidence:</strong> {question.sharedStem}</p>}
-                    <p>{question.prompt}</p>
-                    <p className="small">Extracted evidence: {question.sourceLocations.map((source) => `page ${source.page}`).join(', ') || 'source page retained'}</p>
-                    <p>Choose every related topic, assign weights totaling exactly 100%, and mark the topics that every student must have covered.</p>
-                    {paperMappings.groups.map((group) => <fieldset className="panel stack" key={group.groupRef}><legend>{paperMappings.groupLabel === 'module' ? 'Module' : 'Unit'} {group.code} · {group.title}</legend>{group.topics.map((topic) => {
-                      const mapped = mappingDraft.find((row) => row.topicRef === topic.topicRef);
-                      return <div className="spread" key={topic.topicRef}><div className="check-label"><Checkbox aria-label={`Map ${topic.code}`} disabled={question.status === 'confirmed'} checked={Boolean(mapped)} onCheckedChange={(yes) => setMappingDraft(yes ? [...mappingDraft, { topicRef: topic.topicRef, weight: 0, required: true, rationale: '', method: 'admin' }] : mappingDraft.filter((row) => row.topicRef !== topic.topicRef))} /><span>{topic.code} · {topic.title}</span></div>{mapped && <div className="button-row"><label className="check-label" htmlFor={`required-${question.questionId}-${topic.topicRef}`}><Checkbox id={`required-${question.questionId}-${topic.topicRef}`} disabled={question.status === 'confirmed'} checked={mapped.required} onCheckedChange={(value) => setMappingDraft(mappingDraft.map((row) => row.topicRef === topic.topicRef ? { ...row, required: Boolean(value) } : row))} />Required</label><Input aria-label={`${topic.code} weight percentage`} disabled={question.status === 'confirmed'} type="number" min="1" max="100" value={mapped.weight} onChange={(event) => setMappingDraft(mappingDraft.map((row) => row.topicRef === topic.topicRef ? { ...row, weight: Number(event.target.value) } : row))} style={{ maxWidth: '7rem' }} /></div>}</div>;
-                    })}</fieldset>)}
-                    {!!Object.keys(question.groupWeights).length && <p className="small"><strong>Group summary:</strong> {Object.entries(question.groupWeights).map(([code, weight]) => `${code} ${weight}%`).join(' · ')}</p>}
-                    <p className={mappingDraft.reduce((sum, row) => sum + row.weight, 0) === 100 ? 'small' : 'error'}>Total weight: {mappingDraft.reduce((sum, row) => sum + row.weight, 0)}%</p>
-                    <div className="button-row">
-                      <Button variant="outline" disabled={question.status === 'confirmed'} onClick={() => void run(async () => {
-                        const response = await suggestQuestionMappings(question.questionId); setMappingDraft(response.suggestions);
-                      }, 'Mapping suggestions prepared for Admin review.')}>Suggest mappings</Button>
-                      <Button variant="outline" disabled={question.status === 'confirmed' || mappingDraft.reduce((sum, row) => sum + row.weight, 0) !== 100} onClick={() => void run(async () => {
-                        const response = await saveQuestionMappings(question.questionId, mappingDraft);
-                        setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) });
-                      }, 'Mapping draft saved.')}>Save mapping</Button>
-                      <Button className="primary" disabled={question.status !== 'draft'} onClick={() => {
-                        if (window.confirm(`Confirm the topic mapping for question ${question.number}? It becomes immutable.`)) void run(async () => {
-                          const response = await publishQuestionMappings(question.questionId);
-                          setPaperMappings({ ...paperMappings, questions: paperMappings.questions.map((row) => row.questionId === response.questionId ? response : row) }); setMappingDraft(response.mappings);
-                        }, 'Question mapping confirmed.');
-                      }}>Confirm mapping</Button>
-                    </div>
-                  </article>
-                ))}
+                {paperMappings.questions
+                  .filter(
+                    (question) => question.questionId === mappingQuestionId,
+                  )
+                  .map((question) => (
+                    <article className="panel stack" key={question.questionId}>
+                      <h2>
+                        Question {question.number} · {question.marks} marks
+                      </h2>
+                      {question.sharedStem && (
+                        <p>
+                          <strong>Shared evidence:</strong>{' '}
+                          {question.sharedStem}
+                        </p>
+                      )}
+                      <p>{question.prompt}</p>
+                      <p className="small">
+                        Extracted evidence:{' '}
+                        {question.sourceLocations
+                          .map((source) => `page ${source.page}`)
+                          .join(', ') || 'source page retained'}
+                      </p>
+                      <p>
+                        Choose every related topic, assign weights totaling
+                        exactly 100%, and mark the topics that every student
+                        must have covered.
+                      </p>
+                      {paperMappings.groups.map((group) => (
+                        <fieldset className="panel stack" key={group.groupRef}>
+                          <legend>
+                            {paperMappings.groupLabel === 'module'
+                              ? 'Module'
+                              : 'Unit'}{' '}
+                            {group.code} · {group.title}
+                          </legend>
+                          {group.topics.map((topic) => {
+                            const mapped = mappingDraft.find(
+                              (row) => row.topicRef === topic.topicRef,
+                            );
+                            return (
+                              <div className="spread" key={topic.topicRef}>
+                                <div className="check-label">
+                                  <Checkbox
+                                    aria-label={`Map ${topic.code}`}
+                                    disabled={question.status === 'confirmed'}
+                                    checked={Boolean(mapped)}
+                                    onCheckedChange={(yes) =>
+                                      setMappingDraft(
+                                        yes
+                                          ? [
+                                              ...mappingDraft,
+                                              {
+                                                topicRef: topic.topicRef,
+                                                weight: 0,
+                                                required: true,
+                                                rationale: '',
+                                                method: 'admin',
+                                              },
+                                            ]
+                                          : mappingDraft.filter(
+                                              (row) =>
+                                                row.topicRef !== topic.topicRef,
+                                            ),
+                                      )
+                                    }
+                                  />
+                                  <span>
+                                    {topic.code} · {topic.title}
+                                  </span>
+                                </div>
+                                {mapped && (
+                                  <div className="button-row">
+                                    <label
+                                      className="check-label"
+                                      htmlFor={`required-${question.questionId}-${topic.topicRef}`}
+                                    >
+                                      <Checkbox
+                                        id={`required-${question.questionId}-${topic.topicRef}`}
+                                        disabled={
+                                          question.status === 'confirmed'
+                                        }
+                                        checked={mapped.required}
+                                        onCheckedChange={(value) =>
+                                          setMappingDraft(
+                                            mappingDraft.map((row) =>
+                                              row.topicRef === topic.topicRef
+                                                ? {
+                                                    ...row,
+                                                    required: Boolean(value),
+                                                  }
+                                                : row,
+                                            ),
+                                          )
+                                        }
+                                      />
+                                      Required
+                                    </label>
+                                    <Input
+                                      aria-label={`${topic.code} weight percentage`}
+                                      disabled={question.status === 'confirmed'}
+                                      type="number"
+                                      min="1"
+                                      max="100"
+                                      value={mapped.weight}
+                                      onChange={(event) =>
+                                        setMappingDraft(
+                                          mappingDraft.map((row) =>
+                                            row.topicRef === topic.topicRef
+                                              ? {
+                                                  ...row,
+                                                  weight: Number(
+                                                    event.target.value,
+                                                  ),
+                                                }
+                                              : row,
+                                          ),
+                                        )
+                                      }
+                                      style={{ maxWidth: '7rem' }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </fieldset>
+                      ))}
+                      {!!Object.keys(question.groupWeights).length && (
+                        <p className="small">
+                          <strong>Group summary:</strong>{' '}
+                          {Object.entries(question.groupWeights)
+                            .map(([code, weight]) => `${code} ${weight}%`)
+                            .join(' · ')}
+                        </p>
+                      )}
+                      <p
+                        className={
+                          mappingDraft.reduce(
+                            (sum, row) => sum + row.weight,
+                            0,
+                          ) === 100
+                            ? 'small'
+                            : 'error'
+                        }
+                      >
+                        Total weight:{' '}
+                        {mappingDraft.reduce((sum, row) => sum + row.weight, 0)}
+                        %
+                      </p>
+                      <div className="button-row">
+                        <Button
+                          variant="outline"
+                          disabled={question.status === 'confirmed'}
+                          onClick={() =>
+                            void run(async () => {
+                              const response = await suggestQuestionMappings(
+                                question.questionId,
+                              );
+                              setMappingDraft(response.suggestions);
+                            }, 'Mapping suggestions prepared for Admin review.')
+                          }
+                        >
+                          Suggest mappings
+                        </Button>
+                        <Button
+                          variant="outline"
+                          disabled={
+                            question.status === 'confirmed' ||
+                            mappingDraft.reduce(
+                              (sum, row) => sum + row.weight,
+                              0,
+                            ) !== 100
+                          }
+                          onClick={() =>
+                            void run(async () => {
+                              const response = await saveQuestionMappings(
+                                question.questionId,
+                                mappingDraft,
+                              );
+                              setPaperMappings({
+                                ...paperMappings,
+                                questions: paperMappings.questions.map((row) =>
+                                  row.questionId === response.questionId
+                                    ? response
+                                    : row,
+                                ),
+                              });
+                            }, 'Mapping draft saved.')
+                          }
+                        >
+                          Save mapping
+                        </Button>
+                        <Button
+                          className="primary"
+                          disabled={question.status !== 'draft'}
+                          onClick={() => {
+                            if (
+                              window.confirm(
+                                `Confirm the topic mapping for question ${question.number}? It becomes immutable.`,
+                              )
+                            )
+                              void run(async () => {
+                                const response = await publishQuestionMappings(
+                                  question.questionId,
+                                );
+                                setPaperMappings({
+                                  ...paperMappings,
+                                  questions: paperMappings.questions.map(
+                                    (row) =>
+                                      row.questionId === response.questionId
+                                        ? response
+                                        : row,
+                                  ),
+                                });
+                                setMappingDraft(response.mappings);
+                              }, 'Question mapping confirmed.');
+                          }}
+                        >
+                          Confirm mapping
+                        </Button>
+                      </div>
+                    </article>
+                  ))}
               </>
             )}
           </section>
@@ -1222,55 +3558,285 @@ export function AdminWorkspace(p: Props) {
   );
 }
 
-function AssessmentAuditPanel({ notify }: { notify: (message: string) => void }) {
+function AssessmentAuditPanel({
+  notify,
+}: {
+  notify: (message: string) => void;
+}) {
+  const [filters, setFilters] = useWorkspaceSearch({
+    q: '',
+    subject: 'all',
+    record: '',
+  });
   const [results, setResults] = useState<AssessmentAudit[]>([]);
   const [loading, setLoading] = useState(true);
   const [requestKeys] = useState(() => new Map<string, string>());
-  const [chosen, setChosen] = useState<AssessmentAudit | null>(null);
+  const [selectedResult, setChosen] = useState<AssessmentAudit | null>(null);
+  const chosen = filters.record
+    ? results.find((item) => item.resultId === filters.record) || selectedResult
+    : selectedResult;
+  const [reviewDirty, setReviewDirty] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
   async function load() {
-    setError(''); setLoading(true);
-    try { setResults((await getAssessmentAudit()).results); }
-    catch (cause) { setError(errorMessage(cause)); } finally { setLoading(false); }
+    setError('');
+    setLoading(true);
+    try {
+      setResults((await getAssessmentAudit()).results);
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setLoading(false);
+    }
   }
   useEffect(() => {
     let active = true;
-    void getAssessmentAudit().then(data => { if (active) setResults(data.results); }).catch(cause => { if (active) setError(errorMessage(cause)); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    void getAssessmentAudit()
+      .then((data) => {
+        if (active) setResults(data.results);
+      })
+      .catch((cause) => {
+        if (active) setError(errorMessage(cause));
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   async function reassess(row: AssessmentAudit) {
-    setBusy(true); setError('');
-    try { await reassessAssessment(row.assessmentId, requestKeys.get(row.resultId) || (() => { const key = crypto.randomUUID(); requestKeys.set(row.resultId, key); return key; })()); await load(); setChosen(null); notify('AKURU created a new, fully versioned assessment result.'); }
-    catch (cause) { setError(errorMessage(cause)); }
-    finally { setBusy(false); }
+    setBusy(true);
+    setError('');
+    try {
+      await reassessAssessment(
+        row.assessmentId,
+        requestKeys.get(row.resultId) ||
+          (() => {
+            const key = crypto.randomUUID();
+            requestKeys.set(row.resultId, key);
+            return key;
+          })(),
+      );
+      await load();
+      setChosen(null);
+      notify('AKURU created a new, fully versioned assessment result.');
+    } catch (cause) {
+      setError(errorMessage(cause));
+    } finally {
+      setBusy(false);
+    }
   }
-  return <>
-    {error && <div className="error" role="alert">{error} <Button variant="outline" onClick={() => void load()}>Retry</Button></div>}
-    <section className="panel stack">
-      <div className="spread"><div><h2>AI-derived assessment results</h2><p>Inspect evidence, versions and confidence before asking AKURU to reassess.</p></div><Button variant="outline" onClick={() => void load()}>Refresh</Button></div>
-      {results.map((row) => <button className="attempt-row" key={row.resultId} onClick={() => setChosen(row)}>
-        <div><h3>{row.studentName} · {row.assessmentTitle} · Q{row.questionNumber}</h3><p>{row.subjectId} · result v{row.version} · {row.provider}/{row.model}</p></div>
-        <span>{Math.round(row.confidence * 100)}% confidence</span><strong>{row.awardedMarks}/{row.maxMarks}</strong>
-      </button>)}
-      {loading && <output>Loading assessment audit…</output>}
-      {!loading && !results.length && !error && <Empty title="No assessment results yet">Submitted, evaluated answers will appear here with their full audit trail.</Empty>}
-    </section>
-    <Dialog open={!!chosen} onOpenChange={(open) => !open && setChosen(null)}><DialogContent className="wide-dialog"><DialogHeader><DialogTitle>{chosen?.studentName} · Question {chosen?.questionNumber}</DialogTitle><DialogDescription>Result audit and provenance</DialogDescription></DialogHeader>
-      {chosen && <div className="stack">{error && <div className="error" role="alert">{error} Retry the action below.</div>}<p>{chosen.questionPrompt}</p><h3>Submitted answer</h3><p className="preserve">{chosen.answer || 'No typed answer.'}</p>{chosen.workingUrl && <a href={chosen.workingUrl} target="_blank" rel="noreferrer">Open original submitted working</a>}<div className="source-note"><strong>{chosen.awardedMarks}/{chosen.maxMarks}</strong> · {Math.round(chosen.confidence * 100)}% confidence · {chosen.status.replaceAll('_', ' ')} · version {chosen.version}</div>
-        {!!chosen.reviewReasons.length && <div className="error"><strong>Review required</strong><ul>{chosen.reviewReasons.map(x => <li key={x}>{x}</li>)}</ul></div>}
-        <h3>Marking decisions and student evidence</h3>{chosen.markingDecisions.map(point => <article className="source-note" key={point.pointId}><div className="spread"><strong>{point.pointId} · {point.criterion}</strong><strong>{point.marksAwarded}/{point.maxMarks}</strong></div><p>Evidence: {point.studentEvidence}</p><p>{point.rationale} · {Math.round(point.confidence * 100)}% confidence</p></article>)}
-        <h3>Versions and checks</h3><p className="small">Prompt {chosen.promptName} v{chosen.promptVersion} · engine {chosen.subjectEngine} v{chosen.subjectEngineVersion} · {chosen.provider}/{chosen.model}</p><pre className="source-note">{JSON.stringify(chosen.deterministicChecks, null, 2)}</pre>
-        <h3>Source manifest</h3>{chosen.sourceManifest.map((source, index) => <pre className="source-note" key={index}>{JSON.stringify(source, null, 2)}</pre>)}
-        <ResultReview key={chosen.resultId} resultId={chosen.resultId} decisions={chosen.markingDecisions} feedback={chosen.teachingExplanation} improvedAnswer={chosen.improvedAnswer} strengths={chosen.strengths} smallMistakes={chosen.smallMistakes} conceptualMistakes={chosen.conceptualMistakes} saved={async () => { await load(); setChosen(null); notify('Reviewed result published.'); }} />
-        <p className="small">Reassessment evaluates every question in this assessment using OpenAI.</p>
-        <Button className="primary" disabled={busy} onClick={() => void reassess(chosen)}>{busy ? 'Reassessing…' : 'Reassess and create new version'}</Button>
-      </div>}
-    </DialogContent></Dialog>
-  </>;
+  return (
+    <>
+      {error && (
+        <div className="error" role="alert">
+          {error}{' '}
+          <Button variant="outline" onClick={() => void load()}>
+            Retry
+          </Button>
+        </div>
+      )}
+      <section className="panel stack">
+        <div className="spread">
+          <div>
+            <h2>AI-derived assessment results</h2>
+            <p>
+              Inspect evidence, versions and confidence before asking AKURU to
+              reassess.
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => void load()}>
+            Refresh
+          </Button>
+        </div>
+        <FilterToolbar
+          search={filters.q}
+          onSearch={(q) => setFilters({ q })}
+          placeholder="Find learner, assessment or result…"
+          onClear={() => setFilters({ q: '', subject: 'all' })}
+        >
+          <Picker
+            label="Subject"
+            value={filters.subject}
+            onChange={(subject) => setFilters({ subject })}
+            options={[
+              { value: 'all', label: 'All subjects' },
+              ...Array.from(new Set(results.map((item) => item.subjectId))).map(
+                (value) => ({ value, label: value }),
+              ),
+            ]}
+          />
+        </FilterToolbar>
+        {results
+          .filter(
+            (row) =>
+              (filters.subject === 'all' ||
+                row.subjectId === filters.subject) &&
+              (!filters.q ||
+                `${row.studentName} ${row.assessmentTitle} ${row.version}`
+                  .toLowerCase()
+                  .includes(filters.q.toLowerCase())),
+          )
+          .map((row) => (
+            <button
+              className="attempt-row"
+              key={row.resultId}
+              onClick={() => {
+                setChosen(row);
+                setFilters({ record: row.resultId });
+              }}
+            >
+              <div>
+                <h3>
+                  {row.studentName} · {row.assessmentTitle} · Q
+                  {row.questionNumber}
+                </h3>
+                <p>
+                  {row.subjectId} · result v{row.version} · {row.provider}/
+                  {row.model}
+                </p>
+              </div>
+              <span>{Math.round(row.confidence * 100)}% confidence</span>
+              <strong>
+                {row.awardedMarks}/{row.maxMarks}
+              </strong>
+            </button>
+          ))}
+        {loading && <output>Loading assessment audit…</output>}
+        {!loading && !results.length && !error && (
+          <Empty title="No assessment results yet">
+            Submitted, evaluated answers will appear here with their full audit
+            trail.
+          </Empty>
+        )}
+      </section>
+      <Dialog
+        open={!!chosen}
+        onOpenChange={(open) => {
+          if (
+            !open &&
+            (!reviewDirty || window.confirm('Discard unsaved review changes?'))
+          ) {
+            setChosen(null);
+            setFilters({ record: '' });
+            setReviewDirty(false);
+          }
+        }}
+      >
+        <DialogContent className="wide-dialog">
+          <DialogHeader>
+            <DialogTitle>
+              {chosen?.studentName} · Question {chosen?.questionNumber}
+            </DialogTitle>
+            <DialogDescription>Result audit and provenance</DialogDescription>
+          </DialogHeader>
+          {chosen && (
+            <div className="stack">
+              {error && (
+                <div className="error" role="alert">
+                  {error} Retry the action below.
+                </div>
+              )}
+              <p>{chosen.questionPrompt}</p>
+              <h3>Submitted answer</h3>
+              <p className="preserve">{chosen.answer || 'No typed answer.'}</p>
+              {chosen.workingUrl && (
+                <a href={chosen.workingUrl} target="_blank" rel="noreferrer">
+                  Open original submitted working
+                </a>
+              )}
+              <div className="source-note">
+                <strong>
+                  {chosen.awardedMarks}/{chosen.maxMarks}
+                </strong>{' '}
+                · {Math.round(chosen.confidence * 100)}% confidence ·{' '}
+                {chosen.status.replaceAll('_', ' ')} · version {chosen.version}
+              </div>
+              {!!chosen.reviewReasons.length && (
+                <div className="error">
+                  <strong>Review required</strong>
+                  <ul>
+                    {chosen.reviewReasons.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <h3>Marking decisions and student evidence</h3>
+              {chosen.markingDecisions.map((point) => (
+                <article className="source-note" key={point.pointId}>
+                  <div className="spread">
+                    <strong>
+                      {point.pointId} · {point.criterion}
+                    </strong>
+                    <strong>
+                      {point.marksAwarded}/{point.maxMarks}
+                    </strong>
+                  </div>
+                  <p>Evidence: {point.studentEvidence}</p>
+                  <p>
+                    {point.rationale} · {Math.round(point.confidence * 100)}%
+                    confidence
+                  </p>
+                </article>
+              ))}
+              <h3>Versions and checks</h3>
+              <p className="small">
+                Prompt {chosen.promptName} v{chosen.promptVersion} · engine{' '}
+                {chosen.subjectEngine} v{chosen.subjectEngineVersion} ·{' '}
+                {chosen.provider}/{chosen.model}
+              </p>
+              <pre className="source-note">
+                {JSON.stringify(chosen.deterministicChecks, null, 2)}
+              </pre>
+              <h3>Source manifest</h3>
+              {chosen.sourceManifest.map((source, index) => (
+                <pre className="source-note" key={index}>
+                  {JSON.stringify(source, null, 2)}
+                </pre>
+              ))}
+              <ResultReview
+                onDirtyChange={setReviewDirty}
+                key={chosen.resultId}
+                resultId={chosen.resultId}
+                decisions={chosen.markingDecisions}
+                feedback={chosen.teachingExplanation}
+                improvedAnswer={chosen.improvedAnswer}
+                strengths={chosen.strengths}
+                smallMistakes={chosen.smallMistakes}
+                conceptualMistakes={chosen.conceptualMistakes}
+                saved={async () => {
+                  await load();
+                  setChosen(null);
+                  setFilters({ record: '' });
+                  setReviewDirty(false);
+                  notify('Reviewed result published.');
+                }}
+              />
+              <p className="small">
+                Reassessment evaluates every question in this assessment using
+                OpenAI.
+              </p>
+              <Button
+                className="primary"
+                disabled={busy}
+                onClick={() => void reassess(chosen)}
+              >
+                {busy ? 'Reassessing…' : 'Reassess and create new version'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }
 
 function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [filters, setFilters] = useWorkspaceSearch({ q: '' });
   const [accounts, setAccounts] = useState<AIAccount[]>([]);
   const [name, setName] = useState('');
   const [credentialAlias, setCredentialAlias] = useState('');
@@ -1299,6 +3865,7 @@ function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {
     };
   }, []);
   function edit(account: AIAccount) {
+    setEditorOpen(true);
     setEditingAlias(account.credentialAlias);
     setName(account.name);
     setCredentialAlias(account.credentialAlias);
@@ -1317,72 +3884,145 @@ function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {
   }
   return (
     <>
-      {error && <div className="error" role="alert">{error}</div>}
-      <section className="panel stack">
-        <h2>{editingAlias ? `Edit ${name}` : 'Add an OpenAI account'}</h2>
-        <p>
-          Add the key to the backend dotenv JSON map first. AKURU stores only its alias.
-          Priorities must be unique; the lowest number is selected first.
-        </p>
-        <form
-          className="stack"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setBusy(true);
-            setError('');
-            void api(
-              editingAlias ? `admin/ai-accounts/${editingAlias}` : 'admin/ai-accounts',
-              { name, credentialAlias, priority: Number(priority), model, enabled },
-            )
-              .then(load)
-              .then(() => {
-                notify(editingAlias ? 'OpenAI account updated.' : 'OpenAI account added.');
-                clear();
-              })
-              .catch((cause) => setError(errorMessage(cause)))
-              .finally(() => setBusy(false));
+      {error && (
+        <div className="error" role="alert">
+          {error}
+        </div>
+      )}
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        placeholder="Find a routing account…"
+      >
+        <Button
+          onClick={() => {
+            clear();
+            setEditorOpen(true);
           }}
         >
-          <Field label="Account name" value={name} onChange={setName} />
-          <Field
-            label="Credential alias"
-            value={credentialAlias}
-            onChange={setCredentialAlias}
-          />
-          <Field label="Priority (0–100)" value={priority} onChange={setPriority} type="number" />
-          <Field label="OpenAI model" value={model} onChange={setModel} />
-          <label className="check-label" htmlFor="ai-account-enabled">
-            <Checkbox id="ai-account-enabled" checked={enabled} onCheckedChange={(value) => setEnabled(Boolean(value))} />
-            Enabled for new AI operations
-          </label>
-          <div className="button-row">
-            <Button className="primary" type="submit" disabled={busy}>
-              {editingAlias ? 'Save account' : 'Add account'}
-            </Button>
-            {editingAlias && <Button type="button" variant="outline" onClick={clear}>Cancel edit</Button>}
-          </div>
-        </form>
-      </section>
-      <div className="learner-grid spaced">
-        {accounts.map((account) => (
-          <section className="panel stack" key={account.credentialAlias}>
-            <div className="spread">
-              <h3>{account.name}</h3>
-              <strong>Priority {account.priority}</strong>
+          Add account
+        </Button>
+      </FilterToolbar>
+      <EditorDrawer
+        busy={busy}
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        title={editingAlias ? 'Edit routing account' : 'Add routing account'}
+        description="Credentials stay in the existing protected backend configuration."
+      >
+        {' '}
+        <section className="panel stack">
+          <h2>{editingAlias ? `Edit ${name}` : 'Add an OpenAI account'}</h2>
+          <p>
+            Add the key to the backend dotenv JSON map first. AKURU stores only
+            its alias. Priorities must be unique; the lowest number is selected
+            first.
+          </p>
+          <form
+            className="stack"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setBusy(true);
+              setError('');
+              void api(
+                editingAlias
+                  ? `admin/ai-accounts/${editingAlias}`
+                  : 'admin/ai-accounts',
+                {
+                  name,
+                  credentialAlias,
+                  priority: Number(priority),
+                  model,
+                  enabled,
+                },
+              )
+                .then(load)
+                .then(() => {
+                  notify(
+                    editingAlias
+                      ? 'OpenAI account updated.'
+                      : 'OpenAI account added.',
+                  );
+                  clear();
+                  setEditorOpen(false);
+                })
+                .catch((cause) => setError(errorMessage(cause)))
+                .finally(() => setBusy(false));
+            }}
+          >
+            <Field label="Account name" value={name} onChange={setName} />
+            <Field
+              label="Credential alias"
+              value={credentialAlias}
+              onChange={setCredentialAlias}
+            />
+            <Field
+              label="Priority (0–100)"
+              value={priority}
+              onChange={setPriority}
+              type="number"
+            />
+            <Field label="OpenAI model" value={model} onChange={setModel} />
+            <label className="check-label" htmlFor="ai-account-enabled">
+              <Checkbox
+                id="ai-account-enabled"
+                checked={enabled}
+                onCheckedChange={(value) => setEnabled(Boolean(value))}
+              />
+              Enabled for new AI operations
+            </label>
+            <div className="button-row">
+              <Button className="primary" type="submit" disabled={busy}>
+                {editingAlias ? 'Save account' : 'Add account'}
+              </Button>
+              {editingAlias && (
+                <Button type="button" variant="outline" onClick={clear}>
+                  Cancel edit
+                </Button>
+              )}
             </div>
-            <p>{account.credentialAlias} · {account.model}</p>
-            <p>
-              {account.enabled ? 'Enabled' : 'Disabled'} · {account.healthStatus.replaceAll('_', ' ')} ·{' '}
-              {account.credentialConfigured ? 'Credential configured' : 'Credential missing'}
-            </p>
-            {account.lastErrorCode && <p>Last error: {account.lastErrorCode.replaceAll('_', ' ')}</p>}
-            <Button variant="outline" onClick={() => edit(account)}>Edit configuration</Button>
-          </section>
-        ))}
+          </form>
+        </section>
+      </EditorDrawer>
+      <div className="learner-grid spaced">
+        {[...accounts]
+          .filter(
+            (account) =>
+              !filters.q ||
+              `${account.name} ${account.model}`
+                .toLowerCase()
+                .includes(filters.q.toLowerCase()),
+          )
+          .sort((a, b) => a.priority - b.priority)
+          .map((account) => (
+            <section className="panel stack" key={account.credentialAlias}>
+              <div className="spread">
+                <h3>{account.name}</h3>
+                <strong>Priority {account.priority}</strong>
+              </div>
+              <p>
+                {account.credentialAlias} · {account.model}
+              </p>
+              <p>
+                {account.enabled ? 'Enabled' : 'Disabled'} ·{' '}
+                {account.healthStatus.replaceAll('_', ' ')} ·{' '}
+                {account.credentialConfigured
+                  ? 'Credential configured'
+                  : 'Credential missing'}
+              </p>
+              {account.lastErrorCode && (
+                <p>Last error: {account.lastErrorCode.replaceAll('_', ' ')}</p>
+              )}
+              <Button variant="outline" onClick={() => edit(account)}>
+                Edit configuration
+              </Button>
+            </section>
+          ))}
       </div>
       {!accounts.length && (
         <Empty title="No OpenAI accounts configured">
-          Add credential aliases to the backend dotenv, then create the first account here.
+          Add credential aliases to the backend dotenv, then create the first
+          account here.
         </Empty>
       )}
     </>
@@ -1390,26 +4030,48 @@ function AIAccountsPanel({ notify }: { notify: (message: string) => void }) {
 }
 
 export function FamilyCourses({ data }: { data: State }) {
+  const [filters, setFilters] = useWorkspaceSearch({ q: '' });
+  const learners = data.students.filter((item) =>
+    `${item.name} ${item.grade} ${item.subjects.map((id) => data.subjects.find((subject) => subject.id === id)?.name).join(' ')}`
+      .toLowerCase()
+      .includes(filters.q.toLowerCase()),
+  );
   return (
     <>
       <Heading title="Your children's courses">
         An Admin manages accounts, grades, terms and subject enrolments. Contact
         your Admin to request a change.
       </Heading>
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        count={learners.length}
+        placeholder="Find a child or course…"
+      />
       <div className="learner-grid">
-        {data.students.map((s) => (
+        {learners.map((s) => (
           <section className="panel" key={s.id}>
             <h2>{s.name}</h2>
             <p>
               {s.level} · {s.grade} · {s.term || 'Term not configured'}
             </p>
-            <p><strong>Last login:</strong> {s.lastLoginAt ? new Date(s.lastLoginAt).toLocaleString() : 'Never signed in'}</p>
+            <p>
+              <strong>Last login:</strong>{' '}
+              {s.lastLoginAt
+                ? new Date(s.lastLoginAt).toLocaleString()
+                : 'Never signed in'}
+            </p>
             {s.needsConfiguration && (
               <p>Admin confirmation required before term practice.</p>
             )}
             <ul>
               {s.subjects.map((id) => (
-                <li key={id}>{data.subjects.find((x) => x.id === id)?.name}</li>
+                <li className="resource-row" key={id}>
+                  <strong>
+                    {data.subjects.find((x) => x.id === id)?.name}
+                  </strong>
+                  <span>{s.courses[id]?.level || s.level} · Enrolled</span>
+                </li>
               ))}
             </ul>
           </section>
@@ -1419,6 +4081,20 @@ export function FamilyCourses({ data }: { data: State }) {
   );
 }
 export function FamilyLibrary({ data }: { data: State }) {
+  const [filters, setFilters] = useWorkspaceSearch({
+    q: '',
+    subject: 'all',
+    kind: 'all',
+  });
+  const items = data.documents.filter(
+    (item) =>
+      (filters.subject === 'all' || item.subject === filters.subject) &&
+      (filters.kind === 'all' || item.kind === filters.kind) &&
+      (!filters.q ||
+        `${item.name} ${item.subject} ${item.kind}`
+          .toLowerCase()
+          .includes(filters.q.toLowerCase())),
+  );
   return (
     <>
       <Heading title="Approved learning resources">
@@ -1426,9 +4102,40 @@ export function FamilyLibrary({ data }: { data: State }) {
         past papers remain in the Admin library; term practice uses only
         eligible mapped questions.
       </Heading>
+      <FilterToolbar
+        search={filters.q}
+        onSearch={(q) => setFilters({ q })}
+        count={items.length}
+        placeholder="Find a learning resource…"
+        onClear={() => setFilters({ q: '', subject: 'all', kind: 'all' })}
+      >
+        <Picker
+          label="Subject"
+          value={filters.subject}
+          onChange={(subject) => setFilters({ subject })}
+          options={[
+            { value: 'all', label: 'All subjects' },
+            ...data.subjects.map((item) => ({
+              value: item.id,
+              label: item.name,
+            })),
+          ]}
+        />
+        <Picker
+          label="Kind"
+          value={filters.kind}
+          onChange={(kind) => setFilters({ kind })}
+          options={[
+            { value: 'all', label: 'All kinds' },
+            ...Array.from(new Set(data.documents.map((item) => item.kind))).map(
+              (value) => ({ value, label: value }),
+            ),
+          ]}
+        />
+      </FilterToolbar>
       <section className="panel">
-        {data.documents.length ? (
-          data.documents.map((d) => (
+        {items.length ? (
+          items.map((d) => (
             <a
               className="resource-row"
               key={d.id}
@@ -1436,7 +4143,15 @@ export function FamilyLibrary({ data }: { data: State }) {
               target="_blank"
               rel="noreferrer"
             >
-              {d.name} · {d.subject} · {d.kind}
+              <span>
+                <strong>{d.name}</strong>
+                <small>
+                  {data.subjects.find((item) => item.id === d.subject)?.name ||
+                    d.subject}{' '}
+                  · {d.kind}
+                </small>
+              </span>
+              <span>Open PDF ↗</span>
             </a>
           ))
         ) : (

@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
+
 - [UI features and portal presentation refresh](ongoing/TODO-UI-FEATURES-REFRESH.md) — frontend-only PreSkool-inspired previews, Academy learning patterns and ShadcnStore navigation; implemented; responsive visual acceptance pending. No backend or API contract changes.
 
 These roadmaps already contain completed work and still have outstanding actions. Finish or explicitly close them before starting another planned roadmap.
