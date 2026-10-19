@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [UI component catalogue: 27 PreSkool references](ongoing/TODO-UI-COMPONENT-CATALOGUE.md) — implementing the frontend-only catalogue in `/ui-features`.
+
 
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
 

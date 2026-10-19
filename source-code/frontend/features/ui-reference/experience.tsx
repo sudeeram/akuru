@@ -110,8 +110,8 @@ const sections: PortalNavItem[] = [
     group: 'Patterns',
   },
   {
-    id: 'ui-components',
-    label: 'Foundations & catalog',
+    id: 'ui-catalogue',
+    label: 'Component catalogue',
     icon: Palette,
     group: 'Design system',
   },
@@ -164,9 +164,13 @@ export function UiFeaturesExperience({
   useEffect(() => {
     const restoreAnchor = () => {
       const id = window.location.hash.slice(1);
-      const target = document.getElementById(id);
+      const target =
+        document.getElementById(id) ??
+        (id.startsWith('ui-catalog-')
+          ? document.getElementById('ui-catalogue')
+          : null);
       if (!target) return;
-      setActive(id);
+      setActive(id.startsWith('ui-catalog-') ? 'ui-catalogue' : id);
       target.scrollIntoView({ block: 'start' });
     };
     restoreAnchor();
