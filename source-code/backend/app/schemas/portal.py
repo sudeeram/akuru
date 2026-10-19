@@ -3,6 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.schemas.auth import UserResponse
+from app.schemas.student_avatar import StudentAvatarConfig
 
 
 class ProgressionResponse(BaseModel):
@@ -16,6 +17,7 @@ class SubjectCourseResponse(BaseModel):
 
 
 class StudentResponse(BaseModel):
+    avatar: StudentAvatarConfig | None = None
     id: str
     username: str
     name: str

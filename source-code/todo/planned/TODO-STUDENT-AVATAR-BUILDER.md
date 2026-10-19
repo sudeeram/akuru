@@ -85,3 +85,8 @@ Student creation/editing only. All approved customisation options are available 
 - Backend and frontend catalogue copies have an automated parity test. Keep version-1 IDs stable; introduce a compatible renderer before accepting any new catalogue version.
 - The local migration adds one nullable JSON column to `student_profiles`; no production changes were made. Backup restore passed at the previous revision, then local upgrade and Alembic check passed at `0011_student_avatar`.
 - Changes to avatar configuration are included in the existing role-scoped portal response. A save refreshes the current profile/top bar; another device receives it on its next state fetch/reload. There is no live push synchronization.
+
+
+## Follow-up: saved avatar display
+
+Production saves returned HTTP 200, but `StudentResponse` omitted the avatar field and discarded it during `/api/v1/state` serialization. This made the profile and top bar return to initials after refresh. Added the validated optional avatar to the response model and regenerated the API contract. A regression test now exercises the real HTTP state response after save, repeated refresh, linked-Parent access, sibling isolation and reset; it reproduced the missing-field failure before the fix. Existing saved configurations are retained; no new migration or Student data change is needed for this correction.

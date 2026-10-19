@@ -128,3 +128,38 @@ def test_full_app_allows_avatar_patch_preflight_from_configured_origin():
         })
     assert response.status_code == 200
     assert 'PATCH' in response.headers['access-control-allow-methods']
+
+
+def test_saved_avatar_survives_the_real_state_response_contract(avatar_client, monkeypatch):
+    """Exercise the HTTP serialization boundary used by both profile and top bar."""
+    from app.api.v1.accounts import router as accounts_router
+    from app.schemas.portal import PortalStateResponse
+    from app.services import portal
+    client, db, users, _ = avatar_client
+    client.app.include_router(accounts_router, prefix='/api/v1')
+
+    def state_response(session, principal):
+        return {
+            'user': {'id':str(principal.user.id),'username':principal.user.username,
+                'name':principal.user.display_name,'role':principal.user.role,'mustChangePassword':False},
+            'catalog': {'courses':[],'activeCourses':[],'grades':[],'terms':[],'kinds':[],'progressionPairs':[]},
+            'accounts':[], 'subjects':[], 'students':portal.student_rows(session,principal),
+        }
+    monkeypatch.setattr(portal, 'get_portal_state', state_response)
+    config = CATALOGUE['presets'][3]
+    assert client.patch('/api/v1/student/avatar',json=config,headers=headers()).status_code == 200
+    for _ in range(2):
+        response = client.get('/api/v1/state',headers=headers())
+        assert response.status_code == 200
+        own = response.json()['students']
+        assert len(own) == 1
+        assert own[0]['avatar'] == config
+        assert PortalStateResponse.model_validate(response.json()).students[0].avatar.model_dump() == config
+    family = client.get('/api/v1/state',headers=headers('parent')).json()['students']
+    assert next(row for row in family if row['id']==str(users['one'].id))['avatar'] == config
+    sibling = client.get('/api/v1/state',headers=headers('two')).json()['students']
+    assert len(sibling) == 1 and sibling[0]['avatar'] is None
+    other = client.get('/api/v1/state',headers=headers('other-parent')).json()['students']
+    assert len(other) == 1 and other[0]['avatar'] is None
+    assert client.delete('/api/v1/student/avatar',headers=headers()).status_code == 200
+    assert client.get('/api/v1/state',headers=headers()).json()['students'][0]['avatar'] is None
