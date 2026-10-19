@@ -85,7 +85,6 @@ import {
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
   ['subjects', 'My subjects', BookOpen],
-  ['community', 'Community', Users],
   ['textbooks', 'Textbooks', Library],
   ['tutors', 'My tutors', Bot],
   ['tutor-room', 'Tutor room', MessageCircle],
@@ -95,6 +94,7 @@ const studentNav = [
   ['progress', 'My progress', TrendingUp],
   ['plan', 'Study plan', CalendarDays],
   ['profile', 'My profile', Users],
+  ['community', 'Community', Users],
   ['security', 'Account security', KeyRound],
 ] as const;
 const parentNav = [
@@ -601,7 +601,7 @@ export function Portal() {
             id,
             label,
             icon,
-            group: ['security', 'profile'].includes(id)
+            group: ['security', 'profile', 'community'].includes(id)
               ? 'Account'
               : admin
                 ? ['today', 'operations', 'evaluations'].includes(id)
