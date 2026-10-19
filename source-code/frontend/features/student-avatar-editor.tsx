@@ -12,9 +12,9 @@ import {
   type AvatarField,
 } from '@/api';
 import {
-  avatarCatalogue,
   avatarPresets,
   surpriseAvatar,
+  avatarOptions,
 } from '@/lib/student-avatar';
 
 const groups = [
@@ -107,7 +107,7 @@ export function StudentAvatarEditor({
               variant="outline"
               disabled={busy}
               onClick={() => {
-                setDraft(surpriseAvatar());
+                setDraft(surpriseAvatar(draft.base));
                 setError('');
               }}
             >
@@ -146,7 +146,10 @@ export function StudentAvatarEditor({
               </button>
             ))}
           </div>
-          <p>Every feature is available for every character.</p>
+          <p>
+            Hairstyles match your starting character. Make it yours with
+            colours, glasses and more.
+          </p>
         </fieldset>
         <fieldset className="avatar-categories">
           <legend className="sr-only">Customisation categories</legend>
@@ -168,33 +171,31 @@ export function StudentAvatarEditor({
               <fieldset disabled={busy} key={field}>
                 <legend>{fieldLabels[field]}</legend>
                 <div className="avatar-option-grid">
-                  {Object.entries(avatarCatalogue.options[field]).map(
-                    ([value, option]) => {
-                      const color =
-                        'color' in option ? String(option.color) : undefined;
-                      return (
-                        <button
-                          type="button"
-                          key={value}
-                          aria-label={`${fieldLabels[field]}: ${option.label}`}
-                          aria-pressed={draft[field] === value}
-                          onClick={() => choose(field, value)}
-                        >
-                          {color ? (
-                            <span
-                              className="avatar-colour"
-                              style={{ backgroundColor: color }}
-                            />
-                          ) : (
-                            <StudentAvatar
-                              avatar={{ ...draft, [field]: value }}
-                            />
-                          )}
-                          <span>{option.label}</span>
-                        </button>
-                      );
-                    },
-                  )}
+                  {avatarOptions(field, draft.base).map(([value, option]) => {
+                    const color =
+                      'color' in option ? String(option.color) : undefined;
+                    return (
+                      <button
+                        type="button"
+                        key={value}
+                        aria-label={`${fieldLabels[field]}: ${option.label}`}
+                        aria-pressed={draft[field] === value}
+                        onClick={() => choose(field, value)}
+                      >
+                        {color ? (
+                          <span
+                            className="avatar-colour"
+                            style={{ backgroundColor: color }}
+                          />
+                        ) : (
+                          <StudentAvatar
+                            avatar={{ ...draft, [field]: value }}
+                          />
+                        )}
+                        <span>{option.label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </fieldset>
             ))}

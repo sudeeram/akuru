@@ -22,7 +22,8 @@ const helperUrl = url(
     `const catalogue=${JSON.stringify(catalogue)};`,
   ),
 );
-const { parseAvatar, avatarPresets, surpriseAvatar } = await import(helperUrl);
+const { parseAvatar, avatarPresets, surpriseAvatar, avatarOptions } =
+  await import(helperUrl);
 let renderer = compile(read('../components/portal/student-avatar.tsx')).replace(
   /['"]@\/lib\/student-avatar['"]/g,
   JSON.stringify(helperUrl),
@@ -79,4 +80,40 @@ test('avatar SVG IDs remain distinct when several avatars share a page', () => {
   );
   const ids = [...markup.matchAll(/id="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(ids.length, new Set(ids).size);
+});
+
+test('hairstyles are filtered and random choices preserve the selected base', () => {
+  for (const preset of avatarPresets) {
+    assert.deepEqual(
+      avatarOptions('hair', preset.base).map(([key]) => key),
+      Object.keys(catalogue.options.hair).filter((key) =>
+        catalogue.hairByBase[preset.base].includes(key),
+      ),
+    );
+    for (let i = 0; i < 100; i++) {
+      const avatar = surpriseAvatar(preset.base);
+      assert.equal(avatar.base, preset.base);
+      assert.ok(catalogue.hairByBase[avatar.base].includes(avatar.hair));
+    }
+    for (const hair of Object.keys(catalogue.options.hair)) {
+      const previous = { ...preset, hair };
+      const parsed = parseAvatar(previous);
+      assert.equal(
+        parsed.hair,
+        catalogue.hairByBase[preset.base].includes(hair) ? hair : preset.hair,
+      );
+      assert.equal(previous.hair, hair);
+    }
+  }
+});
+test('every skin tone renders a distinct darker neck and jaw shadow', () => {
+  for (const [skin, palette] of Object.entries(catalogue.options.skin)) {
+    assert.notEqual(palette.neckColor, palette.color);
+    assert.notEqual(palette.neckShadow, palette.neckColor);
+    const markup = renderToStaticMarkup(
+      createElement(StudentAvatar, { avatar: { ...avatarPresets[0], skin } }),
+    );
+    assert.ok(markup.includes(`fill="${palette.neckColor}"`));
+    assert.ok(markup.includes(`fill="${palette.neckShadow}"`));
+  }
 });

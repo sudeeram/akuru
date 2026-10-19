@@ -37,6 +37,8 @@ class StudentAvatarConfig(BaseModel):
         for field, choices in CATALOGUE['options'].items():
             if getattr(self, field) not in choices:
                 raise ValueError(f'Unsupported avatar option: {field}')
+        if self.hair not in CATALOGUE['hairByBase'][self.base]:
+            raise ValueError('Hairstyle must match the starting character')
         return self
 
 
@@ -47,6 +49,18 @@ class StudentAvatarResponse(BaseModel):
 def public_avatar(value: object) -> dict | None:
     if value is None:
         return None
+    # Preserve older saved avatars while adapting their hairstyle to the base.
+    # New writes still use strict validation above; no stored records are rewritten.
+    if (
+        isinstance(value, dict)
+        and isinstance(value.get('base'), str)
+        and isinstance(value.get('hair'), str)
+        and value['base'] in CATALOGUE['hairByBase']
+        and value['hair'] in CATALOGUE['options']['hair']
+    ):
+        if value['hair'] not in CATALOGUE['hairByBase'][value['base']]:
+            preset = next(p for p in CATALOGUE['presets'] if p['base'] == value['base'])
+            value = {**value, 'hair': preset['hair']}
     try:
         return StudentAvatarConfig.model_validate(value).model_dump()
     except ValidationError:

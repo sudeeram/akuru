@@ -96,7 +96,10 @@ def test_catalogues_match_and_each_supported_option_is_validated():
     assert json.loads(frontend.read_text()) == CATALOGUE
     for field, options in CATALOGUE['options'].items():
         for option in options:
-            StudentAvatarConfig.model_validate({**CATALOGUE['presets'][0],field:option})
+            payload = {**CATALOGUE['presets'][0], field: option}
+            payload['hair'] = CATALOGUE['hairByBase'][payload['base']][0] if field != 'hair' else option
+            if payload['hair'] in CATALOGUE['hairByBase'][payload['base']]:
+                StudentAvatarConfig.model_validate(payload)
     assert public_avatar({'version':999}) is None
     assert public_avatar(None) is None
 
@@ -163,3 +166,18 @@ def test_saved_avatar_survives_the_real_state_response_contract(avatar_client, m
     assert len(other) == 1 and other[0]['avatar'] is None
     assert client.delete('/api/v1/student/avatar',headers=headers()).status_code == 200
     assert client.get('/api/v1/state',headers=headers()).json()['students'][0]['avatar'] is None
+
+
+def test_hairstyles_match_base_on_save_and_legacy_reads_preserve_other_choices(avatar_client):
+    client, _, _, _ = avatar_client
+    for preset in CATALOGUE['presets']:
+        for hair in CATALOGUE['options']['hair']:
+            payload = {**preset, 'hair': hair}
+            response = client.patch('/api/v1/student/avatar', json=payload, headers=headers())
+            if hair in CATALOGUE['hairByBase'][preset['base']]:
+                assert response.status_code == 200
+                assert response.json()['avatar'] == payload
+            else:
+                assert response.status_code == 422
+                assert public_avatar(payload) == preset
+                assert payload['hair'] == hair

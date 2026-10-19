@@ -128,11 +128,13 @@ export function StudentAvatar({
               />
             </>
           )}
-          <path d="M79 147V176Q100 194 121 176V147" fill={skin} />
           <path
-            d="M79 150Q99 175 121 150V164Q100 183 79 163Z"
-            fill="#763e28"
-            opacity=".14"
+            d="M79 147V176Q100 194 121 176V147"
+            fill={palette.skin[a.skin].neckColor}
+          />
+          <path
+            d="M79 149Q100 172 121 149V174Q100 185 79 174Z"
+            fill={palette.skin[a.skin].neckShadow}
           />
           {a.outfit === 'tee' && (
             <path

@@ -32,35 +32,51 @@
     "skin": {
       "porcelain": {
         "label": "Light rose",
-        "color": "#F8CEB6"
+        "color": "#F8CEB6",
+        "neckColor": "#C1A18E",
+        "neckShadow": "#9F8474"
       },
       "sand": {
         "label": "Warm sand",
-        "color": "#EDB58D"
+        "color": "#EDB58D",
+        "neckColor": "#B98D6E",
+        "neckShadow": "#98745A"
       },
       "golden": {
         "label": "Golden",
-        "color": "#E9A568"
+        "color": "#E9A568",
+        "neckColor": "#B68151",
+        "neckShadow": "#956A43"
       },
       "tan": {
         "label": "Warm tan",
-        "color": "#CE8755"
+        "color": "#CE8755",
+        "neckColor": "#A16942",
+        "neckShadow": "#845636"
       },
       "brown": {
         "label": "Warm brown",
-        "color": "#A96339"
+        "color": "#A96339",
+        "neckColor": "#844D2C",
+        "neckShadow": "#6C3F24"
       },
       "deep": {
         "label": "Deep brown",
-        "color": "#75432C"
+        "color": "#75432C",
+        "neckColor": "#5B3422",
+        "neckShadow": "#4B2B1C"
       },
       "umber": {
         "label": "Rich umber",
-        "color": "#573327"
+        "color": "#573327",
+        "neckColor": "#44281E",
+        "neckShadow": "#382119"
       },
       "olive": {
         "label": "Olive",
-        "color": "#BA9366"
+        "color": "#BA9366",
+        "neckColor": "#917350",
+        "neckShadow": "#775E41"
       }
     },
     "hair": {
@@ -319,5 +335,11 @@
       "glasses": "none",
       "background": "lilac"
     }
-  ]
+  ],
+  "hairByBase": {
+    "base01": ["sweep", "curls", "crop", "none"],
+    "base02": ["sweep", "curls", "crop", "none"],
+    "base03": ["waves", "bob", "bun", "braids", "none"],
+    "base04": ["waves", "bob", "bun", "braids", "none"]
+  }
 }

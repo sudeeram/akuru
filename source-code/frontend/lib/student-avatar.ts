@@ -14,15 +14,26 @@ export function parseAvatar(value: unknown): AvatarConfig | null {
       !Object.hasOwn(catalogue.options[field], record[field] as string)
     )
       return null;
-  return record as AvatarConfig;
+  const avatar = { ...record } as AvatarConfig;
+  if (!catalogue.hairByBase[avatar.base].includes(avatar.hair))
+    avatar.hair = avatarPresets.find(
+      (preset) => preset.base === avatar.base,
+    )!.hair;
+  return avatar;
 }
-export function surpriseAvatar(): AvatarConfig {
+export function avatarOptions(field: AvatarField, base: AvatarConfig['base']) {
+  return Object.entries(catalogue.options[field]).filter(
+    ([value]) => field !== 'hair' || catalogue.hairByBase[base].includes(value),
+  );
+}
+export function surpriseAvatar(base?: AvatarConfig['base']): AvatarConfig {
   const next = {
-    ...avatarPresets[Math.floor(Math.random() * avatarPresets.length)],
+    ...(avatarPresets.find((preset) => preset.base === base) ||
+      avatarPresets[Math.floor(Math.random() * avatarPresets.length)]),
   };
   for (const field of Object.keys(catalogue.options) as AvatarField[]) {
     if (field === 'base') continue;
-    const choices = Object.keys(catalogue.options[field]);
+    const choices = avatarOptions(field, next.base).map(([value]) => value);
     Object.assign(next, {
       [field]: choices[Math.floor(Math.random() * choices.length)],
     });
