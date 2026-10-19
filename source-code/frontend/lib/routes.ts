@@ -6,6 +6,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
   admin: {
     today: '/admin',
     accounts: '/admin/accounts',
+    'community-reports': '/admin/community-reports',
     library: '/admin/exam-documents',
     units: '/admin/textbooks',
     coverage: '/admin/coverage',
@@ -38,6 +39,7 @@ const roleViews: Record<PortalRole, Record<string, string>> = {
   student: {
     today: '/student',
     subjects: '/student/subjects',
+    community: '/student/community',
     textbooks: '/student/textbooks',
     tutors: '/student/tutors',
     'tutor-room': '/student/tutor-room',
@@ -155,6 +157,8 @@ export type RouteDefinition = {
 const titles: Record<string, string> = {
   today: 'Overview',
   accounts: 'Accounts & enrolments',
+  community: 'Community',
+  'community-reports': 'Community reports',
   library: 'Exam Documents',
   units: 'Textbooks',
   coverage: 'Grade & term coverage',
@@ -355,6 +359,7 @@ export function workspaceSearch(search: Record<string, unknown>) {
   const result: Record<string, string> = {};
   const allowed = [
     'q',
+    'course',
     'subject',
     'status',
     'kind',

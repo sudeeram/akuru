@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Student Community: course discovery and following](ongoing/TODO-STUDENT-COMMUNITY.md) — implementation and local acceptance in progress; commit and production deployment authorized.
+
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
 
 - [UI features and portal presentation refresh](ongoing/TODO-UI-FEATURES-REFRESH.md) — frontend-only PreSkool-inspired previews, Academy learning patterns and ShadcnStore navigation; implemented; responsive visual acceptance pending. No backend or API contract changes.
@@ -19,6 +21,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 - [Original Student avatar builder](planned/TODO-STUDENT-AVATAR-BUILDER.md) — original AKURU character customisation, profile integration and validated persistence; Style A vector editor and validated saving implemented locally; Student/Parent signed-in acceptance and deployment remain pending.
 

@@ -14,6 +14,8 @@ This handbook explains the current AKURU implementation for developers. It descr
 8. [Production and operations](08-production-and-operations.md) — Ubuntu/OCI topology, releases, backups, monitoring and recovery.
 9. [Changing AKURU safely](09-change-workflow.md) — practical end-to-end workflows for features, APIs, schema and documents.
 
+10. [Student Community](11-student-community.md) — public identities, course discovery, following, privacy and moderation.
+
 ## Architectural principles
 
 - FastAPI and PostgreSQL are authoritative. The browser never grants access by hiding or showing a control.

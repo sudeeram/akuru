@@ -20,6 +20,7 @@ import {
   EmptyState,
 } from '@/components/portal/dashboard-widgets';
 import { Button } from '@/components/ui/button';
+import { CommunitySettingsPanel } from './community';
 import { profileDetails } from '@/lib/profile';
 import { pathForView } from '@/lib/routes';
 
@@ -94,6 +95,7 @@ export function AccountProfile({
           </Button>
         }
       />
+      {role === 'student' && <CommunitySettingsPanel actorRef={data.user.id} />}
       <section className="profile-banner" aria-label="Profile summary">
         <div className="profile-banner-pattern" aria-hidden="true" />
         <div className="profile-identity">

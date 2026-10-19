@@ -55,6 +55,11 @@ import { StudentFlashcards } from '@/features/flashcards';
 import { StudentTextbooks } from '@/features/student-textbooks';
 import { StudentAvatar } from '@/components/portal/student-avatar';
 import { AccountProfile } from '@/features/account-profile';
+import {
+  StudentCommunity,
+  CommunityNotificationButton,
+  CommunityModeration,
+} from '@/features/community';
 import { AccountSecurity } from '@/features/account-security';
 import {
   AdminLayout,
@@ -79,6 +84,7 @@ import {
 const studentNav = [
   ['today', 'Today', LayoutDashboard],
   ['subjects', 'My subjects', BookOpen],
+  ['community', 'Community', Users],
   ['textbooks', 'Textbooks', Library],
   ['tutors', 'My tutors', Bot],
   ['tutor-room', 'Tutor room', MessageCircle],
@@ -105,6 +111,7 @@ const parentNav = [
 const adminNav = [
   ['today', 'Admin overview', LayoutDashboard],
   ['accounts', 'Accounts & enrolments', Users],
+  ['community-reports', 'Community reports', ShieldCheck],
   ['library', 'Exam Documents', Library],
   ['units', 'Textbooks', BookOpen],
   ['coverage', 'Grade & term coverage', CalendarDays],
@@ -543,7 +550,7 @@ export function Portal() {
         }
         workspaceContext={
           !admin &&
-          !['security', 'profile'].includes(view) &&
+          !['security', 'profile', 'community'].includes(view) &&
           child.id && (
             <section
               className="workspace-context"
@@ -632,6 +639,11 @@ export function Portal() {
             <Link href="/ui-features" className="ak-return">
               <Palette size={16} /> UI features
             </Link>
+          ) : !parent ? (
+            <CommunityNotificationButton
+              actorRef={data.user.id}
+              open={() => navigateTo('/student/community?section=feed')}
+            />
           ) : undefined
         }
         account={
@@ -706,6 +718,14 @@ export function Portal() {
             />
           ) : view === 'security' ? (
             <AccountSecurity notify={notify} />
+          ) : view === 'community' && !admin && !parent ? (
+            <StudentCommunity
+              actorRef={data.user.id}
+              search={location.search}
+              navigate={navigateTo}
+            />
+          ) : view === 'community-reports' && admin ? (
+            <CommunityModeration actorRef={data.user.id} />
           ) : admin ? (
             <AdminWorkspace
               key={view}

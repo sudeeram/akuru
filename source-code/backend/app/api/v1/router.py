@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1 import accounts, ai_accounts, assessments, auth, curriculum, documents, evaluations, flashcards, mastery, official_paper_reviews, operations, questions, retrieval, study_plans, student_textbooks, student_references, textbook_structures, tutoring, weaknesses, media, student_avatar
+from app.api.v1 import accounts, ai_accounts, assessments, auth, curriculum, documents, evaluations, flashcards, mastery, official_paper_reviews, operations, questions, retrieval, study_plans, student_textbooks, student_references, textbook_structures, tutoring, weaknesses, media, student_avatar, community
 
 
 api_router = APIRouter(prefix="/api/v1")
@@ -26,3 +26,5 @@ api_router.include_router(evaluations.router)
 api_router.include_router(operations.router)
 
 api_router.include_router(student_avatar.router)
+
+api_router.include_router(community.router)

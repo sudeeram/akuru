@@ -131,3 +131,15 @@ Tutor observations are shown as non-authoritative. They may help you and your pa
 In Tutor room, choose Find next unit when you want evidence-based advice about what to improve. AKURU compares only your covered units using assessed results, mastery confidence and trends, recurring assessed mistakes, reviewed recommendations, your current study plan and current-term assessment preparation. It shows the reason and activity before anything changes. Choose Move to this unit if you want to follow the advice; AKURU will never move you automatically.
 
 Use Find an exact explanation to search the approved textbook for your active unit. A result shows the textbook title and edition, its printed page label, the physical PDF page and the exact supporting passage. Open cited page or crop displays the private source image after checking your account and session. Show nearby context adds approved passages from the same unit and textbook version. If AKURU says evidence is insufficient, it has not found a reliable source and will not invent a page or quotation.
+
+## Community and your public name
+
+Open **Community → Settings**, or **My profile → Your community profile**. Choose a public name (3–32 letters, numbers, spaces, hyphens or underscores), select any enrolled subjects you want to show, and enable participation. Use a name that does not identify you personally. Public names are unique; your login username stays unchanged. Existing accounts start with participation switched off.
+
+**Discover** shows participating students in your current course, such as iGCSE. You can search public names and optionally filter by visible subjects. You can follow someone in your course even when you study different subjects. Connections continue if either learner later changes course.
+
+**Follow** creates a one-way connection. The recipient gets an in-app notification and can **Follow back**. **Following** and **Followers** show your own connections. Use **Unfollow** to remove an outgoing connection. The top-bar **Feed** button shows unread follow notifications; open Feed to mark individual notifications read or unread. Follow updates refresh periodically. Exam results, marks and learning history are not shared; Community has no messaging, posts or comments.
+
+Other learners see only your public name, avatar and selected subjects. Hiding a subject also removes you from that subject's search results. Switching participation off hides your profile, pauses new follows and suppresses your community notifications. Existing connections stay private and return when you rejoin.
+
+**Block** removes connections in both directions and prevents you from discovering or following each other. Manage blocks under **Blocked learners**; unblocking does not restore connections. **Report** sends a private profile concern to an Admin without disclosing your identity to the reported learner. If an Admin requests a new public name, your community profile stays hidden until you choose a different acceptable name.

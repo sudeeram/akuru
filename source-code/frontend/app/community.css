@@ -1,0 +1,288 @@
+.community-workspace {
+  max-width: 1200px;
+  margin-inline: auto;
+}
+.community-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+.community-heading h1 {
+  margin: 4px 0;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 750;
+}
+.community-heading p,
+.community-card p {
+  color: #60718b;
+  line-height: 1.55;
+}
+.community-heading > svg {
+  color: #6778cb;
+  flex-shrink: 0;
+}
+.community-tabs,
+.community-person-actions,
+.community-pagination {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.community-tabs {
+  padding: 6px 0 12px;
+}
+.community-tabs button {
+  text-transform: none;
+}
+.community-card {
+  border: 1px solid #dfe5ef;
+  border-radius: 14px;
+  background: var(--card, #fff);
+  overflow: hidden;
+  min-width: 0;
+}
+.community-card > header {
+  padding: 15px 18px;
+  border-bottom: 1px solid #e5eaf2;
+  background: #fbfcff;
+}
+.community-card h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.community-card header p {
+  font-size: 0.85rem;
+  margin: 4px 0 0;
+}
+.community-card-body {
+  padding: 18px;
+}
+.community-settings-fields {
+  display: grid;
+  gap: 12px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.community-settings-fields > label:first-child {
+  max-width: 400px;
+}
+.community-settings-fields label,
+.community-filters label,
+.community-card-body > label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.community-settings-fields small {
+  color: #60718b;
+}
+.community-settings-fields > fieldset {
+  border: 1px solid #e1e6f0;
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+}
+.community-settings-fields legend {
+  font-size: 0.85rem;
+  padding: 0 5px;
+}
+.community-subject-choices {
+  display: flex;
+  gap: 10px 18px;
+  flex-wrap: wrap;
+}
+.community-settings-fields .community-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.community-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: #4654ba;
+  flex-shrink: 0;
+}
+.community-settings-fields > button {
+  justify-self: start;
+}
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 12px;
+}
+.community-person {
+  padding: 14px;
+  border: 1px solid #e3e8f1;
+  border-radius: 12px;
+  min-width: 0;
+  background: #fff;
+}
+.community-person-identity {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+.community-person-identity > div {
+  min-width: 0;
+}
+.community-person h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.community-person p {
+  font-size: 0.8rem;
+  margin: 4px 0;
+  overflow-wrap: anywhere;
+}
+.community-person small {
+  color: #5966a2;
+  font-size: 0.75rem;
+}
+.community-avatar {
+  width: 64px;
+  height: 70px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: #eef1ff;
+  overflow: hidden;
+  color: #6778cb;
+}
+.community-avatar .student-avatar {
+  width: 100%;
+  height: 100%;
+}
+.community-avatar svg {
+  width: 100%;
+  height: 100%;
+}
+.community-person-actions {
+  margin-top: 12px;
+}
+.community-person-actions button {
+  font-size: 0.8rem;
+}
+.community-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 18px;
+}
+.community-filters > label {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.community-search {
+  display: flex;
+  gap: 6px;
+}
+.community-card select,
+.community-workspace select {
+  border: 1px solid #d6deec;
+  border-radius: 8px;
+  background: white;
+  min-height: 38px;
+  padding: 7px 10px;
+  width: 100%;
+  max-width: 100%;
+  font: inherit;
+  color: #263c5a;
+}
+.community-pagination {
+  justify-content: flex-end;
+  margin-top: 18px;
+  font-size: 0.8rem;
+  color: #60718b;
+}
+.community-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: #61718d;
+}
+.community-empty > svg {
+  margin: 0 auto 10px;
+  color: #8591c7;
+}
+.community-empty h3 {
+  font-weight: 650;
+  color: #314568;
+}
+.community-event {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e0e6f0;
+  border-radius: 12px;
+}
+.community-event[data-unread='true'] {
+  border-left: 3px solid #6172d2;
+  background: #f6f8ff;
+}
+.community-event > p {
+  margin: 0;
+}
+.community-event time {
+  display: block;
+  color: #60718b;
+  font-size: 0.75rem;
+  margin: 4px 0 12px;
+}
+.community-event .community-person {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+.community-feedback {
+  color: #27664e;
+  font-size: 0.85rem;
+}
+.community-report {
+  border-bottom: 1px solid #e5eaf2;
+  padding: 15px 0;
+}
+.community-report h3 {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.community-unread-count {
+  display: inline-grid;
+  place-items: center;
+  background: #4654ba;
+  color: #fff;
+  border-radius: 20px;
+  min-width: 20px;
+  padding: 1px 5px;
+  font-size: 0.7rem;
+}
+@media (max-width: 600px) {
+  .community-card-body {
+    padding: 12px;
+  }
+  .community-card > header {
+    padding: 12px;
+  }
+  .community-tabs {
+    gap: 6px;
+  }
+  .community-tabs button {
+    font-size: 0.75rem;
+    padding: 7px 10px;
+  }
+  .community-notice-label {
+    display: none;
+  }
+  .community-heading > svg {
+    display: none;
+  }
+}

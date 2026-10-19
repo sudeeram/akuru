@@ -1771,3 +1771,60 @@ class FamilyUsageEvent(Base):
         CheckConstraint("quantity >= 0", name="ck_family_usage_quantity"),
         UniqueConstraint("family_id", "kind", "operation_id", name="uq_family_usage_operation"),
     )
+
+
+class CommunityProfile(TimestampMixin, Base):
+    __tablename__ = 'community_profiles'
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('student_profiles.student_id', ondelete='CASCADE'), primary_key=True)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f'learner_{uuid.uuid4().hex}')
+    public_name: Mapped[str] = mapped_column(String(32), default='')
+    name_key: Mapped[str | None] = mapped_column(String(96), unique=True, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
+    visible_subject_ids: Mapped[list] = mapped_column(JSON, default=list)
+    name_change_required: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
+    action_window: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    action_count: Mapped[int] = mapped_column(Integer, default=0, server_default='0')
+
+
+class CommunityFollow(Base):
+    __tablename__ = 'community_follows'
+    follower_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), primary_key=True)
+    followed_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), primary_key=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (CheckConstraint('follower_id <> followed_id', name='ck_community_no_self_follow'),)
+
+
+class CommunityBlock(Base):
+    __tablename__ = 'community_blocks'
+    blocker_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), primary_key=True)
+    blocked_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), primary_key=True, index=True)
+    __table_args__ = (CheckConstraint('blocker_id <> blocked_id', name='ck_community_no_self_block'),)
+
+
+class CommunityNotification(Base):
+    __tablename__ = 'community_notifications'
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f'notice_{uuid.uuid4().hex}')
+    recipient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), index=True)
+    actor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'))
+    event_type: Mapped[str] = mapped_column(String(40), default='follow.v1', server_default='follow.v1')
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    read: Mapped[bool] = mapped_column(Boolean, default=False, server_default='false')
+    __table_args__ = (UniqueConstraint('recipient_id', 'actor_id', 'event_type', name='uq_community_notification_pair'),)
+
+
+class CommunityReport(TimestampMixin, Base):
+    __tablename__ = 'community_reports'
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, default=lambda: f'report_{uuid.uuid4().hex}')
+    reporter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'))
+    target_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('community_profiles.student_id', ondelete='CASCADE'), index=True)
+    reason: Mapped[str] = mapped_column(String(40))
+    reported_name: Mapped[str] = mapped_column(String(32))
+    status: Mapped[str] = mapped_column(String(24), default='open', server_default='open', index=True)
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey('users.id', ondelete='SET NULL'))
+    __table_args__ = (
+        UniqueConstraint('reporter_id', 'target_id', name='uq_community_report_pair'),
+        CheckConstraint("status IN ('open','dismissed','name_change_required')", name='ck_community_report_status'),
+        CheckConstraint("reason IN ('inappropriate_name','impersonation','other_concern')", name='ck_community_report_reason'),
+    )

@@ -254,3 +254,9 @@ Authorized deletion requests are performed by an operator with the backend reten
 ## Tutor Presets
 
 Open Tutor presets to manage the child-safe AKURU hero avatars and voice styles offered to Students. You can enable, disable and reorder a preset. Disabling it prevents new selections but preserves existing profile history. Admins can view a Student's tutor profiles for support but cannot create or edit a profile as that Student.
+
+## Community profile reports
+
+Open **Community reports** to review open Student public-name reports. The queue shows the public name at the time of reporting, the reason, date and status; it does not display the reporter's identity. Dismiss a report when no action is needed, or choose **Hide and request name change** and confirm. This hides only the community profile until the student chooses a different valid public name; account access, enrolments and learning are unaffected. Actions are audited. If a name has already changed since reporting, review the old report and dismiss it rather than hiding the new name automatically.
+
+Community starts opted out for existing students. Course discovery follows current enrolment, not an assumed iGCSE label. Student Community does not expose grades, scores, exam history or messaging. Reports and connection records are retained while the relevant accounts exist and cascade on Student-profile deletion; reports reuse one record per reporter/target pair and retain the reported public name for review. They are included in protected database backups, subject to the existing backup retention policy.

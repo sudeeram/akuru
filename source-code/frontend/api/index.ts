@@ -30,3 +30,4 @@ export type {
 
 export * from './avatars/avatar.types';
 export * from './avatars/avatar.api';
+export * from './community/community.api';

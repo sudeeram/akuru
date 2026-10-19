@@ -28,7 +28,8 @@ def test_baseline_matches_topic_only_metadata_inventory():
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
                         "textbook_topic_visual_assets", "flashcard_reports",
                             "password_reset_receipts", "official_paper_review_workspaces",
-                            "official_paper_review_questions"}
+                            "official_paper_review_questions", "community_profiles", "community_follows",
+                            "community_blocks", "community_notifications", "community_reports"}
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 
