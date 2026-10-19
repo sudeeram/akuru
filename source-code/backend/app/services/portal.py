@@ -6,6 +6,7 @@ from app.repositories.catalog import CatalogRepository
 from app.repositories.documents import DocumentRepository
 from app.repositories.students import StudentRepository
 from app.repositories.users import UserRepository
+from app.schemas.student_avatar import public_avatar
 from app.security import Principal
 from app.services import assessments, mastery, study_plans, weaknesses
 from app.models import Assessment, Textbook, TextbookGroup, TextbookTopic, TextbookTopicDocument
@@ -39,6 +40,7 @@ def student_rows(db: Session, principal: Principal) -> list[dict]:
             "name": user.display_name,
             "initial": user.display_name[:1].upper(),
             "parentId": str(profile.parent_id),
+            "avatar": public_avatar(profile.avatar_config),
             "level": "iGCSE",
             "grade": f"Grade {current.grade}" if current else "",
             "term": f"Term{current.term}" if current else "",

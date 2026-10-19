@@ -5,6 +5,7 @@
 @import './paper-review.css';
 @import './workspace.css';
 @import './profile.css';
+@import './student-avatar.css';
 @custom-variant dark (&:is(.dark *));
 @theme inline {
   --color-background: var(--background);

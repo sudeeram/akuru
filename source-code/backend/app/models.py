@@ -101,6 +101,7 @@ class StudentProfile(TimestampMixin, Base):
     __tablename__ = "student_profiles"
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     parent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    avatar_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
 
 class StudentAIQuota(TimestampMixin, Base):

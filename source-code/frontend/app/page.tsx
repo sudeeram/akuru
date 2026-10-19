@@ -53,6 +53,7 @@ import { TutorSessions } from '@/features/tutor-sessions';
 import { TutorHistory } from '@/features/tutor-history';
 import { StudentFlashcards } from '@/features/flashcards';
 import { StudentTextbooks } from '@/features/student-textbooks';
+import { StudentAvatar } from '@/components/portal/student-avatar';
 import { AccountProfile } from '@/features/account-profile';
 import { AccountSecurity } from '@/features/account-security';
 import {
@@ -641,7 +642,17 @@ export function Portal() {
               aria-label="Open my profile"
               onClick={() => go('profile')}
             >
-              <span className="ak-avatar">{data.user.name[0]}</span>
+              <span className="ak-avatar">
+                <StudentAvatar
+                  avatar={
+                    data.user.role === 'student'
+                      ? data.students.find((item) => item.id === data.user.id)
+                          ?.avatar
+                      : null
+                  }
+                  fallback={data.user.name[0]}
+                />
+              </span>
               <span>
                 {data.user.name}
                 <small>
@@ -686,7 +697,13 @@ export function Portal() {
             </output>
           )}
           {view === 'profile' ? (
-            <AccountProfile data={data} navigate={navigateTo} />
+            <AccountProfile
+              key={data.user.id}
+              data={data}
+              navigate={navigateTo}
+              refresh={refresh}
+              notify={notify}
+            />
           ) : view === 'security' ? (
             <AccountSecurity notify={notify} />
           ) : admin ? (

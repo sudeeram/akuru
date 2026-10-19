@@ -1,4 +1,8 @@
 'use client';
+import { useState } from 'react';
+import type { AvatarConfig } from '@/api';
+import { StudentAvatar } from '@/components/portal/student-avatar';
+import { StudentAvatarEditor } from './student-avatar-editor';
 import {
   ArrowRight,
   BookOpen,
@@ -60,12 +64,22 @@ function CourseList({ student, data }: { student: Student; data: State }) {
 export function AccountProfile({
   data,
   navigate,
+  refresh,
+  notify,
 }: {
   data: State;
   navigate: (path: string) => void;
+  refresh: () => Promise<void>;
+  notify: (message: string) => void;
 }) {
   const profile = profileDetails(data);
   const { role, student, children } = profile;
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [savedAvatar, setSavedAvatar] = useState<
+    AvatarConfig | null | undefined
+  >(undefined);
+  const avatar =
+    savedAvatar === undefined ? student?.avatar || null : savedAvatar;
   const open = (view: string) => navigate(pathForView(role, view));
   return (
     <div className="account-profile">
@@ -83,9 +97,19 @@ export function AccountProfile({
       <section className="profile-banner" aria-label="Profile summary">
         <div className="profile-banner-pattern" aria-hidden="true" />
         <div className="profile-identity">
-          <span className="profile-avatar" aria-hidden="true">
-            {profile.initials}
-          </span>
+          <div className="profile-avatar-actions">
+            <span className="profile-avatar">
+              <StudentAvatar
+                avatar={role === 'student' ? avatar : null}
+                fallback={profile.initials}
+              />
+            </span>
+            {role === 'student' && (
+              <button type="button" onClick={() => setEditorOpen(true)}>
+                {avatar ? 'Edit avatar' : 'Create my avatar'}
+              </button>
+            )}
+          </div>
           <div>
             <span className="profile-role">{profile.roleName}</span>
             <h2>{data.user.name}</h2>
@@ -98,6 +122,25 @@ export function AccountProfile({
           </div>
         </div>
       </section>
+      {role === 'student' && editorOpen && (
+        <StudentAvatarEditor
+          current={avatar}
+          onClose={() => setEditorOpen(false)}
+          onSaved={(next) => {
+            setSavedAvatar(next);
+            notify(
+              next ? 'Your avatar is saved.' : 'Your initials are restored.',
+            );
+            void refresh()
+              .then(() => setSavedAvatar(undefined))
+              .catch(() =>
+                notify(
+                  'Avatar saved. Refresh the page to update other account icons.',
+                ),
+              );
+          }}
+        />
+      )}
       <div className="ak-metric-grid profile-metrics">
         <MetricCard
           label="Your role"
@@ -245,7 +288,10 @@ export function AccountProfile({
                           className="profile-child-avatar"
                           aria-hidden="true"
                         >
-                          {child.initial}
+                          <StudentAvatar
+                            avatar={child.avatar}
+                            fallback={child.initial}
+                          />
                         </span>
                         <div>
                           <h3>{child.name}</h3>

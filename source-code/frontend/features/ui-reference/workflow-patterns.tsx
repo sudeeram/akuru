@@ -1,4 +1,5 @@
 'use client';
+import { AvatarBuilderPreview } from '@/features/student-avatar-editor';
 import { useState } from 'react';
 import {
   FilterToolbar,
@@ -17,6 +18,7 @@ export function WorkflowPatterns() {
   const [title, setTitle] = useState('');
   return (
     <section className="panel stack">
+      <AvatarBuilderPreview />
       <h2>Real workflow patterns</h2>
       <p>
         Compact queues keep search and row actions visible; editing opens in a

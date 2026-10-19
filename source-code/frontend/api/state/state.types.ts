@@ -1,3 +1,4 @@
+import type { AvatarConfig } from '../avatars/avatar.types';
 /** Aggregate portal state and shared presentation contracts. */
 import type { Attempt, Exam } from '../assessments/assessments.types';
 import type { MasteryGroup, ImprovementRecommendation, TopicMastery } from '../mastery/mastery.types';
@@ -20,6 +21,7 @@ export type Subject = {
 };
 
 export type Student = {
+  avatar?: AvatarConfig | null;
   accountRef: string;
   lastLoginAt?: string | null;
   parentId: string;

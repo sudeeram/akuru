@@ -27,3 +27,6 @@ export type {
   ApiOperations,
   Schemas as BackendSchemas,
 } from '../lib/generated/api-contract';
+
+export * from './avatars/avatar.types';
+export * from './avatars/avatar.api';

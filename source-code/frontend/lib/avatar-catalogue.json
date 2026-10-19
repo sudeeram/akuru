@@ -1,0 +1,323 @@
+{
+  "version": 1,
+  "options": {
+    "base": {
+      "base01": {
+        "label": "Starting character 1"
+      },
+      "base02": {
+        "label": "Starting character 2"
+      },
+      "base03": {
+        "label": "Starting character 3"
+      },
+      "base04": {
+        "label": "Starting character 4"
+      }
+    },
+    "face": {
+      "soft": {
+        "label": "Soft oval"
+      },
+      "round": {
+        "label": "Round"
+      },
+      "oval": {
+        "label": "Gentle tapered"
+      },
+      "full": {
+        "label": "Full cheeks"
+      }
+    },
+    "skin": {
+      "porcelain": {
+        "label": "Light rose",
+        "color": "#F8CEB6"
+      },
+      "sand": {
+        "label": "Warm sand",
+        "color": "#EDB58D"
+      },
+      "golden": {
+        "label": "Golden",
+        "color": "#E9A568"
+      },
+      "tan": {
+        "label": "Warm tan",
+        "color": "#CE8755"
+      },
+      "brown": {
+        "label": "Warm brown",
+        "color": "#A96339"
+      },
+      "deep": {
+        "label": "Deep brown",
+        "color": "#75432C"
+      },
+      "umber": {
+        "label": "Rich umber",
+        "color": "#573327"
+      },
+      "olive": {
+        "label": "Olive",
+        "color": "#BA9366"
+      }
+    },
+    "hair": {
+      "sweep": {
+        "label": "Side sweep"
+      },
+      "curls": {
+        "label": "Natural curls"
+      },
+      "waves": {
+        "label": "Long waves"
+      },
+      "bob": {
+        "label": "Soft curly bob"
+      },
+      "crop": {
+        "label": "Short crop"
+      },
+      "bun": {
+        "label": "High bun"
+      },
+      "braids": {
+        "label": "Braids"
+      },
+      "none": {
+        "label": "No hair"
+      }
+    },
+    "hairColor": {
+      "ink": {
+        "label": "Soft black",
+        "color": "#29232F"
+      },
+      "espresso": {
+        "label": "Espresso",
+        "color": "#423034"
+      },
+      "chestnut": {
+        "label": "Chestnut",
+        "color": "#77462F"
+      },
+      "auburn": {
+        "label": "Auburn",
+        "color": "#A85132"
+      },
+      "gold": {
+        "label": "Golden brown",
+        "color": "#C48F43"
+      },
+      "silver": {
+        "label": "Silver",
+        "color": "#ADB0C3"
+      }
+    },
+    "eyes": {
+      "almond": {
+        "label": "Almond"
+      },
+      "round": {
+        "label": "Round"
+      },
+      "upturned": {
+        "label": "Upturned"
+      },
+      "smile": {
+        "label": "Smiling eyes"
+      }
+    },
+    "eyeColor": {
+      "brown": {
+        "label": "Brown",
+        "color": "#49302B"
+      },
+      "hazel": {
+        "label": "Hazel",
+        "color": "#79613B"
+      },
+      "green": {
+        "label": "Green",
+        "color": "#4F795D"
+      },
+      "blue": {
+        "label": "Blue",
+        "color": "#4C7D9C"
+      },
+      "grey": {
+        "label": "Grey",
+        "color": "#75818F"
+      }
+    },
+    "brows": {
+      "straight": {
+        "label": "Straight"
+      },
+      "gentle": {
+        "label": "Gentle curve"
+      },
+      "arched": {
+        "label": "Expressive arch"
+      }
+    },
+    "mouth": {
+      "soft": {
+        "label": "Soft smile"
+      },
+      "open": {
+        "label": "Big smile"
+      },
+      "grin": {
+        "label": "Playful grin"
+      },
+      "calm": {
+        "label": "Calm"
+      }
+    },
+    "outfit": {
+      "tee": {
+        "label": "Crew-neck"
+      },
+      "hoodie": {
+        "label": "Hoodie"
+      },
+      "collar": {
+        "label": "Collared top"
+      }
+    },
+    "clothesColor": {
+      "indigo": {
+        "label": "Indigo",
+        "color": "#4654BA"
+      },
+      "lavender": {
+        "label": "Lavender",
+        "color": "#A18AE8"
+      },
+      "teal": {
+        "label": "Teal",
+        "color": "#29A4A9"
+      },
+      "blue": {
+        "label": "Sky blue",
+        "color": "#5792DD"
+      },
+      "coral": {
+        "label": "Coral",
+        "color": "#DE7B71"
+      },
+      "sage": {
+        "label": "Sage",
+        "color": "#78A68B"
+      }
+    },
+    "glasses": {
+      "none": {
+        "label": "No glasses"
+      },
+      "round": {
+        "label": "Round frames"
+      },
+      "square": {
+        "label": "Rounded square"
+      },
+      "cat": {
+        "label": "Cat-eye"
+      }
+    },
+    "background": {
+      "sky": {
+        "label": "Soft sky",
+        "color": "#DCE7FF"
+      },
+      "lilac": {
+        "label": "Lilac",
+        "color": "#E8DEFF"
+      },
+      "mint": {
+        "label": "Mint",
+        "color": "#D2F3EA"
+      },
+      "peach": {
+        "label": "Peach",
+        "color": "#FFE5D8"
+      },
+      "cream": {
+        "label": "Cream",
+        "color": "#F5EED8"
+      },
+      "rose": {
+        "label": "Rose",
+        "color": "#F7DDE9"
+      }
+    }
+  },
+  "presets": [
+    {
+      "version": 1,
+      "base": "base01",
+      "face": "soft",
+      "skin": "golden",
+      "hair": "sweep",
+      "hairColor": "ink",
+      "eyes": "almond",
+      "eyeColor": "brown",
+      "brows": "straight",
+      "mouth": "soft",
+      "outfit": "tee",
+      "clothesColor": "indigo",
+      "glasses": "none",
+      "background": "sky"
+    },
+    {
+      "version": 1,
+      "base": "base02",
+      "face": "round",
+      "skin": "brown",
+      "hair": "curls",
+      "hairColor": "ink",
+      "eyes": "round",
+      "eyeColor": "brown",
+      "brows": "gentle",
+      "mouth": "open",
+      "outfit": "hoodie",
+      "clothesColor": "lavender",
+      "glasses": "round",
+      "background": "lilac"
+    },
+    {
+      "version": 1,
+      "base": "base03",
+      "face": "oval",
+      "skin": "golden",
+      "hair": "waves",
+      "hairColor": "ink",
+      "eyes": "almond",
+      "eyeColor": "brown",
+      "brows": "arched",
+      "mouth": "soft",
+      "outfit": "tee",
+      "clothesColor": "teal",
+      "glasses": "none",
+      "background": "mint"
+    },
+    {
+      "version": 1,
+      "base": "base04",
+      "face": "full",
+      "skin": "sand",
+      "hair": "bob",
+      "hairColor": "ink",
+      "eyes": "upturned",
+      "eyeColor": "hazel",
+      "brows": "gentle",
+      "mouth": "grin",
+      "outfit": "tee",
+      "clothesColor": "blue",
+      "glasses": "none",
+      "background": "lilac"
+    }
+  ]
+}

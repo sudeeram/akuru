@@ -171,6 +171,8 @@ export interface Schemas {
   "SeedPaperReview": { "draftBank": { [key: string]: unknown; }; "coverageTriage"?: { [key: string]: unknown; } | null; };
   "SourceLocation": { "page": number; "blockId": string; "boundingBox"?: { [key: string]: unknown; }; };
   "StartPaperReview": { "schemeDocumentId"?: string | null; "reportDocumentId"?: string | null; "expectedQuestionCount"?: number; };
+  "StudentAvatarConfig": { "version": 1; "base": string; "face": string; "skin": string; "hair": string; "hairColor": string; "eyes": string; "eyeColor": string; "brows": string; "mouth": string; "outfit": string; "clothesColor": string; "glasses": string; "background": string; };
+  "StudentAvatarResponse": { "avatar": Schemas["StudentAvatarConfig"] | null; };
   "StudentQuotaResponse": { "studentRef": string; "studentName": string; "enabled": boolean; "state": "available" | "warning" | "exhausted" | "disabled" | "renewed"; "periodDays": number; "periodStartsAt": string; "renewsAt": string; "requests": Schemas["QuotaAmount"]; "textTokens": Schemas["QuotaAmount"]; "voiceMinutes": Schemas["QuotaAmount"]; "fallbackMessage": string; };
   "StudentResponse": { "id": string; "username": string; "name": string; "initial": string; "parentId": string; "level": string; "grade": string; "term": string; "progression": Array<Schemas["ProgressionResponse"]>; "subjects": Array<string>; "courses": { [key: string]: Schemas["SubjectCourseResponse"]; }; "needsConfiguration": boolean; "accountRef": string; "lastLoginAt"?: string | null; };
   "StudentTextbook": { "textbookRef": string; "subjectId": string; "title": string; "edition": string; "publisher": string; "groupLabel": string; "structureVersion": number; "structurePublishedAt": string; "groups": Array<Schemas["StudentTextbookGroup"]>; };
@@ -407,6 +409,9 @@ export interface ApiOperations {
   "GET /api/v1/retrieval/evidence/{chunk_id}": { request: unknown; response: Schemas["EvidenceResponse"] };
   "POST /api/v1/retrieval/search": { request: Schemas["RetrievalRequest"]; response: Schemas["RetrievalResponse"] };
   "GET /api/v1/state": { request: unknown; response: Schemas["PortalStateResponse"] };
+  "GET /api/v1/student/avatar": { request: unknown; response: Schemas["StudentAvatarResponse"] };
+  "PATCH /api/v1/student/avatar": { request: Schemas["StudentAvatarConfig"]; response: Schemas["StudentAvatarResponse"] };
+  "DELETE /api/v1/student/avatar": { request: unknown; response: Schemas["StudentAvatarResponse"] };
   "GET /api/v1/student/references": { request: unknown; response: unknown };
   "GET /api/v1/student/references/{document_id}/content": { request: unknown; response: unknown };
   "GET /api/v1/student/textbooks": { request: unknown; response: Schemas["StudentTextbookList"] };

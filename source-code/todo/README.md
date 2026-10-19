@@ -20,6 +20,8 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Planned
 
+- [Original Student avatar builder](planned/TODO-STUDENT-AVATAR-BUILDER.md) — original AKURU character customisation, profile integration and validated persistence; Style A vector editor and validated saving implemented locally; Student/Parent signed-in acceptance and deployment remain pending.
+
 - [Admin official-paper review workspace](planned/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md) — side-by-side question, scheme, examiner and textbook review with per-part decisions and separate release gates.
 - [Future Parent-assisted and self-service account recovery](planned/TODO-FUTURE-ACCOUNT-RECOVERY.md) — Parent requests, verified recovery contacts and expiring one-time email tokens after the Admin-managed lifecycle is complete.
 - [Future TanStack capabilities](planned/TODO-TANSTACK-FUTURE.md) — optional suite features to assess when their product use cases are built.

@@ -8085,6 +8085,105 @@
         "title": "StartPaperReview",
         "type": "object"
       },
+      "StudentAvatarConfig": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
+            "title": "Background",
+            "type": "string"
+          },
+          "base": {
+            "title": "Base",
+            "type": "string"
+          },
+          "brows": {
+            "title": "Brows",
+            "type": "string"
+          },
+          "clothesColor": {
+            "title": "Clothescolor",
+            "type": "string"
+          },
+          "eyeColor": {
+            "title": "Eyecolor",
+            "type": "string"
+          },
+          "eyes": {
+            "title": "Eyes",
+            "type": "string"
+          },
+          "face": {
+            "title": "Face",
+            "type": "string"
+          },
+          "glasses": {
+            "title": "Glasses",
+            "type": "string"
+          },
+          "hair": {
+            "title": "Hair",
+            "type": "string"
+          },
+          "hairColor": {
+            "title": "Haircolor",
+            "type": "string"
+          },
+          "mouth": {
+            "title": "Mouth",
+            "type": "string"
+          },
+          "outfit": {
+            "title": "Outfit",
+            "type": "string"
+          },
+          "skin": {
+            "title": "Skin",
+            "type": "string"
+          },
+          "version": {
+            "const": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "base",
+          "face",
+          "skin",
+          "hair",
+          "hairColor",
+          "eyes",
+          "eyeColor",
+          "brows",
+          "mouth",
+          "outfit",
+          "clothesColor",
+          "glasses",
+          "background"
+        ],
+        "title": "StudentAvatarConfig",
+        "type": "object"
+      },
+      "StudentAvatarResponse": {
+        "properties": {
+          "avatar": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StudentAvatarConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "avatar"
+        ],
+        "title": "StudentAvatarResponse",
+        "type": "object"
+      },
       "StudentQuotaResponse": {
         "properties": {
           "enabled": {
@@ -25728,6 +25827,251 @@
         "summary": "State",
         "tags": [
           "accounts"
+        ]
+      }
+    },
+    "/api/v1/student/avatar": {
+      "delete": {
+        "operationId": "reset_avatar_api_v1_student_avatar_delete",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAvatarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reset Avatar",
+        "tags": [
+          "student avatar"
+        ]
+      },
+      "get": {
+        "operationId": "get_avatar_api_v1_student_avatar_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAvatarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get Avatar",
+        "tags": [
+          "student avatar"
+        ]
+      },
+      "patch": {
+        "operationId": "save_avatar_api_v1_student_avatar_patch",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StudentAvatarConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudentAvatarResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Save Avatar",
+        "tags": [
+          "student avatar"
         ]
       }
     },
