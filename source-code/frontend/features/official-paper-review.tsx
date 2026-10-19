@@ -764,7 +764,7 @@ export function OfficialPaperReview({
     );
   }
   async function keepCandidate(crop: (typeof availableCrops)[number]) {
-    const altText = (candidateDescriptions[crop.assetId] || '').trim();
+    const altText = (candidateDescriptions[crop.assetId] ?? crop.altText ?? '').trim();
     if (altText.length < 10) {
       setError(
         'Describe this visual in at least 10 characters before approving its crop.',
@@ -1920,9 +1920,9 @@ export function OfficialPaperReview({
                           {crop && !crop.approved && (
                             <>
                               <label>
-                                Describe this candidate for students{' '}
+                                Describe this candidate for students (editable draft; at least 10 characters){' '}
                                 <Textarea
-                                  value={candidateDescriptions[assetId] || ''}
+                                  value={candidateDescriptions[assetId] ?? crop.altText ?? ''}
                                   onChange={(event) =>
                                     setCandidateDescriptions((current) => ({
                                       ...current,
@@ -1937,7 +1937,7 @@ export function OfficialPaperReview({
                                   disabled={
                                     busy ||
                                     (
-                                      candidateDescriptions[assetId] || ''
+                                      candidateDescriptions[assetId] ?? crop.altText ?? ''
                                     ).trim().length < 10
                                   }
                                   onClick={() => void keepCandidate(crop)}
