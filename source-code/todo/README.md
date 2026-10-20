@@ -4,7 +4,7 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Route-wide UI component and colour adoption](ongoing/TODO-UI-COMPONENT-ADOPTION.md) — presentation implementation delivered; production release and remaining populated workflow acceptance recorded in the plan.
+- [Route-wide UI component and colour adoption](ongoing/TODO-UI-COMPONENT-ADOPTION.md) — frontend colour/presentation release deployed; populated workflow acceptance remains open and is recorded in the plan.
 
 
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.

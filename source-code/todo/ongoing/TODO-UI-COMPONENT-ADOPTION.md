@@ -1,6 +1,6 @@
 # AKURU route-wide UI component adoption plan
 
-Date: 20 October 2026 · Status: implementation delivered locally; release and remaining populated acceptance tracked below.
+Date: 20 October 2026 · Status: presentation release deployed; populated workflow acceptance remains ongoing.
 
 ## Outcome and scope
 
@@ -259,3 +259,14 @@ The local database has no published textbooks, exam documents, active assessed s
 The native dirty-editor confirmation caused browser automation to stall; dismissal recovered the interface, but retain/discard focus behavior is not marked passed. The guard itself is unchanged. The earlier route-refresh acceptance remains open rather than being silently closed. Full adoption-plan acceptance stays ongoing until these cases are checked with representative content; deployment of the verified presentation delta is separately authorized.
 
 See [route delivery coverage](../../frontend/docs/UI-ADOPTION-DELIVERY.md) for the per-route disposition and retained data contracts.
+
+### Production release acceptance
+
+- Deployed `c4526d914c0baddf0b9d2f3e7202eef2f4af548e` on 20 October 2026 at 05:05 UTC. Commit pushed to `origin/main`.
+- Exact-revision preflight and encrypted database/document backup passed. Standard build/deploy completed; Alembic remains `0012_student_community` with no new upgrade operations.
+- Evidence: `/data/akuru/release-evidence/deployed-c4526d914c0baddf0b9d2f3e7202eef2f4af548e-20261020T050542Z.txt`.
+- Post-release HTTPS, security headers, routed entry points, missing-asset/API boundaries, services, timers and loopback binding checks passed. No failed services; production checkout clean at the deployed SHA.
+- Live browser confirmed the new decorative tokens and the signed-out Admin catalogue gate. Authenticated role visual checks were local, not production.
+- Disposable local QA accounts and their test-only audit events removed. Existing local sidebar hover edits preserved and excluded from release.
+- Unchanged dependency lockfile reports 22 existing audit findings (4 moderate, 15 high, 3 critical); no package versions changed in this release.
+- Rollback reference: previous deployed application `0bb95bb880f135a77a66c2d96a99ac4266a010c9`; any rollback must follow the established release process. No reverse database migration is needed for this frontend delta.
