@@ -152,6 +152,7 @@ export function AccountProfile({
         />
         {role === 'student' ? (
           <MetricCard
+            tone="green"
             label="Enrolled subjects"
             value={profile.subjects.length}
             detail="Configured by your Administrator"
@@ -159,6 +160,7 @@ export function AccountProfile({
           />
         ) : role === 'parent' ? (
           <MetricCard
+            tone="green"
             label="Linked children"
             value={children.length}
             detail="Your family learning space"
@@ -173,6 +175,7 @@ export function AccountProfile({
           />
         )}
         <MetricCard
+          tone="violet"
           label="Password settings"
           value={data.user.mustChangePassword ? 'Update required' : 'Available'}
           detail="Manage your password securely"

@@ -1,5 +1,8 @@
 'use client';
 import { StatusBadge, MetadataBadge } from './badges';
+import { StudentAvatar } from './student-avatar';
+import type { AvatarConfig } from '@/api/avatars/avatar.types';
+import { subjectAccent } from '@/lib/subject-accent';
 
 import type { ReactNode } from 'react';
 import {
@@ -77,7 +80,7 @@ export function MetricCard({
   tone?: string;
 }) {
   return (
-    <article className="ak-metric">
+    <article className="ak-metric" data-accent={tone}>
       <div className={`ak-icon ak-tone-${tone}`}>
         <Icon size={21} />
       </div>
@@ -110,12 +113,14 @@ export function ChildSwitcher({
   );
 }
 export function StudentSummaryCard({
+  avatar,
   name,
   grade,
   term,
   subjects,
   action,
 }: {
+  avatar?: AvatarConfig | null;
   name: string;
   grade: string;
   term: string;
@@ -125,11 +130,14 @@ export function StudentSummaryCard({
   return (
     <section className="ak-student-summary">
       <span className="ak-student-avatar">
-        {name
-          .split(' ')
-          .map((word) => word[0])
-          .slice(0, 2)
-          .join('')}
+        <StudentAvatar
+          avatar={avatar}
+          fallback={name
+            .split(' ')
+            .map((word) => word[0])
+            .slice(0, 2)
+            .join('')}
+        />
       </span>
       <div>
         <span className="ak-eyebrow">LEARNER OVERVIEW</span>
@@ -139,7 +147,9 @@ export function StudentSummaryCard({
         </p>
         <div className="ak-chips">
           {subjects.map((subject) => (
-            <MetadataBadge key={subject} size="xs">{subject}</MetadataBadge>
+            <MetadataBadge key={subject} size="xs">
+              {subject}
+            </MetadataBadge>
           ))}
         </div>
       </div>
@@ -148,12 +158,14 @@ export function StudentSummaryCard({
   );
 }
 export function SubjectProgressCard({
+  subjectId,
   title,
   description,
   value,
   label,
   onOpen,
 }: {
+  subjectId?: string;
   title: string;
   description: ReactNode;
   value: number | null;
@@ -161,9 +173,12 @@ export function SubjectProgressCard({
   onOpen?: () => void;
 }) {
   return (
-    <article className="ak-subject-progress">
+    <article
+      className="ak-subject-progress"
+      data-accent={subjectAccent(subjectId)}
+    >
       <div className="ak-row">
-        <span className="ak-icon ak-tone-blue">
+        <span className="ak-icon ak-category-icon">
           <BookOpen size={18} />
         </span>
         <div>

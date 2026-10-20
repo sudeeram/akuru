@@ -55,6 +55,7 @@ function LearningOverview({
             {child.subjects.map((id) => (
               <SubjectProgressCard
                 key={id}
+                subjectId={id}
                 title={subjectName(data, id)}
                 description={child.courses[id]?.level ?? child.level}
                 value={markedScore(summary.attempts, id)}
@@ -180,6 +181,7 @@ export function ParentHome({
         />
       </div>
       <StudentSummaryCard
+        avatar={child.avatar}
         name={child.name}
         grade={child.grade}
         term={child.term}

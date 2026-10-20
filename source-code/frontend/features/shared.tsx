@@ -1,4 +1,5 @@
 'use client';
+import { subjectAccent } from '@/lib/subject-accent';
 import { StatusBadge } from '@/components/portal/badges';
 import {
   BookOpen,
@@ -26,7 +27,7 @@ export const subjectIcons: Record<string, typeof BookOpen> = {
 export function SubjectIcon({ subject }: { subject: Subject }) {
   const Icon = subjectIcons[subject.id] || BookOpen;
   return (
-    <span className={`subject-icon ${subject.color}`}>
+    <span className="subject-icon" data-accent={subjectAccent(subject.id)}>
       <Icon size={23} />
     </span>
   );

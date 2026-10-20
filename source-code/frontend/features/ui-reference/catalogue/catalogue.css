@@ -726,3 +726,11 @@
   color: #53617a !important;
   border: 1px dashed #a7b4c8 !important;
 }
+
+.catalogue .catalogue-colour-guide {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.catalogue .catalogue-colour-guide > p {
+  margin-block: 8px 12px;
+}

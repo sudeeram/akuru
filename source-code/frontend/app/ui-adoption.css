@@ -1,0 +1,289 @@
+/* Production compositions: decorative accents never redefine status/badge tokens. */
+:root {
+  --ak-accent-blue: #2459ad;
+  --ak-soft-blue: #edf4ff;
+  --ak-accent-teal: #146a64;
+  --ak-soft-teal: #eaf7f3;
+  --ak-accent-violet: #6943a1;
+  --ak-soft-violet: #f3eefb;
+  --ak-accent-amber: #80530e;
+  --ak-soft-amber: #fff6e5;
+  --ak-accent-coral: #a24038;
+  --ak-soft-coral: #fff0ec;
+  --ak-accent-neutral: #526079;
+  --ak-soft-neutral: #f3f5f8;
+}
+[data-accent] {
+  --ak-accent: var(--ak-accent-neutral);
+  --ak-soft: var(--ak-soft-neutral);
+}
+[data-accent='blue'] {
+  --ak-accent: var(--ak-accent-blue);
+  --ak-soft: var(--ak-soft-blue);
+}
+[data-accent='teal'],
+[data-accent='green'] {
+  --ak-accent: var(--ak-accent-teal);
+  --ak-soft: var(--ak-soft-teal);
+}
+[data-accent='violet'] {
+  --ak-accent: var(--ak-accent-violet);
+  --ak-soft: var(--ak-soft-violet);
+}
+[data-accent='amber'] {
+  --ak-accent: var(--ak-accent-amber);
+  --ak-soft: var(--ak-soft-amber);
+}
+[data-accent='coral'],
+[data-accent='rose'] {
+  --ak-accent: var(--ak-accent-coral);
+  --ak-soft: var(--ak-soft-coral);
+}
+.ak-shell {
+  --ak-line: #dce3ee;
+  --ak-canvas: #f5f7fc;
+  --ak-space: 16px;
+  --ak-card-pad: 16px;
+}
+.ak-shell .ak-page-heading .ak-eyebrow {
+  color: var(--ak-accent-violet);
+}
+.ak-shell .ak-card-heading,
+.ak-shell .community-card > header {
+  background: var(--ak-soft-blue);
+  border-bottom: 1px solid var(--ak-line);
+  padding: 12px 16px;
+}
+.ak-shell .ak-card-body,
+.ak-shell .community-card-body {
+  padding: 16px;
+}
+.ak-shell .ak-metric[data-accent] {
+  border-top: 3px solid var(--ak-accent);
+  background: var(--ak-soft);
+}
+.ak-shell .ak-metric[data-accent] .ak-icon,
+.ak-shell .ak-category-icon,
+.ak-shell .subject-icon[data-accent] {
+  color: var(--ak-accent);
+  background: var(--ak-soft);
+  border: 1px solid currentColor;
+}
+.ak-shell .ak-subject-progress[data-accent] {
+  border-inline-start: 3px solid var(--ak-accent);
+  background: #fff;
+}
+.ak-shell .subject-tabs button[data-accent] {
+  border: 1px solid var(--ak-line);
+  background: #fff;
+  min-height: 44px;
+}
+.ak-shell .subject-tabs button[data-accent][aria-pressed='true'] {
+  background: var(--ak-soft);
+  color: var(--ak-accent);
+  border-color: var(--ak-accent);
+  box-shadow: inset 0 -2px var(--ak-accent);
+}
+.ak-shell .course-strip[data-accent] {
+  background: var(--ak-soft);
+  border-inline-start: 3px solid var(--ak-accent);
+}
+.ak-shell .topic-row[data-accent] .topic-number {
+  color: var(--ak-accent);
+  background: var(--ak-soft);
+}
+.ak-shell .ak-student-summary {
+  background: var(--ak-soft-teal);
+  border: 1px solid #cadfdc;
+}
+.ak-shell .ak-student-avatar {
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ak-shell .ak-student-avatar .student-avatar {
+  width: 100%;
+  height: 100%;
+}
+.ak-shell .ak-next-step {
+  background: linear-gradient(
+    110deg,
+    var(--ak-soft-blue),
+    var(--ak-soft-violet)
+  );
+  border: 1px solid #d8dff1;
+}
+.ak-shell .profile-banner {
+  background: linear-gradient(110deg, #203a78, #51408b 70%, #3b526f);
+}
+.ak-shell .profile-columns,
+.ak-shell .profile-sidebar,
+.ak-shell .profile-main {
+  gap: 16px;
+}
+.ak-shell .profile-details {
+  gap: 16px 20px;
+}
+.ak-shell .profile-note,
+.ak-shell .profile-details dt,
+.ak-shell .profile-security p {
+  color: var(--ak-muted);
+}
+.ak-shell .profile-courses li {
+  padding-block: 12px;
+}
+.ak-shell .community-tabs {
+  background: #fff;
+  border: 1px solid var(--ak-line);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 12px;
+}
+.ak-shell .community-tabs [aria-current='page'] {
+  box-shadow: 0 3px 0 var(--ak-accent-blue);
+}
+.ak-shell .community-person {
+  border-top: 3px solid #cbb8e5;
+}
+.ak-shell .community-avatar {
+  background: var(--ak-soft-violet);
+}
+.ak-shell .workspace-filters,
+.ak-shell .toolbar {
+  background: var(--ak-soft-blue);
+  gap: 8px;
+}
+.ak-shell .workspace-search {
+  min-width: min(180px, 100%);
+}
+.ak-shell .workspace-count {
+  color: #425475;
+  font-variant-numeric: tabular-nums;
+}
+.ak-shell .workspace-context {
+  border-inline-start: 3px solid var(--ak-accent-violet);
+}
+.ak-shell .admin-table th,
+.ak-shell .table-panel th,
+.ak-shell .ak-data-table th {
+  background: var(--ak-soft-blue);
+  color: #425475;
+}
+.ak-shell .admin-table tr:hover td {
+  background: #f5f8ff;
+}
+.ak-shell .workspace-summary-grid > :is(a, button) {
+  border-top: 3px solid var(--ak-accent-teal);
+}
+.ak-shell .workspace-disclosure > summary {
+  background: #f5f7fc;
+  border-radius: 9px;
+}
+.ak-shell .workspace-disclosure[open] > summary {
+  border-radius: 9px 9px 0 0;
+}
+.workspace-drawer [data-slot='sheet-header'] {
+  background: var(--ak-soft-blue);
+  border-bottom: 1px solid #dce3ee;
+}
+.workspace-drawer-body {
+  padding-top: 16px;
+}
+.ak-shell .ak-nav-group :is(a, button)[aria-current='page'] {
+  background: var(--ak-soft-blue);
+  color: var(--ak-accent-blue);
+  box-shadow: inset 3px 0 var(--ak-accent-blue);
+  font-weight: 650;
+}
+.ak-shell :is(a, button, input, select, summary):focus-visible,
+.workspace-drawer :is(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--ak-accent-blue);
+  outline-offset: 3px;
+}
+.ak-shell .workspace-loading {
+  border-inline-start: 3px solid var(--ak-accent-blue);
+}
+.ak-shell .ak-empty {
+  border: 1px dashed #bac9df;
+  border-radius: 10px;
+  background: #fafcff;
+}
+.ak-shell .ak-empty > svg {
+  color: var(--ak-accent-blue);
+}
+/* No decorative fills on question, reader, source or conversation bodies. */
+.ak-shell[data-focus='true'] .workspace-sticky-actions {
+  background: #fff;
+}
+.ak-shell .ak-page-heading > div,
+.ak-shell .community-heading > div {
+  min-width: 0;
+}
+.ak-shell .ak-page-heading h1,
+.ak-shell .community-heading h1 {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .ak-shell .profile-banner {
+    padding: 20px 16px;
+  }
+  .ak-shell .profile-identity {
+    gap: 12px;
+  }
+  .ak-shell .ak-card-heading,
+  .ak-shell .community-card > header {
+    padding: 12px;
+  }
+  .ak-shell .ak-card-body,
+  .ak-shell .community-card-body {
+    padding: 12px;
+  }
+  .ak-shell .community-tabs {
+    gap: 6px;
+  }
+  .ak-shell .community-tabs button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+  .ak-shell .workspace-filters > * {
+    max-width: 100%;
+  }
+  .ak-shell .workspace-filters .workspace-count {
+    margin-left: 0;
+  }
+  .ak-shell .subject-tabs {
+    flex-wrap: wrap;
+  }
+  .ak-shell .subject-tabs button {
+    white-space: normal;
+    text-align: start;
+  }
+  .ak-shell .workspace-summary-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (forced-colors: active) {
+  .ak-shell .subject-tabs button[aria-pressed='true'],
+  .ak-shell .ak-nav-group [aria-current='page'] {
+    outline: 2px solid Highlight;
+  }
+}
+.ak-shell .ak-resource-tile[data-accent] {
+  border-top: 3px solid var(--ak-accent);
+}
+.ak-shell .ak-resource-tile[data-accent] > .eyebrow {
+  color: var(--ak-accent);
+}
+.ak-shell .ak-subject-resource[data-accent] {
+  border-inline-start: 3px solid var(--ak-accent);
+  padding-inline-start: 12px;
+}
+.ak-shell .ak-learner-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ak-shell .ak-learner-heading .student-avatar {
+  width: 44px;
+  height: 48px;
+  flex-shrink: 0;
+}

@@ -68,3 +68,9 @@ No live route is automatically redesigned merely because a specimen exists here.
 | Nav & tabs | `nav-tabs` | `tabs` |
 | Tooltips | `tooltips` | `tooltip` |
 | Typography | `typography` | `Semantic HTML` |
+
+## Production colour adoption (20 October 2026)
+
+`app/ui-adoption.css` defines decorative blue, teal, violet, amber, coral and neutral foreground/soft-surface tokens, independently of semantic badge colours. Each foreground meets AA normal-text contrast on its paired surface and on white (automated regression check). Use `subjectAccent(subjectId)` from `lib/subject-accent.ts` for stable category accents with a neutral fallback; never derive colour from array order or a display name. `SubjectProgressCard` accepts `subjectId`; `MetricCard` carries its explicit tone into a tinted surface. Progress bars keep their existing semantic colour.
+
+Live adoption includes divided card headers, toolbar/table-header surfaces, active navigation, profile banners, compact Community sections, subject selectors, textbook/flashcard tiles, and Parent course rows. `StudentSummaryCard` now accepts the original saved avatar. The Cards family shows the actual production subject-card composition. Learning/source bodies remain neutral. Attendance and carousels remain illustrative, with no new product services.

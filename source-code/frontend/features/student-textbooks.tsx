@@ -1,4 +1,5 @@
 'use client';
+import { subjectAccent } from '@/lib/subject-accent';
 import {
   useFocusMode,
   FilterToolbar,
@@ -260,7 +261,11 @@ export function StudentTextbooks({
                   item.subjectId === filters.subject),
             )
             .map((item) => (
-              <article className="panel stack" key={item.textbookRef}>
+              <article
+                className="panel stack ak-resource-tile"
+                data-accent={subjectAccent(item.subjectId)}
+                key={item.textbookRef}
+              >
                 <span className="eyebrow">{subjectName(item.subjectId)}</span>
                 <h2>{item.title}</h2>
                 <p>

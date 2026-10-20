@@ -1,4 +1,6 @@
 'use client';
+import { StudentAvatar } from '@/components/portal/student-avatar';
+import { subjectAccent } from '@/lib/subject-accent';
 import {
   MetadataBadge,
   ReviewBadge,
@@ -2521,7 +2523,17 @@ export function AdminWorkspace(p: Props) {
                                   remaining
                                 </span>
                               </div>
-                              <ReviewBadge state={pageComplete ? 'complete' : completedReviews > 0 ? 'partial' : 'required'}>{pageStatus}</ReviewBadge>
+                              <ReviewBadge
+                                state={
+                                  pageComplete
+                                    ? 'complete'
+                                    : completedReviews > 0
+                                      ? 'partial'
+                                      : 'required'
+                                }
+                              >
+                                {pageStatus}
+                              </ReviewBadge>
                             </summary>
                             <div className="stack extraction-page-body">
                               {visualReferenceReview && (
@@ -4066,7 +4078,17 @@ export function FamilyCourses({ data }: { data: State }) {
       <div className="learner-grid">
         {learners.map((s) => (
           <section className="panel" key={s.id}>
-            <h2>{s.name}</h2>
+            <h2 className="ak-learner-heading">
+              <StudentAvatar
+                avatar={s.avatar}
+                fallback={s.name
+                  .split(' ')
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join('')}
+              />
+              {s.name}
+            </h2>
             <p>
               {s.level} · {s.grade} · {s.term || 'Term not configured'}
             </p>
@@ -4081,7 +4103,11 @@ export function FamilyCourses({ data }: { data: State }) {
             )}
             <ul>
               {s.subjects.map((id) => (
-                <li className="resource-row" key={id}>
+                <li
+                  className="resource-row ak-subject-resource"
+                  data-accent={subjectAccent(id)}
+                  key={id}
+                >
                   <strong>
                     {data.subjects.find((x) => x.id === id)?.name}
                   </strong>

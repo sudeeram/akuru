@@ -1,4 +1,5 @@
 'use client';
+import { subjectAccent } from '@/lib/subject-accent';
 import { useFocusMode, FilterToolbar } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -729,6 +730,7 @@ export function StudentFlashcards({
             .map((deck) => (
               <button
                 className="panel topic-row"
+                data-accent={subjectAccent(deck.subjectId)}
                 key={deck.deckRef}
                 disabled={busy}
                 onClick={() => navigate(flashcardPaths.deck(deck.deckRef))}

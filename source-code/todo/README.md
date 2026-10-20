@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Route-wide UI component and colour adoption](ongoing/TODO-UI-COMPONENT-ADOPTION.md) — presentation implementation delivered; production release and remaining populated workflow acceptance recorded in the plan.
+
 
 - [Route-wide frontend refresh](ongoing/TODO-ROUTE-FRONTEND-REFRESH.md) — implement the full frontend route audit locally.
 
@@ -20,6 +22,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 
 - [Original Student avatar builder](planned/TODO-STUDENT-AVATAR-BUILDER.md) — original AKURU character customisation, profile integration and validated persistence; Style A vector editor and validated saving implemented locally; Student/Parent signed-in acceptance and deployment remain pending.

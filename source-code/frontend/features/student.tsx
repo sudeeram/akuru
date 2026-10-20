@@ -1,4 +1,5 @@
 'use client';
+import { subjectAccent } from '@/lib/subject-accent';
 import { MetadataBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
 /* eslint-disable react/react-compiler */
@@ -71,6 +72,13 @@ export function Subjects(p: FeatureProps) {
       setError(errorMessage(e));
     }
   }
+  if (!active)
+    return (
+      <Empty title="Your subjects will appear here">
+        Your Administrator can add your course enrolments. You can still open
+        your profile and account settings.
+      </Empty>
+    );
   return (
     <>
       <Heading
@@ -92,6 +100,8 @@ export function Subjects(p: FeatureProps) {
               p.setSubject(s.id);
               setLesson(null);
             }}
+            data-accent={subjectAccent(s.id)}
+            aria-pressed={s.id === active.id}
             className={s.id === active.id ? 'selected' : ''}
           >
             <SubjectIcon subject={s} />
@@ -99,7 +109,7 @@ export function Subjects(p: FeatureProps) {
           </button>
         ))}
       </div>
-      <div className="course-strip">
+      <div className="course-strip" data-accent={subjectAccent(active.id)}>
         <div>
           <strong>{active.name}</strong>
           <span>
@@ -170,6 +180,7 @@ export function Subjects(p: FeatureProps) {
             .map((q, i) => (
               <button
                 className="panel topic-row"
+                data-accent={subjectAccent(active.id)}
                 key={q.id}
                 onClick={() => open(q)}
               >

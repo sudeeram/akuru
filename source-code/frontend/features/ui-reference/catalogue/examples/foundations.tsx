@@ -21,6 +21,7 @@ import {
   AvatarGroup,
   AvatarGroupCount,
 } from '@/components/ui/avatar';
+import { SubjectProgressCard } from '@/components/portal/dashboard-widgets';
 import { StudentAvatar } from '@/components/portal/student-avatar';
 import {
   StatusBadge,
@@ -188,6 +189,27 @@ export default function Foundations({ id }: { id: CatalogueId }) {
     case 'cards':
       return (
         <div className="catalogue-grid">
+          <section className="catalogue-colour-guide">
+            <h3>AKURU subject accents</h3>
+            <p>
+              These production cards use stable subject colours. Progress keeps
+              its existing meaning; the accent identifies the subject.
+            </p>
+            <div className="catalogue-grid">
+              {['maths', 'biology', 'chemistry', 'physics', 'english'].map(
+                (subject) => (
+                  <SubjectProgressCard
+                    key={subject}
+                    subjectId={subject}
+                    title={subject.charAt(0).toUpperCase() + subject.slice(1)}
+                    description="Illustrative subject card"
+                    value={null}
+                    label="No assessed attempts"
+                  />
+                ),
+              )}
+            </div>
+          </section>
           {[
             'Course overview',
             'Profile directory',
