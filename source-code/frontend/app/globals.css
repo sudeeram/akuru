@@ -865,19 +865,19 @@ small {
   background-size: contain;
 }
 .bot-curious {
-  background-image: url('/akuru-bots/akuru-bot-curious.png');
+  background-image: url('/akuru-bots/akuru-bot-curious.png?v=20261020-uncropped');
 }
 .bot-reader {
-  background-image: url('/akuru-bots/akuru-bot-reader.png');
+  background-image: url('/akuru-bots/akuru-bot-reader.png?v=20261020-uncropped');
 }
 .bot-checklist {
-  background-image: url('/akuru-bots/akuru-bot-checklist.png');
+  background-image: url('/akuru-bots/akuru-bot-checklist.png?v=20261020-uncropped');
 }
 .akuru-focus-bot {
   width: 200px;
   height: 245px;
   flex: 0 0 200px;
-  background: url('/akuru-bots/akuru-bot-reader.png') center bottom / contain
+  background: url('/akuru-bots/akuru-bot-reader.png?v=20261020-uncropped') center bottom / contain
     no-repeat;
   filter: drop-shadow(0 14px 18px rgba(6, 24, 75, 0.28));
 }

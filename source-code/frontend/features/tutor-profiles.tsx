@@ -81,6 +81,12 @@ function Choice({
   );
 }
 
+function botImageSource(path: string) {
+  return path.startsWith('/akuru-bots/')
+    ? `${path}${path.includes('?') ? '&' : '?'}v=20261020-uncropped`
+    : path;
+}
+
 function ProfileCard({
   profile,
   options,
@@ -101,7 +107,9 @@ function ProfileCard({
           unoptimized
           width={145}
           height={165}
-          src={avatar?.imagePath || '/akuru-bots/akuru-bot-say.png'}
+          src={botImageSource(
+            avatar?.imagePath || '/akuru-bots/akuru-bot-say.png',
+          )}
           alt={`${profile.name}, ${avatar?.name || 'AKURU BOT'} avatar`}
         />
       </div>
@@ -402,7 +410,7 @@ export function TutorProfiles({
                         unoptimized
                         width={145}
                         height={120}
-                        src={avatar.imagePath}
+                        src={botImageSource(avatar.imagePath)}
                         alt=""
                       />
                       <strong>{avatar.name}</strong>
@@ -653,7 +661,7 @@ export function TutorPresetAdmin({
                     unoptimized
                     width={85}
                     height={95}
-                    src={item.imagePath}
+                    src={botImageSource(item.imagePath)}
                     alt={`${item.name} AKURU tutor avatar`}
                   />
                   <div>
