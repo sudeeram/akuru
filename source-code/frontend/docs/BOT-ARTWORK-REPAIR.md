@@ -45,4 +45,12 @@ Login/learning CSS background references now include `?v=20261020-uncropped`. Tu
 
 ## Release
 
-Production release acceptance is recorded below after deployment.
+Deployed `bdd0d43f5f6420c9a70aca7259ff9a970ab2d4a1` on 20 October 2026 at 05:46 UTC. Exact-revision preflight, encrypted database/document backup and standard build/deploy passed. Schema remains `0012_student_community`, with no new upgrade operations.
+
+Evidence: `/data/akuru/release-evidence/deployed-bdd0d43f5f6420c9a70aca7259ff9a970ab2d4a1-20261020T054634Z.txt`.
+
+Post-deployment HTTPS, security headers, routed entry points, missing asset/API boundaries, services, timers and loopback-binding checks passed. Production checkout is clean at the release SHA with no failed services. Browser inspection confirms the live login uses the repaired curious, reader and checklist PNGs with the new cache version. Existing dependency audit/build advisories remain unchanged; no dependencies were upgraded.
+
+All ten public versioned PNG responses were downloaded from the production host over verified HTTPS and matched the deployed source assets by SHA-256. Local direct-download checks were affected by local certificate-store/transfer issues; production-host checks and browser rendering passed without disabling certificate verification.
+
+Previous runtime release for rollback reference: `c4526d914c0baddf0b9d2f3e7202eef2f4af548e`. Follow the established release process for any rollback; this asset/frontend change requires no reverse database migration.
