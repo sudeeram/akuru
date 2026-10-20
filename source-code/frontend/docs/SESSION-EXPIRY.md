@@ -19,3 +19,13 @@
 Local browser acceptance uses a disposable development-only Admin account and expiration of only that account's session records. Signed-out `/admin/profile` redirects to `/login`; successful sign-in restores `/admin/profile`. A real expired local session redirected from `/admin/profile` to `/login` without a page reload, showed the expiry explanation, cleared the password and removed the private portal without a raw fetch error. Reauthentication restored `/admin/profile`; manual sign-out returned to a clean login form. Incorrect credentials retained their validation message. A stale dev hot-reload blank-page artifact cleared after restarting the identified development server; the clean-start redirect and form render passed.
 
 No backend code, API contract, expiry duration, database schema or dependency changes. Existing unrelated sidebar hover edits are excluded.
+
+## Production release acceptance
+
+Deployed `b608cf8086f9d26f999e21245f01a81e8a1a80dc` on 20 October 2026 at 11:44 UTC. Commit pushed to `origin/main`. Exact-revision preflight, encrypted database/document backup and standard build/deploy passed. Schema remains `0012_student_community`; no new upgrade operations.
+
+Evidence: `/data/akuru/release-evidence/deployed-b608cf8086f9d26f999e21245f01a81e8a1a80dc-20261020T114433Z.txt`.
+
+Post-release HTTPS, security headers, routed entry points, missing asset/API boundaries, services, timers and loopback-binding checks passed. Production checkout is clean at the release SHA; no failed services. Live browser checks of signed-out Admin, Parent and Student profile entry URLs all ended on `/login` with the usable sign-in form and no raw fetch error. Actual authenticated expiry/relogin was verified locally; no production sessions were revoked for testing.
+
+Disposable local QA account and test audit events removed. Existing local sidebar hover edits preserved and excluded. Previous deployed application for rollback reference: `bdd0d43f5f6420c9a70aca7259ff9a970ab2d4a1`; follow the existing release process for any rollback.
