@@ -157,6 +157,11 @@ export function Portal() {
   const location = useRouterState({ select: (state) => state.location });
   const [signedOut, setSignedOut] = useState(false);
   const [sessionExpiryMessage, setSessionExpiryMessage] = useState('');
+  const sessionEnding = useRef(false);
+  const loginDestination = useRef({
+    pathname: location.pathname,
+    searchStr: location.searchStr,
+  });
   const lastInteractionAt = useRef(Date.now());
   const authQuery = useQuery({
     queryKey: queryKeys.auth.state,
@@ -164,7 +169,7 @@ export function Portal() {
     enabled: !signedOut,
     retry: false,
   });
-  const data = authQuery.data ?? null;
+  const data = signedOut ? null : (authQuery.data ?? null);
   const loading = authQuery.isPending && !signedOut;
   const [error, setError] = useState(''),
     [notice, setNotice] = useState('');
@@ -178,13 +183,6 @@ export function Portal() {
     const result = await authQuery.refetch();
     if (result.error) throw result.error;
   }
-  useEffect(() => {
-    if (
-      authQuery.error &&
-      !(authQuery.error instanceof ApiError && authQuery.error.status === 401)
-    )
-      setError(errorMessage(authQuery.error));
-  }, [authQuery.error]);
   useEffect(() => {
     const rememberInteraction = () => {
       lastInteractionAt.current = Date.now();
@@ -201,6 +199,15 @@ export function Portal() {
       }),
     );
     const expire = () => {
+      if (sessionEnding.current) return;
+      sessionEnding.current = true;
+      loginDestination.current = {
+        pathname: window.location.pathname,
+        searchStr: window.location.search,
+      };
+      setError('');
+      setNotice('');
+      setPassword('');
       const recentlyActive =
         Date.now() - lastInteractionAt.current <= 5 * 60 * 1000;
       setSessionExpiryMessage(
@@ -221,6 +228,62 @@ export function Portal() {
       );
     };
   }, [navigate]);
+  useEffect(() => {
+    if (!authQuery.error || signedOut || sessionEnding.current) return;
+    if (authQuery.error instanceof ApiError && authQuery.error.status === 401) {
+      if (authQuery.data) {
+        window.dispatchEvent(new Event('akuru:unauthorized'));
+      } else if (!['/', '/login'].includes(location.pathname)) {
+        // Keep the initial deep link in memory, but show the real login URL.
+        loginDestination.current = {
+          pathname: location.pathname,
+          searchStr: location.searchStr,
+        };
+        void navigate({ to: '/login', replace: true });
+      }
+      return;
+    }
+    setError(errorMessage(authQuery.error));
+  }, [
+    authQuery.error,
+    authQuery.data,
+    signedOut,
+    location.pathname,
+    location.searchStr,
+    navigate,
+  ]);
+  useEffect(() => {
+    if (!data?.user.id) return;
+    let checking = false;
+    const check = async () => {
+      if (
+        checking ||
+        sessionEnding.current ||
+        document.visibilityState !== 'visible'
+      )
+        return;
+      checking = true;
+      try {
+        await api('auth/me');
+      } catch {
+        // The shared client reports confirmed 401s. Offline/5xx errors are not
+        // proof of expiry and must not discard an authenticated user's work.
+      } finally {
+        checking = false;
+      }
+    };
+    const resume = () => {
+      void check();
+    };
+    window.addEventListener('focus', resume);
+    document.addEventListener('visibilitychange', resume);
+    const timer = window.setInterval(resume, 60_000);
+    return () => {
+      window.removeEventListener('focus', resume);
+      document.removeEventListener('visibilitychange', resume);
+      window.clearInterval(timer);
+    };
+  }, [data?.user.id]);
   const role = data?.user.role as PortalRole | undefined;
   const view = role ? viewForPath(role, location.pathname) : 'today';
   useEffect(() => {
@@ -308,6 +371,7 @@ export function Portal() {
     e.preventDefault();
     setBusy(true);
     setError('');
+    setSessionExpiryMessage('');
     try {
       await api('auth/login', { username, password });
       await clearPrivateQueryState();
@@ -320,11 +384,14 @@ export function Portal() {
         );
       const next = loginState.data;
       const nextRole = next.user.role as PortalRole;
+      const destination = loginDestination.current;
       const intended =
-        roleAllowsPath(nextRole, location.pathname) &&
-        !['/', '/login'].includes(location.pathname)
-          ? `${location.pathname}${location.searchStr}`
+        roleAllowsPath(nextRole, destination.pathname) &&
+        !['/', '/login'].includes(destination.pathname)
+          ? `${destination.pathname}${destination.searchStr}`
           : pathForView(nextRole, 'today');
+      sessionEnding.current = false;
+      loginDestination.current = { pathname: '/login', searchStr: '' };
       navigateTo(intended, true);
       setPassword('');
     } catch (e: unknown) {
@@ -416,7 +483,7 @@ export function Portal() {
                 onKeyDown={submitLoginOnEnter}
                 required
               />
-              {error && (
+              {error && !sessionExpiryMessage && (
                 <div className="error" role="alert">
                   {error}
                   {authQuery.error &&
@@ -679,7 +746,22 @@ export function Portal() {
               aria-label="Sign out"
               onClick={async () => {
                 const proceed = async () => {
-                  await api('auth/logout', {});
+                  try {
+                    await api('auth/logout', {});
+                  } catch (caught) {
+                    if (!(caught instanceof ApiError && caught.status === 401))
+                      setError(errorMessage(caught));
+                    return;
+                  }
+                  sessionEnding.current = true;
+                  setSessionExpiryMessage('');
+                  loginDestination.current = {
+                    pathname: '/login',
+                    searchStr: '',
+                  };
+                  setError('');
+                  setNotice('');
+                  setPassword('');
                   setSignedOut(true);
                   await clearPrivateQueryState();
                   window.dispatchEvent(new Event('akuru:navigation'));
