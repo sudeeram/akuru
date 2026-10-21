@@ -2,6 +2,7 @@ from typing import Literal
 import uuid
 
 from pydantic import BaseModel, Field, model_validator
+from app.schemas.marking_rules import MarkingRules
 
 
 class SourceLocation(BaseModel):
@@ -26,11 +27,15 @@ class MarkingPoint(BaseModel):
     code: str = Field(min_length=1, max_length=30)
     text: str = Field(min_length=1)
     kind: Literal["method", "accuracy", "independent", "communication", "other"] = "other"
+    dependsOn: str | None = Field(default=None, max_length=80)
+    followThrough: bool = False
+    acceptedAnswers: list[str] = Field(default_factory=list, max_length=30)
 
 
 class MarkSchemeEntryReview(BaseModel):
     questionNumber: str = Field(min_length=1, max_length=40)
     maxMarks: int = Field(gt=0, le=200)
+    scoringRules: MarkingRules | None = None
     markingPoints: list[MarkingPoint] = Field(min_length=1)
     alternatives: list[str] = Field(default_factory=list)
     sourceLocations: list[SourceLocation] = Field(min_length=1)

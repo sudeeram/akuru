@@ -23,6 +23,8 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Planned
 
+- [iGCSE past-paper analysis conformance](planned/TODO-IGCSE-PASTPAPER-ANALYSIS.md) — enforce the versioned question, scheme and report standards under `guidelines/pastpapers/igcse`, using Q2 as the first regression case.
+
 
 
 - [Original Student avatar builder](planned/TODO-STUDENT-AVATAR-BUILDER.md) — original AKURU character customisation, profile integration and validated persistence; Style A vector editor and validated saving implemented locally; Student/Parent signed-in acceptance and deployment remain pending.

@@ -114,6 +114,7 @@ def _rubric(db, paper_version_id, number):
         ExaminerCommentVersion.question_number == number)) if report else None
     return {"rubricVersion": str(entry.material_version_id) if entry else None,
         "examinerReportVersion": str(comment.material_version_id) if comment else None,
+        "scoringRules": entry.scoring_rules if entry else None,
         "markingPoints": entry.marking_points if entry else [], "alternatives": entry.alternatives if entry else [],
         "commonMistakes": comment.common_mistakes if comment else [], "examinerAdvice": comment.advice if comment else []}
 

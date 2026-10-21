@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.services import marking_rules
 from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
@@ -148,7 +149,7 @@ def _response(db: Session, material: OfficialMaterialVersion) -> OfficialMateria
         sourcePaperVersionId=str(material.source_paper_version_id) if material.source_paper_version_id else None,
         expectedItemCount=material.inventory_count, completenessConfirmed=material.completeness_confirmed,
         questions=[OfficialQuestionReview(number=q.question_number, parentNumber=q.parent_number, prompt=q.prompt, sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, visualPlacements=q.visual_placements, sourceLocations=q.source_locations) for q in questions],
-        markSchemeEntries=[MarkSchemeEntryReview(questionNumber=e.question_number, maxMarks=e.max_marks, markingPoints=e.marking_points, alternatives=e.alternatives, sourceLocations=e.source_locations) for e in schemes],
+        markSchemeEntries=[MarkSchemeEntryReview(questionNumber=e.question_number, maxMarks=e.max_marks, markingPoints=e.marking_points, scoringRules=e.scoring_rules, alternatives=e.alternatives, sourceLocations=e.source_locations) for e in schemes],
         examinerComments=[ExaminerCommentReview(questionNumber=c.question_number, commonMistakes=c.common_mistakes, advice=c.advice, sourceLocations=c.source_locations) for c in comments],
     )
 
@@ -193,7 +194,9 @@ def _replace(db: Session, material: OfficialMaterialVersion, payload: SaveOffici
     for q in payload.questions:
         db.add(OfficialQuestionVersion(material_version_id=material.id, question_number=q.number, parent_number=q.parentNumber, prompt=q.prompt, shared_stem=q.sharedStem, marks=q.marks, equations=q.equations, asset_ids=[str(value) for value in q.assetIds], visual_placements={key:[str(value) for value in ids] for key,ids in q.visualPlacements.items()}, source_locations=[row.model_dump(mode="json") for row in q.sourceLocations]))
     for e in payload.markSchemeEntries:
-        db.add(MarkSchemeEntryVersion(material_version_id=material.id, question_number=e.questionNumber, max_marks=e.maxMarks, marking_points=[row.model_dump() for row in e.markingPoints], alternatives=e.alternatives, source_locations=[row.model_dump(mode="json") for row in e.sourceLocations]))
+        if e.scoringRules:
+            marking_rules.validate_rules([p.model_dump() for p in e.markingPoints], e.maxMarks, e.scoringRules.model_dump())
+        db.add(MarkSchemeEntryVersion(material_version_id=material.id, question_number=e.questionNumber, max_marks=e.maxMarks, marking_points=[row.model_dump() for row in e.markingPoints], scoring_rules=e.scoringRules.model_dump() if e.scoringRules else None, alternatives=e.alternatives, source_locations=[row.model_dump(mode="json") for row in e.sourceLocations]))
     for c in payload.examinerComments:
         db.add(ExaminerCommentVersion(material_version_id=material.id, question_number=c.questionNumber, common_mistakes=c.commonMistakes, advice=c.advice, source_locations=[row.model_dump(mode="json") for row in c.sourceLocations]))
     material.inventory_count = payload.expectedItemCount
@@ -301,19 +304,16 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             reviewed = {row.number: row.review_data for row in review_rows}
             scheme_rows = db.scalars(select(MarkSchemeEntryVersion).where(
                 MarkSchemeEntryVersion.material_version_id == material.id)).all()
-            def approved_points(question_data):
-                result = []
-                for part in question_data["parts"]:
-                    for point in part["markingPoints"]:
-                        suffix = f" [depends on {part['label']}.{point['dependsOn']}]" if point.get("dependsOn") else ""
-                        if point.get("followThrough"):
-                            suffix += " [error carried forward]"
-                        result.append({"code": f"{part['label']}.{point['code']}",
-                                       "text": point["text"] + suffix, "kind": point["kind"]})
-                return result
+            from app.schemas.official_paper_reviews import ReviewQuestionData
+            def approved_rubric(question_data):
+                data = ReviewQuestionData.model_validate(question_data)
+                if any(p.assessmentReadiness != "automatic" for p in data.parts):
+                    raise DomainError("assessment_rules_not_ready", "Confirm automatic-marking readiness separately from content approval.", 409)
+                return marking_rules.compile_review(data)
             if len(scheme_rows) != len(reviewed) or any(
                 row.question_number not in reviewed or row.max_marks != reviewed[row.question_number]["marks"]
-                or row.marking_points != approved_points(reviewed[row.question_number])
+                or row.marking_points != approved_rubric(reviewed[row.question_number])[0]
+                or row.scoring_rules != approved_rubric(reviewed[row.question_number])[1]
                 for row in scheme_rows
             ):
                 raise DomainError("review_draft_mismatch", "Prepare the exact scheme draft again from the approved workspace.", 409)
@@ -341,6 +341,11 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             raise DomainError("unmatched_question_reference", "Every entry must reference a question in the published source paper.", 409)
         if material.kind == "mark_scheme":
             entries = db.scalars(select(MarkSchemeEntryVersion).where(MarkSchemeEntryVersion.material_version_id == material.id)).all()
+            for entry in entries:
+                if entry.scoring_rules is not None:
+                    marking_rules.validate_rules(entry.marking_points, entry.max_marks, entry.scoring_rules)
+                elif len(entry.marking_points) > entry.max_marks:
+                    raise DomainError("assessment_rules_not_ready", "A scheme with alternative points needs structured scoring limits before publication.", 409)
             if numbers != set(allowed) or any(entry.max_marks != allowed[entry.question_number] for entry in entries):
                 raise DomainError("mark_scheme_reconciliation_failed", "The marking scheme must cover every published question with matching marks.", 409)
     now = datetime.now(timezone.utc)

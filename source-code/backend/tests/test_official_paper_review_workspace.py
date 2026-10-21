@@ -82,6 +82,7 @@ def _question(paper, scheme, topic):
             "markingPoints": [{"code": "M1", "text": "One spot", "kind": "method"},
                               {"code": "M2", "text": "Separated dyes", "kind": "accuracy"}],
             "paperSources": [paper_source], "schemeSources": [scheme_source],
+            "assessmentReadiness": "automatic",
             "coverage": "supported", "coverageReason": "The published chapter teaches chromatography.",
             "topicRefs": [topic.public_ref], "status": "approved",
         }],
@@ -174,6 +175,7 @@ def test_draft_marking_points_and_precise_visual_crops(auth_client, tmp_path):
     draft["data"]["marks"] = 3  # incomplete reconciliation is allowed in a saved draft
     draft["data"]["visualAssetIds"] = []
     draft["data"]["parts"][0]["status"] = "unreviewed"
+    draft["data"]["parts"][0]["assessmentReadiness"] = "unreviewed"
     draft["data"]["parts"][0]["markingPoints"] = [{"code": "", "text": ""}]
     saved = client.post(root + "/questions", headers=headers, json=draft)
     assert saved.status_code == 200, saved.text
@@ -323,3 +325,35 @@ def test_whole_paper_review_prepares_drafts_and_gates_publication(auth_client):
     assert released_paper.status_code == 200, released_paper.text
     released_scheme = client.post(scheme_publish, headers=headers, json=confirmation)
     assert released_scheme.status_code == 200, released_scheme.text
+
+
+@pytest.mark.integration
+def test_content_approval_and_grouped_scoring_readiness_are_separate(auth_client):
+    client, headers, session, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + "/start", headers=headers, json={"schemeDocumentId":str(scheme[0].id),"expectedQuestionCount":1}).status_code == 200
+    body = _question(paper, scheme, topic)
+    part = body["data"]["parts"][0]
+    part["assessmentReadiness"] = "unreviewed"
+    part["markingPoints"].extend([{"code":"M3","text":"Third observation"},{"code":"M4","text":"Fourth observation"}])
+    response = client.post(root + "/questions", headers=headers, json=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["wholePaperReady"] is True
+    assert response.json()["automaticAssessmentReady"] is False
+    assert client.post(root + "/prepare-official-drafts", headers=headers).status_code == 409
+    body["expectedRevision"] = 1
+    part["assessmentReadiness"] = "automatic"
+    part["scoringRules"] = {"combinedResponses":[{"phrase":"moves on the surface","pointIds":["M2","M3"]}]}
+    response = client.post(root + "/questions", headers=headers, json=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["questions"][0]["status"] == "approved"
+    assert response.json()["automaticAssessmentReady"] is True
+    assert client.post(root + "/prepare-official-drafts", headers=headers).status_code == 200
+    from app.models import MarkSchemeEntryVersion
+    entry = session.scalar(select(MarkSchemeEntryVersion).where(MarkSchemeEntryVersion.question_number == "1"))
+    assert entry.scoring_rules["groups"][0]["maxMarks"] == 2
+    assert entry.scoring_rules["combinedResponses"][0]["pointIds"] == ["a.M2", "a.M3"]
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 409
+    body["expectedRevision"] = 2
+    part["scoringRules"]["combinedResponses"][0]["pointIds"] = ["M2","missing"]
+    assert client.post(root + "/questions", headers=headers, json=body).status_code == 409

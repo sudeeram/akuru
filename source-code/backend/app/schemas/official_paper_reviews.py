@@ -3,6 +3,7 @@ from typing import Literal
 import uuid
 
 from pydantic import BaseModel, Field, model_validator
+from app.schemas.marking_rules import MarkingRules
 
 
 ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "excluded"]
@@ -21,6 +22,7 @@ class ReviewMarkingPoint(BaseModel):
     kind: Literal["method", "accuracy", "independent", "communication", "other"] = "other"
     dependsOn: str | None = Field(default=None, max_length=30)
     followThrough: bool = False
+    acceptedAnswers: list[str] = Field(default_factory=list, max_length=30)
 
 
 class ReviewPart(BaseModel):
@@ -34,6 +36,9 @@ class ReviewPart(BaseModel):
     paperSources: list[ReviewEvidence] = Field(default_factory=list)
     schemeSources: list[ReviewEvidence] = Field(default_factory=list)
     reportSources: list[ReviewEvidence] = Field(default_factory=list)
+    scoringRules: MarkingRules = Field(default_factory=MarkingRules)
+    assessmentReadiness: Literal["unreviewed", "automatic", "manual_only"] = "unreviewed"
+    assessmentReadinessReason: str = Field(default="", max_length=4000)
     coverage: CoverageStatus = "unreviewed"
     topicRefs: list[str] = Field(default_factory=list)
     coverageReason: str = Field(default="", max_length=4000)
@@ -113,5 +118,7 @@ class PaperReviewResponse(BaseModel):
     questionCount: int
     approvedCount: int
     wholePaperReady: bool
+    automaticAssessmentReady: bool = False
+    assessmentBlockers: list[str] = Field(default_factory=list)
     blockers: list[str]
     questions: list[ReviewQuestionResponse]

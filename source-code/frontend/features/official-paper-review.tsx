@@ -1,4 +1,5 @@
 'use client';
+import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
 /* eslint-disable jsx-a11y/label-has-associated-control */
@@ -620,6 +621,18 @@ export function OfficialPaperReview({
     }
   }
   function updatePart(next: ReviewPart) {
+    const previous = data.parts[activePart];
+    if (
+      previous &&
+      (JSON.stringify(previous.markingPoints) !==
+        JSON.stringify(next.markingPoints) ||
+        previous.marks !== next.marks ||
+        previous.prompt !== next.prompt ||
+        JSON.stringify(previous.scoringRules) !==
+          JSON.stringify(next.scoringRules))
+    ) {
+      next = { ...next, assessmentReadiness: 'unreviewed' };
+    }
     setData((current) => ({
       ...current,
       parts: current.parts.map((part, index) =>
@@ -765,7 +778,11 @@ export function OfficialPaperReview({
     );
   }
   async function keepCandidate(crop: (typeof availableCrops)[number]) {
-    const altText = (candidateDescriptions[crop.assetId] ?? crop.altText ?? '').trim();
+    const altText = (
+      candidateDescriptions[crop.assetId] ??
+      crop.altText ??
+      ''
+    ).trim();
     if (altText.length < 10) {
       setError(
         'Describe this visual in at least 10 characters before approving its crop.',
@@ -948,7 +965,20 @@ export function OfficialPaperReview({
           )}
         </>
       )}
-      {review?.wholePaperReady && (
+      {!!review?.assessmentBlockers?.length && (
+        <details>
+          <summary>
+            Automatic-marking readiness · {review.assessmentBlockers.length}{' '}
+            items to check
+          </summary>
+          <ul>
+            {review.assessmentBlockers.map((message, index) => (
+              <li key={index}>{message}</li>
+            ))}
+          </ul>
+        </details>
+      )}
+      {review?.automaticAssessmentReady && (
         <Button
           variant="outline"
           disabled={busy || dirty}
@@ -1289,9 +1319,15 @@ export function OfficialPaperReview({
                       >
                         <span>
                           <strong>Question {question.number}</strong>
-                          <StatusBadge status={question.status} label={label(question.status)} size="xs" />
+                          <StatusBadge
+                            status={question.status}
+                            label={label(question.status)}
+                            size="xs"
+                          />
                         </span>
-                        <MetadataBadge size="xs">{question.data.marks}m</MetadataBadge>
+                        <MetadataBadge size="xs">
+                          {question.data.marks}m
+                        </MetadataBadge>
                       </button>
                     ))}
                     {!reviewQuestionList(
@@ -1581,6 +1617,32 @@ export function OfficialPaperReview({
                                 />
                               </label>
                               <label>
+                                Equivalent accepted answers · one per line
+                                <Textarea
+                                  value={(point.acceptedAnswers ?? []).join(
+                                    '\n',
+                                  )}
+                                  onChange={(event) =>
+                                    updatePart({
+                                      ...part,
+                                      assessmentReadiness: 'unreviewed',
+                                      markingPoints: part.markingPoints.map(
+                                        (row, i) =>
+                                          i === index
+                                            ? {
+                                                ...row,
+                                                acceptedAnswers:
+                                                  event.target.value.split(
+                                                    '\n',
+                                                  ),
+                                              }
+                                            : row,
+                                      ),
+                                    })
+                                  }
+                                />
+                              </label>
+                              <label>
                                 Depends on code (optional)
                                 <Input
                                   maxLength={30}
@@ -1644,6 +1706,11 @@ export function OfficialPaperReview({
                             Add marking point
                           </Button>
                         </fieldset>
+                        <MarkingRulesEditor
+                          key={`${selected}:${part.label}`}
+                          part={part}
+                          onChange={updatePart}
+                        />
                         <label>
                           Accepted alternatives · one per line{' '}
                           <Textarea
@@ -1915,9 +1982,14 @@ export function OfficialPaperReview({
                           {crop && !crop.approved && (
                             <>
                               <label>
-                                Describe this candidate for students (editable draft; at least 10 characters){' '}
+                                Describe this candidate for students (editable
+                                draft; at least 10 characters){' '}
                                 <Textarea
-                                  value={candidateDescriptions[assetId] ?? crop.altText ?? ''}
+                                  value={
+                                    candidateDescriptions[assetId] ??
+                                    crop.altText ??
+                                    ''
+                                  }
                                   onChange={(event) =>
                                     setCandidateDescriptions((current) => ({
                                       ...current,
@@ -1932,7 +2004,9 @@ export function OfficialPaperReview({
                                   disabled={
                                     busy ||
                                     (
-                                      candidateDescriptions[assetId] ?? crop.altText ?? ''
+                                      candidateDescriptions[assetId] ??
+                                      crop.altText ??
+                                      ''
                                     ).trim().length < 10
                                   }
                                   onClick={() => void keepCandidate(crop)}

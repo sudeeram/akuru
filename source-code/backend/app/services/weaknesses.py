@@ -54,7 +54,7 @@ def record_result(db: Session, result: AssessmentResult, *, commit=True):
     raw = [(str(item), None, "minor") for item in result.small_mistakes] + [(str(item), None, "major") for item in result.conceptual_mistakes]
     points = {str(p.get("code")): p for p in question.rubric.get("markingPoints", []) if isinstance(p, dict)}
     for decision in result.marking_decisions:
-        if not decision.get("awarded"):
+        if not decision.get("awarded") and decision.get("creditState") not in {"matched_capped", "not_required"}:
             raw.append((f"{decision.get('criterion', '')}: {decision.get('rationale', '')}".strip(), points.get(str(decision.get("pointId")), {}).get("kind"), "moderate"))
     grouped = {}
     for text, kind, severity in raw:

@@ -25,6 +25,7 @@ export interface Schemas {
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
+  "CombinedResponse": { "phrase": string; "pointIds": Array<string>; };
   "CommunityChoice": { "id": string; "name": string; };
   "CommunityFeed": { "notifications": Array<Schemas["CommunityNotice"]>; "unreadCount": number; "hasMore": boolean; "page": number; };
   "CommunityMember": { "ref": string; "publicName": string; "avatar": Schemas["StudentAvatarConfig"] | null; "subjects": Array<Schemas["CommunityChoice"]>; "following": boolean; "followsYou": boolean; };
@@ -101,9 +102,11 @@ export interface Schemas {
   "LearnerContextResponse": { "operationRef": string; "contextVersion": string; "generatedAt": string; "subjectId": string; "activeTopic": Schemas["PlanTopicResponse"]; "topics"?: Array<Schemas["ContextTopic"]>; "evidence": Array<Schemas["ContextEvidence"]>; "providerContext": Schemas["ProviderLearnerContext"]; };
   "LoginRequest": { "username": string; "password": string; };
   "LoginResponse": { "user": Schemas["UserResponse"]; "csrfToken": string; };
-  "MarkSchemeEntryReview": { "questionNumber": string; "maxMarks": number; "markingPoints": Array<Schemas["MarkingPoint"]>; "alternatives"?: Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
+  "MarkSchemeEntryReview": { "questionNumber": string; "maxMarks": number; "scoringRules"?: Schemas["MarkingRules"] | null; "markingPoints": Array<Schemas["MarkingPoint"]>; "alternatives"?: Array<string>; "sourceLocations": Array<Schemas["SourceLocation"]>; };
   "MarkingDecision": { "pointId": string; "criterion": string; "awarded": boolean; "marksAwarded": number; "maxMarks": number; "studentEvidence": string; "rationale": string; "confidence": number; };
-  "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; };
+  "MarkingGroup": { "id": string; "pointIds": Array<string>; "maxMarks": number; "requiredForFullCredit"?: Array<string>; };
+  "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; "dependsOn"?: string | null; "followThrough"?: boolean; "acceptedAnswers"?: Array<string>; };
+  "MarkingRules": { "version"?: number; "groups"?: Array<Schemas["MarkingGroup"]>; "combinedResponses"?: Array<Schemas["CombinedResponse"]>; };
   "MasteryDimensionResponse": { "dimension": string; "score": number; "evidenceWeight": number; };
   "MasteryEventResponse": { "id": string; "previousScore": number | null; "newScore": number; "previousConfidence": string | null; "newConfidence": string; "explanation": string; "createdAt": string; };
   "MasteryResponse": { "studentId": string; "topics"?: Array<Schemas["TopicMasteryResponse"]>; "groups"?: Array<Schemas["GroupMasteryResponse"]>; };
@@ -118,7 +121,7 @@ export interface Schemas {
   "NoticeRead": { "read": boolean; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds"?: Array<string>; "visualPlacements"?: { [key: string]: Array<string>; }; "sourceLocations": Array<Schemas["SourceLocation"]>; };
-  "PaperReviewResponse": { "paperDocumentId": string; "paperVersionId": string; "schemeDocumentId": string | null; "reportDocumentId": string | null; "expectedQuestionCount": number; "questionCount": number; "approvedCount": number; "wholePaperReady": boolean; "blockers": Array<string>; "questions": Array<Schemas["ReviewQuestionResponse"]>; };
+  "PaperReviewResponse": { "paperDocumentId": string; "paperVersionId": string; "schemeDocumentId": string | null; "reportDocumentId": string | null; "expectedQuestionCount": number; "questionCount": number; "approvedCount": number; "wholePaperReady": boolean; "automaticAssessmentReady"?: boolean; "assessmentBlockers"?: Array<string>; "blockers": Array<string>; "questions": Array<Schemas["ReviewQuestionResponse"]>; };
   "ParagraphOperationRequest": { "action": "join_previous" | "split" | "restore_extracted"; "splitOffset"?: number | null; };
   "PlanChangeResponse": { "topicRef": string; "code": string; "title": string; "change": string; "fromPeriod"?: string | null; "toPeriod"?: string | null; };
   "PlanGenerateRequest": { "studentId"?: string | null; };
@@ -169,8 +172,8 @@ export interface Schemas {
   "RetrievalResponse": { "query": string; "subjectId": string; "evidence": Array<Schemas["EvidenceResponse"]>; };
   "ReviewCropResponse": { "assetId": string; "page": number; "kind": "diagram" | "table"; "altText": string; "approved"?: boolean; "bounds"?: { [key: string]: number; }; };
   "ReviewEvidence": { "page": number; "blockId"?: string | null; "assetId"?: string | null; };
-  "ReviewMarkingPoint": { "code"?: string; "text"?: string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; "dependsOn"?: string | null; "followThrough"?: boolean; };
-  "ReviewPart": { "label"?: string; "marks": number; "prompt"?: string; "visualAssetIds"?: Array<string>; "markingPoints"?: Array<Schemas["ReviewMarkingPoint"]>; "alternatives"?: Array<string>; "examinerAdvice"?: string; "paperSources"?: Array<Schemas["ReviewEvidence"]>; "schemeSources"?: Array<Schemas["ReviewEvidence"]>; "reportSources"?: Array<Schemas["ReviewEvidence"]>; "coverage"?: "unreviewed" | "supported" | "partial_or_uncertain" | "outside_current_coverage"; "topicRefs"?: Array<string>; "coverageReason"?: string; "status"?: "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "excluded"; };
+  "ReviewMarkingPoint": { "code"?: string; "text"?: string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; "dependsOn"?: string | null; "followThrough"?: boolean; "acceptedAnswers"?: Array<string>; };
+  "ReviewPart": { "label"?: string; "marks": number; "prompt"?: string; "visualAssetIds"?: Array<string>; "markingPoints"?: Array<Schemas["ReviewMarkingPoint"]>; "alternatives"?: Array<string>; "examinerAdvice"?: string; "paperSources"?: Array<Schemas["ReviewEvidence"]>; "schemeSources"?: Array<Schemas["ReviewEvidence"]>; "reportSources"?: Array<Schemas["ReviewEvidence"]>; "scoringRules"?: Schemas["MarkingRules"]; "assessmentReadiness"?: "unreviewed" | "automatic" | "manual_only"; "assessmentReadinessReason"?: string; "coverage"?: "unreviewed" | "supported" | "partial_or_uncertain" | "outside_current_coverage"; "topicRefs"?: Array<string>; "coverageReason"?: string; "status"?: "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "excluded"; };
   "ReviewQuestionData": { "marks": number; "sharedStem"?: string; "prompt"?: string; "paperSources"?: Array<Schemas["ReviewEvidence"]>; "visualAssetIds"?: Array<string>; "candidateVisualAssetIds"?: Array<string>; "visualAltText"?: string; "parts": Array<Schemas["ReviewPart"]>; "exclusionReason"?: string; };
   "ReviewQuestionResponse": { "number": string; "revision": number; "status": "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "excluded"; "data": Schemas["ReviewQuestionData"]; "reviewedBy"?: string | null; "reviewedAt"?: string | null; };
   "SafetyEventListResponse": { "events": Array<Schemas["SafetyEventResponse"]>; };

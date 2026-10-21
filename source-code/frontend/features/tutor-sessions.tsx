@@ -887,7 +887,7 @@ export function TutorSessions({
                   {practice.question.result.markingDecisions.map((decision) => (
                     <p className="source-note" key={decision.pointId}>
                       <strong>
-                        {decision.awarded ? 'Awarded' : 'Not awarded'}:
+                        {decision.creditState === 'matched_capped' ? 'Correct · mark limit reached' : decision.creditState === 'not_required' ? 'Optional · not required' : decision.awarded ? 'Awarded' : 'Not awarded'}:
                       </strong>{' '}
                       {decision.rationale}
                       <br />

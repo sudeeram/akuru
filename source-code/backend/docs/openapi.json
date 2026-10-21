@@ -1349,6 +1349,32 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "CombinedResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "phrase": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Phrase",
+            "type": "string"
+          },
+          "pointIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 2,
+            "title": "Pointids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "phrase",
+          "pointIds"
+        ],
+        "title": "CombinedResponse",
+        "type": "object"
+      },
       "CommunityChoice": {
         "properties": {
           "id": {
@@ -5048,6 +5074,16 @@
             "title": "Questionnumber",
             "type": "string"
           },
+          "scoringRules": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MarkingRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sourceLocations": {
             "items": {
               "$ref": "#/components/schemas/SourceLocation"
@@ -5128,13 +5164,79 @@
         "title": "MarkingDecision",
         "type": "object"
       },
+      "MarkingGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "maxMarks": {
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Maxmarks",
+            "type": "integer"
+          },
+          "pointIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Pointids",
+            "type": "array"
+          },
+          "requiredForFullCredit": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Requiredforfullcredit",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "pointIds",
+          "maxMarks"
+        ],
+        "title": "MarkingGroup",
+        "type": "object"
+      },
       "MarkingPoint": {
         "properties": {
+          "acceptedAnswers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Acceptedanswers",
+            "type": "array"
+          },
           "code": {
             "maxLength": 30,
             "minLength": 1,
             "title": "Code",
             "type": "string"
+          },
+          "dependsOn": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dependson"
+          },
+          "followThrough": {
+            "default": false,
+            "title": "Followthrough",
+            "type": "boolean"
           },
           "kind": {
             "default": "other",
@@ -5159,6 +5261,36 @@
           "text"
         ],
         "title": "MarkingPoint",
+        "type": "object"
+      },
+      "MarkingRules": {
+        "additionalProperties": false,
+        "properties": {
+          "combinedResponses": {
+            "items": {
+              "$ref": "#/components/schemas/CombinedResponse"
+            },
+            "maxItems": 100,
+            "title": "Combinedresponses",
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/MarkingGroup"
+            },
+            "maxItems": 200,
+            "title": "Groups",
+            "type": "array"
+          },
+          "version": {
+            "default": 1,
+            "maximum": 1.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "title": "MarkingRules",
         "type": "object"
       },
       "MasteryDimensionResponse": {
@@ -5853,6 +5985,18 @@
           "approvedCount": {
             "title": "Approvedcount",
             "type": "integer"
+          },
+          "assessmentBlockers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assessmentblockers",
+            "type": "array"
+          },
+          "automaticAssessmentReady": {
+            "default": false,
+            "title": "Automaticassessmentready",
+            "type": "boolean"
           },
           "blockers": {
             "items": {
@@ -7800,6 +7944,14 @@
       },
       "ReviewMarkingPoint": {
         "properties": {
+          "acceptedAnswers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Acceptedanswers",
+            "type": "array"
+          },
           "code": {
             "default": "",
             "maxLength": 30,
@@ -7854,6 +8006,22 @@
             "maxItems": 100,
             "title": "Alternatives",
             "type": "array"
+          },
+          "assessmentReadiness": {
+            "default": "unreviewed",
+            "enum": [
+              "unreviewed",
+              "automatic",
+              "manual_only"
+            ],
+            "title": "Assessmentreadiness",
+            "type": "string"
+          },
+          "assessmentReadinessReason": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Assessmentreadinessreason",
+            "type": "string"
           },
           "coverage": {
             "default": "unreviewed",
@@ -7924,6 +8092,9 @@
             },
             "title": "Schemesources",
             "type": "array"
+          },
+          "scoringRules": {
+            "$ref": "#/components/schemas/MarkingRules"
           },
           "status": {
             "default": "unreviewed",

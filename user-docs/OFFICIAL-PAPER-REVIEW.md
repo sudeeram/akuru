@@ -24,3 +24,13 @@ Use **Find question** and **Review status** to narrow the question list. The sel
 On desktop, the question editor and source viewer sit alongside each other. Select **Paper**, **Marking scheme** or **Report**, or use **Compare sources** to show the question paper and exact scheme together. Textbook topic mapping stays in the subpart's **Curriculum coverage** section; open the published textbook separately to read its full content. Source page arrows change only the source view. Clicking linked evidence opens the correct source tab, page and extracted block. At narrower widths the sources and editor stack; the question list scrolls horizontally.
 
 The persistent toolbar shows the save state and **Save question review**. Saving still uses the existing question revision and approval checks. Draft edits, including edits made before entering a question number, are protected on portal navigation and page reload. Advanced crop controls are under **Create or adjust a visual crop**. Once internal review is complete, **Prepare official paper and scheme drafts** remains a separate action; it does not publish content to Students.
+
+## Content approval and automatic marking
+
+Each subpart has two separate decisions. **Subpart review status** approves its content, evidence and curriculum coverage. **Automatic-marking readiness** confirms that the marking instructions are represented in rules AKURU can apply. You can approve content while leaving marking rules unchecked or marking the part for manual marking.
+
+Under **Automatic marking rules**, the maximum marks come from the subpart itself. Keep all acceptable marking points even when only some earn credit. Put synonyms in **Equivalent accepted answers** on the same point. Use **Add combined response** when the scheme explicitly allows one answer to satisfy multiple points, and list those point codes. Use **Add group limit** for additional caps within a subpart; a group can also specify points required for full credit.
+
+For Q2(a), retain four points and its two-mark maximum. Add “moves on the surface” as a combined response for the movement and floating point codes. Fizzing, bubbles and effervescence belong to the same point. Check the source scheme before confirming **All scoring rules represented and checked**. Unsupported conditional rules must remain **Manual marking required**, with a reason.
+
+The overall Question status is still a separate content decision. Approving all subparts does not automatically approve the question. Official assessment drafts can be prepared only after the complete paper's content is approved and every subpart's automatic-marking rules are confirmed. Successful content approval alone does not release student access.

@@ -60,3 +60,17 @@ Student sessions use immutable card snapshots and deterministic Quick, Normal, F
 ## Evaluation gates
 
 An Admin-approved subject/workflow corpus defines expected behavior. Candidate model and prompt versions produce recorded runs and metrics. Automatic behavior activates only for a passing release that exactly matches runtime model and prompt versions. Missing, stale or failing evidence restores review-required behavior.
+
+## Structured marking rules
+
+`app/schemas/marking_rules.py` defines the private version-1 rule contract; `app/services/marking_rules.py` validates references/dependencies and allocates credit after model point matching. Review parts retain `assessmentReadiness` independently from content status. The workspace response exposes `automaticAssessmentReady` and detailed `assessmentBlockers`; draft preparation and official scheme publication enforce readiness separately.
+
+The compiler namespaces point codes per subpart and creates a group for every paper-specified subpart maximum. Additional groups, required full-credit points, accepted equivalents and combined responses survive preparation in the versioned `mark_scheme_entry_versions.scoring_rules` JSON column (migration `0013_structured_marking_rules`). They are copied into frozen assessment rubrics, so changing a later draft cannot change an existing attempt.
+
+For structured rubrics, both AI passes must identify every point, preserve criteria, and provide exact evidence for awarded matches. Standalone approved phrases may produce deterministic matches; longer semantic variants remain model evidence decisions. The server caps credit and records raw decisions, matched/credited point IDs and per-point outcomes. `matched_capped` and `not_required` outcomes do not create negative mastery/weakness evidence. Human result review uses the same allocator. Student views distinguish unused alternatives from mistakes; the existing formal-assessment visibility gate keeps private rubric rules out of active student payloads.
+
+The v1 contract supports unit-credit points and nested/disjoint groups. More complex conditional rejection rules or alternate allocation paths must be marked manual-only, not approximated by additive points. Local synthetic tests do not establish live-model quality; existing confidence, reconciliation and release gates continue to apply.
+
+Rollout: back up the database, apply the additive migration, deploy backend/frontend together, then configure and confirm scoring rules through the Admin review UI. Legacy workspace content approvals remain, but default to unchecked automatic readiness. Published legacy additive rubrics still use the legacy scorer; previously invalid overcomplete legacy rubrics remain blocked. Configure Q2(a)'s accepted equivalents and combined response before removing its historical limitation note. No production content is changed by this migration.
+
+Dependencies that interact with selective/capped groups are explicitly rejected in rule v1, rather than risk under-allocation. Dependencies within ordinary additive subparts remain supported. Keep unsupported combinations manual-only. Exact phrase matching is disabled for an answer containing negation markers, leaving that answer to semantic evidence matching and existing review gates.

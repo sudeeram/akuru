@@ -9,6 +9,7 @@ import pymupdf
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.services import marking_rules
 from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
@@ -94,12 +95,23 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
         blockers.append("Reconcile the complete question inventory.")
     if approved != len(rows):
         blockers.append(f"Approve {len(rows) - approved} remaining questions.")
+    assessment_blockers = []
+    for question in questions:
+        for part in question.data.parts:
+            if part.assessmentReadiness != "automatic":
+                assessment_blockers.append(f"Q{question.number}({part.label}): automatic-marking rules are {part.assessmentReadiness.replace('_', ' ')}.")
+        if all(p.assessmentReadiness == "automatic" for p in question.data.parts):
+            try:
+                marking_rules.compile_review(question.data)
+            except DomainError as exc:
+                assessment_blockers.append(f"Q{question.number}: {exc}")
     return PaperReviewResponse(
         paperDocumentId=str(workspace.paper_document_id), paperVersionId=str(workspace.paper_version_id),
         schemeDocumentId=str(workspace.scheme_document_id) if workspace.scheme_document_id else None,
         reportDocumentId=str(workspace.report_document_id) if workspace.report_document_id else None,
         expectedQuestionCount=workspace.expected_question_count, questionCount=len(rows),
         approvedCount=approved, wholePaperReady=not blockers, blockers=blockers, questions=questions,
+        automaticAssessmentReady=not blockers and not assessment_blockers, assessmentBlockers=assessment_blockers,
     )
 
 
@@ -416,6 +428,10 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                        status: str, data: ReviewQuestionData):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
     for part in data.parts:
+        if part.assessmentReadiness == "automatic":
+            marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
+        if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
+            raise DomainError("manual_marking_reason_required", f"Part {part.label}: explain why manual marking is required.", 422)
         _validate_evidence(db, workspace.paper_version_id, part.paperSources, "paper")
         _validate_evidence(db, workspace.scheme_version_id, part.schemeSources, "scheme")
         _validate_evidence(db, workspace.report_version_id, part.reportSources, "examiner report")
@@ -432,10 +448,13 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
         if part.coverage != "supported" and part.topicRefs:
             raise DomainError("unsupported_topic_mapping", "Only supported parts may have confirmed topic links.", 422)
         if part.status in {"ready_for_approval", "approved"}:
-            if not (part.prompt.strip() and part.paperSources and part.schemeSources and part.markingPoints
-                    and part.label.strip() and part.marks > 0 and part.coverage != "unreviewed"
-                    and part.coverageReason.strip()):
-                raise DomainError("part_incomplete", "Approve wording, source, scheme and coverage before approving a part.", 409)
+            missing = [name for name, valid in (
+                ("wording", part.prompt.strip()), ("paper evidence", part.paperSources),
+                ("scheme evidence", part.schemeSources), ("marking points", part.markingPoints),
+                ("label", part.label.strip()), ("positive marks", part.marks > 0),
+                ("coverage decision", part.coverage != "unreviewed"), ("coverage reason", part.coverageReason.strip())) if not valid]
+            if missing:
+                raise DomainError("part_incomplete", f"Part {part.label}: complete {', '.join(missing)} before content approval.", 409)
             if not any(source.blockId for source in part.paperSources) or not any(source.blockId for source in part.schemeSources):
                 raise DomainError("exact_block_required", "Link an exact question and scheme block before approval.", 409)
             if len({point.code for point in part.markingPoints}) != len(part.markingPoints):
@@ -485,6 +504,16 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                         f"Attach a reviewed {kind} to part {part.label} before approving this question.", 409)
 
 
+def _content_snapshot(data):
+    value = ReviewQuestionData.model_validate(data).model_dump(mode="json")
+    for part in value["parts"]:
+        for field in ("scoringRules", "assessmentReadiness", "assessmentReadinessReason"):
+            part.pop(field, None)
+        for point in part["markingPoints"]:
+            point.pop("acceptedAnswers", None)
+    return value
+
+
 def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
                   payload: SaveReviewQuestion) -> PaperReviewResponse:
     workspace = _workspace(db, paper_id)
@@ -496,7 +525,7 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
     if revision != payload.expectedRevision:
         raise DomainError("review_conflict", "This question changed in another session. Reload before saving.", 409)
     auto_linked = _auto_link_exact_paper_blocks(db, workspace, payload.data)
-    changed = bool(row and row.review_data != payload.data.model_dump(mode="json"))
+    changed = bool(row and _content_snapshot(row.review_data) != _content_snapshot(payload.data.model_dump(mode="json")))
     if row and row.status == "approved" and payload.status == "approved" and changed:
         raise DomainError("reopen_required", "Reopen this approved question before editing it.", 409)
     if row and row.status == "approved" and payload.status != "approved":
@@ -611,6 +640,8 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
     scheme_entries = []
     for row in summary.questions:
         data = row.data
+        if any(part.assessmentReadiness != "automatic" for part in data.parts):
+            raise DomainError("assessment_rules_not_ready", f"Question {row.number}: content is approved, but every subpart needs automatic-marking rules confirmed before preparing an assessment release.", 409)
         locations = _exact_locations(db, [*data.paperSources,
             *(source for part in data.parts for source in part.paperSources)])
         scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
@@ -625,21 +656,12 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
                 part.label: part.visualAssetIds for part in data.parts if part.visualAssetIds}},
             sourceLocations=locations,
         ))
-        points = []
-        alternatives = []
-        for part in data.parts:
-            for point in part.markingPoints:
-                code = f"{part.label}.{point.code}"
-                if len(code) > 30:
-                    raise DomainError("marking_code_too_long", "Shorten a marking-point code before preparing drafts.", 422)
-                suffix = f" [depends on {part.label}.{point.dependsOn}]" if point.dependsOn else ""
-                if point.followThrough:
-                    suffix += " [error carried forward]"
-                points.append(MarkingPoint(code=code, kind=point.kind, text=point.text + suffix))
-            alternatives.extend(part.alternatives)
+        compiled_points, rules = marking_rules.compile_review(data)
+        points = [MarkingPoint.model_validate(p) for p in compiled_points]
+        alternatives = [value for part in data.parts for value in part.alternatives]
         scheme_entries.append(MarkSchemeEntryReview(
             questionNumber=row.number, maxMarks=data.marks,
-            markingPoints=points, alternatives=alternatives, sourceLocations=scheme_locations,
+            markingPoints=points, scoringRules=rules, alternatives=alternatives, sourceLocations=scheme_locations,
         ))
     paper_payload = SaveOfficialMaterialReview(
         expectedItemCount=len(paper_questions), completenessConfirmed=True,

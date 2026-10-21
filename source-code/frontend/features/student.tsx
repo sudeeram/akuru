@@ -1508,7 +1508,7 @@ export function ProgressView(p: FeatureProps) {
                       {point.pointId} · {point.criterion}
                     </strong>
                     <strong>
-                      {point.marksAwarded}/{point.maxMarks}
+                      {point.creditState === 'matched_capped' ? 'Correct · mark limit reached' : point.creditState === 'not_required' ? 'Optional · not required' : `${point.marksAwarded}/${point.maxMarks}`}
                     </strong>
                   </div>
                   <p>

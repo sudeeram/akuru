@@ -14,7 +14,7 @@ from app.models import (Assessment, AssessmentAnswer, AssessmentQuestion, Assess
     Document, DocumentBlock, DocumentPage, RetrievalChunk, Textbook, TextbookGroup, TextbookTopic,
     TextbookTopicContentVersion, User)
 from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
-from app.services import subject_marking
+from app.services import subject_marking, marking_rules
 from app.services import evaluations, mastery, usage_limits, weaknesses
 
 
@@ -30,10 +30,13 @@ def _official_points(question: AssessmentQuestion) -> list[dict]:
             continue
         marks = int(value.get("marks") or value.get("maxMarks") or 1)
         points.append({"pointId": str(value.get("code") or value.get("markCode") or f"P{index}"),
-                       "criterion": criterion, "maxMarks": marks})
+                       "criterion": criterion, "maxMarks": marks, "dependsOn": value.get("dependsOn"),
+                       "followThrough": value.get("followThrough", False), "acceptedAnswers": value.get("acceptedAnswers", [])})
     if not points:
         raise DomainError("assessment_rubric_required", "This question has no approved marking points and cannot be assessed automatically.", 409)
-    if sum(point["maxMarks"] for point in points) > question.marks:
+    if question.rubric.get("scoringRules") is not None:
+        marking_rules.validate_rules(points, question.marks, question.rubric["scoringRules"])
+    elif sum(point["maxMarks"] for point in points) > question.marks:
         raise DomainError("assessment_rubric_invalid", "The approved marking points exceed the question maximum.", 409)
     return points
 
@@ -79,6 +82,7 @@ def _task(question: AssessmentQuestion, answer: AssessmentAnswer | None, points:
         "prompt": question.prompt, "maximumMarks": question.marks, "commandWord": command_word,
         "equations": question.equations}, "studentAnswer": answer.answer_text if answer else "",
         "studentFileId": answer.file_id if answer else None, "officialMarkingPoints": points,
+        "scoringRules": question.rubric.get("scoringRules"),
         "acceptedAlternatives": question.rubric.get("alternatives", []),
         "examinerAdvice": question.rubric.get("examinerAdvice", []),
         "commonMistakes": question.rubric.get("commonMistakes", []), "sourceEvidence": sources,
@@ -99,7 +103,9 @@ def _generate(db: Session, settings: Settings, request: AIRequest) -> AIResult:
         return AIAccountRouter(provider_db, settings).generate(request)
 
 
-def _validate(decisions, points: list[dict], question_marks: int) -> int:
+def _validate(decisions, points: list[dict], question_marks: int, rules=None, answer_text=None) -> int:
+    if rules is not None:
+        return marking_rules.score(decisions, points, question_marks, rules, answer_text)[0]
     expected = {point["pointId"]: point for point in points}
     if len(decisions) != len(expected) or set(row.pointId for row in decisions) != set(expected):
         raise DomainError("assessment_output_invalid", "AKURU did not assess every approved marking point exactly once.", 422)
@@ -188,20 +194,24 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         input_hash = hashlib.sha256(material.encode()).hexdigest()
         metadata = {"learner_ref": usage_limits.pseudonymous_student_id(settings, assessment.student_id), "subject_id": assessment.subject_id}
         try:
-            instructions = f"{prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
+            instructions = f"For structured rubrics, return evidence matches for every point before caps. Quote exact student wording for each awarded match. Distinct points may share evidence; synonyms for one point never create extra points. Backend code applies all caps. Do not describe unused alternatives as errors once sufficient marks are earned; do not claim a numerical total in generated feedback. {prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
             first = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
                 prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting),
                 output_type=AssessmentPassOne, metadata=metadata))
-            _validate(first.output.decisions, points, question.marks)
+            _validate(first.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
             second = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
                 prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting, first.output.model_dump()),
                 output_type=AssessmentPassTwo, metadata=metadata))
             used_tokens += (first.usage.total_tokens or 0) + (second.usage.total_tokens or 0)
         except AIProviderError as exc:
             raise DomainError(exc.code, str(exc), 503) from exc
-        awarded = _validate(second.output.decisions, points, question.marks)
+        awarded = _validate(second.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
         if [(d.pointId, d.awarded, d.marksAwarded) for d in first.output.decisions] != [(d.pointId, d.awarded, d.marksAwarded) for d in second.output.decisions]:
             raise DomainError("assessment_reconciliation_failed", "The two marking passes disagreed; this answer requires a new assessment.", 422)
+        final_decisions = second.output.decisions
+        if question.rubric.get("scoringRules") is not None:
+            awarded, final_decisions, allocation = marking_rules.score(second.output.decisions, points, question.marks, question.rubric["scoringRules"], answer_text)
+            deterministic["rubricScoring"] = allocation
         confidence = min(first.output.overallConfidence, second.output.confidence, *(d.confidence for d in second.output.decisions))
         review = list(dict.fromkeys(first.output.reviewReasons + second.output.reviewReasons))
         if working and working.ocr_confidence < settings.assessment_ocr_review_threshold:
@@ -222,7 +232,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             schema_version=SCHEMA_VERSION, status="needs_review" if review else "published",
             answer_revision=answer.save_revision if answer else 0, input_hash=input_hash, request_key=request_key,
             awarded_marks=awarded, max_marks=question.marks, confidence=confidence,
-            marking_decisions=[d.model_dump() for d in second.output.decisions], strengths=second.output.strengths,
+            marking_decisions=[d.model_dump() | ({"creditState": deterministic["rubricScoring"]["pointOutcomes"][d.pointId]} if "rubricScoring" in deterministic else {}) for d in final_decisions], strengths=second.output.strengths,
             small_mistakes=second.output.smallMistakes, conceptual_mistakes=second.output.conceptualMistakes,
             improved_answer=second.output.improvedAnswer, teaching_explanation=second.output.teachingExplanation,
             topic_evidence=second.output.topicEvidence, recommendations=second.output.recommendations,

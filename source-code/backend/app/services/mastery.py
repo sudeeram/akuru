@@ -68,6 +68,7 @@ def _evidence(db, student_id):
         for item_id, unit_weight in weights.items():
             dimensions = defaultdict(list); dimensions["knowledge"].append((ratio, base * unit_weight))
             for decision in result.marking_decisions:
+                if decision.get("creditState") in {"matched_capped", "not_required"}: continue
                 dimensions[_dimension(question, decision)].append((decision["marksAwarded"] / decision["maxMarks"], base * unit_weight))
             evidence.append({"result": result, "question": question, "assessment": assessment,
                 "topicId": item_id,

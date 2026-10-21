@@ -1274,6 +1274,7 @@ class MarkSchemeEntryVersion(Base):
     question_number: Mapped[str] = mapped_column(String(40))
     max_marks: Mapped[int] = mapped_column(Integer)
     marking_points: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    scoring_rules: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     alternatives: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     __table_args__ = (
