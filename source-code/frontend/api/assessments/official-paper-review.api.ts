@@ -26,6 +26,12 @@ export type MarkingRules = {
   }[];
   combinedResponses: { phrase: string; pointIds: string[] }[];
 };
+export type TextbookPageEvidence = {
+  topicRef: string; documentVersionId: string; page: number; printedPageLabel: string;
+};
+export type TextbookPageOption = TextbookPageEvidence & { documentId: string; assetId: string };
+export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
+  request<{ visualPages: TextbookPageOption[] }>(`admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`);
 export type ReviewPart = {
   label: string;
   marks: number;
@@ -50,6 +56,7 @@ export type ReviewPart = {
   coverage: CoverageStatus;
   topicRefs: string[];
   coverageReason: string;
+  textbookEvidence?: TextbookPageEvidence[];
   status: ReviewStatus;
 };
 export type ReviewQuestionData = {

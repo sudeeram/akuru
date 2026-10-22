@@ -34,3 +34,9 @@ Under **Automatic marking rules**, the maximum marks come from the subpart itsel
 For Q2(a), retain four points and its two-mark maximum. Add “moves on the surface” as a combined response for the movement and floating point codes. Fizzing, bubbles and effervescence belong to the same point. Check the source scheme before confirming **All scoring rules represented and checked**. Unsupported conditional rules must remain **Manual marking required**, with a reason.
 
 The overall Question status is still a separate content decision. Approving all subparts does not automatically approve the question. Official assessment drafts can be prepared only after the complete paper's content is approved and every subpart's automatic-marking rules are confirmed. Successful content approval alone does not release student access.
+
+## Coverage evidence and saving your place
+
+Keep coverage reasons focused on concepts, without page numbers. Select the matching reviewed page under **Textbook evidence · Visual reference pages** and use **Open page** to verify it. References retain the exact source version and printed-page label. A replaced source is flagged for revalidation; confirm a replacement before removing the historical reference. Page evidence is optional when saving a draft.
+
+Saving shows a toast notification and preserves the selected subpart and source pages. **Previous subpart** and **Next subpart** move within the question without discarding unsaved edits. The question navigation buttons continue to warn about unsaved work.

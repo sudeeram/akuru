@@ -18,6 +18,7 @@ const {
   reviewNeighbours,
   reviewNavigationAllowed,
   reviewHasChanges,
+  reviewSavedPartIndex,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`
 );
@@ -98,4 +99,10 @@ test('edits before a question number is entered are protected, and saved snapsho
     ),
     true,
   );
+});
+
+test("save refresh preserves the selected subpart by label and handles removed parts", () => {
+  assert.equal(reviewSavedPartIndex([{ label: "a" }, { label: "c" }], "c"), 1);
+  assert.equal(reviewSavedPartIndex([{ label: "c" }, { label: "a" }], "c"), 0);
+  assert.equal(reviewSavedPartIndex([{ label: "a" }], "c"), 0);
 });

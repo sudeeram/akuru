@@ -52,3 +52,9 @@ export function reviewHasChanges(
     JSON.stringify(draft) !== (savedSnapshot || JSON.stringify(emptyDraft))
   );
 }
+
+/** Preserve the logical subpart when a saved server response refreshes the form. */
+export function reviewSavedPartIndex(parts: { label: string }[], selectedLabel?: string) {
+  const index = parts.findIndex((part) => part.label === selectedLabel);
+  return index < 0 ? 0 : index;
+}

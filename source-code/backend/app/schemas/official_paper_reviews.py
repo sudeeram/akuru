@@ -25,6 +25,13 @@ class ReviewMarkingPoint(BaseModel):
     acceptedAnswers: list[str] = Field(default_factory=list, max_length=30)
 
 
+class TextbookPageEvidence(BaseModel):
+    topicRef: str = Field(min_length=1, max_length=56)
+    documentVersionId: uuid.UUID
+    page: int = Field(gt=0)
+    printedPageLabel: str = Field(min_length=1, max_length=40)
+
+
 class ReviewPart(BaseModel):
     label: str = Field(default="", max_length=40)
     marks: int = Field(ge=0, le=200)
@@ -41,6 +48,7 @@ class ReviewPart(BaseModel):
     assessmentReadinessReason: str = Field(default="", max_length=4000)
     coverage: CoverageStatus = "unreviewed"
     topicRefs: list[str] = Field(default_factory=list)
+    textbookEvidence: list[TextbookPageEvidence] = Field(default_factory=list, max_length=100)
     coverageReason: str = Field(default="", max_length=4000)
     status: ReviewStatus = "unreviewed"
 

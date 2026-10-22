@@ -14,6 +14,7 @@ from app.errors import DomainError
 from app.models import (
     AuditEvent, Document, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
     OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace, RetrievalChunk, TextbookTopic,
+    TextbookTopicContentVersion,
 )
 from app.schemas.official_paper_reviews import (
     CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewEvidence, ReviewQuestionData, ReviewQuestionResponse,
@@ -133,7 +134,43 @@ def published_topic_evidence(db: Session, paper_id: uuid.UUID, topic_ref: str) -
         RetrievalChunk.source_type == "textbook_section"
     ).order_by(RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(100)).all()
     return {"topicRef": topic.public_ref, "code": topic.code, "title": topic.title,
+            "visualPages": visual_page_options(db, topic),
             "chunks": [{"pageNumber": row.page_number, "text": row.content} for row in rows]}
+
+
+def visual_page_options(db: Session, topic: TextbookTopic) -> list[dict]:
+    from app.services.student_textbooks import _visual_reference_sources
+    content = db.scalar(select(TextbookTopicContentVersion).where(
+        TextbookTopicContentVersion.topic_id == topic.id,
+        TextbookTopicContentVersion.status == "published").order_by(
+        TextbookTopicContentVersion.version_number.desc()))
+    if not content:
+        return []
+    return [{"topicRef": topic.public_ref, "documentVersionId": str(version.id),
+             "documentId": str(version.document_id), "page": page.page_number,
+             "printedPageLabel": page.printed_page_label, "assetId": str(page.render_asset_id)}
+            for _source, version, pages in _visual_reference_sources(db, content) for page in pages]
+
+
+def validate_textbook_evidence(db: Session, paper: Document, part, previous_evidence: list | None = None) -> None:
+    for evidence in part.textbookEvidence:
+        topic = db.scalar(select(TextbookTopic).where(TextbookTopic.public_ref == evidence.topicRef))
+        if (not topic or evidence.topicRef not in part.topicRefs
+                or (topic.course_id, topic.subject_id) != (paper.course_id, paper.subject_id)):
+            raise DomainError("invalid_textbook_evidence", "Textbook evidence must belong to a selected topic in this subject.", 422)
+        # Historical publications remain valid provenance; current availability is shown separately.
+        publications = db.scalars(select(TextbookTopicContentVersion).where(
+            TextbookTopicContentVersion.topic_id == topic.id)).all()
+        if not any(any(source.get("role") == "visual_reference" and
+                       source.get("documentVersionId") == str(evidence.documentVersionId)
+                       for source in publication.source_manifest) for publication in publications):
+            raise DomainError("invalid_textbook_evidence", "Choose a published Visual reference source for this topic.", 422)
+        page = db.scalar(select(DocumentPage).where(
+            DocumentPage.document_version_id == evidence.documentVersionId,
+            DocumentPage.page_number == evidence.page))
+        historical = evidence.model_dump(mode="json") in (previous_evidence or [])
+        if not page or (page.printed_page_label != evidence.printedPageLabel and not historical):
+            raise DomainError("invalid_textbook_page", "Choose a reviewed printed-page label from this source version.", 422)
 
 
 def published_topics(db: Session, paper_id: uuid.UUID) -> list[dict]:
@@ -425,9 +462,11 @@ def _auto_link_exact_paper_blocks(db: Session, workspace: OfficialPaperReviewWor
 
 
 def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
-                       status: str, data: ReviewQuestionData):
+                       status: str, data: ReviewQuestionData, previous_data: dict | None = None):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
     for part in data.parts:
+        previous_part = next((item for item in (previous_data or {}).get("parts", []) if item.get("label") == part.label), {})
+        validate_textbook_evidence(db, _paper(db, workspace.paper_document_id), part, previous_part.get("textbookEvidence", []))
         if part.assessmentReadiness == "automatic":
             marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
         if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
@@ -532,7 +571,8 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         for part in payload.data.parts:
             if part.status == "approved":
                 part.status = "needs_correction"
-    _validate_question(db, workspace, payload.status, payload.data)
+    _validate_question(db, workspace, payload.status, payload.data, row.review_data if row else None)
+    previous_textbook_evidence = [{"part": part.get("label"), "evidence": part.get("textbookEvidence", [])} for part in (row.review_data if row else {}).get("parts", [])]
     if row is None:
         row = OfficialPaperReviewQuestion(workspace_id=workspace.id, number=payload.number)
         db.add(row)
@@ -545,7 +585,9 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
     db.add(AuditEvent(actor_id=principal.user.id, action="official_review.question_saved",
                       target_type="document", target_id=str(paper_id),
                       event_data={"number": payload.number, "revision": row.revision, "status": row.status,
-                                  "autoLinkedPaperBlocks": auto_linked}))
+                                  "autoLinkedPaperBlocks": auto_linked,
+                                  "previousTextbookEvidence": previous_textbook_evidence,
+                                  "textbookEvidence": [{"part": part.label, "evidence": [item.model_dump(mode="json") for item in part.textbookEvidence]} for part in payload.data.parts]}))
     db.commit()
     return _response(db, workspace)
 

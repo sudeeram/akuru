@@ -1,4 +1,6 @@
 'use client';
+import { Toaster, toast } from '@/components/ui/toast';
+import { getReviewTopicEvidence, type TextbookPageOption } from '@/api/assessments/official-paper-review.api';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
@@ -28,6 +30,7 @@ import {
   reviewAttentionCount,
   reviewNavigationAllowed,
   reviewHasChanges,
+  reviewSavedPartIndex,
 } from '@/lib/paper-review-presentation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -509,7 +512,7 @@ export function OfficialPaperReview({
     Record<string, string>
   >({});
 
-  function chooseQuestion(row: PaperReview['questions'][number]) {
+  function chooseQuestion(row: PaperReview['questions'][number], selectedPartLabel?: string) {
     const loaded = structuredClone(row.data);
     loaded.candidateVisualAssetIds ||= [];
     loaded.parts = loaded.parts.map((item) => ({
@@ -521,13 +524,14 @@ export function OfficialPaperReview({
     setData(loaded);
     setStatus(row.status);
     setRevision(row.revision);
-    setActivePart(0);
+    setActivePart(reviewSavedPartIndex(loaded.parts, selectedPartLabel));
     setCropBox(null);
     setReplaceCandidateId(null);
     setCropOpen(false);
     setSavedSnapshot(
       JSON.stringify({ number: row.number, status: row.status, data: loaded }),
     );
+    if (selectedPartLabel !== undefined) return;
     setPaperPage(row.data.paperSources[0]?.page || 1);
     setSchemePage(row.data.parts[0]?.schemeSources[0]?.page || 1);
     setReportPage(row.data.parts[0]?.reportSources[0]?.page || 1);
@@ -611,11 +615,12 @@ export function OfficialPaperReview({
         const row = value.questions.find(
           (question) => question.number === number,
         );
-        if (row) chooseQuestion(row);
+        if (row) chooseQuestion(row, data.parts[activePart]?.label);
       }
-      setNotice(message);
+      toast.add({ title: message, type: 'success' });
     } catch (cause) {
       setError(errorMessage(cause));
+      toast.add({ title: errorMessage(cause), type: 'error' });
     } finally {
       setBusy(false);
     }
@@ -641,6 +646,26 @@ export function OfficialPaperReview({
     }));
   }
   const part = data.parts[activePart];
+  const [visualPages, setVisualPages] = useState<Record<string, TextbookPageOption[]>>({});
+  const [evidenceError, setEvidenceError] = useState('');
+  const topicKey = JSON.stringify(part?.topicRefs || []);
+  useEffect(() => {
+    let active = true;
+    const refs: string[] = JSON.parse(topicKey);
+    void Promise.all(refs.map(async (ref) => [ref, (await getReviewTopicEvidence(paperId, ref)).visualPages] as const))
+      .then((entries) => { if (active) { setVisualPages(Object.fromEntries(entries)); setEvidenceError(''); } })
+      .catch((cause) => { if (active) { setVisualPages({}); setEvidenceError(errorMessage(cause)); } });
+    return () => { active = false; };
+  }, [paperId, topicKey]);
+  function selectPart(index: number) {
+    const row = data.parts[index];
+    if (!row) return;
+    setActivePart(index);
+    setPaperPage(row.paperSources[0]?.page || paperPage);
+    setSchemePage(row.schemeSources[0]?.page || schemePage);
+    setReportPage(row.reportSources[0]?.page || reportPage);
+  }
+
   const dirty = reviewHasChanges({ number, status, data }, savedSnapshot, {
     number: '',
     status: 'unreviewed',
@@ -888,6 +913,7 @@ export function OfficialPaperReview({
     );
   return (
     <div className="pr-review stack">
+      <Toaster />
       <PageHeader
         eyebrow="EXAM DOCUMENTS · OFFICIAL PAPER REVIEW"
         title={paper.name}
@@ -1264,6 +1290,12 @@ export function OfficialPaperReview({
               >
                 Next <ArrowRight size={14} />
               </Button>
+              <Button variant="outline" size="sm" disabled={busy || activePart <= 0} onClick={() => selectPart(activePart - 1)}>
+                <ArrowLeft size={14} /> Previous subpart
+              </Button>
+              <Button variant="outline" size="sm" disabled={busy || activePart >= data.parts.length - 1} onClick={() => selectPart(activePart + 1)}>
+                Next subpart <ArrowRight size={14} />
+              </Button>
               <Button disabled={busy || !number.trim()} onClick={saveQuestion}>
                 <Save size={15} /> Save question review
               </Button>
@@ -1451,18 +1483,7 @@ export function OfficialPaperReview({
                           key={index}
                           variant={activePart === index ? 'default' : 'outline'}
                           aria-pressed={activePart === index}
-                          onClick={() => {
-                            setActivePart(index);
-                            setPaperPage(
-                              row.paperSources[0]?.page || paperPage,
-                            );
-                            setSchemePage(
-                              row.schemeSources[0]?.page || schemePage,
-                            );
-                            setReportPage(
-                              row.reportSources[0]?.page || reportPage,
-                            );
-                          }}
+                          onClick={() => selectPart(index)}
                         >
                           {row.label} · {row.marks} marks
                         </Button>
@@ -1815,6 +1836,7 @@ export function OfficialPaperReview({
                                 ...part,
                                 coverage: event.target.value as CoverageStatus,
                                 topicRefs: [],
+                                textbookEvidence: [],
                               })
                             }
                           >
@@ -1846,6 +1868,7 @@ export function OfficialPaperReview({
                                         : part.topicRefs.filter(
                                             (ref) => ref !== topic.topicRef,
                                           ),
+                                      textbookEvidence: (part.textbookEvidence || []).filter((item) => event.target.checked || item.topicRef !== topic.topicRef),
                                     })
                                   }
                                 />{' '}
@@ -1866,6 +1889,29 @@ export function OfficialPaperReview({
                             }
                           />
                         </label>
+                        {/\(published textbook pages? [^)]+\)/i.test(part.coverageReason) && (
+                          <Button variant="outline" size="sm" onClick={() => updatePart({
+                            ...part,
+                            coverageReason: part.coverageReason.replace(/\s*\(published textbook pages? [^)]+\)/gi, ''),
+                          })}>Remove legacy page numbers from reason</Button>
+                        )}
+                        <fieldset>
+                          <legend>Textbook evidence · Visual reference pages</legend>
+                          <p className="small">Keep the coverage reason independent of pagination. Select verified printed pages below; missing page evidence does not block saving.</p>
+                          {evidenceError && <p role="alert">{evidenceError}</p>}
+                          {part.topicRefs.flatMap((ref) => visualPages[ref] || []).map((page) => {
+                            const selected = (part.textbookEvidence || []).some((item) => item.topicRef === page.topicRef && item.documentVersionId === page.documentVersionId && item.page === page.page && item.printedPageLabel === page.printedPageLabel);
+                            return <div key={`${page.topicRef}-${page.documentVersionId}-${page.page}`}>
+                              <label><input type="checkbox" checked={selected} onChange={(event) => updatePart({ ...part, textbookEvidence: event.target.checked ? [...(part.textbookEvidence || []), { topicRef: page.topicRef, documentVersionId: page.documentVersionId, page: page.page, printedPageLabel: page.printedPageLabel }] : (part.textbookEvidence || []).filter((item) => !(item.topicRef === page.topicRef && item.documentVersionId === page.documentVersionId && item.page === page.page)) })} /> {topics.find((topic) => topic.topicRef === page.topicRef)?.title} · Page {page.printedPageLabel}</label>{' '}
+                              <a href={`/api/v1/documents/${page.documentId}/assets/${page.assetId}/content`} target="_blank" rel="noreferrer">Open page</a>
+                            </div>;
+                          })}
+                          {!evidenceError && part.topicRefs.length > 0 && !part.topicRefs.some((ref) => visualPages[ref]?.length) && <p>No reviewed Visual reference pages available for the selected topics.</p>}
+                          {(part.textbookEvidence || []).filter((item) => !visualPages[item.topicRef]?.some((page) => page.documentVersionId === item.documentVersionId && page.page === item.page && page.printedPageLabel === item.printedPageLabel)).map((item) => <div key={`${item.topicRef}-${item.documentVersionId}-${item.page}`}>
+                            <output>Page {item.printedPageLabel} · Source requires revalidation (or is still loading). Historical reference retained.</output>
+                            <Button variant="outline" size="sm" onClick={() => updatePart({ ...part, textbookEvidence: (part.textbookEvidence || []).filter((entry) => entry !== item) })}>Remove reference</Button>
+                          </div>)}
+                        </fieldset>
                         <label>
                           Subpart review status{' '}
                           <select

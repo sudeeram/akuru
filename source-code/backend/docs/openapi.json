@@ -8108,6 +8108,14 @@
             "title": "Status",
             "type": "string"
           },
+          "textbookEvidence": {
+            "items": {
+              "$ref": "#/components/schemas/TextbookPageEvidence"
+            },
+            "maxItems": 100,
+            "title": "Textbookevidence",
+            "type": "array"
+          },
           "topicRefs": {
             "items": {
               "type": "string"
@@ -9517,6 +9525,40 @@
           "textbooks"
         ],
         "title": "TextbookListResponse",
+        "type": "object"
+      },
+      "TextbookPageEvidence": {
+        "properties": {
+          "documentVersionId": {
+            "format": "uuid",
+            "title": "Documentversionid",
+            "type": "string"
+          },
+          "page": {
+            "exclusiveMinimum": 0.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "printedPageLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Printedpagelabel",
+            "type": "string"
+          },
+          "topicRef": {
+            "maxLength": 56,
+            "minLength": 1,
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "documentVersionId",
+          "page",
+          "printedPageLabel"
+        ],
+        "title": "TextbookPageEvidence",
         "type": "object"
       },
       "TextbookResponse": {

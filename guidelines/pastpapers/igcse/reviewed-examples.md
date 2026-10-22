@@ -29,6 +29,14 @@ Report expectations: link the Q2(a) example to its following-page examiner comme
 
 Known cause: `separate_subparts` in the pilot draft-bank builder closes a part at a mark line. The current seed flow also links schemes without populating structured marking rules. These cases must fail before the corresponding fixes and pass afterward.
 
+## Case 3: June 2025 Chemistry 1C, Question 3 — diagram labels
+
+Verified on 2026-10-22 against question-paper PDF page 6. The chromatography diagram includes five inks V–Z, all spots, the horizontal start line and solvent front, and both identifying labels to the right of the drawn border. A crop stopping at the border loses essential question information.
+
+Production Q3 revision 9 replaces the clipped crop with a verified wider crop, attached to parts a–d, and an accessible description identifying both lines. Existing question/subpart review statuses were preserved; unrelated questions were unchanged. The obsolete clipped-crop warning was removed, while the original-scale measurement instruction for part d was retained.
+
+Regression expectation: both labels must be visible and legible alongside the complete diagram. Labels outside a drawn border must survive extraction/cropping; no answer or calculated distance is added to the description.
+
 ## Extend the corpus
 
 Add independently checked cases for multi-page subparts, shared diagrams, labelled graphs, merged scheme rows, any-N groups, dependencies, formula charges, handwriting uncertainty, incomplete companions, alternate layouts and regional variants. Record exact source hashes and local fixture locations in the private fixture manifest. Use synthetic equivalents in public tests when licensed originals cannot be committed.

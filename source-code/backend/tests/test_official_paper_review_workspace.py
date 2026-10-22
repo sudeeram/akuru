@@ -357,3 +357,35 @@ def test_content_approval_and_grouped_scoring_readiness_are_separate(auth_client
     body["expectedRevision"] = 2
     part["scoringRules"]["combinedResponses"][0]["pointIds"] = ["M2","missing"]
     assert client.post(root + "/questions", headers=headers, json=body).status_code == 409
+
+
+@pytest.mark.integration
+def test_textbook_page_evidence_is_versioned_and_subject_scoped(auth_client):
+    from app.models import TextbookTopicContentVersion
+    client, headers, session, paper, scheme, report, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    client.post(root + '/start', headers=headers, json={'schemeDocumentId': str(scheme[0].id)})
+    admin = session.get(User, paper[0].uploaded_by)
+    document, version, page, *_ = _source(session, admin, uuid.uuid4().hex, 'textbook')
+    page.printed_page_label = '12'
+    publication = TextbookTopicContentVersion(topic_id=topic.id, version_number=1,
+        status='superseded', source_manifest=[{'role': 'visual_reference', 'documentVersionId': str(version.id)}],
+        extraction_manifest={}, published_by=admin.id)
+    session.add(publication); session.flush()
+    body = _question(paper, scheme, topic)
+    evidence = {'topicRef': topic.public_ref, 'documentVersionId': str(version.id), 'page': 1, 'printedPageLabel': '12'}
+    body['data']['parts'][0]['textbookEvidence'] = [evidence]
+    saved = client.post(root + '/questions', headers=headers, json=body)
+    assert saved.status_code == 200, saved.text
+    assert saved.json()['questions'][0]['data']['parts'][0]['textbookEvidence'] == [evidence]
+    # Historical provenance survives later publications; a forged page label does not.
+    body['expectedRevision'] = 1
+    body['status'] = 'needs_correction'
+    evidence['printedPageLabel'] = '999'
+    assert client.post(root + '/questions', headers=headers, json=body).status_code == 422
+    evidence['printedPageLabel'] = '12'
+    evidence['topicRef'] = 'unrelated-topic'
+    assert client.post(root + '/questions', headers=headers, json=body).status_code == 422
+    evidence['topicRef'] = topic.public_ref
+    evidence['documentVersionId'] = str(paper[1].id)
+    assert client.post(root + '/questions', headers=headers, json=body).status_code == 422
