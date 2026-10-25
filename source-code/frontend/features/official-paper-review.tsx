@@ -31,6 +31,7 @@ import {
   reviewNavigationAllowed,
   reviewHasChanges,
   reviewSavedPartIndex,
+  reviewPageLinkState,
 } from '@/lib/paper-review-presentation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -130,6 +131,7 @@ function SourcePage({
   const page = extraction?.pages.find(
     (item) => item.pageNumber === selectedPage,
   );
+  const { pageLinked, linkedBlockCount } = reviewPageLinkState(linked, selectedPage);
   const hasLink = (blockId?: string) =>
     linked.some(
       (source) =>
@@ -184,15 +186,21 @@ function SourcePage({
                 <Button
                   variant="outline"
                   disabled={!page}
-                  aria-pressed={hasLink()}
+                  aria-pressed={pageLinked}
                   onClick={() => onToggle()}
                 >
-                  {hasLink()
-                    ? `Remove page link from part ${partLabel}`
-                    : 'Link this page'}
+                  {pageLinked ? 'Unlink this page' : 'Link this page'}
                 </Button>
               )}
             </div>
+            {onToggle && page && (
+              <output className="small" aria-live="polite">
+                {pageLinked ? `Page linked to part ${partLabel}. ` : ''}
+                {linkedBlockCount > 0
+                  ? `Linked through ${linkedBlockCount} evidence block${linkedBlockCount === 1 ? '' : 's'}. Page-level and block links are independent.`
+                  : !pageLinked ? `No evidence linked from this page to part ${partLabel}.` : ''}
+              </output>
+            )}
             {page ? (
               <>
                 <span className="small">

@@ -19,6 +19,7 @@ const {
   reviewNavigationAllowed,
   reviewHasChanges,
   reviewSavedPartIndex,
+  reviewPageLinkState,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`
 );
@@ -105,4 +106,14 @@ test("save refresh preserves the selected subpart by label and handles removed p
   assert.equal(reviewSavedPartIndex([{ label: "a" }, { label: "c" }], "c"), 1);
   assert.equal(reviewSavedPartIndex([{ label: "c" }, { label: "a" }], "c"), 0);
   assert.equal(reviewSavedPartIndex([{ label: "a" }], "c"), 0);
+});
+
+test('page-link status distinguishes page links from exact block evidence', () => {
+  const sources = [{ page: 1, blockId: 'a' }, { page: 1, blockId: 'b' }, { page: 2 }];
+  assert.deepEqual(reviewPageLinkState(sources, 1), { pageLinked: false, linkedBlockCount: 2 });
+  const linked = [...sources, { page: 1, blockId: null }];
+  assert.deepEqual(reviewPageLinkState(linked, 1), { pageLinked: true, linkedBlockCount: 2 });
+  // Removing only page-level evidence preserves the independently linked blocks.
+  assert.deepEqual(reviewPageLinkState(linked.filter((s) => !(s.page === 1 && !s.blockId)), 1), { pageLinked: false, linkedBlockCount: 2 });
+  assert.deepEqual(reviewPageLinkState(sources, 3), { pageLinked: false, linkedBlockCount: 0 });
 });

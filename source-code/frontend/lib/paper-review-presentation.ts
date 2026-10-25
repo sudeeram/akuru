@@ -58,3 +58,15 @@ export function reviewSavedPartIndex(parts: { label: string }[], selectedLabel?:
   const index = parts.findIndex((part) => part.label === selectedLabel);
   return index < 0 ? 0 : index;
 }
+
+/** Page-level links and exact block links are independent evidence selections. */
+export function reviewPageLinkState(
+  sources: { page: number; blockId?: string | null }[],
+  page: number,
+) {
+  const onPage = sources.filter((source) => source.page === page);
+  return {
+    pageLinked: onPage.some((source) => !source.blockId),
+    linkedBlockCount: new Set(onPage.flatMap((source) => source.blockId ? [source.blockId] : [])).size,
+  };
+}
