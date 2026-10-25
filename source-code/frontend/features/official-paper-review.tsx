@@ -32,6 +32,7 @@ import {
   reviewHasChanges,
   reviewSavedPartIndex,
   reviewPageLinkState,
+  reviewPartSaveState,
 } from '@/lib/paper-review-presentation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -674,6 +675,7 @@ export function OfficialPaperReview({
     setReportPage(row.reportSources[0]?.page || reportPage);
   }
 
+  const savedParts: ReviewPart[] = savedSnapshot ? JSON.parse(savedSnapshot).data.parts : [];
   const dirty = reviewHasChanges({ number, status, data }, savedSnapshot, {
     number: '',
     status: 'unreviewed',
@@ -1486,19 +1488,22 @@ export function OfficialPaperReview({
                       className="button-row pr-part-tabs"
                       aria-label="Question subparts"
                     >
-                      {data.parts.map((row, index) => (
+                      {data.parts.map((row, index) => {
+                        const savedState = reviewPartSaveState(row, savedParts);
+                        return (
                         <Button
                           key={index}
                           variant="outline"
                           className="pr-part-status"
-                          data-review-status={row.status}
+                          data-review-status={savedState.displayStatus}
                           aria-pressed={activePart === index}
                           onClick={() => selectPart(index)}
                         >
-                          {row.status === 'approved' ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}
-                          {row.label} · {row.marks} marks · {label(row.status)}
+                          {savedState.displayStatus === 'approved' ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}
+                          {row.label} · {row.marks} marks · {label(row.status)}{savedState.unsaved ? ' · unsaved' : ''}
                         </Button>
-                      ))}
+                        );
+                      })}
                       <Button
                         variant="outline"
                         onClick={() => {
@@ -1889,7 +1894,7 @@ export function OfficialPaperReview({
                           </fieldset>
                         )}
                         <label>
-                          Coverage reason{' '}
+                          Coverage reason {part.coverage === 'outside_current_coverage' ? '(optional)' : '(required for approval)'}{' '}
                           <Textarea
                             value={part.coverageReason}
                             onChange={(event) =>

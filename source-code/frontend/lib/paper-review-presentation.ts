@@ -70,3 +70,10 @@ export function reviewPageLinkState(
     linkedBlockCount: new Set(onPage.flatMap((source) => source.blockId ? [source.blockId] : [])).size,
   };
 }
+
+/** Green approval represents the persisted part, never an unsaved local selection. */
+export function reviewPartSaveState(part: { label: string; status: string }, savedParts: { label: string; status: string }[]) {
+  const saved = savedParts.find((item) => item.label === part.label);
+  const unsaved = JSON.stringify(part) !== JSON.stringify(saved);
+  return { unsaved, displayStatus: unsaved ? 'unsaved' : part.status };
+}

@@ -20,6 +20,7 @@ const {
   reviewHasChanges,
   reviewSavedPartIndex,
   reviewPageLinkState,
+  reviewPartSaveState,
 } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`
 );
@@ -116,4 +117,12 @@ test('page-link status distinguishes page links from exact block evidence', () =
   // Removing only page-level evidence preserves the independently linked blocks.
   assert.deepEqual(reviewPageLinkState(linked.filter((s) => !(s.page === 1 && !s.blockId)), 1), { pageLinked: false, linkedBlockCount: 2 });
   assert.deepEqual(reviewPageLinkState(sources, 3), { pageLinked: false, linkedBlockCount: 0 });
+});
+
+test('approval is green only after the exact part has been saved', () => {
+  const saved = { label: 'a', status: 'unreviewed', prompt: 'Original' };
+  const approved = { ...saved, status: 'approved' };
+  assert.deepEqual(reviewPartSaveState(approved, [saved]), { unsaved: true, displayStatus: 'unsaved' });
+  assert.deepEqual(reviewPartSaveState(approved, [approved]), { unsaved: false, displayStatus: 'approved' });
+  assert.equal(reviewPartSaveState({ ...approved, prompt: 'Edited' }, [approved]).displayStatus, 'unsaved');
 });

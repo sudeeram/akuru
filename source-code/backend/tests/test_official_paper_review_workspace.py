@@ -389,3 +389,24 @@ def test_textbook_page_evidence_is_versioned_and_subject_scoped(auth_client):
     evidence['topicRef'] = topic.public_ref
     evidence['documentVersionId'] = str(paper[1].id)
     assert client.post(root + '/questions', headers=headers, json=body).status_code == 422
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('coverage,allowed', [('outside_current_coverage', True), ('supported', False), ('partial_or_uncertain', False)])
+def test_coverage_reason_optional_only_outside_current_coverage(auth_client, coverage, allowed):
+    client, headers, session, paper, scheme, report, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    client.post(root + '/start', headers=headers, json={'schemeDocumentId': str(scheme[0].id)})
+    body = _question(paper, scheme, topic)
+    part = body['data']['parts'][0]
+    part['coverage'] = coverage
+    part['coverageReason'] = ''
+    if coverage != 'supported':
+        part['topicRefs'] = []
+    result = client.post(root + '/questions', headers=headers, json=body)
+    assert result.status_code == (200 if allowed else 409), result.text
+    if allowed:
+        reloaded = client.get(root).json()['questions'][0]['data']['parts'][0]
+        assert reloaded['status'] == 'approved' and reloaded['coverageReason'] == ''
+    else:
+        assert 'coverage reason' in result.text

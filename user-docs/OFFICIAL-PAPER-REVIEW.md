@@ -40,3 +40,5 @@ The overall Question status is still a separate content decision. Approving all 
 Keep coverage reasons focused on concepts, without page numbers. Select the matching reviewed page under **Textbook evidence · Visual reference pages** and use **Open page** to verify it. References retain the exact source version and printed-page label. A replaced source is flagged for revalidation; confirm a replacement before removing the historical reference. Page evidence is optional when saving a draft.
 
 Saving shows a toast notification and preserves the selected subpart and source pages. **Previous subpart** and **Next subpart** move within the question without discarding unsaved edits. The question navigation buttons continue to warn about unsaved work.
+
+Coverage reasons are optional for **Outside current coverage**. They remain required before approval for **Supported** and **Partial or uncertain** decisions. A subpart edited since its last save shows **unsaved** in amber; green represents a successfully saved approval. A failed save keeps the unsaved marker until corrected and saved.
