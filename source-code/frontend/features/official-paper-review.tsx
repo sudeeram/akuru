@@ -1296,7 +1296,7 @@ export function OfficialPaperReview({
               <Button variant="outline" size="sm" disabled={busy || activePart >= data.parts.length - 1} onClick={() => selectPart(activePart + 1)}>
                 Next subpart <ArrowRight size={14} />
               </Button>
-              <Button disabled={busy || !number.trim()} onClick={saveQuestion}>
+              <Button disabled={busy || !number.trim() || !dirty} onClick={saveQuestion}>
                 <Save size={15} /> Save question review
               </Button>
             </div>
@@ -1481,11 +1481,14 @@ export function OfficialPaperReview({
                       {data.parts.map((row, index) => (
                         <Button
                           key={index}
-                          variant={activePart === index ? 'default' : 'outline'}
+                          variant="outline"
+                          className="pr-part-status"
+                          data-review-status={row.status}
                           aria-pressed={activePart === index}
                           onClick={() => selectPart(index)}
                         >
-                          {row.label} · {row.marks} marks
+                          {row.status === 'approved' ? <CheckCircle2 size={14} aria-hidden="true" /> : <TriangleAlert size={14} aria-hidden="true" />}
+                          {row.label} · {row.marks} marks · {label(row.status)}
                         </Button>
                       ))}
                       <Button
