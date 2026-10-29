@@ -1703,7 +1703,7 @@ export function OfficialPaperReview({
                                 key={visual.assetId}
                               >
                                 <Image
-                                  src={`/api/v1/documents/${schemeId}/assets/${visual.assetId}/content`}
+                                  src={`/api/v1/documents/${review.schemeDocumentId}/assets/${visual.assetId}/content`}
                                   alt={visual.altText}
                                   width={600}
                                   height={400}
@@ -1806,7 +1806,7 @@ export function OfficialPaperReview({
                               </section>
                             );
                           })}
-                          {schemeId && (
+                          {review.schemeDocumentId && (
                             <details
                               open={answerCropOpen}
                               onToggle={(e) =>
@@ -1838,7 +1838,7 @@ export function OfficialPaperReview({
                                 key={`answer-${selected}-${part.label}-${schemePage}-${JSON.stringify(answerCropBox)}`}
                                 paperId={paperId}
                                 source="scheme"
-                                sourceDocumentId={schemeId}
+                                sourceDocumentId={review.schemeDocumentId || undefined}
                                 extraction={schemeExtraction}
                                 pageNumber={schemePage}
                                 initialBox={answerCropBox}
