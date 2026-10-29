@@ -411,6 +411,57 @@
         "title": "AnswerSave",
         "type": "object"
       },
+      "AnswerVisual": {
+        "properties": {
+          "altText": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "assetId": {
+            "format": "uuid",
+            "title": "Assetid",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "partLabel": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "pointCodes": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Pointcodes",
+            "type": "array"
+          },
+          "status": {
+            "default": "proposed",
+            "enum": [
+              "proposed",
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId",
+          "altText"
+        ],
+        "title": "AnswerVisual",
+        "type": "object"
+      },
       "AssessmentAuditListResponse": {
         "properties": {
           "results": {
@@ -465,6 +516,13 @@
           "deterministicChecks": {
             "additionalProperties": true,
             "title": "Deterministicchecks",
+            "type": "object"
+          },
+          "drawingUrls": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Drawingurls",
             "type": "object"
           },
           "improvedAnswer": {
@@ -690,6 +748,20 @@
           "difficulty": {
             "title": "Difficulty",
             "type": "string"
+          },
+          "drawingFiles": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Drawingfiles",
+            "type": "object"
+          },
+          "drawingParts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Drawingparts",
+            "type": "array"
           },
           "equations": {
             "items": {},
@@ -2401,6 +2473,15 @@
             "exclusiveMinimum": 0.0,
             "title": "Page",
             "type": "integer"
+          },
+          "source": {
+            "default": "paper",
+            "enum": [
+              "paper",
+              "scheme"
+            ],
+            "title": "Source",
+            "type": "string"
           },
           "x0": {
             "exclusiveMaximum": 1.0,
@@ -5054,6 +5135,22 @@
             "title": "Alternatives",
             "type": "array"
           },
+          "answerVisuals": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerVisual"
+            },
+            "maxItems": 100,
+            "title": "Answervisuals",
+            "type": "array"
+          },
+          "drawingParts": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Drawingparts",
+            "type": "array"
+          },
           "markingPoints": {
             "items": {
               "$ref": "#/components/schemas/MarkingPoint"
@@ -5992,6 +6089,11 @@
             },
             "title": "Assessmentblockers",
             "type": "array"
+          },
+          "assessmentReleaseReady": {
+            "default": false,
+            "title": "Assessmentreleaseready",
+            "type": "boolean"
           },
           "automaticAssessmentReady": {
             "default": false,
@@ -8007,6 +8109,19 @@
             "title": "Alternatives",
             "type": "array"
           },
+          "answerVisualRequired": {
+            "default": false,
+            "title": "Answervisualrequired",
+            "type": "boolean"
+          },
+          "answerVisuals": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerVisual"
+            },
+            "maxItems": 30,
+            "title": "Answervisuals",
+            "type": "array"
+          },
           "assessmentReadiness": {
             "default": "unreviewed",
             "enum": [
@@ -8085,6 +8200,15 @@
             },
             "title": "Reportsources",
             "type": "array"
+          },
+          "responseType": {
+            "default": "text",
+            "enum": [
+              "text",
+              "drawing"
+            ],
+            "title": "Responsetype",
+            "type": "string"
           },
           "schemeSources": {
             "items": {
@@ -11484,6 +11608,11 @@
       },
       "TutorPracticeResponse": {
         "properties": {
+          "assessmentId": {
+            "format": "uuid",
+            "title": "Assessmentid",
+            "type": "string"
+          },
           "assetUrls": {
             "items": {
               "type": "string"
@@ -11564,6 +11693,7 @@
           }
         },
         "required": [
+          "assessmentId",
           "practiceRef",
           "status",
           "topicRef",
@@ -19200,6 +19330,249 @@
           }
         },
         "summary": "Evaluate",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/questions/{question_id}/answer-visuals/{asset_id}": {
+      "get": {
+        "operationId": "answer_visual_api_v1_assessments__assessment_id__questions__question_id__answer_visuals__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Answer Visual",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/questions/{question_id}/drawings/{part_label}": {
+      "post": {
+        "operationId": "upload_drawing_api_v1_assessments__assessment_id__questions__question_id__drawings__part_label__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "part_label",
+            "required": true,
+            "schema": {
+              "title": "Part Label",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Filename",
+            "required": true,
+            "schema": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "X-Filename",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "title": "Content-Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Content",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkingFileResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Upload Drawing",
         "tags": [
           "assessments"
         ]

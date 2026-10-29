@@ -149,7 +149,7 @@ def _response(db: Session, material: OfficialMaterialVersion) -> OfficialMateria
         sourcePaperVersionId=str(material.source_paper_version_id) if material.source_paper_version_id else None,
         expectedItemCount=material.inventory_count, completenessConfirmed=material.completeness_confirmed,
         questions=[OfficialQuestionReview(number=q.question_number, parentNumber=q.parent_number, prompt=q.prompt, sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids, visualPlacements=q.visual_placements, sourceLocations=q.source_locations) for q in questions],
-        markSchemeEntries=[MarkSchemeEntryReview(questionNumber=e.question_number, maxMarks=e.max_marks, markingPoints=e.marking_points, scoringRules=e.scoring_rules, alternatives=e.alternatives, sourceLocations=e.source_locations) for e in schemes],
+        markSchemeEntries=[MarkSchemeEntryReview(questionNumber=e.question_number, maxMarks=e.max_marks, markingPoints=e.marking_points, scoringRules=e.scoring_rules, alternatives=e.alternatives, answerVisuals=e.answer_visuals, drawingParts=e.drawing_parts, sourceLocations=e.source_locations) for e in schemes],
         examinerComments=[ExaminerCommentReview(questionNumber=c.question_number, commonMistakes=c.common_mistakes, advice=c.advice, sourceLocations=c.source_locations) for c in comments],
     )
 
@@ -196,7 +196,7 @@ def _replace(db: Session, material: OfficialMaterialVersion, payload: SaveOffici
     for e in payload.markSchemeEntries:
         if e.scoringRules:
             marking_rules.validate_rules([p.model_dump() for p in e.markingPoints], e.maxMarks, e.scoringRules.model_dump())
-        db.add(MarkSchemeEntryVersion(material_version_id=material.id, question_number=e.questionNumber, max_marks=e.maxMarks, marking_points=[row.model_dump() for row in e.markingPoints], scoring_rules=e.scoringRules.model_dump() if e.scoringRules else None, alternatives=e.alternatives, source_locations=[row.model_dump(mode="json") for row in e.sourceLocations]))
+        db.add(MarkSchemeEntryVersion(material_version_id=material.id, question_number=e.questionNumber, max_marks=e.maxMarks, marking_points=[row.model_dump() for row in e.markingPoints], scoring_rules=e.scoringRules.model_dump() if e.scoringRules else None, alternatives=e.alternatives, answer_visuals=[v.model_dump(mode="json") for v in e.answerVisuals], drawing_parts=e.drawingParts, source_locations=[row.model_dump(mode="json") for row in e.sourceLocations]))
     for c in payload.examinerComments:
         db.add(ExaminerCommentVersion(material_version_id=material.id, question_number=c.questionNumber, common_mistakes=c.commonMistakes, advice=c.advice, source_locations=[row.model_dump(mode="json") for row in c.sourceLocations]))
     material.inventory_count = payload.expectedItemCount
@@ -224,6 +224,12 @@ def _validate_sources(db: Session, material: OfficialMaterialVersion, payload: S
     )).all()) if asset_ids else set()
     if asset_ids != valid_assets:
         raise DomainError("invalid_question_asset", "Question assets must come from this document version.", 422)
+    from app.services.answer_visuals import validate_visuals
+    for entry in payload.markSchemeEntries:
+        validate_visuals(db, material.source_document_version_id, entry.answerVisuals)
+        codes = {p.code for p in entry.markingPoints}
+        if any(any(f"{v.partLabel}.{code}" not in codes for code in v.pointCodes) for v in entry.answerVisuals):
+            raise DomainError("invalid_answer_point", "Answer visuals must link to marking points in their own subpart.", 422)
     for question in payload.questions:
         placed = {asset_id for ids in question.visualPlacements.values() for asset_id in ids}
         if not placed.issubset(set(question.assetIds)):
@@ -307,13 +313,15 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             from app.schemas.official_paper_reviews import ReviewQuestionData
             def approved_rubric(question_data):
                 data = ReviewQuestionData.model_validate(question_data)
-                if any(p.assessmentReadiness != "automatic" for p in data.parts):
+                if any(not (p.assessmentReadiness == "automatic" or (p.assessmentReadiness == "manual_only" and p.responseType == "drawing")) for p in data.parts):
                     raise DomainError("assessment_rules_not_ready", "Confirm automatic-marking readiness separately from content approval.", 409)
                 return marking_rules.compile_review(data)
             if len(scheme_rows) != len(reviewed) or any(
                 row.question_number not in reviewed or row.max_marks != reviewed[row.question_number]["marks"]
                 or row.marking_points != approved_rubric(reviewed[row.question_number])[0]
                 or row.scoring_rules != approved_rubric(reviewed[row.question_number])[1]
+                or row.answer_visuals != [dict(v, partLabel=p["label"]) for p in reviewed[row.question_number]["parts"] for v in p.get("answerVisuals", []) if v["status"] == "approved"]
+                or row.drawing_parts != [p["label"] for p in reviewed[row.question_number]["parts"] if p.get("responseType") == "drawing"]
                 for row in scheme_rows
             ):
                 raise DomainError("review_draft_mismatch", "Prepare the exact scheme draft again from the approved workspace.", 409)
@@ -342,6 +350,13 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
         if material.kind == "mark_scheme":
             entries = db.scalars(select(MarkSchemeEntryVersion).where(MarkSchemeEntryVersion.material_version_id == material.id)).all()
             for entry in entries:
+                from app.schemas.answer_visuals import AnswerVisual
+                from app.services.answer_visuals import validate_visuals
+                validate_visuals(db, material.source_document_version_id, [AnswerVisual.model_validate(v) for v in entry.answer_visuals])
+                if any(v["status"] != "approved" for v in entry.answer_visuals):
+                    raise DomainError("answer_visual_review_required", "Only approved answer visuals may be published.", 409)
+                if entry.drawing_parts and any(not any(v["partLabel"] == part for v in entry.answer_visuals) for part in entry.drawing_parts):
+                    raise DomainError("answer_visual_required", "Attach approved model answers for every drawn-response part.", 409)
                 if entry.scoring_rules is not None:
                     marking_rules.validate_rules(entry.marking_points, entry.max_marks, entry.scoring_rules)
                 elif len(entry.marking_points) > entry.max_marks:

@@ -1,4 +1,6 @@
 'use client';
+import { ModelAnswerVisuals } from './answer-visuals';
+import { DrawingSubmissions } from './drawing-submissions';
 import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
 import { useFocusMode, AdvancedPanel } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
@@ -777,6 +779,8 @@ export function TutorSessions({
                   key={url}
                 />
               ))}
+              <DrawingSubmissions assessmentId={practice.assessmentId} questionId={practice.question.id} parts={practice.question.drawingParts} files={practice.question.drawingFiles} disabled={busy || practice.status !== 'active'} onSaved={async () => setPractice(await getTutorPractice(session.sessionRef))} />
+              {practice.status === 'submitted' && <ModelAnswerVisuals assessmentId={practice.assessmentId} questionId={practice.question.id} visuals={practice.question.rubric?.answerVisuals} />}
               {practice.status === 'active' ? (
                 <>
                   <label className="stack">

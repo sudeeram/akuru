@@ -3,6 +3,7 @@ import uuid
 
 from pydantic import BaseModel, Field, model_validator
 from app.schemas.marking_rules import MarkingRules
+from app.schemas.answer_visuals import AnswerVisual
 
 
 class SourceLocation(BaseModel):
@@ -33,6 +34,8 @@ class MarkingPoint(BaseModel):
 
 
 class MarkSchemeEntryReview(BaseModel):
+    answerVisuals: list[AnswerVisual] = Field(default_factory=list, max_length=100)
+    drawingParts: list[str] = Field(default_factory=list, max_length=100)
     questionNumber: str = Field(min_length=1, max_length=40)
     maxMarks: int = Field(gt=0, le=200)
     scoringRules: MarkingRules | None = None

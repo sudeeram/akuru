@@ -40,7 +40,7 @@ def _response(db: Session, row: TutorPractice, latest_hint: str | None = None) -
     hints = db.scalar(select(func.count()).select_from(AssessmentInteraction).where(
         AssessmentInteraction.assessment_id == row.assessment_id,
         AssessmentInteraction.question_id == row.question_id, AssessmentInteraction.kind == "hint")) or 0
-    return TutorPracticeResponse(practiceRef=row.public_ref, status=row.status,
+    return TutorPracticeResponse(assessmentId=row.assessment_id, practiceRef=row.public_ref, status=row.status,
         topicRef=topic.public_ref, topicCode=topic.code, topicTitle=topic.title,
         groupCode=group.code, groupTitle=group.title, question=question,
         assetUrls=[f"/api/v1/assessments/{row.assessment_id}/assets/{asset_id}" for asset_id in question.assetIds],

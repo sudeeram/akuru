@@ -121,11 +121,12 @@ def _validate(decisions, points: list[dict], question_marks: int, rules=None, an
 
 
 def result_response(row: AssessmentResult) -> dict:
+    pending_drawing = row.subject_engine == "drawing" and row.status == "needs_review"
     return ({"id": row.id, "version": row.version_number, "status": row.status,
             "awardedMarks": row.awarded_marks, "maxMarks": row.max_marks, "confidence": row.confidence,
-            "markingDecisions": row.marking_decisions, "strengths": row.strengths,
+            "markingDecisions": [] if pending_drawing else row.marking_decisions, "strengths": row.strengths,
             "smallMistakes": row.small_mistakes, "conceptualMistakes": row.conceptual_mistakes,
-            "improvedAnswer": row.improved_answer, "teachingExplanation": row.teaching_explanation,
+            "improvedAnswer": "See the approved model-answer diagrams." if pending_drawing else row.improved_answer, "teachingExplanation": "Your drawing is saved and awaiting review. No score has been released." if pending_drawing else row.teaching_explanation,
             "topicEvidence": row.topic_evidence, "recommendations": row.recommendations,
             "reviewReasons": row.review_reasons, "createdAt": row.created_at}
             | {"subjectEngine": row.subject_engine, "subjectEngineVersion": row.subject_engine_version,
@@ -138,6 +139,7 @@ def audit_results(db: Session) -> dict:
         User, User.id == Assessment.student_id).order_by(AssessmentResult.created_at.desc())).all()
     answers = {(row.assessment_id, row.question_id): row for row in db.scalars(select(AssessmentAnswer)).all()}
     return {"results": [{"answer": answers[(a.id, q.id)].answer_text if (a.id, q.id) in answers else "",
+        "drawingUrls": {part: f"/api/v1/assessments/{a.id}/working/{file_id}" for part, file_id in answers[(a.id, q.id)].drawing_files.items()} if (a.id,q.id) in answers else {},
         "workingUrl": f"/api/v1/assessments/{a.id}/working/{answers[(a.id, q.id)].file_id}" if (a.id, q.id) in answers and answers[(a.id, q.id)].file_id else None,
         "resultId": r.id, "assessmentId": a.id, "questionId": q.id,
         "studentId": a.student_id, "studentName": u.display_name, "subjectId": a.subject_id,
@@ -163,10 +165,12 @@ def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, Ass
 
 def evaluate(db: Session, settings: Settings, assessment: Assessment, request_key: str) -> None:
     assessment = db.scalar(select(Assessment).where(Assessment.id == assessment.id).with_for_update())
-    if assessment.status not in {"submitted", "expired"}:
+    if assessment.status not in {"submitted", "expired"} or not assessment.submitted_at:
         raise DomainError("assessment_submission_required", "Submit the assessment before AKURU marks it.", 409)
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment.id).order_by(AssessmentQuestion.sequence)).all()
-    usage_limits.reserve_assessment(db, settings, assessment, request_key, len(questions) * 2)
+    request_count = sum((1 if settings.assessment_drawing_suggestions_enabled else 0) if q.rubric.get("drawingParts") else 2 for q in questions)
+    if request_count:
+        usage_limits.reserve_assessment(db, settings, assessment, request_key, request_count)
     used_tokens = 0
     answers = {row.question_id: row for row in db.scalars(select(AssessmentAnswer).where(AssessmentAnswer.assessment_id == assessment.id)).all()}
     prompt = get_prompt("assessment")
@@ -176,6 +180,32 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         if existing:
             continue
         answer = answers.get(question.id); points = _official_points(question)
+        if question.rubric.get("drawingParts"):
+            from app.services.answer_visuals import queue_manual_result
+            pending = queue_manual_result(db, assessment, question, answer, points, request_key)
+            if settings.assessment_drawing_suggestions_enabled and answer and (answer.file_id or answer.drawing_files):
+                from app.services import drawing_assessment
+                from app.storage import get_storage
+                try:
+                    ids = list(answer.drawing_files.values()) or [answer.file_id]
+                    working = [db.get(AssessmentWorkingFile, uuid.UUID(file_id)) for file_id in ids]
+                    if any(not file or file.student_id != assessment.student_id or file.assessment_id != assessment.id for file in working):
+                        raise DomainError("drawing_missing", "Original drawing unavailable.", 409)
+                    suggestion = drawing_assessment.propose(db, get_storage(), settings, question, answer, working, points, _generate)
+                    used_tokens += suggestion.usage.total_tokens or 0
+                    awarded = _validate(suggestion.output.decisions, points, question.marks, question.rubric.get("scoringRules"))
+                    pending.awarded_marks = awarded
+                    pending.marking_decisions = [d.model_dump() for d in suggestion.output.decisions]
+                    pending.pass_one_output = suggestion.output.model_dump()
+                    pending.provider, pending.model = suggestion.provider, suggestion.model
+                    pending.confidence = suggestion.output.confidence
+                    pending.improved_answer = suggestion.output.improvedAnswer
+                    pending.teaching_explanation = suggestion.output.teachingExplanation
+                    pending.review_reasons = list(dict.fromkeys(pending.review_reasons + suggestion.output.reviewReasons))
+                    pending.deterministic_checks = {"manualOnly": True, "scorePending": True, "visualProposal": True}
+                except (AIProviderError, DomainError, FileNotFoundError, ValueError) as exc:
+                    pending.review_reasons = pending.review_reasons + ["Visual proposal unavailable; inspect the original drawing manually."]
+            continue
         selected_policy = subject_marking.policy(assessment.subject_id)
         working = None
         if answer and answer.file_id:
@@ -244,5 +274,6 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         db.add(row); db.flush()
         mastery.record_result(db, row, commit=False)
         weaknesses.record_result(db, row, commit=False)
-    usage_limits.record_tokens(db, assessment, request_key, used_tokens)
+    if request_count:
+        usage_limits.record_tokens(db, assessment, request_key, used_tokens)
     db.commit()

@@ -32,7 +32,11 @@ export type TextbookPageEvidence = {
 export type TextbookPageOption = TextbookPageEvidence & { documentId: string; assetId: string };
 export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
   request<{ visualPages: TextbookPageOption[] }>(`admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`);
+export type AnswerVisual = { assetId: string; partLabel: string; pointCodes: string[]; caption: string; altText: string; status: "proposed" | "approved" | "rejected" };
 export type ReviewPart = {
+  answerVisuals?: AnswerVisual[];
+  answerVisualRequired?: boolean;
+  responseType?: "text" | "drawing";
   label: string;
   marks: number;
   prompt: string;
@@ -78,6 +82,7 @@ export type PaperReview = {
   expectedQuestionCount: number;
   questionCount: number;
   approvedCount: number;
+  assessmentReleaseReady?: boolean;
   automaticAssessmentReady?: boolean;
   assessmentBlockers?: string[];
   wholePaperReady: boolean;
@@ -136,6 +141,7 @@ export const prepareOfficialReviewDrafts = (paperId: string) =>
 export const createPaperReviewCrop = (
   paperId: string,
   body: {
+    source?: "paper" | "scheme";
     page: number;
     kind: 'diagram' | 'table';
     x0: number;

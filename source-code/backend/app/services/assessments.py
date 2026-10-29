@@ -114,6 +114,8 @@ def _rubric(db, paper_version_id, number):
         ExaminerCommentVersion.question_number == number)) if report else None
     return {"rubricVersion": str(entry.material_version_id) if entry else None,
         "examinerReportVersion": str(comment.material_version_id) if comment else None,
+        "answerVisuals": entry.answer_visuals if entry else [],
+        "drawingParts": entry.drawing_parts if entry else [],
         "scoringRules": entry.scoring_rules if entry else None,
         "markingPoints": entry.marking_points if entry else [], "alternatives": entry.alternatives if entry else [],
         "commonMistakes": comment.common_mistakes if comment else [], "examinerAdvice": comment.advice if comment else []}
@@ -215,7 +217,7 @@ def admin_assessment(db, assessment_id):
 
 def response(db, row):
     if row.status == "active" and row.ends_at <= _now(): row.status = "expired"; db.commit(); db.refresh(row)
-    visible = row.status in {"submitted", "expired"}
+    visible = row.status in {"submitted", "expired"} and row.submitted_at is not None
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == row.id).order_by(AssessmentQuestion.sequence)).all()
     asset_ids = {uuid.UUID(asset_id) for question in questions for asset_id in question.asset_ids}
     descriptions = {str(asset.id): asset.asset_metadata.get("altText", "") for asset in db.scalars(
@@ -234,6 +236,8 @@ def response(db, row):
                 TextbookTopic.id.in_([uuid.UUID(value) for value in q.topic_ids]))).all()) if q.topic_ids else [],
             skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",
             fileId=answers[q.id].file_id if q.id in answers else None, saveRevision=answers[q.id].save_revision if q.id in answers else 0,
+            drawingParts=q.rubric.get("drawingParts", []),
+            drawingFiles=answers[q.id].drawing_files if q.id in answers else {},
             rubric=q.rubric if visible else None,
             result=assessment_marking.result_response(results[q.id]) if q.id in results else None) for q in questions])
 

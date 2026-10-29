@@ -115,6 +115,8 @@ class WorkingFileResponse(BaseModel):
     needsReview: bool
 
 class AssessmentQuestionResponse(BaseModel):
+    drawingParts: list[str] = Field(default_factory=list)
+    drawingFiles: dict[str, str] = Field(default_factory=dict)
     id: uuid.UUID
     number: str
     prompt: str
@@ -164,6 +166,7 @@ class AssessmentAuditResponse(BaseModel):
     improvedAnswer: str; teachingExplanation: str; deterministicChecks: dict; sourceManifest: list[dict]
     createdAt: datetime
     answer: str
+    drawingUrls: dict[str, str] = Field(default_factory=dict)
     workingUrl: str | None
 
 class AssessmentAuditListResponse(BaseModel):

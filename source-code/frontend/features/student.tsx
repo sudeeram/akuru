@@ -1,4 +1,6 @@
 'use client';
+import { DrawingSubmissions } from './drawing-submissions';
+import { ModelAnswerVisuals } from './answer-visuals';
 import { subjectAccent } from '@/lib/subject-accent';
 import { MetadataBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
@@ -335,6 +337,8 @@ export function Practice(p: FeatureProps) {
             (point) =>
               `${point.awarded ? 'Awarded' : 'Missed'}: ${point.rationale} Evidence: ${point.studentEvidence}`,
           ) || [],
+        assessmentId: completed.id,
+        answerVisuals: frozen.rubric?.answerVisuals,
         improvedAnswer: feedback?.improvedAnswer,
         recommendations: feedback?.recommendations,
         createdAt: completed.submittedAt || new Date().toISOString(),
@@ -562,7 +566,7 @@ export function Practice(p: FeatureProps) {
                     <Button
                       type="submit"
                       className="primary"
-                      disabled={busy || (!answer.trim() && !file)}
+                      disabled={busy || (!answer.trim() && !file && !Object.keys(q.drawingFiles || {}).length)}
                     >
                       {busy ? 'Saving…' : 'Check my answer'}
                       <ArrowRight size={16} />
@@ -579,6 +583,7 @@ export function Practice(p: FeatureProps) {
                   </div>
                 </div>
               ))}
+              {practice && <DrawingSubmissions key={q.id} assessmentId={practice.id} questionId={q.id} parts={q.drawingParts} files={q.drawingFiles} disabled={busy || !!result} onSaved={p.refresh} />}
               {result && (
                 <div className="feedback">
                   <div className="spread">
@@ -597,6 +602,7 @@ export function Practice(p: FeatureProps) {
                   )}
                   <h3 className="spaced">Worked explanation</h3>
                   <p className="spaced">{result.explanation}</p>
+                  <ModelAnswerVisuals assessmentId={result.assessmentId} questionId={result.questionId} visuals={result.answerVisuals} />
                   {result.improvedAnswer && (
                     <>
                       <h3 className="spaced">An exam-ready answer</h3>
@@ -863,6 +869,7 @@ export function Exams(p: FeatureProps) {
               ))}
             </section>
             <section className="panel">
+              <DrawingSubmissions key={q.id} assessmentId={exam.id} questionId={q.id} parts={q.drawingParts} files={q.drawingFiles} disabled={!remaining || busy} onSaved={p.refresh} />
               <label htmlFor="exam-answer">Your answer and working</label>
               <Textarea
                 id="exam-answer"
@@ -1455,6 +1462,7 @@ export function ProgressView(p: FeatureProps) {
               <p className="preserve">
                 {chosen.answer || 'Working uploaded without typed text.'}
               </p>
+              {Object.entries(chosen.drawingFiles || {}).map(([part, fileId]) => <p key={part}><a target="_blank" rel="noreferrer" href={`/api/v1/assessments/${chosen.assessmentId}/working/${fileId}`}>View your drawing for ({part})</a></p>)}
               {chosen.fileId && (
                 <a target="_blank" rel="noreferrer" href={chosen.workingUrl}>
                   Open submitted working ↗
@@ -1494,6 +1502,7 @@ export function ProgressView(p: FeatureProps) {
               )}
               <h3>Worked explanation</h3>
               <p>{chosen.explanation}</p>
+              <ModelAnswerVisuals assessmentId={chosen.assessmentId} questionId={chosen.questionId} visuals={chosen.answerVisuals} />
               {chosen.improvedAnswer && (
                 <>
                   <h3>An exam-ready answer</h3>

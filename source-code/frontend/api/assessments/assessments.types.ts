@@ -1,3 +1,4 @@
+import type { AnswerVisual } from './official-paper-review.api';
 /** Contracts owned by assessment delivery, marking and official-material review. */
 export type FileRef = { id: string; name: string };
 export type SourceLocation = {
@@ -102,6 +103,8 @@ export type Attempt = {
   feedback: string;
   explanation: string;
   points: string[];
+  drawingFiles?: Record<string,string>;
+  answerVisuals?: AnswerVisual[];
   improvedAnswer?: string;
   recommendations?: string[];
   createdAt: string;
@@ -128,6 +131,7 @@ export type Attempt = {
 };
 export type AssessmentAudit = {
   answer: string;
+  drawingUrls?: Record<string,string>;
   workingUrl?: string | null;
   resultId: string;
   assessmentId: string;
@@ -182,7 +186,7 @@ export type AssessmentApiResponse = {
   submittedAt?: string | null;
   questions: {
     id: string;
-    rubric?: { markingPoints?: { text?: string }[] } | null;
+    rubric?: { markingPoints?: { text?: string }[]; answerVisuals?: AnswerVisual[] } | null;
     result?: AssessmentResult | null;
   }[];
 };

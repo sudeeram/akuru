@@ -3769,6 +3769,7 @@ function AssessmentAuditPanel({
               <p>{chosen.questionPrompt}</p>
               <h3>Submitted answer</h3>
               <p className="preserve">{chosen.answer || 'No typed answer.'}</p>
+              {Object.entries(chosen.drawingUrls || {}).map(([part, url]) => <p key={part}><a href={url} target="_blank" rel="noreferrer">Inspect original drawing for ({part})</a></p>)}
               {chosen.workingUrl && (
                 <a href={chosen.workingUrl} target="_blank" rel="noreferrer">
                   Open original submitted working

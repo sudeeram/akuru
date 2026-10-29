@@ -104,3 +104,25 @@ def asset(assessment_id: uuid.UUID, asset_id: uuid.UUID,
     stored = documents.download_asset(db, storage, document_id, asset_id)
     return Response(content=stored.content, media_type=stored.content_type,
         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/{assessment_id}/questions/{question_id}/answer-visuals/{asset_id}")
+def answer_visual(assessment_id: uuid.UUID, question_id: uuid.UUID, asset_id: uuid.UUID,
+                  principal: Annotated[Principal, Depends(require_roles("student"))],
+                  db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    from app.services.answer_visuals import download
+    stored = download(db, storage, principal, assessment_id, question_id, asset_id)
+    return Response(content=stored.content, media_type=stored.content_type,
+                    headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.post("/{assessment_id}/questions/{question_id}/drawings/{part_label}", response_model=WorkingFileResponse, status_code=201)
+def upload_drawing(assessment_id: uuid.UUID, question_id: uuid.UUID, part_label: str,
+                   content: Annotated[bytes, Body(media_type="application/octet-stream")],
+                   filename: Annotated[str, Header(alias="X-Filename", min_length=1, max_length=255)],
+                   content_type: Annotated[str, Header(alias="Content-Type")],
+                   principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+                   db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+                   storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return assessment_working.upload_drawing(db, storage, settings, principal, assessment_id, question_id,
+                                            part_label, content, filename, content_type)

@@ -1275,6 +1275,8 @@ class MarkSchemeEntryVersion(Base):
     max_marks: Mapped[int] = mapped_column(Integer)
     marking_points: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     scoring_rules: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    answer_visuals: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    drawing_parts: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     alternatives: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     source_locations: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
     __table_args__ = (
@@ -1416,6 +1418,7 @@ class AssessmentAnswer(Base):
     question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessment_questions.id", ondelete="CASCADE"), primary_key=True)
     answer_text: Mapped[str] = mapped_column(Text, default="", server_default="")
     file_id: Mapped[str | None] = mapped_column(String(120))
+    drawing_files: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
     save_revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     idempotency_key: Mapped[str] = mapped_column(String(100))
     saved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

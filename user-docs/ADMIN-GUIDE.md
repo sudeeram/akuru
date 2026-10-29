@@ -260,3 +260,11 @@ Open Tutor presets to manage the child-safe AKURU hero avatars and voice styles 
 Open **Community reports** to review open Student public-name reports. The queue shows the public name at the time of reporting, the reason, date and status; it does not display the reporter's identity. Dismiss a report when no action is needed, or choose **Hide and request name change** and confirm. This hides only the community profile until the student chooses a different valid public name; account access, enrolments and learning are unaffected. Actions are audited. If a name has already changed since reporting, review the old report and dismiss it rather than hiding the new name automatically.
 
 Community starts opted out for existing students. Course discovery follows current enrolment, not an assumed iGCSE label. Student Community does not expose grades, scores, exam history or messaging. Reports and connection records are retained while the relevant accounts exist and cascade on Student-profile deletion; reports reuse one record per reporter/target pair and retain the reported public name for review. They are included in protected database backups, subject to the existing backup retention policy.
+
+## Reviewing a diagram answer in a marking scheme
+
+In Exam Documents → Review questions, select the subpart and open **Model-answer diagrams (private)**. Choose **Drawing or displayed formula** where appropriate. Use **Create an answer crop from the marking scheme**, select the scheme PDF page and drag a crop (or enter percentages). Include every bond/label needed for the answer and exclude neighbouring answers.
+
+Add an accessible description, create the crop, check its preview, enter a caption and link relevant marking points. Choose **Approve answer visual** or **Reject**, then **Save question review**. Creating a crop alone does not save its association or approve the subpart. To replace it, create a new crop and remove the old association before saving. Published attempts retain their previous answer version.
+
+Drawing questions use manual marking. Students' original drawings are available in the assessment review screen. Inspect them and award each marking point using the existing review form. Pending results do not count toward Student mastery. Optional AI visual suggestions are not final marks.

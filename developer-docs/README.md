@@ -41,3 +41,5 @@ This handbook explains the current AKURU implementation for developers. It descr
 | User procedures | `user-docs` |
 
 The OpenAPI JSON and generated TypeScript contract are generated artifacts. Change the FastAPI schemas and routes first, then regenerate them.
+
+- [Model-answer visuals and drawn submissions](12-model-answer-visuals.md)

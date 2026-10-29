@@ -21,6 +21,7 @@ class TutorPracticeAction(BaseModel):
 
 
 class TutorPracticeResponse(BaseModel):
+    assessmentId: uuid.UUID
     practiceRef: str
     status: Literal["active", "submitted"]
     topicRef: str

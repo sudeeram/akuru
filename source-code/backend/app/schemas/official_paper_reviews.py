@@ -4,6 +4,7 @@ import uuid
 
 from pydantic import BaseModel, Field, model_validator
 from app.schemas.marking_rules import MarkingRules
+from app.schemas.answer_visuals import AnswerVisual
 
 
 ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "excluded"]
@@ -37,6 +38,9 @@ class ReviewPart(BaseModel):
     marks: int = Field(ge=0, le=200)
     prompt: str = Field(default="", max_length=12000)
     visualAssetIds: list[uuid.UUID] = Field(default_factory=list)
+    answerVisuals: list[AnswerVisual] = Field(default_factory=list, max_length=30)
+    answerVisualRequired: bool = False
+    responseType: Literal["text", "drawing"] = "text"
     markingPoints: list[ReviewMarkingPoint] = Field(default_factory=list, max_length=200)
     alternatives: list[str] = Field(default_factory=list, max_length=100)
     examinerAdvice: str = Field(default="", max_length=12000)
@@ -90,6 +94,7 @@ class SeedPaperReview(BaseModel):
 
 
 class CreateReviewCrop(BaseModel):
+    source: Literal["paper", "scheme"] = "paper"
     page: int = Field(gt=0)
     kind: Literal["diagram", "table"]
     x0: float = Field(ge=0, lt=1)
@@ -126,6 +131,7 @@ class PaperReviewResponse(BaseModel):
     questionCount: int
     approvedCount: int
     wholePaperReady: bool
+    assessmentReleaseReady: bool = False
     automaticAssessmentReady: bool = False
     assessmentBlockers: list[str] = Field(default_factory=list)
     blockers: list[str]

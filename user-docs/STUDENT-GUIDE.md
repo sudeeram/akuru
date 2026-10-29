@@ -143,3 +143,9 @@ Open **Community → Settings**, or **My profile → Community identity → Mana
 Other learners see only your public name, avatar and selected subjects. Hiding a subject also removes you from that subject's search results. Switching participation off hides your profile, pauses new follows and suppresses your community notifications. Existing connections stay private and return when you rejoin.
 
 **Block** removes connections in both directions and prevents you from discovering or following each other. Manage blocks under **Blocked learners**; unblocking does not restore connections. **Report** sends a private profile concern to an Admin without disclosing your identity to the reported learner. If an Admin requests a new public name, your community profile stays hidden until you choose a different acceptable name.
+
+## Questions that ask you to draw
+
+Use **Your drawings** to upload a clear photo or PDF for each named subpart. Include required labels and bonds. **View saved drawing** lets you check the file; upload again to replace it before submitting. Drawings cannot be replaced after submission or the time limit.
+
+After submission, an approved diagram answer may appear in practice feedback or assessment results. Use **Enlarge diagram** to inspect details. Your own drawing may still be awaiting review: this is not a zero score and does not lower your mastery. The score appears after review.

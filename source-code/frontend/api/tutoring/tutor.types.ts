@@ -1,3 +1,4 @@
+import type { AnswerVisual } from '../assessments/official-paper-review.api';
 /** Data contracts owned by the Tutor experience. */
 import type { AssessmentResult } from '../assessments/assessments.types';
 
@@ -70,8 +71,9 @@ export type TutorAgentReply = {
   provider: string; model: string; promptName: string; promptVersion: string;
 };
 export type TutorPractice = {
+  assessmentId: string;
   practiceRef: string; status: 'active' | 'submitted'; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string;
-  question: { id: string; number: string; prompt: string; sharedStem: string; marks: number;
+  question: { drawingParts?: string[]; drawingFiles?: Record<string,string>; rubric?: { answerVisuals?: AnswerVisual[] } | null; id: string; number: string; prompt: string; sharedStem: string; marks: number;
     equations: string[]; assetIds: string[]; assetDescriptions?: Record<string, string>; answer: string; result?: AssessmentResult | null };
   assetUrls: string[]; hintCount: number; latestHint?: string | null; feedbackVisible: boolean;
   createdAt: string; submittedAt?: string | null;

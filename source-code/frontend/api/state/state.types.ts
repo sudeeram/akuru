@@ -38,6 +38,8 @@ export type Student = {
   courses: Record<string, { level: string; syllabus: string }>;
 };
 export type Question = {
+  drawingParts?: string[];
+  drawingFiles?: Record<string,string>;
   topicRefs?: string[];
   course?: string;
   id: string;

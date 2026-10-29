@@ -112,6 +112,7 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
         reportDocumentId=str(workspace.report_document_id) if workspace.report_document_id else None,
         expectedQuestionCount=workspace.expected_question_count, questionCount=len(rows),
         approvedCount=approved, wholePaperReady=not blockers, blockers=blockers, questions=questions,
+        assessmentReleaseReady=not blockers and all((p.assessmentReadiness == "automatic" or (p.assessmentReadiness == "manual_only" and p.responseType == "drawing")) for q in questions for p in q.data.parts),
         automaticAssessmentReady=not blockers and not assessment_blockers, assessmentBlockers=assessment_blockers,
     )
 
@@ -185,8 +186,12 @@ def create_review_crop(db: Session, storage: ObjectStorage, principal: Principal
                        paper_id: uuid.UUID, payload: CreateReviewCrop) -> ReviewCropResponse:
     workspace = _workspace(db, paper_id)
     _validate_bound_versions(db, workspace)
+    db.refresh(workspace, with_for_update=True)
+    source_version_id = workspace.scheme_version_id if payload.source == "scheme" else workspace.paper_version_id
+    if not source_version_id:
+        raise DomainError("scheme_required", "Attach the matching marking scheme first.", 409)
     page = db.scalar(select(DocumentPage).where(
-        DocumentPage.document_version_id == workspace.paper_version_id,
+        DocumentPage.document_version_id == source_version_id,
         DocumentPage.page_number == payload.page,
     ))
     if not page:
@@ -196,7 +201,7 @@ def create_review_crop(db: Session, storage: ObjectStorage, principal: Principal
     width, height = payload.x1 - payload.x0, payload.y1 - payload.y0
     if width < 0.02 or height < 0.02 or width * height > 0.65:
         raise DomainError("invalid_crop_size", "Select a focused diagram or table, not a tiny or near-full-page region.", 422)
-    version = db.get(DocumentVersion, workspace.paper_version_id)
+    version = db.get(DocumentVersion, source_version_id)
     try:
         original = storage.get(version.object_key, version.mime_type)
         with pymupdf.open(stream=original.content, filetype="pdf") as pdf:
@@ -210,6 +215,13 @@ def create_review_crop(db: Session, storage: ObjectStorage, principal: Principal
             image = source_page.get_pixmap(dpi=180, alpha=False, clip=clip).tobytes("png")
     except (FileNotFoundError, IndexError, pymupdf.FileDataError) as exc:
         raise DomainError("source_render_unavailable", "The original paper page could not be rendered.", 409) from exc
+    digest = hashlib.sha256(image).hexdigest()
+    for existing in db.scalars(select(DocumentAsset).where(DocumentAsset.document_version_id == version.id, DocumentAsset.sha256 == digest)):
+        metadata = existing.asset_metadata or {}
+        if (metadata.get("altText") == payload.altText.strip() and metadata.get("answerVisual") == (payload.source == "scheme")
+                and existing.page_number == payload.page and metadata.get("kind") == payload.kind
+                and metadata.get("normalizedBounds") == {key: getattr(payload, key) for key in ("x0", "y0", "x1", "y1")}):
+            return ReviewCropResponse(assetId=existing.id, page=payload.page, kind=payload.kind, altText=payload.altText.strip(), bounds=metadata["normalizedBounds"])
     asset_id = uuid.uuid4()
     key = f"derived/{version.id}/review-crops/{asset_id}.png"
     storage.put(key, image, "image/png")
@@ -217,12 +229,12 @@ def create_review_crop(db: Session, storage: ObjectStorage, principal: Principal
         asset_kind=f"review_{payload.kind}_crop", object_key=key, mime_type="image/png",
         sha256=hashlib.sha256(image).hexdigest(), size_bytes=len(image), page_number=payload.page,
         bounding_box={"x0": clip.x0, "y0": clip.y0, "x1": clip.x1, "y1": clip.y1},
-        asset_metadata={"reviewCrop": True, "reviewApproved": True, "kind": payload.kind, "altText": payload.altText.strip(),
+        asset_metadata={"answerVisual": payload.source == "scheme", "sourceSha256": version.sha256, "createdBy": str(principal.user.id), "reviewCrop": True, "reviewApproved": True, "kind": payload.kind, "altText": payload.altText.strip(),
                         "normalizedBounds": {key: getattr(payload, key) for key in ("x0", "y0", "x1", "y1")}})
     db.add(asset)
     db.add(AuditEvent(actor_id=principal.user.id, action="official_review.visual_cropped",
                       target_type="document", target_id=str(paper_id),
-                      event_data={"assetId": str(asset_id), "page": payload.page, "kind": payload.kind}))
+                      event_data={"assetId": str(asset_id), "page": payload.page, "kind": payload.kind, "source": payload.source}))
     db.commit()
     return ReviewCropResponse(assetId=asset_id, page=payload.page, kind=payload.kind, altText=payload.altText.strip(),
         bounds={key:getattr(payload,key) for key in ("x0","y0","x1","y1")})
@@ -467,6 +479,13 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
     for part in data.parts:
         previous_part = next((item for item in (previous_data or {}).get("parts", []) if item.get("label") == part.label), {})
         validate_textbook_evidence(db, _paper(db, workspace.paper_document_id), part, previous_part.get("textbookEvidence", []))
+        from app.services.answer_visuals import validate_visuals
+        validate_visuals(db, workspace.scheme_version_id, part.answerVisuals, {p.code for p in part.markingPoints}, part.label)
+        if part.status in {"ready_for_approval", "approved"} and (part.answerVisualRequired or part.responseType == "drawing"):
+            if not any(v.status == "approved" for v in part.answerVisuals) or any(v.status == "proposed" for v in part.answerVisuals):
+                raise DomainError("answer_visual_review_required", f"Part {part.label}: approve the model-answer visuals or reject remaining proposals.", 409)
+        if part.responseType == "drawing" and part.assessmentReadiness == "automatic":
+            raise DomainError("drawing_manual_review_required", "Drawing assessment requires manual review until its evaluation gate passes. Select manual only.", 409)
         if part.assessmentReadiness == "automatic":
             marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
         if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
@@ -682,8 +701,8 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
     scheme_entries = []
     for row in summary.questions:
         data = row.data
-        if any(part.assessmentReadiness != "automatic" for part in data.parts):
-            raise DomainError("assessment_rules_not_ready", f"Question {row.number}: content is approved, but every subpart needs automatic-marking rules confirmed before preparing an assessment release.", 409)
+        if any(not (part.assessmentReadiness == "automatic" or (part.assessmentReadiness == "manual_only" and part.responseType == "drawing")) for part in data.parts):
+            raise DomainError("assessment_rules_not_ready", f"Question {row.number}: content is approved, but every subpart needs an automatic or manual marking decision before preparing an assessment release.", 409)
         locations = _exact_locations(db, [*data.paperSources,
             *(source for part in data.parts for source in part.paperSources)])
         scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
@@ -704,6 +723,8 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
         scheme_entries.append(MarkSchemeEntryReview(
             questionNumber=row.number, maxMarks=data.marks,
             markingPoints=points, scoringRules=rules, alternatives=alternatives, sourceLocations=scheme_locations,
+            answerVisuals=[v.model_copy(update={"partLabel": part.label}) for part in data.parts for v in part.answerVisuals if v.status == "approved"],
+            drawingParts=[part.label for part in data.parts if part.responseType == "drawing"],
         ))
     paper_payload = SaveOfficialMaterialReview(
         expectedItemCount=len(paper_questions), completenessConfirmed=True,

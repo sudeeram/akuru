@@ -50,3 +50,9 @@ Content approval and automatic-marking readiness are independent. An Admin may a
 Tests MUST cover correct combined responses, duplicate synonyms, zero credit, all possible points, caps, invalid references, fabricated evidence, stale writes, readiness gates and private rubric access. Exact deterministic aliases apply only to standalone responses; positive substrings inside negated or contradictory sentences are not automatic matches. Other wording is assessed semantically with evidence and confidence checks.
 
 Dependencies interacting with selective groups require manual marking in rule v1; additive dependencies and explicitly allowed follow-through are supported. Do not confirm automatic readiness for a rule combination the validator rejects.
+
+## Diagram model answers
+
+For a drawing/displayed-formula response, preserve exact scheme diagrams as private answer visuals scoped to the subpart and optional marking-point codes. A source page link or OCR transcript alone is not a complete model answer. Keep all essential bonds, labels, axes and annotations; exclude adjacent answers. Propose crops for Admin review and require explicit approval. Never attach a model answer to the question-illustration list. Preserve source version/hash and crop bounds. Show approved answers only through the submitted-attempt authorization path.
+
+For June 2025 1C Q5(c)(ii), preserve separate displayed butane and methylpropane structures, one mark each, with every bond shown. A rotated copy is not a second isomer. Scientific drawing assessment remains manual until a dedicated image-based evaluation passes; do not judge it from OCR text or pixel similarity.

@@ -28,7 +28,8 @@ def upload(db: Session, storage: ObjectStorage, settings: Settings, principal: P
            assessment_id: uuid.UUID, question_id: uuid.UUID, content: bytes,
            filename: str, content_type: str) -> WorkingFileResponse:
     assessment = _owned(db, principal, assessment_id, True)
-    if assessment.status != "active":
+    from app.services.assessments import _now
+    if assessment.status != "active" or assessment.ends_at <= _now():
         raise DomainError("assessment_not_active", "Working can only be uploaded while the assessment is active.", 409)
     question = db.get(AssessmentQuestion, question_id)
     if not question or question.assessment_id != assessment.id:
@@ -76,3 +77,29 @@ def owned(db: Session, principal: Principal, assessment_id: uuid.UUID, file_id: 
     if not row or row.assessment_id != assessment_id or row.student_id != assessment.student_id:
         raise DomainError("working_not_found", "Submitted working not found.", 404)
     return row
+
+
+def upload_drawing(db, storage, settings, principal, assessment_id, question_id, part_label, content, filename, content_type):
+    from app.models import AssessmentAnswer
+    from app.services.assessments import _now
+    assessment = _owned(db, principal, assessment_id, True)
+    question = db.get(AssessmentQuestion, question_id)
+    if not question or question.assessment_id != assessment.id or part_label not in question.rubric.get("drawingParts", []):
+        raise DomainError("drawing_part_not_found", "Choose a drawing subpart in this assessment.", 404)
+    uploaded = upload(db, storage, settings, principal, assessment_id, question_id, content, filename, content_type)
+    # upload may take time; recheck deadline under the same lock used by submission.
+    assessment = _owned(db, principal, assessment_id, True)
+    if assessment.status != "active" or assessment.ends_at <= _now():
+        raise DomainError("assessment_deadline_passed", "The assessment ended before the drawing could be attached.", 409)
+    answer = db.get(AssessmentAnswer, (assessment.id, question_id))
+    if not answer:
+        answer = AssessmentAnswer(assessment_id=assessment.id,question_id=question_id,answer_text="",idempotency_key=uuid.uuid4().hex,drawing_files={})
+        db.add(answer)
+    else:
+        answer.save_revision += 1
+    answer.drawing_files = {**answer.drawing_files, part_label: str(uploaded.id)}
+    answer.saved_at = _now()
+    working = db.get(AssessmentWorkingFile, uploaded.id)
+    working.ocr_metadata = {**working.ocr_metadata, "partLabel":part_label, "responseType":"drawing"}
+    db.commit()
+    return uploaded
