@@ -1770,9 +1770,15 @@ export function OfficialPaperReview({
                                   <Button
                                     variant="outline"
                                     disabled={visual.altText.trim().length < 10}
-                                    onClick={() =>
-                                      change({ status: 'approved' })
-                                    }
+                                    onClick={() => {
+                                      change({ status: 'approved' });
+                                      toast.add({
+                                        title: 'Answer visual approved.',
+                                        description:
+                                          'Save question review to retain this approval.',
+                                        type: 'success',
+                                      });
+                                    }}
                                   >
                                     Approve answer visual
                                   </Button>
