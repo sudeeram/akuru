@@ -2,7 +2,7 @@
 
 Created: 2026-10-29
 Started: 2026-10-29
-Status: implementation and release verification in progress. Automatic scientific drawing marking remains gated; see the evaluation matrix.
+Status: core implementation deployed and production verified on 2026-10-29. Extended visual regression fixtures and expert-reviewed scientific evaluation remain open; automatic drawing marking remains disabled.
 
 ## Objective and scope
 
@@ -64,8 +64,8 @@ The current question-visual attachment mechanism must not be reused to expose an
 - [x] Test Student/family isolation and attempts to fetch answer assets before submission or formal result release, including direct URLs.
 - [ ] Verify the complete Admin-to-Student flow on desktop/mobile with keyboard and screen-reader-accessible controls.
 - [x] Update `guidelines/pastpapers/igcse`, developer docs and Admin/Student instructions: diagram answers need dedicated reviewed model-answer assets; source links alone are insufficient.
-- [ ] Run relevant backend/frontend checks, prepare migration/rollback instructions if needed, and deploy only when implementation/release is authorized.
-- [ ] Re-read production Q5(c)(ii), apply only the reviewed answer-visual changes through authenticated APIs, and verify authorized display plus pre-release denial. Do not approve unrelated questions or enable automatic marking as a side effect.
+- [x] Run relevant backend/frontend checks, prepare migration/rollback instructions if needed, and deploy only when implementation/release is authorized.
+- [x] Re-read production Q5(c)(ii), apply only the reviewed answer-visual changes through authenticated APIs, and verify authorized display plus pre-release denial. Do not approve unrelated questions or enable automatic marking as a side effect.
 
 ## Step 6 — Add drawn-answer submission (separate phase)
 
@@ -93,7 +93,17 @@ Phase 1 is complete when Admin can approve exact scheme-answer crops, Students c
 
 - Additive migrations 0014/0015; no data reset. Dedicated scheme crops, per-subpart review manifests, frozen rubric answers, private post-submission image routes, drawing uploads and human review are implemented.
 - Local automated checks: 215 backend tests passed, one skipped; 100 frontend tests passed; typecheck, lint and build passed. New integration test uploads/replaces a per-part drawing, submits, reveals the answer, queues manual review, and denies sibling access.
-- Desktop/mobile Student browser checks verify the model-answer image and enlargement/keyboard dismissal. Production Admin verification and data update follow deployment.
+- Desktop/mobile Student browser checks verify the model-answer image and enlargement/keyboard dismissal. Production Admin verification passed after the saved-scheme preview correction; see release evidence below.
 - Original scheme fixture SHA-256: `a3e855a616c73d1d3921ab8a7778853451edea2de4add40bdbb27f18efae2c98`, PDF page 8. Visually verified normalized crops: butane `(0.23, 0.661, 0.40, 0.742)`; methylpropane `(0.23, 0.749, 0.40, 0.852)`. Licensed source/images remain outside Git.
 - Source block regions can initialize the crop editor; unknown layouts still require Admin crop selection. No inference is silently approved.
 - Automatic diagram scoring is deliberately not enabled. Optional image-based proposals use original Student images plus approved scheme visuals, validated points and deterministic caps, and always require human approval. The expert-reviewed image corpus/live-model scientific evaluation remains outstanding in `backend/evaluations/drawings/README.md`; mocked and software tests do not complete that gate.
+
+## Production verification — 2026-10-29
+
+- Implementation `ee86ae9`, preview correction `0615e53`; both pushed and deployed. Production migrations are at `0015_drawing_submissions` with no schema drift.
+- Release evidence: `/data/akuru/release-evidence/deployed-0615e53af9fae2ef8136d26e12aa005965b35975-20261029T144834Z.txt`. HTTPS, route fallback, headers, services, timers and loopback-binding acceptance checks passed.
+- Authenticated API update attached both reviewed scheme crops to Q5(c)(ii), linked to M1/M2. Q5 revision advanced from 7 to 8; unrelated subparts were preserved. Question content remains `needs_correction`, c(ii) remains `unreviewed`, and drawing assessment is `manual_only`. This did not publish or approve the paper.
+- Production crop pixels match the inspected source crops. Live authenticated Admin browser checks loaded both images at desktop/mobile sizes without JavaScript errors. The new assessment answer-image endpoint returns 401 without authentication. Local integration tests cover owner/submission/sibling restrictions; no artificial Student attempts were created in production.
+- Local browser regression also verifies that previews and the crop editor use the saved workspace scheme rather than the unsaved companion selector. Student desktop/mobile answer enlargement and keyboard dismissal passed. Comprehensive screen-reader/manual end-to-end acceptance and the extended synthetic edge-case matrix remain open above.
+- Temporary local test server was stopped. Unrelated local navigation/style edits were excluded from the release.
+- Existing dependency audit follow-up: production `npm audit --omit=dev` reported 20 findings (1 critical, 10 high, 8 moderate, 1 low), including transitive `proxy-addr` GHSA-jqcg-44mw-7w3h. Dependencies were unchanged by this feature. Investigate runtime reachability and compatible updates separately; release health checks do not constitute a clean dependency-security audit.
