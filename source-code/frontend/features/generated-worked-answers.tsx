@@ -33,6 +33,7 @@ type WorkedAnswer = {
   revision: number;
   status: string;
   solution: Solution | null;
+  assets: string[];
   errorCode?: string;
   label: string;
   sourceHash: string;
@@ -175,7 +176,7 @@ export function GeneratedWorkedAnswers({
   return (
     <DashboardCard
       title="AI-generated worked answers"
-      description="Generate a private graph solution from verified data, then review it before attaching it to the question."
+      description="Generate a private graph solution from verified data. Approval attaches it to the question for review."
     >
       <div className="stack">
         <p>
@@ -379,23 +380,27 @@ export function GeneratedWorkedAnswers({
                     Edit explanation and plotting instructions
                   </Button>
                   <Button
-                    disabled={busy}
+                    disabled={busy || dirty || (row.status === 'approved' && row.assets.length > 0)}
                     onClick={() =>
                       void run(
-                        () =>
-                          request(`${root}/${row.id}/review`, {
+                        async () => {
+                          await request(`${root}/${row.id}/review`, {
                             method: 'POST',
                             body: {
                               expectedRevision: row.revision,
                               action: 'approve',
                               reviewNote,
                             },
-                          }),
-                        'Worked answer approved. Attach it to the question before release.',
+                          });
+                          onAttached();
+                        },
+                        'Worked answer approved and attached. Review the question before release.',
                       )
                     }
                   >
-                    Approve worked answer
+                    {row.status === 'approved' && row.assets.length > 0
+                      ? 'Approved answer attached'
+                      : 'Approve worked answer'}
                   </Button>
                   <Button
                     variant="outline"
@@ -578,22 +583,6 @@ export function GeneratedWorkedAnswers({
                       Save edited draft
                     </Button>
                   </div>
-                )}
-                {row.status === 'approved' && (
-                  <Button
-                    disabled={busy || dirty}
-                    onClick={() =>
-                      void run(async () => {
-                        await request(`${root}/${row.id}/attach`, {
-                          method: 'POST',
-                          body: { expectedQuestionRevision: revision },
-                        });
-                        onAttached();
-                      }, 'Approved generated answer attached. Review the question before publishing.')
-                    }
-                  >
-                    Attach approved answer to question
-                  </Button>
                 )}
               </>
             )}

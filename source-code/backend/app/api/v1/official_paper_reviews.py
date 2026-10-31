@@ -129,8 +129,9 @@ def import_worked_answer_draft(paper_id: uuid.UUID, number: str, payload: Import
 @router.post('/{paper_id}/questions/{number}/worked-answers/{answer_id}/review')
 def review_worked_answer(paper_id: uuid.UUID, number: str, answer_id: uuid.UUID, payload: ReviewWorkedAnswer,
     principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
-    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)]):
-    return worked_answers.review(db,principal,paper_id,number,answer_id,payload)
+    db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return worked_answers.review(db,storage,principal,paper_id,number,answer_id,payload)
 
 
 @router.get('/{paper_id}/questions/{number}/worked-answers/{answer_id}/steps/{step}/image')
@@ -151,7 +152,8 @@ def attach_worked_answer(paper_id: uuid.UUID, number: str, answer_id: uuid.UUID,
     principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)],
     storage: Annotated[ObjectStorage, Depends(get_storage)]):
-    return worked_answers.attach(db,storage,principal,paper_id,number,answer_id,payload.expectedQuestionRevision)
+    return worked_answers.attach(db,storage,principal,paper_id,number,answer_id,payload.expectedQuestionRevision,
+        reopen_approved=payload.reopenApproved)
 
 
 @router.get('/{paper_id}/worked-answer-capabilities')

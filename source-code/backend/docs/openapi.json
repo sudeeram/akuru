@@ -1260,6 +1260,11 @@
             "minimum": 1.0,
             "title": "Expectedquestionrevision",
             "type": "integer"
+          },
+          "reopenApproved": {
+            "default": false,
+            "title": "Reopenapproved",
+            "type": "boolean"
           }
         },
         "required": [

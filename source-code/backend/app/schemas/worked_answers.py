@@ -120,3 +120,4 @@ class ReviewWorkedAnswer(StrictModel):
 
 class AttachWorkedAnswer(StrictModel):
     expectedQuestionRevision: int = Field(ge=1)
+    reopenApproved: bool = False

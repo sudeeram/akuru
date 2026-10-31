@@ -140,7 +140,7 @@ def import_draft(db,principal,paper_id,number,payload):
     return response(row,digest)
 
 
-def review(db,principal,paper_id,number,answer_id,payload):
+def review(db,storage,principal,paper_id,number,answer_id,payload):
     w,q=context(db,paper_id,number)
     row=db.scalar(select(GeneratedWorkedAnswer).where(GeneratedWorkedAnswer.id==answer_id,
         GeneratedWorkedAnswer.question_id==q.id).with_for_update())
@@ -168,11 +168,15 @@ def review(db,principal,paper_id,number,answer_id,payload):
         row.status='rejected';row.reviewed_by=principal.user.id;row.reviewed_at=datetime.now(timezone.utc)
     row.revision+=1
     audit(db,principal.user.id,row,payload.action,payload.reviewNote)
+    if payload.action=='approve':
+        attach(db,storage,principal,paper_id,number,answer_id,q.revision,reopen_approved=True)
+        db.refresh(row)
+        return response(row,digest)
     db.commit();db.refresh(row)
     return response(row,digest)
 
 
-def attach(db,storage,principal,paper_id,number,answer_id,expected_question_revision):
+def attach(db,storage,principal,paper_id,number,answer_id,expected_question_revision, *, reopen_approved=False):
     """Attach approved immutable PNGs to the ordinary private answer release path."""
     from app.models import DocumentAsset
     from .graphs import render
@@ -185,7 +189,11 @@ def attach(db,storage,principal,paper_id,number,answer_id,expected_question_revi
     if not row or row.status!='approved' or row.source_hash!=digest:
         raise DomainError('worked_answer_not_approved','Approve a current worked answer before attaching it.',409)
     if q.status=='approved':
-        raise DomainError('reopen_required','Reopen the question before attaching a new answer. Existing release snapshots remain unchanged.',409)
+        if not reopen_approved:
+            raise DomainError('reopen_required','Reopen the question before attaching a new answer. Existing release snapshots remain unchanged.',409)
+        q.status='needs_correction'
+        db.add(AuditEvent(actor_id=principal.user.id,action='official_review.question_reopened_for_worked_answer',
+            target_type='document',target_id=str(paper_id),event_data={'number':number,'workedAnswerId':str(row.id)}))
     solution=GraphSolution.model_validate(row.solution)
     validate_source(solution,row.graph_input)
     data=json.loads(json.dumps(q.review_data))

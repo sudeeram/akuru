@@ -40,15 +40,15 @@ await page.route('**/api/v1/**',async route=>{
  if(path.endsWith('/worked-answer-capabilities'))return route.fulfill({json:{enabled:true,providerConfigured:true,ready:true}});
  if(path.endsWith('/worked-answer')){revealCount++;return route.fulfill({json:{visuals:[generatedVisual],message:'This question is now assisted practice and will not increase independent mastery.'}});}
  if(path.includes('/worked-answers')){
-  if(path.endsWith('/attach')){attachCount++;assert.equal(route.request().postDataJSON().expectedQuestionRevision,1);return route.fulfill({json:{questionRevision:2,assetIds:['generated-image']}});}
   if(path.endsWith('/image'))return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><text x="10" y="30">AI-generated synthetic graph</text></svg>'});
   if(path.endsWith('/review')){
    const body=route.request().postDataJSON();assert.equal(body.expectedRevision,row.revision);
-   row={...row,revision:row.revision+1,status:body.action==='approve'?'approved':body.action==='reject'?'rejected':'awaiting_review',solution:body.solution||row.solution};return route.fulfill({json:row});
+   if(body.action==='approve')attachCount++;
+   row={...row,revision:row.revision+1,status:body.action==='approve'?'approved':body.action==='reject'?'rejected':'awaiting_review',solution:body.solution||row.solution,assets:body.action==='approve'?['generated-image']:row.assets};return route.fulfill({json:row});
   }
   if(route.request().method()==='POST'){
    const body=route.request().postDataJSON();assert.equal(body.expectedQuestionRevision,1);assert.deepEqual(body.graph.partLabels,['c(ii)']);
-   row={id:'generated-test',revision:3,status:'awaiting_review',solution:graph,label:'AI-generated worked answer — not an official Pearson answer',provenance:{model:'synthetic-test',checks:['verified points unchanged']},sourceManifest:{versions:[]},sourceHash:'1234567890abcdef',graphInput:{verificationNote:body.graph.verificationNote}};
+   row={id:'generated-test',revision:3,status:'awaiting_review',assets:[],solution:graph,label:'AI-generated worked answer — not an official Pearson answer',provenance:{model:'synthetic-test',checks:['verified points unchanged']},sourceManifest:{versions:[]},sourceHash:'1234567890abcdef',graphInput:{verificationNote:body.graph.verificationNote}};
    return route.fulfill({json:row,status:202});
   }
   return route.fulfill({json:row?[row]:[]});
@@ -76,9 +76,8 @@ try {
  await page.getByRole('button',{name:'Save edited draft',exact:true}).waitFor({state:'hidden'});
  assert.equal(row.solution.steps[0].explanation,'Corrected explanation: plot every verified source value precisely.');
  await page.getByRole('button',{name:'Approve worked answer',exact:true}).click();
- await page.getByRole('button',{name:'Attach approved answer to question',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Approved answer attached',exact:true}).waitFor();
  assert.equal(row.status,'approved');
- await page.getByRole('button',{name:'Attach approved answer to question',exact:true}).click();
  await page.getByText('Question refreshed with generated answer.',{exact:true}).waitFor();assert.equal(attachCount,1);
  role='student';
  for(const width of [1360,390]){

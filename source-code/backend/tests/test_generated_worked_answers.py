@@ -93,10 +93,13 @@ def test_generated_answer_lifecycle(auth_client):
     assert 'no-store' in preview.headers['cache-control']
     attach={'expectedQuestionRevision':1}
     assert client.post(base+'/attach',headers=headers,json=attach).status_code==409
+    question=db.scalar(select(OfficialPaperReviewQuestion).where(OfficialPaperReviewQuestion.id==uuid.UUID(row['questionId'])))
+    question.status='approved';db.commit()
     review={'expectedRevision':row['revision'],'action':'approve'}
     approved=client.post(base+'/review',headers=headers,json=review);assert approved.status_code==200,approved.text
+    assert len(approved.json()['assets'])==3
     assert client.post(base+'/review',headers=headers,json=review).status_code==409
-    attached=client.post(base+'/attach',headers=headers,json=attach);assert attached.status_code==200,attached.text
+    attached=client.post(base+'/attach',headers=headers,json={'expectedQuestionRevision':2});assert attached.status_code==200,attached.text
     saved=client.get(root).json()['questions'][0]
     assert saved['status']=='needs_correction' and saved['revision']==2
     visuals=saved['data']['parts'][0]['answerVisuals']
@@ -118,7 +121,7 @@ def test_generated_answer_lifecycle(auth_client):
     reapproved=client.post(base+'/review',headers=headers,json={**review,'expectedRevision':edited.json()['revision']})
     assert reapproved.status_code==200
     with pytest.raises(DomainError):validate_visuals(db,scheme[1].id,[visual])  # old image must not inherit a changed solution's approval
-    assert client.post(base+'/attach',headers=headers,json={'expectedQuestionRevision':2}).status_code==200
+    assert client.post(base+'/attach',headers=headers,json={'expectedQuestionRevision':3}).status_code==200
     question=db.scalar(select(OfficialPaperReviewQuestion).where(OfficialPaperReviewQuestion.id==uuid.UUID(row['questionId'])))
     question.review_data={**question.review_data,'sharedStem':'A materially changed question source'};db.commit()
     assert client.get(path).json()[0]['status']=='stale'
