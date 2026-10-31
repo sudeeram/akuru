@@ -1,5 +1,13 @@
 # Reviewing official exam papers
 
+## Accuracy confidence and model history
+
+The question list can be sorted by **Lowest accuracy confidence first**. A question's percentage follows its weakest assessed subpart. Within **Accuracy confidence & provenance**, use **Subparts by lowest confidence** to jump to a part, expand **Source checks and extraction provenance** for the reasons and source/model details, or use **View analysis history** to inspect earlier assessments. The model filter finds the latest recorded extraction or assessment model/method.
+
+Confidence is an estimate to help decide what to review first. Adding or lowering it does not remove an existing **Approved** status. If wording, marking evidence or visuals later change, the previous assessment is labelled as earlier content until a new comparison is recorded. A missing original model is displayed as **Not recorded**; a newer assessment does not claim to identify the original extraction model.
+
+## Reviewing a paper
+
 The official-paper workspace is available to Admin users under **Exam Documents → Past papers → Review questions**. It is an internal draft workspace. Saving or approving a question does not make it available to Students.
 
 1. Upload the original question paper as a **Past paper**, with the correct course, subject, examination year, session, component and variant. Upload its exact **Marking scheme**, selecting that paper as the related source. An **Examiner report** is optional and can be attached later. Wait for extraction to finish.

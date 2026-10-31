@@ -2,11 +2,11 @@
 
 Guideline ID: `akuru-igcse-pastpapers`
 
-Version: `1.2.0`
+Version: `1.3.0`
 
 Created: 2026-10-21
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 Status: documented standard; automated enforcement is incomplete.
 
@@ -22,6 +22,7 @@ Apply this standard when preparing questions here, in AKURU, or through another 
 6. [Import and review validation](akuru-import-validation.md)
 7. [Reviewed reference examples](reviewed-examples.md)
 8. [Per-batch extraction checklist](extraction-checklist.md) — record executed checks, exact issues and review decisions.
+9. [Accuracy confidence and extraction provenance](accuracy-confidence-and-provenance.md) — source-specific model identity, dated estimates and reassessment history independent of approvals.
 
 ## Processing sequence
 
@@ -50,6 +51,8 @@ Read the source-specific rules, choose the appropriate layout profile, and compl
 These Markdown rules do not automatically configure OCR or enforce every gate in the current application. Record which checks were actually executed, flag missing automation, and retain unresolved issues for Admin review. Add regression cases for new failures; do not claim a new year/variant is covered merely because an earlier one passed.
 
 ## Change history
+
+- 2026-11-01 — 1.3.0: source-specific extraction/model provenance, independent accuracy estimates and append-only reassessment history. Existing review approvals stay unchanged when metadata is added. Unknown historical model identities must not be guessed.
 
 - 2026-10-21 — 1.0.0: initial standard based on 1C Q1 visual review and Q2 boundary, scheme and report findings. No code deployment or content approval is implied.
 

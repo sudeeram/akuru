@@ -4,7 +4,7 @@ Profile ID: `pearson-edexcel-igcse`
 
 Profile version: `1.1.0`
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 Initially verified against June 2025 International GCSE Chemistry 1C pages used in the reference examples. Detect the profile from document identity and actual page geometry; do not assume that every Pearson paper or year has the same layout.
 

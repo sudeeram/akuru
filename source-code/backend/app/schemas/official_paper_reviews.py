@@ -5,6 +5,7 @@ import uuid
 from pydantic import BaseModel, Field, model_validator
 from app.schemas.marking_rules import MarkingRules
 from app.schemas.answer_visuals import AnswerVisual
+from app.schemas.paper_analysis import AnalysisProvenance, QuestionAnalysisResponse
 
 
 ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "excluded"]
@@ -99,6 +100,22 @@ class SaveReviewQuestion(BaseModel):
 class SeedPaperReview(BaseModel):
     draftBank: dict
     coverageTriage: dict | None = None
+    provenance: list[AnalysisProvenance] = Field(default_factory=list, max_length=3)
+
+    @model_validator(mode="before")
+    @classmethod
+    def batch_provenance(cls, value):
+        if isinstance(value, dict) and not value.get("provenance"):
+            batch = value.get("draftBank")
+            if isinstance(batch, dict) and batch.get("provenance") is not None:
+                return {**value, "provenance": batch["provenance"]}
+        return value
+
+    @model_validator(mode="after")
+    def distinct_provenance(self):
+        if len({item.role for item in self.provenance}) != len(self.provenance):
+            raise ValueError("Provide at most one provenance record per source role.")
+        return self
 
 
 class CreateReviewCrop(BaseModel):
@@ -128,6 +145,10 @@ class ReviewQuestionResponse(BaseModel):
     data: ReviewQuestionData
     reviewedBy: str | None = None
     reviewedAt: str | None = None
+    analysisContentHash: str | None = None
+    analysisVersion: int = 0
+    accuracyAnalysis: QuestionAnalysisResponse | None = None
+    extractionAnalysis: QuestionAnalysisResponse | None = None
 
 
 class PaperReviewResponse(BaseModel):

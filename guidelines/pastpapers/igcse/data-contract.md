@@ -1,8 +1,8 @@
 # Logical intake data contract
 
-Standard: `akuru-igcse-pastpapers` 1.2.0
+Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 Status: proposed logical requirements, not an executable JSON Schema or current API payload.
 
@@ -19,6 +19,8 @@ Status: proposed logical requirements, not an executable JSON Schema or current 
 | Report item | Commentary/example/transcription type, question/part scope, original image where applicable, transcript uncertainty, linked comments, explicit marks and sources |
 | Validation issue | Stable code, severity, affected entity/region, human-readable reason, suggested correction, resolution and reviewer |
 | Review decision | Actor, timestamp, revision, decision, evidence reviewed and change history |
+| Analysis provenance | Stage, source role/version/hash, native/OCR method, interpretation provider/model identity, identity source, processing time, guideline and prompt versions |
+| Accuracy assessment | Version, assessed-content hash, question/subpart estimates, separate source checks, inspected pages, reasons and stale/current state; independent of approval |
 
 Keep IDs stable through retries and re-analysis. Never use a display label alone as a globally unique key. Preserve source hashes and expected review revisions to detect stale writes. Draft source locations may lack exact blocks, but approval must resolve the evidence required by the applicable release gate.
 

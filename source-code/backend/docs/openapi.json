@@ -259,6 +259,42 @@
         "title": "AccountSummaryResponse",
         "type": "object"
       },
+      "AccuracyEstimate": {
+        "additionalProperties": false,
+        "properties": {
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "sourceChecks": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccuracy"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Sourcechecks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "percent",
+          "reasons",
+          "sourceChecks"
+        ],
+        "title": "AccuracyEstimate",
+        "type": "object"
+      },
       "AdminPasswordResetRequest": {
         "properties": {
           "requestKey": {
@@ -370,6 +406,153 @@
           "reason"
         ],
         "title": "AdminQuotaUpdate",
+        "type": "object"
+      },
+      "AnalysisProvenance": {
+        "additionalProperties": false,
+        "properties": {
+          "guidelineId": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guidelineid"
+          },
+          "guidelineVersion": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guidelineversion"
+          },
+          "method": {
+            "enum": [
+              "native_pdf",
+              "ocr",
+              "deterministic",
+              "codex_assisted",
+              "openai_api",
+              "manual",
+              "unknown"
+            ],
+            "title": "Method",
+            "type": "string"
+          },
+          "modelId": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelid"
+          },
+          "modelIdentitySource": {
+            "default": "not_recorded",
+            "enum": [
+              "provider_response",
+              "operator_recorded",
+              "not_recorded"
+            ],
+            "title": "Modelidentitysource",
+            "type": "string"
+          },
+          "modelName": {
+            "anyOf": [
+              {
+                "maxLength": 160,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modelname"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "processedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Processedat"
+          },
+          "promptVersion": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promptversion"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "responseId": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Responseid"
+          },
+          "role": {
+            "enum": [
+              "paper",
+              "scheme",
+              "report"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "method"
+        ],
+        "title": "AnalysisProvenance",
         "type": "object"
       },
       "AnswerSave": {
@@ -6551,6 +6734,56 @@
         "title": "ParagraphOperationRequest",
         "type": "object"
       },
+      "PartAccuracy": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 40,
+            "title": "Label",
+            "type": "string"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisProvenance"
+            },
+            "maxItems": 3,
+            "title": "Provenance",
+            "type": "array"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "sourceChecks": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAccuracy"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Sourcechecks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "percent",
+          "reasons",
+          "sourceChecks",
+          "label"
+        ],
+        "title": "PartAccuracy",
+        "type": "object"
+      },
       "PlanChangeResponse": {
         "properties": {
           "change": {
@@ -7348,6 +7581,88 @@
         "title": "PurgeResultResponse",
         "type": "object"
       },
+      "QuestionAnalysisResponse": {
+        "properties": {
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "title": "Createdat",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "isCurrent": {
+            "title": "Iscurrent",
+            "type": "boolean"
+          },
+          "methodVersion": {
+            "title": "Methodversion",
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/PartAccuracy"
+            },
+            "title": "Parts",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisProvenance"
+            },
+            "title": "Provenance",
+            "type": "array"
+          },
+          "question": {
+            "$ref": "#/components/schemas/AccuracyEstimate"
+          },
+          "questionRevision": {
+            "title": "Questionrevision",
+            "type": "integer"
+          },
+          "sourceManifest": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sourcemanifest",
+            "type": "array"
+          },
+          "stage": {
+            "enum": [
+              "extraction",
+              "accuracy"
+            ],
+            "title": "Stage",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "stage",
+          "questionRevision",
+          "contentHash",
+          "sourceManifest",
+          "methodVersion",
+          "provenance",
+          "question",
+          "parts",
+          "createdAt",
+          "isCurrent"
+        ],
+        "title": "QuestionAnalysisResponse",
+        "type": "object"
+      },
       "QuestionPoolDiagnosticResponse": {
         "properties": {
           "eligibleMarks": {
@@ -8055,6 +8370,73 @@
         "title": "ReconstructionPreviewResponse",
         "type": "object"
       },
+      "RecordQuestionAnalysis": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedAnalysisVersion": {
+            "minimum": 0.0,
+            "title": "Expectedanalysisversion",
+            "type": "integer"
+          },
+          "expectedContentHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedcontenthash",
+            "type": "string"
+          },
+          "expectedQuestionRevision": {
+            "minimum": 1.0,
+            "title": "Expectedquestionrevision",
+            "type": "integer"
+          },
+          "methodVersion": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Methodversion",
+            "type": "string"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/PartAccuracy"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Parts",
+            "type": "array"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisProvenance"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Provenance",
+            "type": "array"
+          },
+          "question": {
+            "$ref": "#/components/schemas/AccuracyEstimate"
+          },
+          "stage": {
+            "default": "accuracy",
+            "enum": [
+              "extraction",
+              "accuracy"
+            ],
+            "title": "Stage",
+            "type": "string"
+          }
+        },
+        "required": [
+          "expectedQuestionRevision",
+          "expectedAnalysisVersion",
+          "expectedContentHash",
+          "methodVersion",
+          "provenance",
+          "question",
+          "parts"
+        ],
+        "title": "RecordQuestionAnalysis",
+        "type": "object"
+      },
       "ReindexRequest": {
         "properties": {
           "documentId": {
@@ -8727,8 +9109,44 @@
       },
       "ReviewQuestionResponse": {
         "properties": {
+          "accuracyAnalysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestionAnalysisResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "analysisContentHash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysiscontenthash"
+          },
+          "analysisVersion": {
+            "default": 0,
+            "title": "Analysisversion",
+            "type": "integer"
+          },
           "data": {
             "$ref": "#/components/schemas/ReviewQuestionData"
+          },
+          "extractionAnalysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QuestionAnalysisResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "number": {
             "title": "Number",
@@ -9119,12 +9537,81 @@
             "additionalProperties": true,
             "title": "Draftbank",
             "type": "object"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisProvenance"
+            },
+            "maxItems": 3,
+            "title": "Provenance",
+            "type": "array"
           }
         },
         "required": [
           "draftBank"
         ],
         "title": "SeedPaperReview",
+        "type": "object"
+      },
+      "SourceAccuracy": {
+        "additionalProperties": false,
+        "properties": {
+          "pages": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 200,
+            "title": "Pages",
+            "type": "array"
+          },
+          "percent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Percent"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Reasons",
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "paper",
+              "scheme",
+              "report"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "checked",
+              "not_checked",
+              "not_available",
+              "no_comment"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "status",
+          "reasons"
+        ],
+        "title": "SourceAccuracy",
         "type": "object"
       },
       "SourceLocation": {
@@ -14755,6 +15242,210 @@
           }
         },
         "summary": "Save Question",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": {
+      "get": {
+        "operationId": "analysis_history_api_v1_admin_official_paper_reviews__paper_id__questions__number__analyses_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/QuestionAnalysisResponse"
+                  },
+                  "title": "Response Analysis History Api V1 Admin Official Paper Reviews  Paper Id  Questions  Number  Analyses Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Analysis History",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      },
+      "post": {
+        "operationId": "record_analysis_api_v1_admin_official_paper_reviews__paper_id__questions__number__analyses_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordQuestionAnalysis"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Record Analysis",
         "tags": [
           "official-paper-reviews"
         ]

@@ -297,6 +297,9 @@ def test_import_requires_exact_uploaded_pdf_hashes(auth_client):
             "source": {"questionPdfPages": [1], "schemePdfPages": [1]}}]}
     assert client.post(root + "/seed", headers=headers, json={"draftBank": bank}).status_code == 409
     bank["papers"][0]["sourceSha256"]["question"] = paper[1].sha256
+    bank["provenance"] = [{"role": "paper", "method": "codex_assisted", "modelId": "synthetic-import-model",
+        "provider": "Test", "notes": "Model identity supplied in the draft bank."}]
+    bank["questions"][0]["subparts"][0]["provenance"] = [{"role": "scheme", "method": "manual", "notes": "Manually interpreted this source for the part."}]
     response = client.post(root + "/seed", headers=headers, json={"draftBank": bank})
     assert response.status_code == 200, response.text
     assert response.json()["questions"][0]["status"] == "unreviewed"
@@ -304,6 +307,11 @@ def test_import_requires_exact_uploaded_pdf_hashes(auth_client):
     assert confidence["methodVersion"] == "paper-extraction-triage-v1"
     assert confidence["percent"] <= 45  # No extracted scheme text in this proposal.
     assert response.json()["questions"][0]["data"]["parts"][0]["extractionConfidence"]["percent"] <= 45
+    imported = response.json()["questions"][0]["extractionAnalysis"]
+    assert imported["stage"] == "extraction" and imported["isCurrent"]
+    assert imported["provenance"][0]["modelId"] == "synthetic-import-model"
+    assert imported["provenance"][1]["modelId"] is None
+    assert imported["parts"][0]["provenance"][0]["method"] == "manual"
     altered = response.json()["questions"][0]["data"]
     altered["extractionConfidence"]["percent"] = 100
     altered["parts"][0]["extractionConfidence"]["percent"] = 100

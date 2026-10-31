@@ -15,6 +15,8 @@ const { outputText } = ts.transpileModule(source, {
 const {
   reviewAttentionCount,
   reviewQuestionList,
+  reviewAccuracy,
+  reviewProvenance,
   reviewNeighbours,
   reviewNavigationAllowed,
   reviewHasChanges,
@@ -58,6 +60,21 @@ test('lowest-confidence sort keeps unscored questions last without changing the 
   ];
   assert.deepEqual(reviewQuestionList(rows,'all','',true).map(q=>q.number),['2','1','3']);
   assert.deepEqual(rows.map(q=>q.number),['1','2','3']);
+});
+test('accuracy comparisons take precedence over import estimates and stale comparisons are unscored', () => {
+  const model = {role:'paper',method:'codex_assisted',provider:'Test',modelId:'test-model-v2'};
+  const assessed = {number:'1',status:'approved',data:{extractionConfidence:{percent:45}},
+    accuracyAnalysis:{isCurrent:true,question:{percent:92},provenance:[model]}};
+  assert.equal(reviewAccuracy(assessed),92);
+  assert.equal(reviewAccuracy({...assessed,accuracyAnalysis:{...assessed.accuracyAnalysis,isCurrent:false}}),undefined);
+  assert.equal(reviewQuestionList([assessed],'all','',false,'test-model-v2').length,1);
+  assert.equal(reviewQuestionList([assessed],'all','',false,'other-model').length,0);
+});
+test('subpart provenance overrides only the matching source role', () => {
+  const analysis = {provenance:[{role:'paper',modelId:'paper-model'},{role:'scheme',modelId:'scheme-model'}],
+    parts:[{label:'a',provenance:[{role:'scheme',modelId:'part-scheme-model'}]}]};
+  assert.deepEqual(reviewProvenance(analysis,'a').map(source=>source.modelId),['paper-model','part-scheme-model']);
+  assert.deepEqual(reviewProvenance(analysis,'b').map(source=>source.modelId),['paper-model','scheme-model']);
 });
 test('previous/next follow the full inventory and never wrap or jump from an unsaved new question', () => {
   assert.equal(reviewNeighbours(questions, '3').previous.number, '2');

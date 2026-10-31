@@ -41,6 +41,66 @@ export type ExtractionConfidence = {
   methodVersion: string;
   reasons: string[];
 };
+export type AnalysisProvenance = {
+  role: 'paper' | 'scheme' | 'report';
+  method:
+    | 'native_pdf'
+    | 'ocr'
+    | 'deterministic'
+    | 'codex_assisted'
+    | 'openai_api'
+    | 'manual'
+    | 'unknown';
+  provider?: string | null;
+  modelId?: string | null;
+  modelName?: string | null;
+  modelIdentitySource?:
+    | 'provider_response'
+    | 'operator_recorded'
+    | 'not_recorded';
+  responseId?: string | null;
+  guidelineId?: string | null;
+  guidelineVersion?: string | null;
+  promptVersion?: string | null;
+  processedAt?: string | null;
+  notes: string;
+};
+export type SourceAccuracy = {
+  role: 'paper' | 'scheme' | 'report';
+  status: 'checked' | 'not_checked' | 'not_available' | 'no_comment';
+  percent: number | null;
+  pages: number[];
+  reasons: string[];
+};
+export type AccuracyEstimate = {
+  percent: number;
+  reasons: string[];
+  sourceChecks: SourceAccuracy[];
+};
+export type QuestionAnalysis = {
+  id: string;
+  version: number;
+  stage: 'extraction' | 'accuracy';
+  questionRevision: number;
+  contentHash: string;
+  sourceManifest: {
+    role: string;
+    documentVersionId: string | null;
+    filename: string | null;
+    version: number | null;
+    sha256: string | null;
+    pageExtractionMethods: string[];
+  }[];
+  methodVersion: string;
+  provenance: AnalysisProvenance[];
+  question: AccuracyEstimate;
+  parts: (AccuracyEstimate & {
+    label: string;
+    provenance?: AnalysisProvenance[];
+  })[];
+  createdAt: string;
+  isCurrent: boolean;
+};
 export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
   request<{ visualPages: TextbookPageOption[] }>(
     `admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`,
@@ -121,9 +181,17 @@ export type PaperReview = {
     data: ReviewQuestionData;
     reviewedBy: string | null;
     reviewedAt: string | null;
+    analysisContentHash?: string | null;
+    analysisVersion?: number;
+    accuracyAnalysis?: QuestionAnalysis | null;
+    extractionAnalysis?: QuestionAnalysis | null;
   }[];
 };
 const base = (paperId: string) => `admin/official-paper-reviews/${paperId}`;
+export const getQuestionAnalysisHistory = (paperId: string, number: string) =>
+  request<QuestionAnalysis[]>(
+    `${base(paperId)}/questions/${encodeURIComponent(number)}/analyses`,
+  );
 export const getPaperReview = (paperId: string) =>
   request<PaperReview>(base(paperId));
 export const startPaperReview = (
@@ -148,10 +216,11 @@ export const seedPaperReview = (
   paperId: string,
   draftBank: object,
   coverageTriage?: object,
+  provenance?: AnalysisProvenance[],
 ) =>
   request<PaperReview>(`${base(paperId)}/seed`, {
     method: 'POST',
-    body: { draftBank, coverageTriage },
+    body: { draftBank, coverageTriage, provenance },
   });
 export const getReviewTopics = (paperId: string) =>
   request<{ topicRef: string; code: string; title: string }[]>(

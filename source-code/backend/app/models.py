@@ -1225,6 +1225,25 @@ class OfficialPaperReviewQuestion(Base):
     )
 
 
+class OfficialQuestionAnalysis(Base):
+    __tablename__ = "official_question_analyses"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_paper_review_questions.id", ondelete="CASCADE"), index=True)
+    version_number: Mapped[int] = mapped_column(Integer)
+    stage: Mapped[str] = mapped_column(String(16))
+    question_revision: Mapped[int] = mapped_column(Integer)
+    content_hash: Mapped[str] = mapped_column(String(64))
+    source_manifest: Mapped[list] = mapped_column(JSON)
+    analysis_data: Mapped[dict] = mapped_column(JSON)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("question_id", "version_number", name="uq_official_question_analysis_version"),
+        CheckConstraint("version_number > 0 AND question_revision > 0", name="ck_official_question_analysis_version"),
+        CheckConstraint("stage IN ('extraction','accuracy')", name="ck_official_question_analysis_stage"),
+    )
+
+
 class OfficialQuestionVersion(Base):
     __tablename__ = "official_question_versions"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

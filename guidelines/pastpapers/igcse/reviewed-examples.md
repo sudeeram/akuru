@@ -1,8 +1,8 @@
 # Reviewed reference examples
 
-Standard: `akuru-igcse-pastpapers` 1.2.0
+Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 These are reference cases for future executable regression tests. A written example is not a passing test or automatic approval of regenerated content. Original licensed PDFs remain in the ignored `pastpapers/` folder; do not commit full papers, handwritten crops, credentials or private production data with these guidelines.
 

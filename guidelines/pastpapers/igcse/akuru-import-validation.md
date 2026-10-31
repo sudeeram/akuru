@@ -1,8 +1,8 @@
 # Import, review and release validation
 
-Standard: `akuru-igcse-pastpapers` 1.2.0
+Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-10-31
+Last updated: 2026-11-01
 
 Status: required checks; see the implementation plan for enforcement progress.
 

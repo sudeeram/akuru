@@ -83,11 +83,14 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
     rows = db.scalars(select(OfficialPaperReviewQuestion).where(
         OfficialPaperReviewQuestion.workspace_id == workspace.id
     ).order_by(OfficialPaperReviewQuestion.number)).all()
+    from . import official_question_analyses
+    analysis = official_question_analyses.summaries(db, workspace, rows)
     questions = [ReviewQuestionResponse(
         number=row.number, revision=row.revision, status=row.status,
         data=ReviewQuestionData.model_validate(row.review_data),
         reviewedBy=str(row.reviewed_by) if row.reviewed_by else None,
         reviewedAt=row.reviewed_at.isoformat() if row.reviewed_at else None,
+        **analysis[row.id],
     ) for row in rows]
     approved = sum(row.status == "approved" for row in rows)
     blockers = []
@@ -699,8 +702,13 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
             prompt=q.get("rawQuestionExtraction", ""), paperSources=paper_sources,
             parts=parts, extractionConfidence=question_confidence,
         )
-        db.add(OfficialPaperReviewQuestion(workspace_id=workspace.id,
-            number=str(q["number"]), review_data=data.model_dump(mode="json")))
+        row = OfficialPaperReviewQuestion(workspace_id=workspace.id,
+            number=str(q["number"]), review_data=data.model_dump(mode="json"))
+        db.add(row)
+        db.flush()
+        from .official_question_analyses import record_import
+        record_import(db, principal, workspace, row, payload.provenance, q.get("provenance"),
+            {part["label"]: part.get("provenance", []) for part in q["subparts"]})
     workspace.expected_question_count = len(questions)
     db.add(AuditEvent(actor_id=principal.user.id, action="official_review.proposals_imported",
                       target_type="document", target_id=str(paper_id),

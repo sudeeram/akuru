@@ -17,6 +17,8 @@ from app.services.worked_answers.graphs import render as render_worked_graph
 from app.security import Principal
 from app.services import official_paper_reviews
 from app.storage import ObjectStorage, get_storage
+from app.schemas.paper_analysis import RecordQuestionAnalysis, QuestionAnalysisResponse
+from app.services import official_question_analyses
 
 
 router = APIRouter(prefix="/admin/official-paper-reviews", tags=["official-paper-reviews"])
@@ -34,6 +36,20 @@ def published_topics(paper_id: uuid.UUID,
                      _principal: Annotated[Principal, Depends(require_roles("admin"))],
                      db: Annotated[Session, Depends(get_db)]):
     return official_paper_reviews.published_topics(db, paper_id)
+
+
+@router.get("/{paper_id}/questions/{number}/analyses", response_model=list[QuestionAnalysisResponse])
+def analysis_history(paper_id: uuid.UUID, number: str,
+    principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    return official_question_analyses.history(db, paper_id, number)
+
+
+@router.post("/{paper_id}/questions/{number}/analyses", response_model=QuestionAnalysisResponse, status_code=201)
+def record_analysis(paper_id: uuid.UUID, number: str, payload: RecordQuestionAnalysis,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    return official_question_analyses.record(db, principal, paper_id, number, payload)
 
 
 @router.get("/{paper_id}/topics/{topic_ref}/evidence")

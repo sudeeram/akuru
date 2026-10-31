@@ -5,6 +5,7 @@ import {
   type TextbookPageOption,
 } from '@/api/assessments/official-paper-review.api';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
+import { QuestionAnalysisPanel } from './question-analysis';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
@@ -30,6 +31,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   reviewQuestionList,
+  reviewAccuracy,
   reviewNeighbours,
   reviewAttentionCount,
   reviewNavigationAllowed,
@@ -532,6 +534,7 @@ export function OfficialPaperReview({
   const [questionFilter, setQuestionFilter] = useState('all');
   const [lowConfidenceFirst, setLowConfidenceFirst] = useState(false);
   const [questionSearch, setQuestionSearch] = useState('');
+  const [analysisModelSearch, setAnalysisModelSearch] = useState('');
   const [sourceTab, setSourceTab] = useState('paper');
   const [compareSources, setCompareSources] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
@@ -679,6 +682,9 @@ export function OfficialPaperReview({
     }));
   }
   const part = data.parts[activePart];
+  const selectedAnalysis = review?.questions.find(
+    (question) => question.number === number,
+  );
   const [visualPages, setVisualPages] = useState<
     Record<string, TextbookPageOption[]>
   >({});
@@ -1406,10 +1412,20 @@ export function OfficialPaperReview({
                     <input
                       type="checkbox"
                       checked={lowConfidenceFirst}
-                      onChange={(event) => setLowConfidenceFirst(event.target.checked)}
+                      onChange={(event) =>
+                        setLowConfidenceFirst(event.target.checked)
+                      }
                     />{' '}
-                    Lowest extraction confidence first
+                    Lowest accuracy confidence first
                   </label>
+                  <Input
+                    aria-label="Find analysis model"
+                    placeholder="Filter by model or method…"
+                    value={analysisModelSearch}
+                    onChange={(event) =>
+                      setAnalysisModelSearch(event.target.value)
+                    }
+                  />
                   <nav
                     aria-label="Question review navigation"
                     className="pr-question-list"
@@ -1419,6 +1435,7 @@ export function OfficialPaperReview({
                       questionFilter,
                       questionSearch,
                       lowConfidenceFirst,
+                      analysisModelSearch,
                     ).map((question) => (
                       <button
                         key={question.number}
@@ -1440,9 +1457,12 @@ export function OfficialPaperReview({
                         <MetadataBadge size="xs">
                           {question.data.marks}m
                         </MetadataBadge>
-                        {question.data.extractionConfidence && (
+                        {reviewAccuracy(question) != null && (
                           <span className="small">
-                            Extraction estimate: {question.data.extractionConfidence.percent}%
+                            {question.accuracyAnalysis?.isCurrent
+                              ? 'Accuracy confidence'
+                              : 'Extraction estimate'}
+                            : {reviewAccuracy(question)}%
                           </span>
                         )}
                       </button>
@@ -1452,6 +1472,7 @@ export function OfficialPaperReview({
                       questionFilter,
                       questionSearch,
                       lowConfidenceFirst,
+                      analysisModelSearch,
                     ).length && (
                       <p className="small">No questions match these filters.</p>
                     )}
@@ -1473,12 +1494,26 @@ export function OfficialPaperReview({
                   description="Correct the wording and marks against the original source."
                 >
                   <div className="stack">
-                    {data.extractionConfidence && (
+                    {selectedAnalysis?.accuracyAnalysis?.isCurrent ? (
                       <p className="small">
-                        Import-time extraction confidence: {data.extractionConfidence.percent}%.
-                        This is a review-priority estimate, not a verified accuracy rate.
-                        {' '}{data.extractionConfidence.reasons.join(' ')}
+                        <strong>
+                          Accuracy confidence:{' '}
+                          {selectedAnalysis.accuracyAnalysis.question.percent}%
+                        </strong>
+                        {' · '}
+                        {selectedAnalysis.accuracyAnalysis.question.reasons.join(
+                          ' ',
+                        )}
                       </p>
+                    ) : (
+                      data.extractionConfidence && (
+                        <p className="small">
+                          Import-time extraction confidence:{' '}
+                          {data.extractionConfidence.percent}%. This is a
+                          review-priority estimate, not a verified accuracy
+                          rate. {data.extractionConfidence.reasons.join(' ')}
+                        </p>
+                      )
                     )}
                     <div className="two-cols">
                       <label>
@@ -1562,6 +1597,22 @@ export function OfficialPaperReview({
                     )}
                   </div>
                 </DashboardCard>
+                {selectedAnalysis && (
+                  <QuestionAnalysisPanel
+                    key={`${paperId}-${number}`}
+                    paperId={paperId}
+                    number={number}
+                    accuracy={selectedAnalysis.accuracyAnalysis}
+                    extraction={selectedAnalysis.extractionAnalysis}
+                    partLabel={part?.label}
+                    dirty={dirty}
+                    onSelectPart={(label) =>
+                      selectPart(
+                        data.parts.findIndex((part) => part.label === label),
+                      )
+                    }
+                  />
+                )}
                 <DashboardCard
                   title="Subpart review"
                   description="Work through the wording, marking points, evidence and coverage for each part."
@@ -1589,6 +1640,16 @@ export function OfficialPaperReview({
                             )}
                             {row.label} · {row.marks} marks ·{' '}
                             {label(row.status)}
+                            {selectedAnalysis?.accuracyAnalysis?.isCurrent && (
+                              <>
+                                {' '}
+                                ·{' '}
+                                {selectedAnalysis.accuracyAnalysis.parts.find(
+                                  (part) => part.label === row.label,
+                                )?.percent ?? 'Not assessed'}
+                                % confidence
+                              </>
+                            )}
                             {savedState.unsaved ? ' · unsaved' : ''}
                           </Button>
                         );
@@ -1618,8 +1679,9 @@ export function OfficialPaperReview({
                       <div className="panel stack">
                         {part.extractionConfidence && (
                           <p className="small">
-                            Subpart extraction confidence: {part.extractionConfidence.percent}%.
-                            {' '}{part.extractionConfidence.reasons.join(' ')}
+                            Subpart extraction confidence:{' '}
+                            {part.extractionConfidence.percent}%.{' '}
+                            {part.extractionConfidence.reasons.join(' ')}
                           </p>
                         )}
                         <div className="two-cols">
@@ -1746,7 +1808,14 @@ export function OfficialPaperReview({
                                     objectFit: 'contain',
                                   }}
                                 />
-                                {visual.origin === 'ai_generated' && <p><strong>AI-generated worked answer — not an official Pearson answer</strong></p>}
+                                {visual.origin === 'ai_generated' && (
+                                  <p>
+                                    <strong>
+                                      AI-generated worked answer — not an
+                                      official Pearson answer
+                                    </strong>
+                                  </p>
+                                )}
                                 <strong>
                                   {visual.status === 'approved'
                                     ? 'Approved answer visual'
@@ -1837,7 +1906,9 @@ export function OfficialPaperReview({
                                   </Button>
                                 </div>
                                 <p className="small">
-                                  {visual.origin === 'ai_generated' ? 'Edit or replace this answer in AI-generated worked answers. Remove this association to exclude it from a future release.' : 'To replace a crop, create a new one below and remove this association. Existing published answers remain unchanged.'}
+                                  {visual.origin === 'ai_generated'
+                                    ? 'Edit or replace this answer in AI-generated worked answers. Remove this association to exclude it from a future release.'
+                                    : 'To replace a crop, create a new one below and remove this association. Existing published answers remain unchanged.'}
                                 </p>
                               </section>
                             );

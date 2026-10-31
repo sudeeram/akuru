@@ -1,8 +1,10 @@
 # Per-batch past-paper extraction checklist
 
-Standard: `akuru-igcse-pastpapers` 1.2.0
+Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Created / last updated: 2026-10-31
+Created: 2026-10-31
+
+Last updated: 2026-11-01
 
 Status: required review record; not all checks are automatically enforced by AKURU.
 
