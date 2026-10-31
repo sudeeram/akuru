@@ -67,7 +67,7 @@ The detailed domain rules are in [the overall architecture](source-code/docs/arc
 
 ### Prerequisites
 
-- Node.js 22.13 or newer
+- Node.js 22.23.4+ (recommended Node 22 line); also supported: 24.22.1+ or 26.12.1+
 - npm
 - Python 3.12 or newer
 - PostgreSQL 15 or newer, listening locally on port 5432
@@ -185,7 +185,7 @@ Install these through the operating system's package management and your approve
 
 - Git
 - Python 3.12+, `venv`, and build support
-- Node.js 22.13+ and npm
+- Node.js 22.23.4+ and npm
 - PostgreSQL and Redis
 - Nginx and TLS tooling
 - Poppler and Tesseract for the document-extraction pipeline

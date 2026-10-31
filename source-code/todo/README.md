@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Node.js security patch across AKURU and OpenClaw](ongoing/TODO-NODEJS-SECURITY-PATCH.md) — patch production, local NVM and the independent gateway container; verify workflows and update runtime safeguards.
+
 - [Approved mark-scheme answer visuals and drawn-response assessment](ongoing/TODO-MARK-SCHEME-ANSWER-VISUALS.md) — capture and review diagram model answers, safely display them to Students, then separately evaluate drawn-answer submission and marking; first case: 1C Q5(c)(ii).
 
 - [Route-wide UI component and colour adoption](ongoing/TODO-UI-COMPONENT-ADOPTION.md) — frontend colour/presentation release deployed; populated workflow acceptance remains open and is recorded in the plan.
@@ -24,6 +26,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 
 - [iGCSE past-paper analysis conformance](planned/TODO-IGCSE-PASTPAPER-ANALYSIS.md) — enforce the versioned question, scheme and report standards under `guidelines/pastpapers/igcse`, using Q2 as the first regression case.

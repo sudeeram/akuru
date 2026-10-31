@@ -38,12 +38,10 @@ check_command clamscan Malware-scanner
 check_command pdftoppm Poppler
 check_command tesseract Tesseract-OCR
 
-node_major="$(node --version 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)"
-if [[ -z "${node_major}" || "${node_major}" -lt 22 ]]; then
-  echo "FAIL  Node.js version          requires 22.13 or newer" >&2
+policy_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../source-code/scripts" && pwd)/node-version-policy.mjs"
+if ! node "$policy_path"; then
+  echo "Install a security-patched supported Node.js runtime before proceeding." >&2
   failed=1
-else
-  printf 'PASS  %-24s %s\n' "Node.js version" "$(node --version)"
 fi
 
 check_service postgresql

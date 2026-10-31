@@ -24,6 +24,7 @@ expected="$(git -C "$app_root" rev-parse "$release_sha^{commit}")" || fail "rele
 [[ "$actual" == "$expected" ]] || fail "checkout is ${actual}; expected reviewed release ${expected}"
 [[ -z "$(git -C "$app_root" status --porcelain)" ]] || fail "release checkout is dirty"
 pass "exact reviewed Git revision ${actual}"
+node "${source_root}/scripts/node-version-policy.mjs" || fail "Node runtime is below the reviewed security floor"
 
 [[ -f "$env_file" ]] || fail "missing protected runtime environment file"
 [[ "$(stat -c '%U:%G:%a' "$env_file")" == "root:akuru:640" ]] || fail "${env_file} must be root:akuru mode 640"

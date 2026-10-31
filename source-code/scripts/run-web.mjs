@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import { isSupportedNode, nodeRequirement } from "./node-version-policy.mjs";
 import { existsSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
@@ -16,12 +17,11 @@ const candidates = [
 ].filter(Boolean);
 const node = candidates.find((path) => {
   const result = spawnSync(path, ["--version"], { encoding: "utf8" });
-  const [major, minor] = result.stdout?.trim().replace(/^v/, "").split(".").map(Number) || [];
-  return !result.error && (major > 22 || (major === 22 && minor >= 13));
+  return !result.error && result.status === 0 && isSupportedNode(result.stdout || "");
 });
 if (!node) {
   console.error(
-    "Node >=22.13 is required. Install a supported Node release yourself, or set PORTAL_NODE to an existing executable. This script never installs software.",
+    `${nodeRequirement} is required. Install a patched runtime yourself, or set PORTAL_NODE to an existing executable. This script never installs software.`,
   );
   process.exit(1);
 }

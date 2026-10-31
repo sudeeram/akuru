@@ -1,6 +1,6 @@
 # Isolated OpenClaw Gateway installation
 
-Step 02 uses official OpenClaw `2026.9.6` on Linux ARM64, pinned to manifest digest `sha256:62040ed3fe6f566adb39e60c5428cce078989a39cc713d63e873c4dccf166892` (multi-arch index digest `sha256:0a5ff5e682e62afa19149df126aa50063bf65ef885b5c94713ce32dc0eb12e15`). The image runs as uid 1000. Do not use `latest`, an unofficial mirror or an unreviewed replacement digest. The installed container has no network, published port, provider credential, Telegram token or AKURU mount.
+The initial Step 02 installation used official OpenClaw `2026.9.6` on Linux ARM64, pinned to manifest digest `sha256:62040ed3fe6f566adb39e60c5428cce078989a39cc713d63e873c4dccf166892` (multi-arch index digest `sha256:0a5ff5e682e62afa19149df126aa50063bf65ef885b5c94713ce32dc0eb12e15`). The image runs as uid 1000. Do not use `latest`, an unofficial mirror or an unreviewed replacement digest. The installed container has no network, published port, provider credential, Telegram token or AKURU mount.
 
 ## Install or recreate
 
@@ -17,7 +17,7 @@ Step 02 uses official OpenClaw `2026.9.6` on Linux ARM64, pinned to manifest dig
 
 ## Update and rollback
 
-Take an encrypted copy of `/data/openclaw/state` and a protected copy of `/etc/openclaw/gateway.env`. Stage the replacement image by exact ARM64 digest, verify its manifest and release notes, test the new config with `config validate`, then change only the image reference in `compose.yaml`. Re-run `install-gateway.sh` and acceptance checks. For rollback, restore the previous digest and matching configuration/state snapshot, then `docker compose -f /opt/openclaw/compose.yaml up -d --force-recreate gateway`. Do not prune the prior image until rollback is verified. A failed state migration can make old code incompatible with new state, so restore the matching state snapshot rather than pointing an old image at migrated state.
+Take an encrypted copy of `/data/openclaw/state` and a protected copy of `/etc/openclaw/gateway.env`. Stage the replacement image by exact ARM64 digest, verify its manifest and release notes, test the new config with `config validate`, then change only the image reference in `compose.yaml`. Run `upgrade-gateway.sh` and acceptance checks. The upgrade preserves live configuration rather than reinstalling bootstrap settings. For rollback, restore the previous digest and matching configuration/state snapshot, then `docker compose -f /opt/openclaw/compose.yaml up -d --force-recreate gateway`. Do not prune the prior image until rollback is verified. A failed state migration can make old code incompatible with new state, so restore the matching state snapshot rather than pointing an old image at migrated state.
 
 For immediate isolation or suspected exposure: `sudo docker compose -f /opt/openclaw/compose.yaml stop gateway`; then investigate or rotate the Gateway token. Stopping this Compose project does not affect AKURU services.
 
@@ -28,3 +28,15 @@ The initial deep audit reported zero critical findings and one `gateway.probe_fa
 Production validation on 2026-10-03: configuration valid; Gateway healthy after restart; unauthenticated `/tools/invoke` returned HTTP 401 inside the container; Docker reported `NetworkMode=none`, `Ports={}`, read-only root filesystem, and only state/cache mounts. No host listener on 18789. AKURU release acceptance passed after installation and again after stop/start and rollback rehearsal. At the observed idle sample, OpenClaw used approximately 687 MiB of its 1.5 GiB limit. No provider or Student data has been configured.
 
 References: [official Docker installation](https://docs.openclaw.ai/install/docker), [security audit](https://docs.openclaw.ai/gateway/security/running-the-audit), [operator scopes](https://docs.openclaw.ai/gateway/operator-scopes), [release](https://github.com/openclaw/openclaw/releases/tag/v2026.9.6).
+
+## October 2026 Node security patch
+
+Current reviewed ARM64 image: `ghcr.io/openclaw/openclaw:2026.10.9@sha256:bfa6ab1508b9314e71abb73eaabf472d7fa82c2a1199ff91949a834e9ff00f7f`. Multi-platform index: `sha256:1a2a3ce113e435039dbeac5ae261759bb4759908563d91c81059e896b38c5d98`. Its inspected Node runtime is **24.22.1**. The earlier 2026.9.6 image runs affected Node 24.19.0; retain it only for emergency recovery, never treat rollback to it as remediation.
+
+From a reviewed checkout on the production host, run `sudo bash openclaw/deploy/upgrade-gateway.sh`. It requires the existing network-isolated deployment and AKURU age public recipient; pulls the exact reviewed image; checks host/candidate Node security floors; briefly stops the old gateway for a consistent backup; archives state, protected environment and installed Compose configuration into a root-only age-encrypted recovery archive under `/data/openclaw/backups/node-security-<timestamp>/`; then restarts the old gateway while validating and booting an independent state copy with no network. Only after candidate health succeeds does it replace the live Compose specification and recreate the gateway. It does not replace `openclaw.json`, credentials or durable volumes. Plaintext staging is root-only and removed on exit. No tokens are printed or committed.
+
+The installed gateway remains `network_mode: none`, with no published ports, a read-only root, dropped capabilities, no-new-privileges and existing CPU/memory/PID limits. Do not enable Telegram/provider connectivity as part of this security patch. If channels/providers were previously absent, their absence afterward is expected and cannot be described as tested authenticated messaging.
+
+Recovery: stop the failed gateway; decrypt `state.tar.age` using the separately held recovery identity into a root-only staging directory; inspect the archive and restore the matching `data/openclaw/state`, `etc/openclaw` and `opt/openclaw/compose.yaml` only after assessing whether later state must be preserved. The saved `previous-image.txt` and `previous-compose.yaml` identify the prior deployment. Start that Compose gateway and recheck health/isolation; promptly return to a patched image. Do not blindly point old code at state migrated by newer code or print credentials during recovery.
+
+Official references: [2026.10.9 maintenance release](https://github.com/openclaw/openclaw/releases/tag/v2026.10.9), [Node security advisory](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases). Review the release's state/SQLite recovery changes and test with copied state before switching.

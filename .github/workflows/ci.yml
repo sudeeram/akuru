@@ -29,6 +29,8 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: source-code/frontend/package-lock.json
+      - name: Verify patched Node runtime
+        run: node scripts/node-version-policy.mjs
       - run: npm ci
         working-directory: source-code/frontend
       - run: npm run test:frontend

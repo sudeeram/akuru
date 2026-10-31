@@ -2,7 +2,7 @@ name: akuru-openclaw
 
 services:
   gateway:
-    image: ghcr.io/openclaw/openclaw:2026.9.6@sha256:62040ed3fe6f566adb39e60c5428cce078989a39cc713d63e873c4dccf166892
+    image: ghcr.io/openclaw/openclaw:2026.10.9@sha256:bfa6ab1508b9314e71abb73eaabf472d7fa82c2a1199ff91949a834e9ff00f7f
     platform: linux/arm64
     init: false # The official image already uses tini as PID 1.
     restart: unless-stopped

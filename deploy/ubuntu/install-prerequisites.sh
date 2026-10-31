@@ -93,9 +93,9 @@ if [[ " ${redis_bind} " != *" 127.0.0.1 "* && "${redis_bind}" != "127.0.0.1" ]];
   exit 1
 fi
 
-node_major="$(node --version | sed -E 's/^v([0-9]+).*/\1/')"
-if (( node_major < NODE_MAJOR )); then
-  echo "Node.js ${NODE_MAJOR}+ is required; found $(node --version)." >&2
+policy_path="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../../source-code/scripts" && pwd)/node-version-policy.mjs"
+if ! node "$policy_path"; then
+  echo "Install a security-patched supported Node.js runtime before proceeding." >&2
   exit 1
 fi
 

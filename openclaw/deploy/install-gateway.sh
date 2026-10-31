@@ -18,10 +18,10 @@ chmod 0600 /etc/openclaw/gateway.env
 chown root:root /etc/openclaw/gateway.env
 
 config_path=/data/openclaw/state/openclaw.json
-if [[ -e "$config_path" ]] && ! cmp -s "${script_dir}/openclaw.json" "$config_path"; then
-  cp -p "$config_path" "${config_path}.previous"
+if [[ ! -e "$config_path" ]]; then
+  install -o 1000 -g 1000 -m 0600 "${script_dir}/openclaw.json" "$config_path"
 fi
-install -o 1000 -g 1000 -m 0600 "${script_dir}/openclaw.json" "$config_path"
+# Existing configuration/authentication is durable state, never bootstrap it again.
 
 docker compose -f /opt/openclaw/compose.yaml config -q
 docker compose -f /opt/openclaw/compose.yaml up -d gateway

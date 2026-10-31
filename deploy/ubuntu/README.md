@@ -221,3 +221,11 @@ drop, recreation or Admin-bootstrap mode.
 ## Upgrade outline
 
 For each release, take a database and document backup, fetch the reviewed Git revision, install locked frontend/backend dependencies, run the quality gate, build the frontend, apply Alembic migrations, and restart the application services. If a migration fails, stop deployment and restore the tested backup; do not point an older application release at a newer incompatible schema.
+
+## Node.js security maintenance
+
+The supported runtime floors are Node **22.23.4**, **24.22.1** and **26.12.1** within their respective release lines (October 2026 security advisory). Production AKURU uses Node 22. The shared `source-code/scripts/node-version-policy.mjs` gate is used by the frontend wrapper, prerequisite installation/verification, CI and production release preflight. Odd, end-of-life and unreviewed major versions are rejected. Update this policy when reviewing future advisories; these floors are not a substitute for ongoing patching.
+
+For a Node 22 security update: confirm backups and current running versions; run `sudo apt-get update`, inspect `apt-cache policy nodejs` and simulate the selected package operation, then install only the reviewed Node 22 package. Restart `akuru-web`, allow startup to complete, verify the actual serving process's executable version, and run `sudo deploy/ubuntu/release-acceptance.sh akuru.magicalinternational.com` from the deployed checkout. Test authenticated learning/review workflows. A shell's updated `node --version` alone does not prove an existing process was restarted. No database migration is needed for a runtime patch.
+
+OpenClaw's Node runtime belongs to its Docker image and must be patched separately; follow `openclaw/deploy/upgrade-gateway.sh` and the OpenClaw recovery guide. Local NVM updates require the user's approval. Until local Node is patched, the frontend wrapper intentionally refuses affected runtimes; it never installs software automatically.

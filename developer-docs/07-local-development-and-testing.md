@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 22.13 or later
+- Node.js 22.23.4+; alternative supported lines: 24.22.1+ or 26.12.1+
 - Python 3.12
 - PostgreSQL with pgvector
 - Redis for document-worker flows
