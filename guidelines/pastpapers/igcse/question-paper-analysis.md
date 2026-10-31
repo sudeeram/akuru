@@ -60,3 +60,7 @@ Produce an unapproved proposal with marks, source locations, content roles, unce
 ## Stable curriculum coverage and textbook page evidence
 
 Map each subpart to stable topic references. Explain the curriculum relationship without embedding PDF page positions in the coverage reason. Store page evidence separately as topic reference, Visual reference document-version ID, PDF page position and reviewed printed-page label. Use only verified pages from a published visual source in the same subject. Primary-text repagination does not change this evidence. Retain historical source references and flag them for revalidation when no longer available in the current publication. Missing page evidence may be saved in a draft; never invent a page match.
+
+## Named structure captions: June 2025 1C Q8 regression
+
+Include the printed names beneath separate structures (for example, diamond and graphite), even when the PDF stores them as independent text blocks outside the vector drawing bounds. Keep each caption with its own structure and applicable subpart. Compare against the complete source page; do not infer a name from the structure or borrow a neighbouring caption. The `visual-layout-v2` native-text proposal heuristic expands nearby compact labels conservatively, but does not approve candidates, handle every scanned/rotated layout, or rewrite existing reviewed crops. Existing incomplete crops need an explicit reviewed replacement.

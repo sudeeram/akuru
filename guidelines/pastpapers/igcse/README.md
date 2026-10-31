@@ -61,3 +61,5 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 
 - [June 2025 Chemistry 1C Q3–Q10 draft corrections and limitations](reviews/2026-10-21-june-2025-1c-q3-q10.md) — historical snapshot with dated follow-ups.
 - [Reviewed examples](reviewed-examples.md) — includes later Q3, Q5(c)(ii) and Q7 visual corrections and their regression expectations.
+
+- [2026-10-31 1C remaining questions and complete 2C source audit](reviews/2026-10-31-june-2025-1c-2c-guideline-audit.md) — authenticated production corrections; preserved Admin decisions and release gates.

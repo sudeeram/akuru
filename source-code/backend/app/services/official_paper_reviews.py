@@ -26,6 +26,7 @@ from app.schemas.official_materials import (
 )
 from app.security import Principal
 from app.services import official_materials
+from app.services.paper_visual_layout import PROPOSAL_VERSION, include_nearby_labels
 from app.storage import ObjectStorage
 
 
@@ -269,7 +270,7 @@ def _candidate_boxes(page: pymupdf.Page) -> list[tuple[str, pymupdf.Rect]]:
             candidates.append(("diagram", box))
     selected = []
     for kind, box in candidates:
-        box = (box + (-6, -6, 6, 6)) & bounds
+        box = (include_nearby_labels(page, box) + (-6, -6, 6, 6)) & bounds
         if box.get_area() > bounds.get_area() * .65:
             continue
         if any(kind == prior_kind and (box & prior).get_area() > min(box.get_area(), prior.get_area()) * .8
@@ -314,6 +315,7 @@ def generate_review_candidates(db: Session, storage: ObjectStorage, principal: P
                     sha256=hashlib.sha256(image).hexdigest(), size_bytes=len(image), page_number=page_number,
                     bounding_box={"x0":box.x0,"y0":box.y0,"x1":box.x1,"y1":box.y1},
                     asset_metadata={"reviewCrop":True,"reviewApproved":False,"kind":kind,"altText":"",
+                        "proposalVersion":PROPOSAL_VERSION,
                         "normalizedBounds":{"x0":box.x0/page.rect.width,"y0":box.y0/page.rect.height,
                                             "x1":box.x1/page.rect.width,"y1":box.y1/page.rect.height}}))
                 candidates_by_page[page_number].append(str(asset_id))
