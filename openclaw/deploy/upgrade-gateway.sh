@@ -47,11 +47,6 @@ install -d -o 1000 -g 1000 -m 0700 "$work/cache"
 docker compose -f "$compose" start gateway
 stopped=false
 
-docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
-  --env-file /etc/openclaw/gateway.env --tmpfs /tmp:rw,noexec,nosuid,size=64m \
-  -v "$work/state:/home/node/.openclaw" -v "$work/cache:/home/node/.cache" \
-  "$image" node dist/index.js config validate --json
-
 docker run -d --name "$trial" --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
   --pids-limit 256 --memory 1536m --cpus 2 --env-file /etc/openclaw/gateway.env \
   --tmpfs /tmp:rw,noexec,nosuid,size=64m -v "$work/state:/home/node/.openclaw" \
@@ -62,6 +57,7 @@ for _ in {1..90}; do
   sleep 1
 done
 [[ "$healthy" == true ]] || { echo "Candidate health failed. Live gateway retained; backup: $backup_dir" >&2; exit 1; }
+docker exec "$trial" node dist/index.js config validate --json
 docker rm -f "$trial" >/dev/null
 # Copy only the reviewed Compose specification. Never reinstall the bootstrap config.
 install -m 0644 -o root -g root "${script_dir}/compose.yaml" "$compose"
