@@ -4,7 +4,6 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Node.js security patch across AKURU and OpenClaw](ongoing/TODO-NODEJS-SECURITY-PATCH.md) — patch production, local NVM and the independent gateway container; verify workflows and update runtime safeguards.
 
 - [Approved mark-scheme answer visuals and drawn-response assessment](ongoing/TODO-MARK-SCHEME-ANSWER-VISUALS.md) — capture and review diagram model answers, safely display them to Students, then separately evaluate drawn-answer submission and marking; first case: 1C Q5(c)(ii).
 
@@ -27,6 +26,10 @@ These roadmaps already contain completed work and still have outstanding actions
 
 ## Planned
 
+- [Local Node.js security patch](planned/TODO-LOCAL-NODEJS-SECURITY-PATCH.md) — deferred by request; update the laptop through NVM before running the frontend.
+
+- [npm dependency security remediation](planned/TODO-NPM-DEPENDENCY-SECURITY.md) — separately triage and patch package findings remaining after the Node runtime update.
+
 
 
 - [iGCSE past-paper analysis conformance](planned/TODO-IGCSE-PASTPAPER-ANALYSIS.md) — enforce the versioned question, scheme and report standards under `guidelines/pastpapers/igcse`, using Q2 as the first regression case.
@@ -48,6 +51,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [Node.js production and OpenClaw security patch](completed/TODO-NODEJS-SECURITY-PATCH.md) — patched/verified on 2026-10-31; local installation explicitly deferred to its own planned task.
 
 - [UI component catalogue: 27 PreSkool references](completed/TODO-UI-COMPONENT-CATALOGUE.md) — 27 searchable, interactive component families within `/ui-features`; verified and deployed. Frontend only.
 
