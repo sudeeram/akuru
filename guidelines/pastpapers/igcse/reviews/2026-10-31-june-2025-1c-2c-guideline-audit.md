@@ -41,4 +41,12 @@ Private local evidence: ignored `tmp/guidelines-update-evidence.json`, before/af
 
 Backend suite: 229 passed, one skipped, seven existing dependency warnings. Three new synthetic regressions cover separate structure captions without chaining, external axis labels without question/footer debris, and preservation of intentionally blank axes. Actual Q8 candidate bounds were also checked against the original PDF.
 
-Production content corrections are complete. The code rollout and browser checks are recorded below when executed.
+Production content corrections are complete. Code rollout evidence follows.
+
+### Production rollout evidence
+
+Code release `f507b4fd957508a09bd31314fb3999378d9273d8` deployed successfully on 2026-10-31 at 13:09:35 UTC. Fresh encrypted backup manifest: `/data/akuru/backups/akuru-20261031T130839Z.manifest`. Deployment evidence: `/data/akuru/release-evidence/deployed-f507b4fd957508a09bd31314fb3999378d9273d8-20261031T130935Z.txt`.
+
+No migration was added; production remains at `0016_generated_worked_answers`, with no schema drift. API, worker and web restarted successfully. The production acceptance script passed HTTPS/security headers, routed entry points, fallback boundaries, service health, operational timers and loopback bindings. Post-deployment authenticated read-back matched every 1C/2C question payload, revision and status to the verified correction snapshot; both papers remain unreleased. Browser preview loading is checked separately and is not implied by the API/pixel checks.
+
+Production browser inspection confirmed both corrected Q8 structures loaded with their printed captions (240px diamond and 301px graphite source crops). Offscreen full-page crop-selection previews are lazy-loaded and were excluded from crop-load assertions; these are separate from the displayed question images.
