@@ -33,13 +33,14 @@ await page.route('**/api/v1/**', async route => {
 
 const generatedVisual={assetId:'generated-image',partLabel:'c(ii)',pointCodes:['M1'],caption:'Verified synthetic plot',altText:'Synthetic verified plotted points and labelled axes.',status:'approved',origin:'ai_generated',workedAnswerId:'generated-test',explanation:'Plot the source values at their verified coordinates.',limitations:'Illustrative worked solution; valid student graphs may differ.',dataText:'0, 21; 5, 22.3'};
 attempt.answerVisuals=[generatedVisual];
-let row=null,revealCount=0;
+let row=null,revealCount=0,attachCount=0;
 const graph={schemaVersion:'graph-v1',title:'Synthetic experiment',xAxis:{label:'Volume / cm³',minimum:0,maximum:40,tick:10},yAxis:{label:'Temperature / °C',minimum:20,maximum:30,tick:2},points:[{x:0,y:21},{x:5,y:22.3}],steps:[{partLabel:'c(ii)',explanation:generatedVisual.explanation,showPoints:true,circleIndexes:[],fits:[]}],limitations:generatedVisual.limitations};
 await page.route('**/api/v1/**',async route=>{
  const path=new URL(route.request().url()).pathname;
  if(path.endsWith('/worked-answer-capabilities'))return route.fulfill({json:{enabled:true,providerConfigured:true,ready:true}});
  if(path.endsWith('/worked-answer')){revealCount++;return route.fulfill({json:{visuals:[generatedVisual],message:'This question is now assisted practice and will not increase independent mastery.'}});}
  if(path.includes('/worked-answers')){
+  if(path.endsWith('/attach')){attachCount++;assert.equal(route.request().postDataJSON().expectedQuestionRevision,1);return route.fulfill({json:{questionRevision:2,assetIds:['generated-image']}});}
   if(path.endsWith('/image'))return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><text x="10" y="30">AI-generated synthetic graph</text></svg>'});
   if(path.endsWith('/review')){
    const body=route.request().postDataJSON();assert.equal(body.expectedRevision,row.revision);
@@ -69,9 +70,16 @@ try {
  const preview=page.getByAltText(generatedVisual.explanation).last();await preview.scrollIntoViewIfNeeded();
  await preview.evaluate(el=>el.complete?Promise.resolve():new Promise(resolve=>{el.onload=resolve;el.onerror=resolve}));assert.ok(await preview.evaluate(el=>el.naturalWidth>0));
  await page.getByLabel('Review note (at least 20 characters)').fill('Checked the synthetic plot and explanation against the source.');
+ await page.getByRole('button',{name:'Edit explanation and plotting instructions',exact:true}).click();
+ await page.getByRole('textbox',{name:/^Explanation/}).fill('Corrected explanation: plot every verified source value precisely.',{timeout:5000});
+ await page.getByRole('button',{name:'Save edited draft',exact:true}).click();
+ await page.getByRole('button',{name:'Save edited draft',exact:true}).waitFor({state:'hidden'});
+ assert.equal(row.solution.steps[0].explanation,'Corrected explanation: plot every verified source value precisely.');
  await page.getByRole('button',{name:'Approve worked answer',exact:true}).click();
  await page.getByRole('button',{name:'Attach approved answer to question',exact:true}).waitFor();
  assert.equal(row.status,'approved');
+ await page.getByRole('button',{name:'Attach approved answer to question',exact:true}).click();
+ await page.getByText('Question refreshed with generated answer.',{exact:true}).waitFor();assert.equal(attachCount,1);
  role='student';
  for(const width of [1360,390]){
   await page.setViewportSize({width,height:900});
@@ -88,5 +96,5 @@ try {
  await page.getByRole('button',{name:'Show worked answer',exact:true}).click();
  await page.getByText(/This question is now assisted practice/).waitFor();assert.equal(revealCount,1);
  assert.deepEqual(errors,[]);
- console.log('PASS: generated-answer Admin generation/preview/approval, labelled Student feedback and practice reveal on desktop/mobile; browser fixtures only.');
-} finally {await browser.close();}
+ console.log('PASS: generated-answer Admin generation/preview/edit/re-approval/attachment, labelled Student feedback and practice reveal on desktop/mobile; browser fixtures only.');
+} catch(error) {console.log('PAGE ERRORS',errors);console.log((await page.locator('body').innerText()).slice(-15000));throw error;} finally {await browser.close();}

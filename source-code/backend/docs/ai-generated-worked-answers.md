@@ -51,3 +51,10 @@ Deployment uses the existing encrypted database/document backup and reviewed-rel
 Tests cover source equality and geometry; numeric least-squares fitting; PNG output; Admin/CSRF/revision gates; duplicate jobs and reuse; approval/attachment; stale source rejection; practice reveal, formal blocking, direct URLs and family isolation. The migration is tested through upgrade/check/downgrade/upgrade/check on a disposable database. Synthetic browser fixtures exercise desktop/mobile UI without creating real Students or spending tokens.
 
 The reviewed 1C source assessment is recorded in `ai-generated-worked-answers-1c-audit.md`. Live production AI generation remains deferred until credentials are configured by the owner; synthetic results must not be presented as a live provider test.
+
+
+## Production release record — 2026-10-31
+
+Release `39d4ae7` was deployed with migration 0016, after encrypted backup. Production schema check, API/worker/web health, authenticated Admin desktop/mobile review, unauthenticated API rejection and synthetic Admin/Student browser acceptance passed. The backend suite passed 226 tests (1 skipped) and the frontend suite passed 103 tests.
+
+The feature remains in its safe generation-disabled state because the owner deferred OpenAI configuration. There are no generated production answers, and no current paper review was modified. Enabling credentials and the flag later does not publish any answer: generation, scientific review, attachment and normal release gates still apply.

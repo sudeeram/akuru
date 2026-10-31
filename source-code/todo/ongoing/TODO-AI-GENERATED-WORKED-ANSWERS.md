@@ -2,7 +2,7 @@
 
 Created: 2026-10-31
 Started: 2026-10-31
-Status: ongoing — implementation and automated validation complete; production deployment/browser acceptance in progress. Live OpenAI configuration and Q7 generation deferred by the owner on 2026-10-31.
+Status: implementation deployed and verified on 2026-10-31. Remaining live Q7 content generation and scientific approval are deferred until the owner configures OpenAI. This plan remains ongoing for those two content-acceptance tasks.
 
 ## Objective
 
@@ -63,15 +63,15 @@ Reuse the [answer-visual infrastructure](../ongoing/TODO-MARK-SCHEME-ANSWER-VISU
 - [x] Test numerical plotting, labels/units, anomaly exclusion, alternative valid line fits, progressive reveal and image/text agreement using synthetic fixtures.
 - [x] Test stale-source invalidation, concurrent edits, repeated generation, failure/retry, approval transitions, publication and historical attempt snapshots.
 - [x] Test unauthorized access, cross-Student access, guessed asset IDs, pre-submission and pre-result-release leakage, including graph data and caches.
-- [ ] Test the complete Admin generation/edit/approval/release and Student practice/formal-feedback journeys on desktop/mobile, including accessibility and existing official answer visuals.
+- [x] Test the complete Admin generation/edit/approval/release and Student practice/formal-feedback journeys on desktop/mobile, including accessibility and existing official answer visuals.
 - [ ] Have the Q7 pilot scientifically reviewed against the source; record evidence and limitations. Do not count a successful API response as proof that the answer is correct.
 
 ## Step 6 — Document and release safely
 
 - [x] Update developer architecture, Admin/Student user documentation and iGCSE guidelines with generated-answer provenance, review/reveal rules and the Q7 example.
-- [ ] Ship behind a feature flag with a migration/rollback plan; back up production before deployment and preserve all existing reviews and attempts.
+- [x] Ship behind a feature flag with a migration/rollback plan; back up production before deployment and preserve all existing reviews and attempts.
 - [ ] Generate and review the production Q7 pilot through authenticated APIs/UI, release only approved answers and verify with authorized Admin and Student accounts.
-- [ ] Run production health/security checks and confirm formal-assessment answers remain hidden until permitted. Record release evidence, then move this plan to completed only when all required acceptance checks pass.
+- [x] Run production health/security checks and confirm formal-assessment answers remain hidden until permitted. Record release evidence. Move this plan to completed only after the explicitly deferred content checks also pass.
 
 ## Completion criteria
 
@@ -93,3 +93,17 @@ Unrestricted generation for arbitrary scientific diagrams, real-time personalize
 - The production owner explicitly deferred OpenAI credentials on 2026-10-31. New generation will remain disabled; no live model-generated Q7 answer or Student paper release is claimed.
 - The 1C source audit identifies Q7(c)(i–iii), with optional support for Q7(d), as the graph pilot. Q5 and Q9 have official scheme diagrams and should use those original sources.
 - Remaining content acceptance after configuration: generate Q7, scientifically review each step, approve/attach, then complete existing question/whole-paper/curriculum release gates. Do not approve other incomplete questions merely to make a pilot visible.
+
+
+## Production deployment and browser acceptance — 2026-10-31
+
+- Runtime release: `39d4ae704a176884bfd33f562bc01ecddba7d729`; pushed to GitHub and deployed after the reviewed preflight and fresh encrypted database/document backup.
+- Migration: `0016_generated_worked_answers`; production Alembic schema check reports no new upgrade operations.
+- API, worker and web services are active; public HTTPS health succeeded and the worker had no post-deployment errors.
+- Production capability read-back: generation disabled, no provider credential configured, zero generated drafts. Existing Q7 was read back as approved (revision 14); this release did not edit it.
+- New private Admin and Student answer-image APIs return 401 without authentication.
+- Synthetic browser fixtures passed Admin generation/preview/edit/re-approval/attachment and Student labelled graph feedback, data equivalent, zoom and assisted-practice reveal on desktop/mobile. Existing official answer-visual/crop-editor browser regression passed.
+- Real authenticated Admin Q7 page checked on desktop/mobile: the new section loads, shows the configuration message, and disables Generate draft. No source content was modified by browser acceptance.
+- Deployment evidence: `/data/akuru/release-evidence/deployed-39d4ae704a176884bfd33f562bc01ecddba7d729-20261031T110105Z.txt`.
+- Feature acceptance evidence: `/data/akuru/release-evidence/ai-worked-answers-20261031.json`.
+- Production Student checks used synthetic API fixtures rather than a real Student login or a live AI answer. Backend integration tests exercised real authenticated Student/Parent/sibling roles and formal-assessment gates against rolled-back local fixtures.
