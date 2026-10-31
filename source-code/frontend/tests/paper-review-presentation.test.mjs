@@ -50,6 +50,15 @@ test('review filters preserve inventory order and excluded questions do not infl
   assert.deepEqual(reviewQuestionList([], 'all', ''), []);
   assert.deepEqual(questions, snapshot);
 });
+test('lowest-confidence sort keeps unscored questions last without changing the inventory', () => {
+  const rows = [
+    {number:'1',status:'unreviewed',data:{extractionConfidence:{percent:70}}},
+    {number:'2',status:'unreviewed',data:{extractionConfidence:{percent:35}}},
+    {number:'3',status:'unreviewed',data:{}},
+  ];
+  assert.deepEqual(reviewQuestionList(rows,'all','',true).map(q=>q.number),['2','1','3']);
+  assert.deepEqual(rows.map(q=>q.number),['1','2','3']);
+});
 test('previous/next follow the full inventory and never wrap or jump from an unsaved new question', () => {
   assert.equal(reviewNeighbours(questions, '3').previous.number, '2');
   assert.equal(reviewNeighbours(questions, '3').next.number, '4');

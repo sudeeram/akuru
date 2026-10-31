@@ -36,6 +36,11 @@ export type TextbookPageOption = TextbookPageEvidence & {
   documentId: string;
   assetId: string;
 };
+export type ExtractionConfidence = {
+  percent: number;
+  methodVersion: string;
+  reasons: string[];
+};
 export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
   request<{ visualPages: TextbookPageOption[] }>(
     `admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`,
@@ -54,6 +59,7 @@ export type AnswerVisual = {
   status: 'proposed' | 'approved' | 'rejected';
 };
 export type ReviewPart = {
+  extractionConfidence?: ExtractionConfidence | null;
   answerVisuals?: AnswerVisual[];
   answerVisualRequired?: boolean;
   responseType?: 'text' | 'drawing';
@@ -84,6 +90,7 @@ export type ReviewPart = {
   status: ReviewStatus;
 };
 export type ReviewQuestionData = {
+  extractionConfidence?: ExtractionConfidence | null;
   marks: number;
   sharedStem: string;
   prompt: string;

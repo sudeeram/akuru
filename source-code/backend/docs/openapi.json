@@ -3700,6 +3700,36 @@
         "title": "ExtractionBlockUpdateRequest",
         "type": "object"
       },
+      "ExtractionConfidence": {
+        "properties": {
+          "methodVersion": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Methodversion",
+            "type": "string"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Reasons",
+            "type": "array"
+          }
+        },
+        "required": [
+          "percent",
+          "methodVersion"
+        ],
+        "title": "ExtractionConfidence",
+        "type": "object"
+      },
       "ExtractionPageResponse": {
         "properties": {
           "blocks": {
@@ -8502,6 +8532,16 @@
             "title": "Examineradvice",
             "type": "string"
           },
+          "extractionConfidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionConfidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "label": {
             "default": "",
             "maxLength": 40,
@@ -8618,6 +8658,16 @@
             "maxLength": 4000,
             "title": "Exclusionreason",
             "type": "string"
+          },
+          "extractionConfidence": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExtractionConfidence"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "marks": {
             "maximum": 200.0,

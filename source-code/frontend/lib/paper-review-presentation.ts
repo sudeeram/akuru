@@ -13,15 +13,21 @@ export function reviewQuestionList(
   questions: Question[],
   filter: string,
   search: string,
+  confidenceFirst = false,
 ) {
   const term = search.trim().toLowerCase();
-  return questions.filter(
+  const matches = questions.filter(
     (question) =>
       (filter === 'all' ||
         (filter === 'attention'
           ? !['approved', 'excluded'].includes(question.status)
           : question.status === filter)) &&
       (!term || `question ${question.number}`.toLowerCase().includes(term)),
+  );
+  if (!confidenceFirst) return matches;
+  return matches.sort((a, b) =>
+    (a.data?.extractionConfidence?.percent ?? 101) -
+      (b.data?.extractionConfidence?.percent ?? 101),
   );
 }
 

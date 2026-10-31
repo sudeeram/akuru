@@ -530,6 +530,7 @@ export function OfficialPaperReview({
     }[]
   >([]);
   const [questionFilter, setQuestionFilter] = useState('all');
+  const [lowConfidenceFirst, setLowConfidenceFirst] = useState(false);
   const [questionSearch, setQuestionSearch] = useState('');
   const [sourceTab, setSourceTab] = useState('paper');
   const [compareSources, setCompareSources] = useState(false);
@@ -1401,6 +1402,14 @@ export function OfficialPaperReview({
                       ))}
                     </select>
                   </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={lowConfidenceFirst}
+                      onChange={(event) => setLowConfidenceFirst(event.target.checked)}
+                    />{' '}
+                    Lowest extraction confidence first
+                  </label>
                   <nav
                     aria-label="Question review navigation"
                     className="pr-question-list"
@@ -1409,6 +1418,7 @@ export function OfficialPaperReview({
                       review.questions,
                       questionFilter,
                       questionSearch,
+                      lowConfidenceFirst,
                     ).map((question) => (
                       <button
                         key={question.number}
@@ -1430,12 +1440,18 @@ export function OfficialPaperReview({
                         <MetadataBadge size="xs">
                           {question.data.marks}m
                         </MetadataBadge>
+                        {question.data.extractionConfidence && (
+                          <span className="small">
+                            Extraction estimate: {question.data.extractionConfidence.percent}%
+                          </span>
+                        )}
                       </button>
                     ))}
                     {!reviewQuestionList(
                       review.questions,
                       questionFilter,
                       questionSearch,
+                      lowConfidenceFirst,
                     ).length && (
                       <p className="small">No questions match these filters.</p>
                     )}
@@ -1457,6 +1473,13 @@ export function OfficialPaperReview({
                   description="Correct the wording and marks against the original source."
                 >
                   <div className="stack">
+                    {data.extractionConfidence && (
+                      <p className="small">
+                        Import-time extraction confidence: {data.extractionConfidence.percent}%.
+                        This is a review-priority estimate, not a verified accuracy rate.
+                        {' '}{data.extractionConfidence.reasons.join(' ')}
+                      </p>
+                    )}
                     <div className="two-cols">
                       <label>
                         Question number{' '}
@@ -1593,6 +1616,12 @@ export function OfficialPaperReview({
                     </div>
                     {part && (
                       <div className="panel stack">
+                        {part.extractionConfidence && (
+                          <p className="small">
+                            Subpart extraction confidence: {part.extractionConfidence.percent}%.
+                            {' '}{part.extractionConfidence.reasons.join(' ')}
+                          </p>
+                        )}
                         <div className="two-cols">
                           <label>
                             Subpart label{' '}

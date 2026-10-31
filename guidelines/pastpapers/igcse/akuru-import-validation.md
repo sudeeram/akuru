@@ -27,9 +27,12 @@ Allow incomplete but structurally valid proposals to enter the review workspace 
 | Table headings/units/cells are missing or misaligned | Preserve the source image and resolve the specific cell/heading issue before approval |
 | Model-answer diagram missing or attached as a question illustration | Require the dedicated private answer visual and correct marking-point/subpart association |
 | High extraction confidence but unresolved layout/symbol uncertainty | Retain a visible issue; confidence cannot override completeness checks |
+
 | Handwriting/report association uncertain | Keep affected report item unapproved; do not make unsupported report content mandatory for question approval |
 | Report missing or no comment found for a part | Record availability; do not fabricate a comment |
 | Source version changed or concurrent review edited | Reject stale write and require reconciliation |
+
+For future draft-bank imports, preserve AKURU's versioned question and subpart extraction-confidence estimate and its reasons. Review low estimates first, but still inspect every essential visual, answer diagram, marking rule and uncertain report annotation against the source. The percentage is a conservative review-priority estimate, not a measured correctness probability or a publication gate. Older or manually created questions may be unscored.
 
 Warnings must identify the part and source region, not only display “review required”. Draft saves remain available even when approval is blocked. Approval must record an explicit reviewer decision. Linking existing exact evidence should not demand duplicate manual work, but ambiguous links must not be guessed.
 

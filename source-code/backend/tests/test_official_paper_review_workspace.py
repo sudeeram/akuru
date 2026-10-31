@@ -300,6 +300,19 @@ def test_import_requires_exact_uploaded_pdf_hashes(auth_client):
     response = client.post(root + "/seed", headers=headers, json={"draftBank": bank})
     assert response.status_code == 200, response.text
     assert response.json()["questions"][0]["status"] == "unreviewed"
+    confidence = response.json()["questions"][0]["data"]["extractionConfidence"]
+    assert confidence["methodVersion"] == "paper-extraction-triage-v1"
+    assert confidence["percent"] <= 45  # No extracted scheme text in this proposal.
+    assert response.json()["questions"][0]["data"]["parts"][0]["extractionConfidence"]["percent"] <= 45
+    altered = response.json()["questions"][0]["data"]
+    altered["extractionConfidence"]["percent"] = 100
+    altered["parts"][0]["extractionConfidence"]["percent"] = 100
+    saved = client.post(root + "/questions", headers=headers, json={
+        "number": "1", "expectedRevision": response.json()["questions"][0]["revision"],
+        "status": "unreviewed", "data": altered,
+    })
+    assert saved.status_code == 200, saved.text
+    assert saved.json()["questions"][0]["data"]["extractionConfidence"]["percent"] == confidence["percent"]
     assert response.json()["wholePaperReady"] is False
 
 

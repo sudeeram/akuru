@@ -33,6 +33,12 @@ class TextbookPageEvidence(BaseModel):
     printedPageLabel: str = Field(min_length=1, max_length=40)
 
 
+class ExtractionConfidence(BaseModel):
+    percent: int = Field(ge=0, le=100)
+    methodVersion: str = Field(min_length=1, max_length=80)
+    reasons: list[str] = Field(default_factory=list, max_length=12)
+
+
 class ReviewPart(BaseModel):
     label: str = Field(default="", max_length=40)
     marks: int = Field(ge=0, le=200)
@@ -55,6 +61,7 @@ class ReviewPart(BaseModel):
     textbookEvidence: list[TextbookPageEvidence] = Field(default_factory=list, max_length=100)
     coverageReason: str = Field(default="", max_length=4000)
     status: ReviewStatus = "unreviewed"
+    extractionConfidence: ExtractionConfidence | None = None
 
 
 class ReviewQuestionData(BaseModel):
@@ -67,6 +74,7 @@ class ReviewQuestionData(BaseModel):
     visualAltText: str = Field(default="", max_length=2000)
     parts: list[ReviewPart] = Field(min_length=1, max_length=100)
     exclusionReason: str = Field(default="", max_length=4000)
+    extractionConfidence: ExtractionConfidence | None = None
 
     @model_validator(mode="after")
     def reconcile(self):

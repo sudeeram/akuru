@@ -17,7 +17,7 @@ from app.models import (
     TextbookTopicContentVersion,
 )
 from app.schemas.official_paper_reviews import (
-    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewEvidence, ReviewQuestionData, ReviewQuestionResponse,
+    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, ReviewEvidence, ReviewPart, ReviewQuestionData, ReviewQuestionResponse,
     SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
 from app.schemas.official_materials import (
@@ -584,6 +584,17 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
     revision = row.revision if row else 0
     if revision != payload.expectedRevision:
         raise DomainError("review_conflict", "This question changed in another session. Reload before saving.", 409)
+    # Import-time confidence is an immutable triage snapshot, not an Admin rating.
+    if row:
+        payload.data.extractionConfidence = ReviewQuestionData.model_validate(row.review_data).extractionConfidence
+        previous_parts = {part.get("label"): part for part in row.review_data.get("parts", [])}
+        for part in payload.data.parts:
+            prior = previous_parts.get(part.label)
+            part.extractionConfidence = ReviewPart.model_validate(prior).extractionConfidence if prior else None
+    else:
+        payload.data.extractionConfidence = None
+        for part in payload.data.parts:
+            part.extractionConfidence = None
     auto_linked = _auto_link_exact_paper_blocks(db, workspace, payload.data)
     changed = bool(row and _content_snapshot(row.review_data) != _content_snapshot(payload.data.model_dump(mode="json")))
     if row and row.status == "approved" and payload.status == "approved" and changed:
@@ -639,6 +650,7 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
         raise DomainError("inventory_mismatch", "Expected count differs from the draft bank.", 409)
     triage_rows = payload.coverageTriage.get("subparts", []) if payload.coverageTriage else []
     triage = {(r.get("component"), str(r.get("question")), r.get("subpart")): r for r in triage_rows}
+    from app.services.official_review_confidence import estimate
     for q in questions:
         if q.get("studentPrompt") is not None or q.get("topicMappings"):
             raise DomainError("released_question_not_allowed", "Import only unreleased proposals.", 422)
@@ -653,8 +665,17 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
                     raise DomainError("source_page_missing", f"Source page {number} is absent from the uploaded PDF.", 409)
                 out.append({"page": number, "assetId": str(page.render_asset_id)})
             return out
+        def confidences(pages, version_id):
+            if not version_id:
+                return []
+            return [page.confidence for number in pages if (page := db.scalar(select(DocumentPage).where(
+                DocumentPage.document_version_id == version_id, DocumentPage.page_number == number))) is not None]
         paper_sources = sources(q["source"]["questionPdfPages"], workspace.paper_version_id)
         scheme_sources = sources(q["source"]["schemePdfPages"], workspace.scheme_version_id)
+        page_confidences = confidences(q["source"]["questionPdfPages"], workspace.paper_version_id)
+        page_confidences += confidences(q["source"]["schemePdfPages"], workspace.scheme_version_id)
+        report_confidences = confidences(q["source"].get("reportHeadingCandidatePdfPages", []), workspace.report_version_id)
+        scheme_text = q.get("markScheme", {}).get("rawExtraction", "")
         parts = []
         for part in q["subparts"]:
             suggestion = triage.get((q["component"], str(q["number"]), part["label"]), {})
@@ -664,11 +685,19 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
                 "paperSources": paper_sources, "schemeSources": scheme_sources,
                 "coverageReason": suggestion.get("reason", ""),
                 "status": "unreviewed", "coverage": "unreviewed", "topicRefs": [],
+                "extractionConfidence": estimate(part.get("extractionCandidate", ""), page_confidences,
+                    scheme_text, report_confidences=report_confidences),
             })
+        question_confidence = estimate(q.get("rawQuestionExtraction", ""), page_confidences,
+            scheme_text, report_confidences=report_confidences)
+        lowest_part = min(part["extractionConfidence"]["percent"] for part in parts)
+        if lowest_part < question_confidence["percent"]:
+            question_confidence["percent"] = lowest_part
+            question_confidence["reasons"].append("At least one subpart has a lower extraction-confidence estimate.")
         data = ReviewQuestionData(
             marks=q["marks"], sharedStem=q.get("sharedStemExtractionCandidate", ""),
             prompt=q.get("rawQuestionExtraction", ""), paperSources=paper_sources,
-            parts=parts,
+            parts=parts, extractionConfidence=question_confidence,
         )
         db.add(OfficialPaperReviewQuestion(workspace_id=workspace.id,
             number=str(q["number"]), review_data=data.model_dump(mode="json")))
