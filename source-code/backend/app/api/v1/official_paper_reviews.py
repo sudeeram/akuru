@@ -11,7 +11,7 @@ from app.permissions import require_csrf_roles, require_roles
 from app.schemas.official_paper_reviews import (
     CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
-from app.schemas.worked_answers import GenerateWorkedAnswer, ReviewWorkedAnswer, GraphSolution, AttachWorkedAnswer
+from app.schemas.worked_answers import GenerateWorkedAnswer, ImportWorkedAnswerDraft, ReviewWorkedAnswer, GraphSolution, AttachWorkedAnswer
 from app.services.worked_answers import lifecycle as worked_answers
 from app.services.worked_answers.graphs import render as render_worked_graph
 from app.security import Principal
@@ -117,6 +117,13 @@ def generate_worked_answer(paper_id: uuid.UUID, number: str, payload: GenerateWo
     if not worked_answers.capabilities(db,settings)['providerConfigured']:
         raise DomainError('worked_provider_unavailable','Configure an enabled OpenAI account and its server credential before generating.',409)
     return worked_answers.create(db,principal,paper_id,number,payload)
+
+
+@router.post('/{paper_id}/questions/{number}/worked-answers/import-draft', status_code=201)
+def import_worked_answer_draft(paper_id: uuid.UUID, number: str, payload: ImportWorkedAnswerDraft,
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    return worked_answers.import_draft(db,principal,paper_id,number,payload)
 
 
 @router.post('/{paper_id}/questions/{number}/worked-answers/{answer_id}/review')

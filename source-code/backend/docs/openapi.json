@@ -430,6 +430,33 @@
             "title": "Caption",
             "type": "string"
           },
+          "dataText": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Datatext",
+            "type": "string"
+          },
+          "explanation": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "limitations": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Limitations",
+            "type": "string"
+          },
+          "origin": {
+            "default": "official_scheme",
+            "enum": [
+              "official_scheme",
+              "ai_generated"
+            ],
+            "title": "Origin",
+            "type": "string"
+          },
           "partLabel": {
             "default": "",
             "maxLength": 40,
@@ -453,6 +480,18 @@
             ],
             "title": "Status",
             "type": "string"
+          },
+          "workedAnswerId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workedanswerid"
           }
         },
         "required": [
@@ -778,6 +817,11 @@
               }
             ],
             "title": "Fileid"
+          },
+          "generatedWorkedAnswerAvailable": {
+            "default": false,
+            "title": "Generatedworkedansweravailable",
+            "type": "boolean"
           },
           "id": {
             "format": "uuid",
@@ -1207,6 +1251,57 @@
           "subjectId"
         ],
         "title": "AssessmentStart",
+        "type": "object"
+      },
+      "AttachWorkedAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedQuestionRevision": {
+            "minimum": 1.0,
+            "title": "Expectedquestionrevision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expectedQuestionRevision"
+        ],
+        "title": "AttachWorkedAnswer",
+        "type": "object"
+      },
+      "Axis": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "maximum": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Maximum",
+            "type": "number"
+          },
+          "minimum": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Minimum",
+            "type": "number"
+          },
+          "tick": {
+            "exclusiveMinimum": 0.0,
+            "title": "Tick",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "minimum",
+          "maximum",
+          "tick"
+        ],
+        "title": "Axis",
         "type": "object"
       },
       "BlueprintCreate": {
@@ -3903,6 +3998,42 @@
         "title": "FinalDocumentResponse",
         "type": "object"
       },
+      "Fit": {
+        "additionalProperties": false,
+        "properties": {
+          "fromX": {
+            "title": "Fromx",
+            "type": "number"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "pointIndexes": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 2,
+            "title": "Pointindexes",
+            "type": "array"
+          },
+          "toX": {
+            "title": "Tox",
+            "type": "number"
+          }
+        },
+        "required": [
+          "pointIndexes",
+          "fromX",
+          "toX",
+          "label"
+        ],
+        "title": "Fit",
+        "type": "object"
+      },
       "FlashcardCardResponse": {
         "properties": {
           "attempted": {
@@ -4778,6 +4909,131 @@
         "title": "FlashcardWithdrawRequest",
         "type": "object"
       },
+      "GenerateWorkedAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedQuestionRevision": {
+            "minimum": 1.0,
+            "title": "Expectedquestionrevision",
+            "type": "integer"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/GraphInput"
+          },
+          "regenerate": {
+            "default": false,
+            "title": "Regenerate",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expectedQuestionRevision",
+          "graph"
+        ],
+        "title": "GenerateWorkedAnswer",
+        "type": "object"
+      },
+      "GraphInput": {
+        "additionalProperties": false,
+        "properties": {
+          "partLabels": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Partlabels",
+            "type": "array"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "maxItems": 100,
+            "minItems": 2,
+            "title": "Points",
+            "type": "array"
+          },
+          "verificationNote": {
+            "maxLength": 2000,
+            "minLength": 20,
+            "title": "Verificationnote",
+            "type": "string"
+          },
+          "xAxis": {
+            "$ref": "#/components/schemas/Axis"
+          },
+          "yAxis": {
+            "$ref": "#/components/schemas/Axis"
+          }
+        },
+        "required": [
+          "xAxis",
+          "yAxis",
+          "points",
+          "partLabels",
+          "verificationNote"
+        ],
+        "title": "GraphInput",
+        "type": "object"
+      },
+      "GraphSolution": {
+        "additionalProperties": false,
+        "properties": {
+          "limitations": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Limitations",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "maxItems": 100,
+            "minItems": 2,
+            "title": "Points",
+            "type": "array"
+          },
+          "schemaVersion": {
+            "const": "graph-v1",
+            "default": "graph-v1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/WorkedStep"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          },
+          "xAxis": {
+            "$ref": "#/components/schemas/Axis"
+          },
+          "yAxis": {
+            "$ref": "#/components/schemas/Axis"
+          }
+        },
+        "required": [
+          "title",
+          "xAxis",
+          "yAxis",
+          "points",
+          "steps",
+          "limitations"
+        ],
+        "title": "GraphSolution",
+        "type": "object"
+      },
       "GroupMasteryResponse": {
         "properties": {
           "confidence": {
@@ -5018,6 +5274,37 @@
           "prompt"
         ],
         "title": "IllustrationCreate",
+        "type": "object"
+      },
+      "ImportWorkedAnswerDraft": {
+        "additionalProperties": false,
+        "description": "An externally prepared candidate, still subject to Admin review.",
+        "properties": {
+          "expectedQuestionRevision": {
+            "minimum": 1.0,
+            "title": "Expectedquestionrevision",
+            "type": "integer"
+          },
+          "generationNote": {
+            "maxLength": 2000,
+            "minLength": 20,
+            "title": "Generationnote",
+            "type": "string"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/GraphInput"
+          },
+          "solution": {
+            "$ref": "#/components/schemas/GraphSolution"
+          }
+        },
+        "required": [
+          "expectedQuestionRevision",
+          "graph",
+          "solution",
+          "generationNote"
+        ],
+        "title": "ImportWorkedAnswerDraft",
         "type": "object"
       },
       "LearnerContextRequest": {
@@ -6479,6 +6766,29 @@
           "groupTitle"
         ],
         "title": "PlanTopicResponse",
+        "type": "object"
+      },
+      "Point": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y"
+        ],
+        "title": "Point",
         "type": "object"
       },
       "PortalCatalogResponse": {
@@ -8388,6 +8698,48 @@
           "data"
         ],
         "title": "ReviewQuestionResponse",
+        "type": "object"
+      },
+      "ReviewWorkedAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "edit",
+              "approve",
+              "reject"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "reviewNote": {
+            "maxLength": 2000,
+            "minLength": 20,
+            "title": "Reviewnote",
+            "type": "string"
+          },
+          "solution": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphSolution"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "action",
+          "reviewNote"
+        ],
+        "title": "ReviewWorkedAnswer",
         "type": "object"
       },
       "SafetyEventListResponse": {
@@ -13039,6 +13391,51 @@
         "title": "UserResponse",
         "type": "object"
       },
+      "WorkedStep": {
+        "additionalProperties": false,
+        "properties": {
+          "circleIndexes": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "title": "Circleindexes",
+            "type": "array"
+          },
+          "explanation": {
+            "maxLength": 6000,
+            "minLength": 20,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "fits": {
+            "items": {
+              "$ref": "#/components/schemas/Fit"
+            },
+            "maxItems": 6,
+            "title": "Fits",
+            "type": "array"
+          },
+          "partLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "showPoints": {
+            "const": true,
+            "default": true,
+            "title": "Showpoints",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "partLabel",
+          "explanation"
+        ],
+        "title": "WorkedStep",
+        "type": "object"
+      },
       "WorkingFileResponse": {
         "properties": {
           "contentType": {
@@ -14283,6 +14680,663 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": {
+      "get": {
+        "operationId": "list_worked_answers_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "List Worked Answers",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      },
+      "post": {
+        "operationId": "generate_worked_answer_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateWorkedAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Generate Worked Answer",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/import-draft": {
+      "post": {
+        "operationId": "import_worked_answer_draft_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers_import_draft_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportWorkedAnswerDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Import Worked Answer Draft",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/attach": {
+      "post": {
+        "operationId": "attach_worked_answer_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers__answer_id__attach_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttachWorkedAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Attach Worked Answer",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/review": {
+      "post": {
+        "operationId": "review_worked_answer_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers__answer_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewWorkedAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Review Worked Answer",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/steps/{step}/image": {
+      "get": {
+        "operationId": "preview_worked_answer_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers__answer_id__steps__step__image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "answer_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Answer Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "step",
+            "required": true,
+            "schema": {
+              "title": "Step",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Preview Worked Answer",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/seed": {
       "post": {
         "operationId": "seed_review_api_v1_admin_official_paper_reviews__paper_id__seed_post",
@@ -14930,6 +15984,83 @@
           }
         },
         "summary": "Create Visual Crop",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/worked-answer-capabilities": {
+      "get": {
+        "operationId": "worked_answer_capabilities_api_v1_admin_official_paper_reviews__paper_id__worked_answer_capabilities_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Worked Answer Capabilities",
         "tags": [
           "official-paper-reviews"
         ]
@@ -19688,6 +20819,109 @@
           }
         },
         "summary": "Hint",
+        "tags": [
+          "assessments"
+        ]
+      }
+    },
+    "/api/v1/assessments/{assessment_id}/questions/{question_id}/worked-answer": {
+      "post": {
+        "operationId": "reveal_generated_worked_answer_api_v1_assessments__assessment_id__questions__question_id__worked_answer_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assessment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assessment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "question_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Question Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Reveal Generated Worked Answer",
         "tags": [
           "assessments"
         ]

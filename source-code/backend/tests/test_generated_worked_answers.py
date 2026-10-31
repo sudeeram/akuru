@@ -18,6 +18,40 @@ from test_worked_answer_graphs import fixture
 
 
 @pytest.mark.integration
+def test_codex_prepared_draft_is_source_bound_and_requires_admin_approval(auth_client):
+    client,headers,db,paper,scheme,report,topic=_setup(auth_client)
+    GeneratedWorkedAnswer.__table__.create(db.connection(),checkfirst=True)
+    root=f'/api/v1/admin/official-paper-reviews/{paper[0].id}'
+    assert client.post(root+'/start',headers=headers,json={'schemeDocumentId':str(scheme[0].id)}).status_code==200
+    question=_question(paper,scheme,topic)
+    question['status']='needs_correction'
+    original=question['data']['parts'][0]
+    question['data']['parts']=[{**original,'label':label} for label in ('c(i)','c(ii)','c(iii)')]
+    assert client.post(root+'/questions',headers=headers,json=question).status_code==200
+    solution=GraphSolution.model_validate(fixture()).model_dump()
+    graph={key:solution[key] for key in ('xAxis','yAxis','points')}
+    graph.update(partLabels=['c(i)','c(ii)','c(iii)'],
+                 verificationNote='Checked every data pair against the reviewed source table.')
+    payload={'expectedQuestionRevision':1,'graph':graph,'solution':solution,
+             'generationNote':'Prepared in a Codex conversation; Admin must check the science.'}
+    endpoint=root+'/questions/1/worked-answers/import-draft'
+    assert client.post(endpoint,json=payload).status_code==403
+    changed={**payload,'solution':{**solution,'points':[{**solution['points'][0],'y':22},*solution['points'][1:]]}}
+    assert client.post(endpoint,headers=headers,json=changed).status_code==422
+    created=client.post(endpoint,headers=headers,json=payload)
+    assert created.status_code==201,created.text
+    draft=created.json()
+    assert draft['status']=='awaiting_review' and draft['assets']==[]
+    assert draft['provenance']['provider']=='Codex conversation'
+    assert draft['provenance']['scientificReviewRequired'] is True
+    assert client.post(endpoint,headers=headers,json=payload).json()['id']==draft['id']
+    assert client.get(root).json()['questions'][0]['data']['parts'][0].get('answerVisuals',[])==[]
+    base=root+'/questions/1/worked-answers/'+draft['id']
+    assert client.get(base+'/steps/0/image').content.startswith(b'\x89PNG')
+    assert client.post(base+'/attach',headers=headers,json={'expectedQuestionRevision':1}).status_code==409
+
+
+@pytest.mark.integration
 def test_generated_answer_lifecycle(auth_client):
     client,headers,db,paper,scheme,report,topic=_setup(auth_client)
     # DDL lives inside this fixture's outer rollback, not the local application schema.

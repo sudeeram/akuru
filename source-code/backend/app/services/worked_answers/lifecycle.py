@@ -8,7 +8,7 @@ from app.errors import DomainError
 from app.models import GeneratedWorkedAnswer, OfficialPaperReviewQuestion, DocumentVersion, DocumentBlock, AuditEvent
 from app.services.official_paper_reviews import _workspace, _validate_bound_versions, _validate_evidence
 from app.schemas.worked_answers import GraphSolution
-from .graphs import validate_source, LABEL
+from .graphs import validate_source, render, LABEL, RENDERER_VERSION
 
 
 def fingerprint(db, workspace, question):
@@ -61,19 +61,19 @@ def audit(db,actor,row,action,note=''):
         event_data={'revision':row.revision,'sourceHash':row.source_hash,'note':note}))
 
 
-def create(db,principal,paper_id,number,payload):
+def _verified_source(db,paper_id,number,expected_revision,graph):
     w,q=context(db,paper_id,number)
-    if q.revision!=payload.expectedQuestionRevision:
+    if q.revision!=expected_revision:
         raise DomainError('review_conflict','Question changed. Reload before generating.',409)
     parts={p['label']:p for p in q.review_data.get('parts',[])}
-    for label in payload.graph.partLabels:
+    for label in graph.partLabels:
         part=parts.get(label)
         if not part or not part.get('markingPoints') or not part.get('schemeSources'):
             raise DomainError('worked_source_incomplete','Select subparts with reviewed wording and exact marking evidence.',409)
     from app.schemas.official_paper_reviews import ReviewQuestionData
     selected_parts=ReviewQuestionData.model_validate(q.review_data).parts
     for part in selected_parts:
-        if part.label in payload.graph.partLabels:
+        if part.label in graph.partLabels:
             _validate_evidence(db,w.paper_version_id,part.paperSources,'paper')
             _validate_evidence(db,w.scheme_version_id,part.schemeSources,'scheme')
             if not any(s.blockId for s in part.paperSources) or not any(s.blockId for s in part.schemeSources):
@@ -81,6 +81,11 @@ def create(db,principal,paper_id,number,payload):
     digest,manifest=fingerprint(db,w,q)
     if len(json.dumps(manifest)) > 60000:
         raise DomainError('worked_source_too_large','This question exceeds the bounded generation context. Split the review before generating.',422)
+    return w,q,digest,manifest
+
+
+def create(db,principal,paper_id,number,payload):
+    w,q,digest,manifest=_verified_source(db,paper_id,number,payload.expectedQuestionRevision,payload.graph)
     existing=db.scalars(select(GeneratedWorkedAnswer).where(GeneratedWorkedAnswer.question_id==q.id).order_by(GeneratedWorkedAnswer.created_at.desc())).all()
     if any(r.status in ('queued','processing') for r in existing):
         raise DomainError('generation_running','This question already has a pending generation.',409)
@@ -91,6 +96,44 @@ def create(db,principal,paper_id,number,payload):
         graph_input=payload.graph.model_dump(),created_by=principal.user.id,status='queued',revision=1,
         provenance={'sourceQuestionRevision':q.revision})
     db.add(row);audit(db,principal.user.id,row,'queued',payload.graph.verificationNote)
+    db.commit();db.refresh(row)
+    return response(row,digest)
+
+
+def import_draft(db,principal,paper_id,number,payload):
+    """Register a Codex-prepared graph without pretending an API account generated it.
+
+    Source, geometry and rendering checks are identical to queued generation;
+    scientific approval and attachment remain separate Admin decisions.
+    """
+    w,q,digest,manifest=_verified_source(db,paper_id,number,payload.expectedQuestionRevision,payload.graph)
+    try:
+        validate_source(payload.solution,payload.graph.model_dump())
+        for index in range(len(payload.solution.steps)):
+            render(payload.solution,index)
+    except ValueError as exc:
+        raise DomainError('worked_answer_invalid',str(exc),422) from exc
+    graph_input=payload.graph.model_dump()
+    solution=payload.solution.model_dump()
+    existing=db.scalars(select(GeneratedWorkedAnswer).where(
+        GeneratedWorkedAnswer.question_id==q.id).order_by(GeneratedWorkedAnswer.created_at.desc())).all()
+    for row in existing:
+        if (row.source_hash==digest and row.graph_input==graph_input and row.solution==solution
+                and row.status in ('awaiting_review','approved')):
+            return response(row,digest)
+    if any(row.status in ('queued','processing') for row in existing):
+        raise DomainError('generation_running','This question already has a pending generation.',409)
+    row=GeneratedWorkedAnswer(id=uuid.uuid4(),question_id=q.id,source_hash=digest,source_manifest=manifest,
+        graph_input=graph_input,solution=solution,created_by=principal.user.id,status='awaiting_review',revision=1,
+        provenance={'sourceQuestionRevision':q.revision,'provider':'Codex conversation',
+            'model':'Codex-prepared draft','promptVersion':'operator-assisted-graph-v1',
+            'rendererVersion':RENDERER_VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),
+            'generationNote':payload.generationNote,
+            'checks':['verified axes unchanged','verified points unchanged','subparts matched',
+                      'geometry valid','render succeeded'],
+            'scientificReviewRequired':True})
+    db.add(row)
+    audit(db,principal.user.id,row,'imported_draft',payload.generationNote)
     db.commit();db.refresh(row)
     return response(row,digest)
 

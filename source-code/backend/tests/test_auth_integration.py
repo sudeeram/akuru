@@ -94,7 +94,7 @@ def auth_client(tmp_path):
     app.dependency_overrides[get_db] = override_db
     app.dependency_overrides[get_storage] = override_storage
     app.dependency_overrides[get_document_queue] = override_queue
-    client = TestClient(app, base_url="http://localhost")
+    client = TestClient(app, base_url="http://localhost", client=(f"test-{uuid.uuid4().hex}", 50000))
     try:
         yield client, username, password
     finally:

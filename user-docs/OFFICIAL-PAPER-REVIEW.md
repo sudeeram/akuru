@@ -57,4 +57,4 @@ For a question whose official marking scheme describes a graph but contains no w
 
 Prefer the official scheme diagram when one exists. June 2025 1C Q7(c)(i–iii) is the planned graph pilot; Q5(c)(ii) already has official diagrams, and Q9(a)(i)/(iii) should use diagrams from scheme page 13. A generated graph is an illustrative solution: valid Student fits and follow-through readings may vary. This feature does not enable automatic marking of drawings.
 
-Production OpenAI configuration and live Q7 generation were deferred by the owner on 2026-10-31. Existing source reviews and approvals are unaffected.
+A Codex-prepared answer may also appear in this panel as **Awaiting review** while live OpenAI generation remains disabled. Inspect its graph and explanations against the exact question and scheme, then use steps 4–6 above. It cannot be attached or shown to Students merely because the draft exists.

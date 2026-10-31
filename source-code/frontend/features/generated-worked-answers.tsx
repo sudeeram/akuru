@@ -183,9 +183,9 @@ export function GeneratedWorkedAnswers({
         {error && <p role="alert">{error}</p>}
         {!ready && (
           <output>
-            Generation is not configured. An operator must enable worked answers
-            and configure an enabled OpenAI account. Existing approved answers
-            can still be reviewed.
+            Generation is not configured. Drafts prepared by Codex can still be
+            reviewed and approved below. Enable worked answers
+            and configure an OpenAI account to generate new drafts here.
           </output>
         )}
         <details>

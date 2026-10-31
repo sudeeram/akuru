@@ -99,6 +99,14 @@ class GenerateWorkedAnswer(StrictModel):
     regenerate: bool = False
 
 
+class ImportWorkedAnswerDraft(StrictModel):
+    """An externally prepared candidate, still subject to Admin review."""
+    expectedQuestionRevision: int = Field(ge=1)
+    graph: GraphInput
+    solution: GraphSolution
+    generationNote: str = Field(min_length=20, max_length=2000)
+
+
 class ReviewWorkedAnswer(StrictModel):
     expectedRevision: int = Field(ge=1)
     action: Literal["edit", "approve", "reject"]
