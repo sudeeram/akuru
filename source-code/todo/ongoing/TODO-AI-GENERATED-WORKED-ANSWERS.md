@@ -107,3 +107,7 @@ Unrestricted generation for arbitrary scientific diagrams, real-time personalize
 - Deployment evidence: `/data/akuru/release-evidence/deployed-39d4ae704a176884bfd33f562bc01ecddba7d729-20261031T110105Z.txt`.
 - Feature acceptance evidence: `/data/akuru/release-evidence/ai-worked-answers-20261031.json`.
 - Production Student checks used synthetic API fixtures rather than a real Student login or a live AI answer. Backend integration tests exercised real authenticated Student/Parent/sibling roles and formal-assessment gates against rolled-back local fixtures.
+
+## 2026-11-01 Q7 draft progress
+
+Codex prepared and imported the verified Q7(c)(i–iii) graph as a source-bound production draft, ID `a5f40b46-ea9d-4788-85dd-f53445d20c73`. It appears to Admins as **Awaiting review**; all three private previews and the production Admin page were checked. No OpenAI API key or token usage was involved. See [the Q7 draft review record](../../backend/docs/ai-generated-worked-answers-q7-draft.md). The remaining unchecked items above still require independent Admin scientific approval, answer attachment and normal release gates.
