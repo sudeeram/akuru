@@ -2,6 +2,8 @@
 
 Prepared: 2026-11-01
 
+Completed and verified on production: 2026-11-01. Application release: `e4c264f`; migration: `0017_official_question_analyses`.
+
 Scope: the current approved production 1C review, all 10 questions and 49 subparts. This assessment adds metadata only. It proposes no automatic edits, approval resets, marking-readiness changes or publication changes.
 
 The original PDFs were downloaded through authenticated Admin APIs and matched against the local originals by SHA-256:
@@ -44,3 +46,9 @@ These are subjective confidence estimates to prioritise source comparison, not m
 Per-subpart source pages, percentages and detailed reasons are retained in the private API analysis records. Licensed source PDFs, screenshots and the full prepared payload remain outside Git.
 
 Deployment and metadata import must verify every saved question's content, revision, approval, reviewer and review timestamp against the pre-assessment baseline. The generic authenticated recording script performs those checks before and after the batch.
+
+## Completion evidence
+
+All 10 assessments were recorded through the authenticated, CSRF-protected Admin API. The before/after comparison confirmed that all 10 question approvals and all 49 subpart approvals remained in place and that reviewed content, revisions and reviewer metadata were identical. Repeating the dry-run recognised and skipped all 10 identical current assessments.
+
+Verification passed: 237 backend tests (one unrelated skip), 106 frontend tests, TypeScript, targeted lint, generated-contract checks, schema consistency and production HTTPS/operations acceptance. Read-only production browser checks confirmed low-confidence sorting, Q4(b)(ii) selection, source/model provenance, immutable history access, model filtering, desktop/mobile rendering and no unsaved question changes. Private payloads, downloaded sources, screenshots and before/after evidence remain under ignored `tmp/` paths.
