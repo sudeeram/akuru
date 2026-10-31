@@ -1,6 +1,6 @@
 'use client';
 import { DrawingSubmissions } from './drawing-submissions';
-import { ModelAnswerVisuals } from './answer-visuals';
+import { ModelAnswerVisuals, PracticeWorkedAnswer } from './answer-visuals';
 import { subjectAccent } from '@/lib/subject-accent';
 import { MetadataBadge } from '@/components/portal/badges';
 /* React Compiler is not enabled here. Effects intentionally synchronise local form drafts and hash navigation. */
@@ -574,6 +574,7 @@ export function Practice(p: FeatureProps) {
                   </div>
                 )}
               </form>
+              {!result && practice && q.generatedWorkedAnswerAvailable && <PracticeWorkedAnswer key={q.id} assessmentId={practice.id} questionId={q.id} />}
               {hints.map((h, i) => (
                 <div className="hint" key={i}>
                   <Lightbulb size={18} />

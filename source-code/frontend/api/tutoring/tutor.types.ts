@@ -73,7 +73,7 @@ export type TutorAgentReply = {
 export type TutorPractice = {
   assessmentId: string;
   practiceRef: string; status: 'active' | 'submitted'; topicRef: string; topicCode: string; topicTitle: string; groupCode: string; groupTitle: string;
-  question: { drawingParts?: string[]; drawingFiles?: Record<string,string>; rubric?: { answerVisuals?: AnswerVisual[] } | null; id: string; number: string; prompt: string; sharedStem: string; marks: number;
+  question: { generatedWorkedAnswerAvailable?: boolean; drawingParts?: string[]; drawingFiles?: Record<string,string>; rubric?: { answerVisuals?: AnswerVisual[] } | null; id: string; number: string; prompt: string; sharedStem: string; marks: number;
     equations: string[]; assetIds: string[]; assetDescriptions?: Record<string, string>; answer: string; result?: AssessmentResult | null };
   assetUrls: string[]; hintCount: number; latestHint?: string | null; feedbackVisible: boolean;
   createdAt: string; submittedAt?: string | null;

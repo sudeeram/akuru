@@ -115,6 +115,7 @@ class WorkingFileResponse(BaseModel):
     needsReview: bool
 
 class AssessmentQuestionResponse(BaseModel):
+    generatedWorkedAnswerAvailable: bool = False
     drawingParts: list[str] = Field(default_factory=list)
     drawingFiles: dict[str, str] = Field(default_factory=dict)
     id: uuid.UUID

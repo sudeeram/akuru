@@ -59,6 +59,8 @@ def _evidence(db, student_id):
     chosen.sort(key=lambda row: row[0].created_at)
     attempts, evidence = defaultdict(int), []
     for result, question, assessment in chosen:
+        if db.query(AssessmentInteraction).filter_by(assessment_id=assessment.id, question_id=question.id, kind="worked_answer").count():
+            continue  # Revealed solutions are assisted practice, never independent mastery evidence.
         retry = attempts[question.source_question_version_id]; attempts[question.source_question_version_id] += 1
         hints = db.query(AssessmentInteraction).filter_by(assessment_id=assessment.id, question_id=question.id, kind="hint").count()
         age_days = max(0, (_now() - result.created_at).total_seconds() / 86400)

@@ -27,16 +27,36 @@ export type MarkingRules = {
   combinedResponses: { phrase: string; pointIds: string[] }[];
 };
 export type TextbookPageEvidence = {
-  topicRef: string; documentVersionId: string; page: number; printedPageLabel: string;
+  topicRef: string;
+  documentVersionId: string;
+  page: number;
+  printedPageLabel: string;
 };
-export type TextbookPageOption = TextbookPageEvidence & { documentId: string; assetId: string };
+export type TextbookPageOption = TextbookPageEvidence & {
+  documentId: string;
+  assetId: string;
+};
 export const getReviewTopicEvidence = (paperId: string, topicRef: string) =>
-  request<{ visualPages: TextbookPageOption[] }>(`admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`);
-export type AnswerVisual = { assetId: string; partLabel: string; pointCodes: string[]; caption: string; altText: string; status: "proposed" | "approved" | "rejected" };
+  request<{ visualPages: TextbookPageOption[] }>(
+    `admin/official-paper-reviews/${paperId}/topics/${topicRef}/evidence`,
+  );
+export type AnswerVisual = {
+  origin?: 'official_scheme' | 'ai_generated';
+  workedAnswerId?: string;
+  explanation?: string;
+  limitations?: string;
+  dataText?: string;
+  assetId: string;
+  partLabel: string;
+  pointCodes: string[];
+  caption: string;
+  altText: string;
+  status: 'proposed' | 'approved' | 'rejected';
+};
 export type ReviewPart = {
   answerVisuals?: AnswerVisual[];
   answerVisualRequired?: boolean;
-  responseType?: "text" | "drawing";
+  responseType?: 'text' | 'drawing';
   label: string;
   marks: number;
   prompt: string;
@@ -141,7 +161,7 @@ export const prepareOfficialReviewDrafts = (paperId: string) =>
 export const createPaperReviewCrop = (
   paperId: string,
   body: {
-    source?: "paper" | "scheme";
+    source?: 'paper' | 'scheme';
     page: number;
     kind: 'diagram' | 'table';
     x0: number;

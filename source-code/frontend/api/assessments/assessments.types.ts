@@ -186,6 +186,7 @@ export type AssessmentApiResponse = {
   submittedAt?: string | null;
   questions: {
     id: string;
+    generatedWorkedAnswerAvailable?: boolean;
     rubric?: { markingPoints?: { text?: string }[]; answerVisuals?: AnswerVisual[] } | null;
     result?: AssessmentResult | null;
   }[];

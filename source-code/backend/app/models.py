@@ -1504,7 +1504,7 @@ class AssessmentInteraction(Base):
     request_key: Mapped[str] = mapped_column(String(100))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
-        CheckConstraint("kind IN ('hint')", name="ck_assessment_interaction_kind"),
+        CheckConstraint("kind IN ('hint','worked_answer')", name="ck_assessment_interaction_kind"),
         UniqueConstraint("assessment_id", "question_id", "request_key", name="uq_assessment_interaction_request"),
     )
 
@@ -1831,4 +1831,27 @@ class CommunityReport(TimestampMixin, Base):
         UniqueConstraint('reporter_id', 'target_id', name='uq_community_report_pair'),
         CheckConstraint("status IN ('open','dismissed','name_change_required')", name='ck_community_report_status'),
         CheckConstraint("reason IN ('inappropriate_name','impersonation','other_concern')", name='ck_community_report_reason'),
+    )
+
+
+class GeneratedWorkedAnswer(TimestampMixin, Base):
+    """Immutable released payloads live in rubric snapshots; this is the Admin draft."""
+    __tablename__ = "generated_worked_answers"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_paper_review_questions.id", ondelete="RESTRICT"), index=True)
+    source_hash: Mapped[str] = mapped_column(String(64))
+    source_manifest: Mapped[dict] = mapped_column(JSON)
+    graph_input: Mapped[dict] = mapped_column(JSON)
+    solution: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    provenance: Mapped[dict] = mapped_column(JSON, default=dict, server_default="{}")
+    assets: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    status: Mapped[str] = mapped_column(String(24), default="queued", server_default="queued")
+    revision: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    error_code: Mapped[str | None] = mapped_column(String(100))
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (
+        CheckConstraint("status IN ('queued','processing','awaiting_review','approved','rejected','stale','failed','superseded')", name="ck_worked_answer_status"),
+        CheckConstraint("revision > 0", name="ck_worked_answer_revision"),
     )

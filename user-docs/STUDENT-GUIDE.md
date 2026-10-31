@@ -149,3 +149,12 @@ Other learners see only your public name, avatar and selected subjects. Hiding a
 Use **Your drawings** to upload a clear photo or PDF for each named subpart. Include required labels and bonds. **View saved drawing** lets you check the file; upload again to replace it before submitting. Drawings cannot be replaced after submission or the time limit.
 
 After submission, an approved diagram answer may appear in practice feedback or assessment results. Use **Enlarge diagram** to inspect details. Your own drawing may still be awaiting review: this is not a zero score and does not lower your mastery. The score appears after review.
+
+
+## AI-generated worked graph answers
+
+Some released questions may include an approved **AI-generated worked answer — not an official Pearson answer**. During practice, **Show worked answer** opens explanatory steps and graphs if that answer is available. Using it makes that question assisted practice, so it will not increase your independent mastery ranking.
+
+Expand a worked step to see its graph, explanation and limitations. **Graph values** gives a text alternative; **Enlarge diagram** lets you inspect detail. The official marking scheme remains the authority, and a valid hand-drawn best-fit line can differ slightly from the example.
+
+Worked-answer help is disabled during mock exams and official papers. Approved model answers appear only when the existing submission/feedback rules permit them. Not every question has a generated answer.

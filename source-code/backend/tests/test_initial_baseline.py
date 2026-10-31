@@ -24,7 +24,7 @@ def test_baseline_matches_topic_only_metadata_inventory():
     assert 'CREATE EXTENSION IF NOT EXISTS vector' in text
     assert "pgvector.sqlalchemy" in text
     assert "group_label IN ('unit','module')" in text
-    later_tables = {"topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
+    later_tables = {"generated_worked_answers", "topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
                         "textbook_topic_visual_assets", "flashcard_reports",
                             "password_reset_receipts", "official_paper_review_workspaces",

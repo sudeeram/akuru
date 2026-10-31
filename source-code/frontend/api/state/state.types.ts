@@ -38,6 +38,7 @@ export type Student = {
   courses: Record<string, { level: string; syllabus: string }>;
 };
 export type Question = {
+  generatedWorkedAnswerAvailable?: boolean;
   drawingParts?: string[];
   drawingFiles?: Record<string,string>;
   topicRefs?: string[];

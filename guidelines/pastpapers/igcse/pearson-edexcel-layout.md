@@ -1,8 +1,10 @@
 # Pearson Edexcel layout profile
 
-Profile ID: `pearson-edexcel-igcse`  
-Profile version: `1.0.0`  
-Last updated: 2026-10-21
+Profile ID: `pearson-edexcel-igcse`
+
+Profile version: `1.1.0`
+
+Last updated: 2026-10-31
 
 Initially verified against June 2025 International GCSE Chemistry 1C pages used in the reference examples. Detect the profile from document identity and actual page geometry; do not assume that every Pearson paper or year has the same layout.
 
@@ -19,7 +21,10 @@ Use coordinates rather than PDF text-stream order: barcode text may appear befor
 - Nested roman-numeral labels inherit the lettered parent context.
 - Preserve option letters, wording and selection instructions even when boxes are vector graphics.
 - Continue parts across pages. Question totals are useful reconciliation evidence, not prompt wording.
-- Check figure captions, axes and labels outside detected vector clusters before proposing a crop.
+- Check figure captions, axes and labels outside detected vector clusters before proposing a crop. Use the complete original page to confirm the final crop, including source-provided numeric ticks and units; the enclosing graph grid is not a sufficient crop boundary.
+- Treat native text/vector content and embedded scanned regions independently on mixed pages; avoid duplicate text from overlapping OCR/native extraction.
+- Check degree symbols and superscript units visually when extraction produces control characters or separated glyphs. Q7's native-text degree symbol is unreliable even though it is legible in the source rendering.
+- Preserve intentionally blank answer regions, unlabelled axes and incomplete tables when they form part of the task; do not fill them using the scheme.
 
 ## Scheme and report profiles
 
@@ -28,3 +33,8 @@ The question-paper border rules must not be applied to scheme tables or report p
 ## Exceptions
 
 Record profile/version, detected region, confidence and any override. Preserve the source for Admin comparison. Add a regression example before broadening a rule to a new layout or year.
+
+## Change history
+
+- 2026-10-21 — 1.0.0: initial June 2025 Chemistry profile.
+- 2026-10-31 — 1.1.0: full-page graph-boundary verification, mixed-content handling and source-symbol/intentional-blank checks. Coordinate bounds remain document-specific, not universal page templates.

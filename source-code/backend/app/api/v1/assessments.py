@@ -126,3 +126,11 @@ def upload_drawing(assessment_id: uuid.UUID, question_id: uuid.UUID, part_label:
                    storage: Annotated[ObjectStorage, Depends(get_storage)]):
     return assessment_working.upload_drawing(db, storage, settings, principal, assessment_id, question_id,
                                             part_label, content, filename, content_type)
+
+
+@router.post("/{assessment_id}/questions/{question_id}/worked-answer")
+def reveal_generated_worked_answer(assessment_id: uuid.UUID, question_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_csrf_roles("student"))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services.answer_visuals import reveal_worked_answer
+    return reveal_worked_answer(db, principal, assessment_id, question_id)

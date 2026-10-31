@@ -1,7 +1,8 @@
 # Marking-scheme analysis
 
-Standard: `akuru-igcse-pastpapers` 1.1.0  
-Last updated: 2026-10-21
+Standard: `akuru-igcse-pastpapers` 1.2.0
+
+Last updated: 2026-10-31
 
 ## Match and read the source
 
@@ -56,3 +57,16 @@ Dependencies interacting with selective groups require manual marking in rule v1
 For a drawing/displayed-formula response, preserve exact scheme diagrams as private answer visuals scoped to the subpart and optional marking-point codes. A source page link or OCR transcript alone is not a complete model answer. Keep all essential bonds, labels, axes and annotations; exclude adjacent answers. Propose crops for Admin review and require explicit approval. Never attach a model answer to the question-illustration list. Preserve source version/hash and crop bounds. Show approved answers only through the submitted-attempt authorization path.
 
 For June 2025 1C Q5(c)(ii), preserve separate displayed butane and methylpropane structures, one mark each, with every bond shown. A rotated copy is not a second isomer. Scientific drawing assessment remains manual until a dedicated image-based evaluation passes; do not judge it from OCR text or pixel similarity.
+
+## Graphical and incomplete scoring evidence
+
+Preserve graph model answers with their full axes, units, scales and credited features. Extract graph-marking rules such as plotting tolerances, anomalous-point identification, best-fit-line criteria and readings from a Student's own graph when specified. Do not replace follow-through readings with one mandatory reference number; retain required units and scheme tolerances. Do not expose the completed scheme graph in the question visual used while answering.
+
+Verify a cropped model answer against its exact row and full scheme page: adjacent answers can share an extracted block, and a linked block may contain more than the intended rubric. Separate or explicitly flag combined rows rather than attributing neighbouring marks to the part. When a correct answer requires a figure, drawing or formula layout, textual point descriptions alone do not establish visual-model completeness.
+
+If a scheme is missing or a necessary instruction/diagram is unreadable, retain the question as a draft and record the missing companion/evidence. Do not invent a scoring authority from textbook knowledge or examiner examples. Do not advertise automatic assessment until a supported, reviewed rubric is available. Approved model-answer display does not itself establish validated automatic drawing scoring.
+
+
+## AI-generated worked examples when the scheme has no plot
+
+First inspect the original scheme page: a missing AKURU visual association does not mean the official answer is missing. Prefer an official reference diagram where present. When the scheme supplies plotting instructions without a worked graph, a generated example may be prepared from verified source values and rendered by trusted plotting code. Keep it private until reviewed, visibly label it **AI-generated worked answer — not an official Pearson answer**, and record source/generator versions separately from official evidence. It must not replace the blank question grid, redefine tolerances or follow-through, or enable automatic drawing assessment. Q7(c)(i–iii), June 2025 1C, is the pilot; Q9's scheme page 13 already contains official diagrams.

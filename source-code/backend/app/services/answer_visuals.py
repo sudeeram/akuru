@@ -5,14 +5,35 @@ from app.errors import DomainError
 from app.models import DocumentAsset, AssessmentQuestion
 
 
-def validate_visuals(db, version_id, visuals, codes=None, part_label=None):
+def validate_visuals(db, version_id, visuals, codes=None, part_label=None, question_number=None):
     seen = set()
     for visual in visuals:
         asset = db.get(DocumentAsset, visual.assetId)
         if (not asset or asset.document_version_id != version_id
                 or not asset.asset_metadata.get("answerVisual")
-                or not asset.asset_metadata.get("reviewCrop")):
+                or not (asset.asset_metadata.get("reviewCrop") or asset.asset_metadata.get("generatedAnswer"))):
             raise DomainError("invalid_answer_visual", "Choose a dedicated crop from this paper's exact marking scheme.", 422)
+        generated = asset.asset_metadata.get("generatedAnswer", False)
+        if generated:
+            import hashlib, json
+            from app.models import GeneratedWorkedAnswer, OfficialPaperReviewQuestion, OfficialPaperReviewWorkspace
+            from app.services.worked_answers.lifecycle import fingerprint
+            row = db.get(GeneratedWorkedAnswer, visual.workedAnswerId) if visual.workedAnswerId else None
+            q = db.get(OfficialPaperReviewQuestion, row.question_id) if row else None
+            w = db.get(OfficialPaperReviewWorkspace, q.workspace_id) if q else None
+            if (visual.origin != "ai_generated" or not row or not w or row.status != "approved"
+                    or (question_number is not None and q.number != question_number)
+                    or asset.asset_metadata.get("workedAnswerId") != str(row.id)
+                    or asset.asset_metadata.get("partLabel") != visual.partLabel
+                    or fingerprint(db, w, q)[0] != row.source_hash
+                    or asset.asset_metadata.get("sourceHash") != row.source_hash
+                    or asset.asset_metadata.get("solutionHash") != hashlib.sha256(json.dumps(row.solution,sort_keys=True).encode()).hexdigest()
+                    or visual.explanation != asset.asset_metadata.get("explanation")
+                    or visual.limitations != asset.asset_metadata.get("limitations")
+                    or visual.dataText != asset.asset_metadata.get("dataText")):
+                raise DomainError("generated_answer_stale", "Use a current, approved generated answer with its original label.", 409)
+        elif visual.origin != "official_scheme" or visual.workedAnswerId:
+            raise DomainError("invalid_answer_origin", "Official scheme crops cannot be labelled as generated answers.", 422)
         if visual.assetId in seen:
             raise DomainError("duplicate_answer_visual", "Attach each answer visual once per subpart.", 422)
         seen.add(visual.assetId)
@@ -26,8 +47,17 @@ def download(db, storage, principal, assessment_id, question_id, asset_id):
     from app.services.assessments import _owned
     assessment = _owned(db, principal, assessment_id)
     question = db.get(AssessmentQuestion, question_id)
-    if (not assessment.submitted_at or assessment.status not in {"submitted", "expired"}
-            or not question or question.assessment_id != assessment.id):
+    if not question or question.assessment_id != assessment.id:
+        raise DomainError("answer_visual_not_found", "Model answer is not available.", 404)
+    revealed = False
+    from app.services.assessments import _now
+    if getattr(assessment, "mode", None) == "practice" and assessment.status == "active" and assessment.ends_at > _now():
+        from app.models import AssessmentInteraction
+        revealed = bool(db.scalar(select(AssessmentInteraction.id).where(
+            AssessmentInteraction.assessment_id == assessment.id,
+            AssessmentInteraction.question_id == question.id,
+            AssessmentInteraction.kind == "worked_answer")))
+    if not revealed and (not assessment.submitted_at or assessment.status not in {"submitted", "expired"}):
         raise DomainError("answer_visual_not_found", "Model answer is not available.", 404)
     visual = next((v for v in question.rubric.get("answerVisuals", [])
                    if v.get("assetId") == str(asset_id) and v.get("status") == "approved"), None)
@@ -61,3 +91,26 @@ def queue_manual_result(db, assessment, question, answer, points, request_key):
         deterministic_checks={"manualOnly":True, "scorePending":True})
     db.add(row)
     return row
+
+
+def reveal_worked_answer(db, principal, assessment_id, question_id):
+    from app.services.assessments import _owned, _now
+    from app.services.assessment_access import require_practice_assistance
+    from app.models import AssessmentInteraction
+    assessment = _owned(db, principal, assessment_id, True)
+    require_practice_assistance(assessment.mode, assistance="Worked answers")
+    if assessment.status != "active" or assessment.ends_at <= _now():
+        raise DomainError("assessment_deadline_passed", "Practice has ended. Use released feedback instead.", 409)
+    question = db.get(AssessmentQuestion, question_id)
+    if not question or question.assessment_id != assessment.id:
+        raise DomainError("assessment_question_not_found", "Question not found.", 404)
+    visuals = [v for v in question.rubric.get("answerVisuals", []) if v.get("status") == "approved" and v.get("origin") == "ai_generated"]
+    if not visuals:
+        raise DomainError("worked_answer_unavailable", "No approved generated worked answer is released for this question yet.", 409)
+    existing = db.scalar(select(AssessmentInteraction.id).where(AssessmentInteraction.assessment_id == assessment.id,
+        AssessmentInteraction.question_id == question.id, AssessmentInteraction.kind == "worked_answer"))
+    if not existing:
+        db.add(AssessmentInteraction(assessment_id=assessment.id, question_id=question.id,
+            student_id=principal.user.id, kind="worked_answer", request_key="worked-answer-reveal"))
+        db.commit()
+    return {"visuals": visuals, "assisted": True, "message": "This question is now assisted practice and will not increase independent mastery."}

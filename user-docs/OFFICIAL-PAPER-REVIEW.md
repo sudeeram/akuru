@@ -42,3 +42,19 @@ Keep coverage reasons focused on concepts, without page numbers. Select the matc
 Saving shows a toast notification and preserves the selected subpart and source pages. **Previous subpart** and **Next subpart** move within the question without discarding unsaved edits. The question navigation buttons continue to warn about unsaved work.
 
 Coverage reasons are optional for **Outside current coverage**. They remain required before approval for **Supported** and **Partial or uncertain** decisions. A subpart edited since its last save shows **unsaved** in amber; green represents a successfully saved approval. A failed save keeps the unsaved marker until corrected and saved.
+
+
+## AI-generated graph worked answers
+
+For a question whose official marking scheme describes a graph but contains no worked plot, open **AI-generated worked answers** below Subpart review. This first version supports plotted points, anomaly circles and straight best-fit lines.
+
+1. Save ordinary question edits first. Check the original paper and exact scheme evidence.
+2. Open **Generate a graph solution**. Enter verified horizontal/vertical axis labels with units, ranges and tick intervals; enter one x,y pair per line; select the subparts and explain which sources you checked.
+3. Select **Generate draft**. If generation is not configured, the controls remain disabled until an operator enables the feature and configures an OpenAI account. Reopening a preview does not call OpenAI again.
+4. Inspect each worked step, source versions, checks and scientific content. **Edit explanation and plotting instructions** allows corrections; saving edits removes approval. Incorrect source values require a new generation with corrected verified input.
+5. Enter a review note and choose **Approve worked answer** or **Reject**. Generated answers retain **AI-generated worked answer — not an official Pearson answer** after approval.
+6. Use **Attach approved answer to question**. An approved question must be reopened first. Check the attached answers, save any further question changes and use the normal question/paper release process. Attaching does not publish the paper or bypass curriculum coverage.
+
+Prefer the official scheme diagram when one exists. June 2025 1C Q7(c)(i–iii) is the planned graph pilot; Q5(c)(ii) already has official diagrams, and Q9(a)(i)/(iii) should use diagrams from scheme page 13. A generated graph is an illustrative solution: valid Student fits and follow-through readings may vary. This feature does not enable automatic marking of drawings.
+
+Production OpenAI configuration and live Q7 generation were deferred by the owner on 2026-10-31. Existing source reviews and approvals are unaffected.

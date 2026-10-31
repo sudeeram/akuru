@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [AI-generated worked answers](ongoing/TODO-AI-GENERATED-WORKED-ANSWERS.md) — reviewed, clearly labelled graph solutions and controlled Student help; first pilot: 1C Q7(c)(i–iii).
+
 
 - [Approved mark-scheme answer visuals and drawn-response assessment](ongoing/TODO-MARK-SCHEME-ANSWER-VISUALS.md) — capture and review diagram model answers, safely display them to Students, then separately evaluate drawn-answer submission and marking; first case: 1C Q5(c)(ii).
 
@@ -25,6 +27,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 - [Local Node.js security patch](planned/TODO-LOCAL-NODEJS-SECURITY-PATCH.md) — deferred by request; update the laptop through NVM before running the frontend.
 

@@ -236,6 +236,7 @@ def response(db, row):
                 TextbookTopic.id.in_([uuid.UUID(value) for value in q.topic_ids]))).all()) if q.topic_ids else [],
             skills=q.skills, difficulty=q.difficulty, answer=answers[q.id].answer_text if q.id in answers else "",
             fileId=answers[q.id].file_id if q.id in answers else None, saveRevision=answers[q.id].save_revision if q.id in answers else 0,
+            generatedWorkedAnswerAvailable=row.mode == "practice" and any(v.get("origin") == "ai_generated" and v.get("status") == "approved" for v in q.rubric.get("answerVisuals", [])),
             drawingParts=q.rubric.get("drawingParts", []),
             drawingFiles=answers[q.id].drawing_files if q.id in answers else {},
             rubric=q.rubric if visible else None,

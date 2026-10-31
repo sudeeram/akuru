@@ -474,13 +474,13 @@ def _auto_link_exact_paper_blocks(db: Session, workspace: OfficialPaperReviewWor
 
 
 def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
-                       status: str, data: ReviewQuestionData, previous_data: dict | None = None):
+                       status: str, data: ReviewQuestionData, previous_data: dict | None = None, question_number: str | None = None):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
     for part in data.parts:
         previous_part = next((item for item in (previous_data or {}).get("parts", []) if item.get("label") == part.label), {})
         validate_textbook_evidence(db, _paper(db, workspace.paper_document_id), part, previous_part.get("textbookEvidence", []))
         from app.services.answer_visuals import validate_visuals
-        validate_visuals(db, workspace.scheme_version_id, part.answerVisuals, {p.code for p in part.markingPoints}, part.label)
+        validate_visuals(db, workspace.scheme_version_id, part.answerVisuals, {p.code for p in part.markingPoints}, part.label, question_number)
         if part.status in {"ready_for_approval", "approved"} and (part.answerVisualRequired or part.responseType == "drawing"):
             if not any(v.status == "approved" for v in part.answerVisuals) or any(v.status == "proposed" for v in part.answerVisuals):
                 raise DomainError("answer_visual_review_required", f"Part {part.label}: approve the model-answer visuals or reject remaining proposals.", 409)
@@ -590,7 +590,7 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         for part in payload.data.parts:
             if part.status == "approved":
                 part.status = "needs_correction"
-    _validate_question(db, workspace, payload.status, payload.data, row.review_data if row else None)
+    _validate_question(db, workspace, payload.status, payload.data, row.review_data if row else None, payload.number)
     previous_textbook_evidence = [{"part": part.get("label"), "evidence": part.get("textbookEvidence", [])} for part in (row.review_data if row else {}).get("parts", [])]
     if row is None:
         row = OfficialPaperReviewQuestion(workspace_id=workspace.id, number=payload.number)

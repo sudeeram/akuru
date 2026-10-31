@@ -80,3 +80,10 @@ Dependencies that interact with selective/capped groups are explicitly rejected 
 `ReviewPart.textbookEvidence` stores topic reference, document-version UUID, PDF page position and the reviewed printed-page label in the existing review JSON. No relational migration is required. The Admin-only topic-evidence endpoint exposes eligible visual pages from the current published topic manifest. Saves validate topic/subject ownership, historical visual-source publication membership and page labels. Existing references survive label edits as historical provenance; the UI flags references absent from current options for revalidation. Question-save audit events retain previous and new page-reference lists. Primary-text repagination does not rewrite these references.
 
 Coverage reasons remain explanatory prose. Existing pilot reasons are not silently rewritten: the review UI offers removal of legacy parenthesized textbook-page references, preserving the conceptual explanation. Admins select verified visual pages separately.
+
+
+## AI-generated worked graph answers
+
+The implementation uses a versioned `GeneratedWorkedAnswer` draft and durable worker polling, the existing OpenAI account router, strict declarative graph schemas and trusted PyMuPDF plotting. Admin review and a separate attach operation feed immutable, explicitly generated private assets into the existing `AnswerVisual` release/snapshot pipeline. Source hashes invalidate current drafts without rewriting historical attempt answers.
+
+Practice reveals record `worked_answer` interactions and exclude those questions from independent mastery evidence. Formal assessment assistance is rejected; rubric/image release follows the existing submission gate. Generation is disabled by default and requires configured account aliases. See [the backend architecture and operation guide](../source-code/backend/docs/ai-generated-worked-answers.md) and [the 1C source audit](../source-code/backend/docs/ai-generated-worked-answers-1c-audit.md).

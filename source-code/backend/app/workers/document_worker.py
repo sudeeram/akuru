@@ -31,6 +31,11 @@ def main() -> None:
             time.sleep(5)
     while running:
         try:
+            from app.config import get_settings
+            from app.database import SessionLocal
+            from app.services.worked_answers.generation import process_next
+            with SessionLocal() as worked_db:
+                process_next(worked_db, get_settings())
             job_id = queue.dequeue(timeout_seconds=5)
             if job_id:
                 logger.info("Document job %s finished with state %s", job_id, process_job(job_id))

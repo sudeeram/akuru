@@ -1,5 +1,5 @@
 'use client';
-import { ModelAnswerVisuals } from './answer-visuals';
+import { ModelAnswerVisuals, PracticeWorkedAnswer } from './answer-visuals';
 import { DrawingSubmissions } from './drawing-submissions';
 import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
 import { useFocusMode, AdvancedPanel } from '@/components/portal/workspace';
@@ -780,6 +780,7 @@ export function TutorSessions({
                 />
               ))}
               <DrawingSubmissions assessmentId={practice.assessmentId} questionId={practice.question.id} parts={practice.question.drawingParts} files={practice.question.drawingFiles} disabled={busy || practice.status !== 'active'} onSaved={async () => setPractice(await getTutorPractice(session.sessionRef))} />
+              {practice.status === 'active' && practice.question.generatedWorkedAnswerAvailable && <PracticeWorkedAnswer key={practice.question.id} assessmentId={practice.assessmentId} questionId={practice.question.id} />}
               {practice.status === 'submitted' && <ModelAnswerVisuals assessmentId={practice.assessmentId} questionId={practice.question.id} visuals={practice.question.rubric?.answerVisuals} />}
               {practice.status === 'active' ? (
                 <>

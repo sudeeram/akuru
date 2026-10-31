@@ -10,3 +10,8 @@ class AnswerVisual(BaseModel):
     caption: str = Field(default="", max_length=2000)
     altText: str = Field(min_length=10, max_length=2000)
     status: Literal["proposed", "approved", "rejected"] = "proposed"
+    origin: Literal["official_scheme", "ai_generated"] = "official_scheme"
+    workedAnswerId: uuid.UUID | None = None
+    explanation: str = Field(default="", max_length=6000)
+    limitations: str = Field(default="", max_length=2000)
+    dataText: str = Field(default="", max_length=10000)

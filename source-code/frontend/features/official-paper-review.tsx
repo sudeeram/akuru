@@ -4,6 +4,7 @@ import {
   getReviewTopicEvidence,
   type TextbookPageOption,
 } from '@/api/assessments/official-paper-review.api';
+import { GeneratedWorkedAnswers } from './generated-worked-answers';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
@@ -506,6 +507,7 @@ export function OfficialPaperReview({
   const [paperPage, setPaperPage] = useState(1);
   const [schemePage, setSchemePage] = useState(1);
   const [reportPage, setReportPage] = useState(1);
+  const [workedDirty, setWorkedDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -739,13 +741,13 @@ export function OfficialPaperReview({
     return () => window.cancelAnimationFrame(frame);
   }, [linkedTarget, sourceTab, compareSources]);
   useEffect(() => {
-    if (!dirty && !busy) return;
+    if (!dirty && !workedDirty && !busy) return;
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
     const beforeNavigation = (event: Event) => {
       if (
-        !reviewNavigationAllowed(busy, dirty, () =>
+        !reviewNavigationAllowed(busy, dirty || workedDirty, () =>
           window.confirm('Discard unsaved question review changes?'),
         )
       )
@@ -757,9 +759,9 @@ export function OfficialPaperReview({
       window.removeEventListener('beforeunload', beforeUnload);
       window.removeEventListener('akuru:before-navigation', beforeNavigation);
     };
-  }, [dirty, busy]);
+  }, [dirty, busy, workedDirty]);
   const canLeaveQuestion = () =>
-    reviewNavigationAllowed(busy, dirty, () =>
+    reviewNavigationAllowed(busy, dirty || workedDirty, () =>
       window.confirm('Discard unsaved question review changes?'),
     );
   const openQuestion = (row: PaperReview['questions'][number]) => {
@@ -1715,6 +1717,7 @@ export function OfficialPaperReview({
                                     objectFit: 'contain',
                                   }}
                                 />
+                                {visual.origin === 'ai_generated' && <p><strong>AI-generated worked answer — not an official Pearson answer</strong></p>}
                                 <strong>
                                   {visual.status === 'approved'
                                     ? 'Approved answer visual'
@@ -1805,9 +1808,7 @@ export function OfficialPaperReview({
                                   </Button>
                                 </div>
                                 <p className="small">
-                                  To replace a crop, create a new one below and
-                                  remove this association. Existing published
-                                  answers remain unchanged.
+                                  {visual.origin === 'ai_generated' ? 'Edit or replace this answer in AI-generated worked answers. Remove this association to exclude it from a future release.' : 'To replace a crop, create a new one below and remove this association. Existing published answers remain unchanged.'}
                                 </p>
                               </section>
                             );
@@ -1844,7 +1845,9 @@ export function OfficialPaperReview({
                                 key={`answer-${selected}-${part.label}-${schemePage}-${JSON.stringify(answerCropBox)}`}
                                 paperId={paperId}
                                 source="scheme"
-                                sourceDocumentId={review.schemeDocumentId || undefined}
+                                sourceDocumentId={
+                                  review.schemeDocumentId || undefined
+                                }
                                 extraction={schemeExtraction}
                                 pageNumber={schemePage}
                                 initialBox={answerCropBox}
@@ -2389,6 +2392,23 @@ export function OfficialPaperReview({
                     )}
                   </div>
                 </DashboardCard>
+                {number && revision > 0 && (
+                  <GeneratedWorkedAnswers
+                    key={`${paperId}-${number}`}
+                    paperId={paperId}
+                    number={number}
+                    revision={revision}
+                    parts={data.parts}
+                    onDraftChange={setWorkedDirty}
+                    dirty={dirty}
+                    onAttached={() => {
+                      void act(
+                        () => getPaperReview(paperId),
+                        'Question refreshed with generated answer.',
+                      );
+                    }}
+                  />
+                )}
                 <DashboardCard
                   title="Question visuals"
                   description="Check the crop and assign each visual to the parts that need it."

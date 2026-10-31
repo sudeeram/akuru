@@ -1,13 +1,20 @@
 # Examiner-report analysis
 
-Standard: `akuru-igcse-pastpapers` 1.1.0  
-Last updated: 2026-10-21
+Standard: `akuru-igcse-pastpapers` 1.2.0
+
+Last updated: 2026-10-31
 
 ## Identify the type of evidence
 
 Keep general question commentary, common misconceptions, candidate-response examples, example-specific examiner comments, and explicitly awarded marks separate. A report is optional and may discuss only selected parts. Record “no commentary located” or “report unavailable” rather than inventing advice.
 
 Resolve headings such as `Question 2(c)` to the question hierarchy. Split guidance for `(i)` and `(ii)` when the wording supports that distinction; otherwise retain it at parent level. Keep general paper advice separately from question-specific guidance.
+
+## Source and completeness checks
+
+Verify subject, session and covered components/variants against report headings; one report can cover several components, so do not assume its filename identifies every included question. Retain exact report version, PDF page and printed label. Distinguish native commentary from embedded scanned candidate responses and apply the appropriate extraction mode to each region.
+
+Keep awarded marks, handwritten examiner annotations and the candidate's own writing distinguishable. A handwriting transcription can have high apparent confidence while losing a minus sign, subscript, superscript, charge or crossed-out correction. Visually inspect those features and preserve uncertain spans with their original crop. Missing evidence stays missing; an absent report must not be confused with an extraction failure in an available report.
 
 ## Cross-page examples
 

@@ -226,7 +226,7 @@ def _validate_sources(db: Session, material: OfficialMaterialVersion, payload: S
         raise DomainError("invalid_question_asset", "Question assets must come from this document version.", 422)
     from app.services.answer_visuals import validate_visuals
     for entry in payload.markSchemeEntries:
-        validate_visuals(db, material.source_document_version_id, entry.answerVisuals)
+        validate_visuals(db, material.source_document_version_id, entry.answerVisuals, question_number=entry.questionNumber)
         codes = {p.code for p in entry.markingPoints}
         if any(any(f"{v.partLabel}.{code}" not in codes for code in v.pointCodes) for v in entry.answerVisuals):
             raise DomainError("invalid_answer_point", "Answer visuals must link to marking points in their own subpart.", 422)
@@ -310,6 +310,7 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             reviewed = {row.number: row.review_data for row in review_rows}
             scheme_rows = db.scalars(select(MarkSchemeEntryVersion).where(
                 MarkSchemeEntryVersion.material_version_id == material.id)).all()
+            from app.schemas.answer_visuals import AnswerVisual
             from app.schemas.official_paper_reviews import ReviewQuestionData
             def approved_rubric(question_data):
                 data = ReviewQuestionData.model_validate(question_data)
@@ -320,7 +321,7 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
                 row.question_number not in reviewed or row.max_marks != reviewed[row.question_number]["marks"]
                 or row.marking_points != approved_rubric(reviewed[row.question_number])[0]
                 or row.scoring_rules != approved_rubric(reviewed[row.question_number])[1]
-                or row.answer_visuals != [dict(v, partLabel=p["label"]) for p in reviewed[row.question_number]["parts"] for v in p.get("answerVisuals", []) if v["status"] == "approved"]
+                or [AnswerVisual.model_validate(v).model_dump(mode="json") for v in row.answer_visuals] != [AnswerVisual.model_validate(dict(v, partLabel=p["label"])).model_dump(mode="json") for p in reviewed[row.question_number]["parts"] for v in p.get("answerVisuals", []) if v["status"] == "approved"]
                 or row.drawing_parts != [p["label"] for p in reviewed[row.question_number]["parts"] if p.get("responseType") == "drawing"]
                 for row in scheme_rows
             ):
@@ -352,7 +353,7 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             for entry in entries:
                 from app.schemas.answer_visuals import AnswerVisual
                 from app.services.answer_visuals import validate_visuals
-                validate_visuals(db, material.source_document_version_id, [AnswerVisual.model_validate(v) for v in entry.answer_visuals])
+                validate_visuals(db, material.source_document_version_id, [AnswerVisual.model_validate(v) for v in entry.answer_visuals], question_number=entry.question_number)
                 if any(v["status"] != "approved" for v in entry.answer_visuals):
                     raise DomainError("answer_visual_review_required", "Only approved answer visuals may be published.", 409)
                 if entry.drawing_parts and any(not any(v["partLabel"] == part for v in entry.answer_visuals) for part in entry.drawing_parts):
