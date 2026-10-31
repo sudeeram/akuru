@@ -44,6 +44,7 @@ def test_codex_prepared_draft_is_source_bound_and_requires_admin_approval(auth_c
     assert draft['status']=='awaiting_review' and draft['assets']==[]
     assert draft['provenance']['provider']=='Codex conversation'
     assert draft['provenance']['scientificReviewRequired'] is True
+    assert draft['solution']['confidencePercent']==85
     assert client.post(endpoint,headers=headers,json=payload).json()['id']==draft['id']
     assert client.get(root).json()['questions'][0]['data']['parts'][0].get('answerVisuals',[])==[]
     base=root+'/questions/1/worked-answers/'+draft['id']
@@ -86,12 +87,13 @@ def test_generated_answer_lifecycle(auth_client):
     assert process_next(db,settings,lambda request:result)
     row=client.get(path).json()[0];assert row['status']=='awaiting_review'
     assert 'test-model'==row['provenance']['model']
+    assert row['solution']['confidencePercent']==85
     base=path+'/'+row['id']
     preview=client.get(base+'/steps/0/image');assert preview.status_code==200 and preview.content.startswith(b'\x89PNG')
     assert 'no-store' in preview.headers['cache-control']
     attach={'expectedQuestionRevision':1}
     assert client.post(base+'/attach',headers=headers,json=attach).status_code==409
-    review={'expectedRevision':row['revision'],'action':'approve','reviewNote':'Checked the data, anomaly and fitted lines against the source.'}
+    review={'expectedRevision':row['revision'],'action':'approve'}
     approved=client.post(base+'/review',headers=headers,json=review);assert approved.status_code==200,approved.text
     assert client.post(base+'/review',headers=headers,json=review).status_code==409
     attached=client.post(base+'/attach',headers=headers,json=attach);assert attached.status_code==200,attached.text

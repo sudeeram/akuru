@@ -25,6 +25,8 @@ type Solution = {
   points: { x: number; y: number }[];
   steps: Step[];
   limitations: string;
+  confidencePercent?: number | null;
+  confidenceBasis?: string | null;
 };
 type WorkedAnswer = {
   id: string;
@@ -347,12 +349,20 @@ export function GeneratedWorkedAnswers({
                 correctness still needs review.
               </p>
             )}
+            {row.solution?.confidencePercent != null && (
+              <p className="small">
+                Estimated confidence: {row.solution.confidencePercent}% —{' '}
+                {row.solution.confidenceBasis}. This is an AI estimate, not a
+                verified probability of correctness. Check the source and science
+                before approval.
+              </p>
+            )}
             {['awaiting_review', 'approved', 'rejected'].includes(
               row.status,
             ) && (
               <>
                 <label>
-                  Review note (at least 20 characters)
+                  Review note (optional)
                   <Textarea
                     value={reviewNote}
                     onChange={(e) => setReviewNote(e.target.value)}
@@ -369,7 +379,7 @@ export function GeneratedWorkedAnswers({
                     Edit explanation and plotting instructions
                   </Button>
                   <Button
-                    disabled={busy || reviewNote.trim().length < 20}
+                    disabled={busy}
                     onClick={() =>
                       void run(
                         () =>
@@ -389,7 +399,7 @@ export function GeneratedWorkedAnswers({
                   </Button>
                   <Button
                     variant="outline"
-                    disabled={busy || reviewNote.trim().length < 20}
+                    disabled={busy}
                     onClick={() =>
                       void run(
                         () =>
@@ -548,7 +558,7 @@ export function GeneratedWorkedAnswers({
                       />
                     </label>
                     <Button
-                      disabled={busy || reviewNote.trim().length < 20}
+                      disabled={busy}
                       onClick={() =>
                         void run(async () => {
                           await request(`${root}/${row.id}/review`, {

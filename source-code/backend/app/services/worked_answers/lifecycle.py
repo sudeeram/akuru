@@ -107,6 +107,8 @@ def import_draft(db,principal,paper_id,number,payload):
     scientific approval and attachment remain separate Admin decisions.
     """
     w,q,digest,manifest=_verified_source(db,paper_id,number,payload.expectedQuestionRevision,payload.graph)
+    if payload.solution.confidencePercent is None:
+        raise DomainError('confidence_required','Provide an estimated confidence and its basis for the draft.',422)
     try:
         validate_source(payload.solution,payload.graph.model_dump())
         for index in range(len(payload.solution.steps)):

@@ -4980,6 +4980,32 @@
       "GraphSolution": {
         "additionalProperties": false,
         "properties": {
+          "confidenceBasis": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "minLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidencebasis"
+          },
+          "confidencePercent": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidencepercent"
+          },
           "limitations": {
             "maxLength": 2000,
             "minLength": 1,
@@ -8718,8 +8744,8 @@
             "type": "integer"
           },
           "reviewNote": {
+            "default": "",
             "maxLength": 2000,
-            "minLength": 20,
             "title": "Reviewnote",
             "type": "string"
           },
@@ -8736,8 +8762,7 @@
         },
         "required": [
           "expectedRevision",
-          "action",
-          "reviewNote"
+          "action"
         ],
         "title": "ReviewWorkedAnswer",
         "type": "object"

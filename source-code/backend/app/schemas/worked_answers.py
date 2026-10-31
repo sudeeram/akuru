@@ -48,9 +48,13 @@ class GraphSolution(StrictModel):
     points: list[Point] = Field(min_length=2, max_length=100)
     steps: list[WorkedStep] = Field(min_length=1, max_length=12)
     limitations: str = Field(min_length=1, max_length=2000)
+    confidencePercent: int | None = Field(default=None, ge=0, le=100)
+    confidenceBasis: str | None = Field(default=None, min_length=20, max_length=1000)
 
     @model_validator(mode="after")
     def validate_geometry(self):
+        if (self.confidencePercent is None) != (self.confidenceBasis is None):
+            raise ValueError("Confidence percentage and its basis must be provided together.")
         if len({s.partLabel for s in self.steps}) != len(self.steps):
             raise ValueError("Each step must refer to a distinct subpart.")
         for p in self.points:
@@ -111,7 +115,7 @@ class ReviewWorkedAnswer(StrictModel):
     expectedRevision: int = Field(ge=1)
     action: Literal["edit", "approve", "reject"]
     solution: GraphSolution | None = None
-    reviewNote: str = Field(min_length=20, max_length=2000)
+    reviewNote: str = Field(default="", max_length=2000)
 
 
 class AttachWorkedAnswer(StrictModel):

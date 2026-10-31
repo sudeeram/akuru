@@ -69,7 +69,7 @@ try {
  await page.getByText('Part c(ii) — preview worked answer',{exact:true}).click();
  const preview=page.getByAltText(generatedVisual.explanation).last();await preview.scrollIntoViewIfNeeded();
  await preview.evaluate(el=>el.complete?Promise.resolve():new Promise(resolve=>{el.onload=resolve;el.onerror=resolve}));assert.ok(await preview.evaluate(el=>el.naturalWidth>0));
- await page.getByLabel('Review note (at least 20 characters)').fill('Checked the synthetic plot and explanation against the source.');
+ await expect(page.getByLabel('Review note (optional)')).toBeVisible();
  await page.getByRole('button',{name:'Edit explanation and plotting instructions',exact:true}).click();
  await page.getByRole('textbox',{name:/^Explanation/}).fill('Corrected explanation: plot every verified source value precisely.',{timeout:5000});
  await page.getByRole('button',{name:'Save edited draft',exact:true}).click();

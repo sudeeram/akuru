@@ -16,7 +16,9 @@ def fixture():
                dict(partLabel="c(iii)",explanation="Fit the rising and falling sections, excluding the anomaly.",circleIndexes=[3],fits=[
                    dict(pointIndexes=[0,1,2,4,5],fromX=0,toX=32,label="Rising section"),
                    dict(pointIndexes=[6,7,8],fromX=24,toX=40,label="Falling section")])],
-        limitations="Illustrative least-squares fit; valid hand-drawn fits can differ.")
+        limitations="Illustrative least-squares fit; valid hand-drawn fits can differ.",
+        confidencePercent=85,
+        confidenceBasis="Verified source points and axes; hand-drawn best-fit lines can vary without an official reference plot.")
 
 
 def test_source_and_plot_are_valid_and_rendered_as_png():
@@ -53,3 +55,10 @@ def test_line_fit_is_deterministic_not_an_invented_official_reading():
     intersection=(d-b)/(a-c)
     assert 27 < intersection < 29
     assert 28 < a*intersection+b < 30
+
+
+def test_confidence_estimate_requires_a_basis_and_valid_percentage():
+    raw=fixture();raw['confidencePercent']=101
+    with pytest.raises(ValidationError): GraphSolution.model_validate(raw)
+    raw=fixture();raw['confidenceBasis']=None
+    with pytest.raises(ValidationError,match='provided together'): GraphSolution.model_validate(raw)

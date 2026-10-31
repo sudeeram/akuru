@@ -34,7 +34,9 @@ def process_next(db,settings,generator=None):
             'trusted code computes least squares. Exclude anomalous points from fits, never from the original plotted results. '
             'Circle anomalies only in the relevant and subsequent steps. Extents must let requested lines intersect. '
             'Do not invent tolerances. State that valid hand-drawn fits and follow-through readings may differ. '
-            'Do not claim a computed intersection without calculating it. Unsupported or ambiguous requirements must not be guessed.'),
+            'Do not claim a computed intersection without calculating it. Unsupported or ambiguous requirements must not be guessed. '
+            'Include confidencePercent (0-100) and confidenceBasis: an estimated confidence with a specific reason and uncertainty; '
+            'it is for Admin review priority, not an official correctness probability.'),
             task=json.dumps(payload,ensure_ascii=False),output_type=GraphSolution)
         if generator:
             result=generator(request)
@@ -42,6 +44,8 @@ def process_next(db,settings,generator=None):
             with Session(bind=db.get_bind()) as provider_db:
                 result=AIAccountRouter(provider_db,settings).generate(request,operation_id=row_id)
         solution=GraphSolution.model_validate(result.output.model_dump())
+        if solution.confidencePercent is None:
+            raise ValueError('Generated solution needs an estimated confidence and its basis.')
         validate_source(solution,row.graph_input)
         for i in range(len(solution.steps)): render(solution,i)
         row=db.get(GeneratedWorkedAnswer,row_id)
