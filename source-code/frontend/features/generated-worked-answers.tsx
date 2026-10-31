@@ -77,6 +77,7 @@ export function GeneratedWorkedAnswers({
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [ready, setReady] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [xAxis, setX] = useState(emptyAxis);
   const [yAxis, setY] = useState(emptyAxis);
   const [points, setPoints] = useState('');
@@ -172,6 +173,14 @@ export function GeneratedWorkedAnswers({
         }),
       'Worked answer queued. It will need scientific review.',
     );
+  }
+  if (rows.length === 0 && !showCreate) {
+    if (error) return <p role="alert">{error}</p>;
+    return ready ? (
+      <Button variant="outline" onClick={() => setShowCreate(true)}>
+        Create AI worked answer
+      </Button>
+    ) : null;
   }
   return (
     <DashboardCard

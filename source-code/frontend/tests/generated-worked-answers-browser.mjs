@@ -59,6 +59,7 @@ try {
  const base=process.env.AKURU_URL || 'http://127.0.0.1:5192';
  await page.goto(base+'/admin/exam-documents/review/11111111-1111-4111-8111-111111111111');
  const panel=page.locator('section,article,div').filter({has:page.getByRole('heading',{name:'AI-generated worked answers',exact:true})}).last();
+ await page.getByRole('button',{name:'Create AI worked answer',exact:true}).click();
  await page.getByText('Generate a graph solution',{exact:true}).click();
  await page.getByLabel('Label including units').nth(0).fill('Volume / cm³');
  await page.getByLabel('Label including units').nth(1).fill('Temperature / °C');
