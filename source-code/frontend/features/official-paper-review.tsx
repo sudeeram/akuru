@@ -5,12 +5,12 @@ import {
   type TextbookPageOption,
 } from '@/api/assessments/official-paper-review.api';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
-import { QuestionAnalysisPanel } from './question-analysis';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import { useEffect, useState, type PointerEvent } from 'react';
+import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 import Image from 'next/image';
 import {
   ArrowLeft,
@@ -31,7 +31,6 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   reviewQuestionList,
-  reviewAccuracy,
   reviewNeighbours,
   reviewAttentionCount,
   reviewNavigationAllowed,
@@ -480,6 +479,7 @@ export function OfficialPaperReview({
   documents: Doc[];
   navigate: (path: string) => void;
 }) {
+  const [reviewSearch] = useWorkspaceSearch({ record: '', section: '' });
   const paper = documents.find((document) => document.id === paperId);
   const companions = documents.filter(
     (document) => document.paperId === paperId || document.id === paperId,
@@ -532,9 +532,7 @@ export function OfficialPaperReview({
     }[]
   >([]);
   const [questionFilter, setQuestionFilter] = useState('all');
-  const [lowConfidenceFirst, setLowConfidenceFirst] = useState(false);
   const [questionSearch, setQuestionSearch] = useState('');
-  const [analysisModelSearch, setAnalysisModelSearch] = useState('');
   const [sourceTab, setSourceTab] = useState('paper');
   const [compareSources, setCompareSources] = useState(false);
   const [cropOpen, setCropOpen] = useState(false);
@@ -579,7 +577,25 @@ export function OfficialPaperReview({
       .then((value) => {
         if (active) {
           setReview(value);
-          if (value.questions[0]) chooseQuestion(value.questions[0]);
+          const target =
+            value.questions.find(
+              (question) => question.number === reviewSearch.record,
+            ) || value.questions[0];
+          if (target) {
+            chooseQuestion(target, reviewSearch.section || undefined);
+            const part = target.data.parts.find(
+              (part) => part.label === reviewSearch.section,
+            );
+            if (part) {
+              setPaperPage(
+                part.paperSources[0]?.page ||
+                  target.data.paperSources[0]?.page ||
+                  1,
+              );
+              setSchemePage(part.schemeSources[0]?.page || 1);
+              setReportPage(part.reportSources[0]?.page || 1);
+            }
+          }
         }
       })
       .catch((cause) => {
@@ -615,7 +631,7 @@ export function OfficialPaperReview({
     return () => {
       active = false;
     };
-  }, [paperId]);
+  }, [paperId, reviewSearch.record, reviewSearch.section]);
   useEffect(() => {
     if (!review?.schemeDocumentId) return;
     let active = true;
@@ -682,9 +698,6 @@ export function OfficialPaperReview({
     }));
   }
   const part = data.parts[activePart];
-  const selectedAnalysis = review?.questions.find(
-    (question) => question.number === number,
-  );
   const [visualPages, setVisualPages] = useState<
     Record<string, TextbookPageOption[]>
   >({});
@@ -983,15 +996,26 @@ export function OfficialPaperReview({
         title={paper.name}
         description="Admin-only draft. Saving or approving a question does not release it to Students."
         action={
-          <Button
-            variant="outline"
-            disabled={busy}
-            onClick={() => {
-              if (!busy) navigate('/admin/exam-documents/past-papers');
-            }}
-          >
-            <ArrowLeft size={15} /> Back to papers
-          </Button>
+          <div className="button-row">
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() =>
+                navigate(`/admin/exam-documents/review/${paperId}/accuracy`)
+              }
+            >
+              Accuracy confidence
+            </Button>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={() => {
+                if (!busy) navigate('/admin/exam-documents/past-papers');
+              }}
+            >
+              <ArrowLeft size={15} /> Back to papers
+            </Button>
+          </div>
         }
       />
       {error && (
@@ -1408,24 +1432,6 @@ export function OfficialPaperReview({
                       ))}
                     </select>
                   </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={lowConfidenceFirst}
-                      onChange={(event) =>
-                        setLowConfidenceFirst(event.target.checked)
-                      }
-                    />{' '}
-                    Lowest accuracy confidence first
-                  </label>
-                  <Input
-                    aria-label="Find analysis model"
-                    placeholder="Filter by model or method…"
-                    value={analysisModelSearch}
-                    onChange={(event) =>
-                      setAnalysisModelSearch(event.target.value)
-                    }
-                  />
                   <nav
                     aria-label="Question review navigation"
                     className="pr-question-list"
@@ -1434,8 +1440,6 @@ export function OfficialPaperReview({
                       review.questions,
                       questionFilter,
                       questionSearch,
-                      lowConfidenceFirst,
-                      analysisModelSearch,
                     ).map((question) => (
                       <button
                         key={question.number}
@@ -1457,22 +1461,12 @@ export function OfficialPaperReview({
                         <MetadataBadge size="xs">
                           {question.data.marks}m
                         </MetadataBadge>
-                        {reviewAccuracy(question) != null && (
-                          <span className="small">
-                            {question.accuracyAnalysis?.isCurrent
-                              ? 'Accuracy confidence'
-                              : 'Extraction estimate'}
-                            : {reviewAccuracy(question)}%
-                          </span>
-                        )}
                       </button>
                     ))}
                     {!reviewQuestionList(
                       review.questions,
                       questionFilter,
                       questionSearch,
-                      lowConfidenceFirst,
-                      analysisModelSearch,
                     ).length && (
                       <p className="small">No questions match these filters.</p>
                     )}
@@ -1494,27 +1488,6 @@ export function OfficialPaperReview({
                   description="Correct the wording and marks against the original source."
                 >
                   <div className="stack">
-                    {selectedAnalysis?.accuracyAnalysis?.isCurrent ? (
-                      <p className="small">
-                        <strong>
-                          Accuracy confidence:{' '}
-                          {selectedAnalysis.accuracyAnalysis.question.percent}%
-                        </strong>
-                        {' · '}
-                        {selectedAnalysis.accuracyAnalysis.question.reasons.join(
-                          ' ',
-                        )}
-                      </p>
-                    ) : (
-                      data.extractionConfidence && (
-                        <p className="small">
-                          Import-time extraction confidence:{' '}
-                          {data.extractionConfidence.percent}%. This is a
-                          review-priority estimate, not a verified accuracy
-                          rate. {data.extractionConfidence.reasons.join(' ')}
-                        </p>
-                      )
-                    )}
                     <div className="two-cols">
                       <label>
                         Question number{' '}
@@ -1597,22 +1570,6 @@ export function OfficialPaperReview({
                     )}
                   </div>
                 </DashboardCard>
-                {selectedAnalysis && (
-                  <QuestionAnalysisPanel
-                    key={`${paperId}-${number}`}
-                    paperId={paperId}
-                    number={number}
-                    accuracy={selectedAnalysis.accuracyAnalysis}
-                    extraction={selectedAnalysis.extractionAnalysis}
-                    partLabel={part?.label}
-                    dirty={dirty}
-                    onSelectPart={(label) =>
-                      selectPart(
-                        data.parts.findIndex((part) => part.label === label),
-                      )
-                    }
-                  />
-                )}
                 <DashboardCard
                   title="Subpart review"
                   description="Work through the wording, marking points, evidence and coverage for each part."
@@ -1640,16 +1597,6 @@ export function OfficialPaperReview({
                             )}
                             {row.label} · {row.marks} marks ·{' '}
                             {label(row.status)}
-                            {selectedAnalysis?.accuracyAnalysis?.isCurrent && (
-                              <>
-                                {' '}
-                                ·{' '}
-                                {selectedAnalysis.accuracyAnalysis.parts.find(
-                                  (part) => part.label === row.label,
-                                )?.percent ?? 'Not assessed'}
-                                % confidence
-                              </>
-                            )}
                             {savedState.unsaved ? ' · unsaved' : ''}
                           </Button>
                         );
@@ -1677,13 +1624,6 @@ export function OfficialPaperReview({
                     </div>
                     {part && (
                       <div className="panel stack">
-                        {part.extractionConfidence && (
-                          <p className="small">
-                            Subpart extraction confidence:{' '}
-                            {part.extractionConfidence.percent}%.{' '}
-                            {part.extractionConfidence.reasons.join(' ')}
-                          </p>
-                        )}
                         <div className="two-cols">
                           <label>
                             Subpart label{' '}

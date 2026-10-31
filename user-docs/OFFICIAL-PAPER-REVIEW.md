@@ -2,7 +2,9 @@
 
 ## Accuracy confidence and model history
 
-The question list can be sorted by **Lowest accuracy confidence first**. A question's percentage follows its weakest assessed subpart. Within **Accuracy confidence & provenance**, use **Subparts by lowest confidence** to jump to a part, expand **Source checks and extraction provenance** for the reasons and source/model details, or use **View analysis history** to inspect earlier assessments. The model filter finds the latest recorded extraction or assessment model/method.
+Open **Accuracy confidence** at the top of a paper's question-review page to see the dedicated Admin page. It lists every question and subpart with its overall confidence, separate Paper / Scheme / Report scores, review status, assessment date and model information. Use **Lowest confidence first**, **Find question**, **Model or method** and **Show** to prioritise your review. Unknown or stale scores are not displayed as current percentages.
+
+Choose **Details** on a row for the source pages, reasons, provenance and immutable analysis history. Choose **Review** to open that exact question/subpart with its source pages. **Back to question review** returns to the editor. Confidence figures are kept off the compact Questions navigation card. A question's overall percentage follows its weakest assessed subpart.
 
 Confidence is an estimate to help decide what to review first. Adding or lowering it does not remove an existing **Approved** status. If wording, marking evidence or visuals later change, the previous assessment is labelled as earlier content until a new comparison is recorded. A missing original model is displayed as **Not recorded**; a newer assessment does not claim to identify the original extraction model.
 

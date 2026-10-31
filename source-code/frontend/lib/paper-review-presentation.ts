@@ -133,3 +133,59 @@ export function reviewPartSaveState(
   const unsaved = JSON.stringify(part) !== JSON.stringify(saved);
   return { unsaved, displayStatus: unsaved ? 'unsaved' : part.status };
 }
+
+/** Flatten the complete inventory without exposing stale estimates as current scores. */
+export function reviewAccuracyRows(
+  questions: Question[],
+  search = '',
+  model = '',
+  scope = 'all',
+  lowestFirst = true,
+) {
+  const rows = reviewQuestionList(
+    questions,
+    'all',
+    search,
+    false,
+    model,
+  ).flatMap((question) => {
+    const analysis = question.accuracyAnalysis || question.extractionAnalysis;
+    const base = { question, analysis };
+    return [
+      ...(scope !== 'subparts'
+        ? [
+            {
+              ...base,
+              label: undefined as string | undefined,
+              marks: question.data.marks,
+              status: question.status,
+              percent: reviewAccuracy(question),
+              estimate: analysis?.question,
+            },
+          ]
+        : []),
+      ...(scope !== 'questions'
+        ? question.data.parts.map((part) => ({
+            ...base,
+            label: part.label as string | undefined,
+            marks: part.marks,
+            status: part.status,
+            percent: analysis?.isCurrent
+              ? analysis.parts.find((item) => item.label === part.label)
+                  ?.percent
+              : !analysis
+                ? part.extractionConfidence?.percent
+                : undefined,
+            estimate: analysis?.parts.find((item) => item.label === part.label),
+          }))
+        : []),
+    ];
+  });
+  return rows.sort((a, b) =>
+    lowestFirst
+      ? (a.percent ?? 101) - (b.percent ?? 101)
+      : a.question.number.localeCompare(b.question.number, undefined, {
+          numeric: true,
+        }),
+  );
+}

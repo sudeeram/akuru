@@ -257,6 +257,12 @@ export const dynamicApplicationRoutes: RouteDefinition[] = [
     label: 'Official-paper review',
   },
   {
+    path: '/admin/exam-documents/review/$paperId/accuracy',
+    role: 'admin',
+    view: 'library',
+    label: 'Paper accuracy confidence',
+  },
+  {
     path: '/flashcards/decks/$deckRef',
     role: 'student',
     view: 'flashcards',

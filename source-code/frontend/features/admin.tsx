@@ -82,6 +82,7 @@ import { TutorHistory } from './tutor-history';
 import { TextbookStructureAdmin } from './textbook-structure';
 import { FinalDocumentReviewWorkspace } from './final-document-review';
 import { OfficialPaperReview } from './official-paper-review';
+import { PaperAccuracyPage } from './paper-accuracy';
 import { Heading, Picker, Empty } from './shared';
 
 type Props = {
@@ -417,8 +418,10 @@ export function AdminWorkspace(p: Props) {
   } as const;
   const textbookReviewMode = p.pathname.startsWith('/admin/textbooks/review');
   const officialPaperReviewId = p.pathname.match(
-    /^\/admin\/exam-documents\/review\/([0-9a-f-]{36})$/,
+    /^\/admin\/exam-documents\/review\/([0-9a-f-]{36})(?:\/accuracy)?$/,
   )?.[1];
+  const paperAccuracyMode =
+    p.pathname.endsWith('/accuracy') && Boolean(officialPaperReviewId);
   const requestedReviewDocument = p.pathname.match(
     /^\/admin\/textbooks\/review\/([^/]+)$/,
   )?.[1];
@@ -810,7 +813,15 @@ export function AdminWorkspace(p: Props) {
           ))}
         </nav>
       )}
-      {officialPaperReviewId && (
+      {officialPaperReviewId && paperAccuracyMode && (
+        <PaperAccuracyPage
+          key={officialPaperReviewId}
+          paperId={officialPaperReviewId}
+          documents={p.data.documents}
+          navigate={p.navigate}
+        />
+      )}
+      {officialPaperReviewId && !paperAccuracyMode && (
         <OfficialPaperReview
           key={officialPaperReviewId}
           paperId={officialPaperReviewId}
@@ -3769,7 +3780,13 @@ function AssessmentAuditPanel({
               <p>{chosen.questionPrompt}</p>
               <h3>Submitted answer</h3>
               <p className="preserve">{chosen.answer || 'No typed answer.'}</p>
-              {Object.entries(chosen.drawingUrls || {}).map(([part, url]) => <p key={part}><a href={url} target="_blank" rel="noreferrer">Inspect original drawing for ({part})</a></p>)}
+              {Object.entries(chosen.drawingUrls || {}).map(([part, url]) => (
+                <p key={part}>
+                  <a href={url} target="_blank" rel="noreferrer">
+                    Inspect original drawing for ({part})
+                  </a>
+                </p>
+              ))}
               {chosen.workingUrl && (
                 <a href={chosen.workingUrl} target="_blank" rel="noreferrer">
                   Open original submitted working
@@ -3800,7 +3817,11 @@ function AssessmentAuditPanel({
                       {point.pointId} · {point.criterion}
                     </strong>
                     <strong>
-                      {point.creditState === 'matched_capped' ? 'Correct · mark limit reached' : point.creditState === 'not_required' ? 'Optional · not required' : `${point.marksAwarded}/${point.maxMarks}`}
+                      {point.creditState === 'matched_capped'
+                        ? 'Correct · mark limit reached'
+                        : point.creditState === 'not_required'
+                          ? 'Optional · not required'
+                          : `${point.marksAwarded}/${point.maxMarks}`}
                     </strong>
                   </div>
                   <p>Evidence: {point.studentEvidence}</p>

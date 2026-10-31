@@ -13,6 +13,7 @@ const { outputText } = ts.transpileModule(source, {
   },
 });
 const {
+  reviewAccuracyRows,
   reviewAttentionCount,
   reviewQuestionList,
   reviewAccuracy,
@@ -54,27 +55,82 @@ test('review filters preserve inventory order and excluded questions do not infl
 });
 test('lowest-confidence sort keeps unscored questions last without changing the inventory', () => {
   const rows = [
-    {number:'1',status:'unreviewed',data:{extractionConfidence:{percent:70}}},
-    {number:'2',status:'unreviewed',data:{extractionConfidence:{percent:35}}},
-    {number:'3',status:'unreviewed',data:{}},
+    {
+      number: '1',
+      status: 'unreviewed',
+      data: { extractionConfidence: { percent: 70 } },
+    },
+    {
+      number: '2',
+      status: 'unreviewed',
+      data: { extractionConfidence: { percent: 35 } },
+    },
+    { number: '3', status: 'unreviewed', data: {} },
   ];
-  assert.deepEqual(reviewQuestionList(rows,'all','',true).map(q=>q.number),['2','1','3']);
-  assert.deepEqual(rows.map(q=>q.number),['1','2','3']);
+  assert.deepEqual(
+    reviewQuestionList(rows, 'all', '', true).map((q) => q.number),
+    ['2', '1', '3'],
+  );
+  assert.deepEqual(
+    rows.map((q) => q.number),
+    ['1', '2', '3'],
+  );
 });
 test('accuracy comparisons take precedence over import estimates and stale comparisons are unscored', () => {
-  const model = {role:'paper',method:'codex_assisted',provider:'Test',modelId:'test-model-v2'};
-  const assessed = {number:'1',status:'approved',data:{extractionConfidence:{percent:45}},
-    accuracyAnalysis:{isCurrent:true,question:{percent:92},provenance:[model]}};
-  assert.equal(reviewAccuracy(assessed),92);
-  assert.equal(reviewAccuracy({...assessed,accuracyAnalysis:{...assessed.accuracyAnalysis,isCurrent:false}}),undefined);
-  assert.equal(reviewQuestionList([assessed],'all','',false,'test-model-v2').length,1);
-  assert.equal(reviewQuestionList([assessed],'all','',false,'other-model').length,0);
+  const model = {
+    role: 'paper',
+    method: 'codex_assisted',
+    provider: 'Test',
+    modelId: 'test-model-v2',
+  };
+  const assessed = {
+    number: '1',
+    status: 'approved',
+    data: { extractionConfidence: { percent: 45 } },
+    accuracyAnalysis: {
+      isCurrent: true,
+      question: { percent: 92 },
+      provenance: [model],
+    },
+  };
+  assert.equal(reviewAccuracy(assessed), 92);
+  assert.equal(
+    reviewAccuracy({
+      ...assessed,
+      accuracyAnalysis: { ...assessed.accuracyAnalysis, isCurrent: false },
+    }),
+    undefined,
+  );
+  assert.equal(
+    reviewQuestionList([assessed], 'all', '', false, 'test-model-v2').length,
+    1,
+  );
+  assert.equal(
+    reviewQuestionList([assessed], 'all', '', false, 'other-model').length,
+    0,
+  );
 });
 test('subpart provenance overrides only the matching source role', () => {
-  const analysis = {provenance:[{role:'paper',modelId:'paper-model'},{role:'scheme',modelId:'scheme-model'}],
-    parts:[{label:'a',provenance:[{role:'scheme',modelId:'part-scheme-model'}]}]};
-  assert.deepEqual(reviewProvenance(analysis,'a').map(source=>source.modelId),['paper-model','part-scheme-model']);
-  assert.deepEqual(reviewProvenance(analysis,'b').map(source=>source.modelId),['paper-model','scheme-model']);
+  const analysis = {
+    provenance: [
+      { role: 'paper', modelId: 'paper-model' },
+      { role: 'scheme', modelId: 'scheme-model' },
+    ],
+    parts: [
+      {
+        label: 'a',
+        provenance: [{ role: 'scheme', modelId: 'part-scheme-model' }],
+      },
+    ],
+  };
+  assert.deepEqual(
+    reviewProvenance(analysis, 'a').map((source) => source.modelId),
+    ['paper-model', 'part-scheme-model'],
+  );
+  assert.deepEqual(
+    reviewProvenance(analysis, 'b').map((source) => source.modelId),
+    ['paper-model', 'scheme-model'],
+  );
 });
 test('previous/next follow the full inventory and never wrap or jump from an unsaved new question', () => {
   assert.equal(reviewNeighbours(questions, '3').previous.number, '2');
@@ -129,26 +185,125 @@ test('edits before a question number is entered are protected, and saved snapsho
   );
 });
 
-test("save refresh preserves the selected subpart by label and handles removed parts", () => {
-  assert.equal(reviewSavedPartIndex([{ label: "a" }, { label: "c" }], "c"), 1);
-  assert.equal(reviewSavedPartIndex([{ label: "c" }, { label: "a" }], "c"), 0);
-  assert.equal(reviewSavedPartIndex([{ label: "a" }], "c"), 0);
+test('save refresh preserves the selected subpart by label and handles removed parts', () => {
+  assert.equal(reviewSavedPartIndex([{ label: 'a' }, { label: 'c' }], 'c'), 1);
+  assert.equal(reviewSavedPartIndex([{ label: 'c' }, { label: 'a' }], 'c'), 0);
+  assert.equal(reviewSavedPartIndex([{ label: 'a' }], 'c'), 0);
 });
 
 test('page-link status distinguishes page links from exact block evidence', () => {
-  const sources = [{ page: 1, blockId: 'a' }, { page: 1, blockId: 'b' }, { page: 2 }];
-  assert.deepEqual(reviewPageLinkState(sources, 1), { pageLinked: false, linkedBlockCount: 2 });
+  const sources = [
+    { page: 1, blockId: 'a' },
+    { page: 1, blockId: 'b' },
+    { page: 2 },
+  ];
+  assert.deepEqual(reviewPageLinkState(sources, 1), {
+    pageLinked: false,
+    linkedBlockCount: 2,
+  });
   const linked = [...sources, { page: 1, blockId: null }];
-  assert.deepEqual(reviewPageLinkState(linked, 1), { pageLinked: true, linkedBlockCount: 2 });
+  assert.deepEqual(reviewPageLinkState(linked, 1), {
+    pageLinked: true,
+    linkedBlockCount: 2,
+  });
   // Removing only page-level evidence preserves the independently linked blocks.
-  assert.deepEqual(reviewPageLinkState(linked.filter((s) => !(s.page === 1 && !s.blockId)), 1), { pageLinked: false, linkedBlockCount: 2 });
-  assert.deepEqual(reviewPageLinkState(sources, 3), { pageLinked: false, linkedBlockCount: 0 });
+  assert.deepEqual(
+    reviewPageLinkState(
+      linked.filter((s) => !(s.page === 1 && !s.blockId)),
+      1,
+    ),
+    { pageLinked: false, linkedBlockCount: 2 },
+  );
+  assert.deepEqual(reviewPageLinkState(sources, 3), {
+    pageLinked: false,
+    linkedBlockCount: 0,
+  });
 });
 
 test('approval is green only after the exact part has been saved', () => {
   const saved = { label: 'a', status: 'unreviewed', prompt: 'Original' };
   const approved = { ...saved, status: 'approved' };
-  assert.deepEqual(reviewPartSaveState(approved, [saved]), { unsaved: true, displayStatus: 'unsaved' });
-  assert.deepEqual(reviewPartSaveState(approved, [approved]), { unsaved: false, displayStatus: 'approved' });
-  assert.equal(reviewPartSaveState({ ...approved, prompt: 'Edited' }, [approved]).displayStatus, 'unsaved');
+  assert.deepEqual(reviewPartSaveState(approved, [saved]), {
+    unsaved: true,
+    displayStatus: 'unsaved',
+  });
+  assert.deepEqual(reviewPartSaveState(approved, [approved]), {
+    unsaved: false,
+    displayStatus: 'approved',
+  });
+  assert.equal(
+    reviewPartSaveState({ ...approved, prompt: 'Edited' }, [approved])
+      .displayStatus,
+    'unsaved',
+  );
+});
+
+test('dedicated accuracy inventory covers every part, filters and hides stale scores without changing approval', () => {
+  const rows = [
+    {
+      number: '1',
+      status: 'approved',
+      data: {
+        marks: 3,
+        parts: [
+          { label: 'a', marks: 1, status: 'approved' },
+          { label: 'b', marks: 2, status: 'unreviewed' },
+        ],
+      },
+      accuracyAnalysis: {
+        isCurrent: true,
+        question: { percent: 85 },
+        parts: [
+          { label: 'a', percent: 95 },
+          { label: 'b', percent: 85 },
+        ],
+        provenance: [
+          {
+            role: 'paper',
+            method: 'codex_assisted',
+            modelId: 'recorded-model',
+          },
+        ],
+      },
+    },
+    {
+      number: '2',
+      status: 'unreviewed',
+      data: {
+        marks: 1,
+        parts: [
+          {
+            label: 'a',
+            marks: 1,
+            status: 'unreviewed',
+            extractionConfidence: { percent: 99 },
+          },
+        ],
+      },
+      accuracyAnalysis: {
+        isCurrent: false,
+        question: { percent: 90 },
+        parts: [{ label: 'a', percent: 90 }],
+        provenance: [],
+      },
+    },
+  ];
+  const snapshot = structuredClone(rows);
+  const all = reviewAccuracyRows(rows);
+  assert.equal(all.length, 5);
+  assert.deepEqual(
+    all.map((row) => row.percent),
+    [85, 85, 95, undefined, undefined],
+  );
+  assert.equal(reviewAccuracyRows(rows, '', 'recorded-model').length, 3);
+  assert.equal(
+    reviewAccuracyRows(rows, '2', '', 'subparts')[0].percent,
+    undefined,
+  );
+  assert.equal(reviewAccuracyRows(rows, '', '', 'questions').length, 2);
+  assert.deepEqual(
+    reviewAccuracyRows(rows, '', '', 'subparts', false).map((row) => row.label),
+    ['a', 'b', 'a'],
+  );
+  assert.deepEqual(rows, snapshot);
 });
