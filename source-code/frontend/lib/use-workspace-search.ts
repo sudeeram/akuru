@@ -7,12 +7,12 @@ export function useWorkspaceSearch<T extends Record<string, string>>(
   defaults: T,
 ) {
   const router = useRouter();
-  const searchStr = useRouterState({
-    select: (state) => state.location.searchStr,
+  // TanStack serializes numeric-looking strings with JSON quotes. Read its
+  // decoded search object rather than parsing the serialized URL again.
+  const decodedSearch = useRouterState({
+    select: (state): Record<string, unknown> => state.location.search,
   });
-  const search = workspaceSearch(
-    Object.fromEntries(new URLSearchParams(searchStr)),
-  );
+  const search = workspaceSearch(decodedSearch);
   const values = Object.fromEntries(
     Object.entries(defaults).map(([key, value]) => [
       key,

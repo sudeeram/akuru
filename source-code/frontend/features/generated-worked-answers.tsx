@@ -191,7 +191,7 @@ export function GeneratedWorkedAnswers({
   return (
     <DashboardCard
       title="AI-generated worked answers"
-      description="Generate a private graph solution from verified data. Approval attaches it to the question for review."
+      description="Review a private AI-generated model against its verified sources. Approval attaches it to the matching subpart."
     >
       <div className="stack">
         <p>
