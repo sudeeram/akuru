@@ -1,4 +1,8 @@
 import uuid
+import math
+import re
+import unicodedata
+from collections import Counter
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -29,7 +33,7 @@ def _chunk_id(citation_ref: str) -> uuid.UUID:
 def _session(db: Session, settings: Settings, principal: Principal, session_ref: str) -> TutorSession:
     row = tutor_sessions._owned_session(db, principal.user.id, session_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         row.subject_id, "tutor_sources")
+                         row.subject_id, "tutor_sources", topic_id=row.active_topic_id)
     if row.status != "active":
         raise DomainError("tutor_session_ended", "This tutor session has ended.", 409)
     coverage = curriculum_plans.student_coverage(db, principal.user.id, row.subject_id)
@@ -96,6 +100,54 @@ def _active_chunks(db: Session, session: TutorSession):
     return topic, version, book
 
 
+_SEARCH_STOP = frozenset('a an the this that these those is are was were be being been of in on at to from for with and or but it its by as me my i you your we our can could should would do does did have has had how why what which when where please explain describe show use using teach calculate about topic unit textbook source states matter so then than same also not only some very more less much many each any if just even always us them their there here such through rather out up down given take part answer ask short revision question questions tell write identify make necessarily exactly really completely'.split())
+
+
+def _terms(text: str) -> set[str]:
+    text = unicodedata.normalize('NFKC', text).lower()
+    return {word for word in re.findall(r'[^\W_]+', text) if len(word) > 1 and word not in _SEARCH_STOP}
+
+
+def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], threshold: float):
+    """Combine lexical evidence with vectors; exact approved figure IDs win.
+
+    Lexical fallback requires multiple discriminative terms, not an arbitrary
+    lower vector threshold. Exercise prompts alone are not answer evidence.
+    This score ranks evidence; it is not a measured probability of correctness.
+    """
+    wanted = _terms(query)
+    requested_figures = set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b', query, re.I))
+    documents = [_terms(chunk.content) for chunk, _, _ in records]
+    frequency = Counter(term for terms in documents for term in terms)
+    # Unknown phrasing must not dilute known evidence terms out of a long
+    # student's question. Still require >=2 matching terms in the same passage.
+    weights = {term: math.log(1 + len(records) / (1 + frequency[term]))
+               for term in wanted if frequency[term]}
+    total = sum(weights.values()) or 1
+    ranked = []
+    explicit_exercise = bool(re.search(r'\b(?:chapter\s+)?question\s+\d+', query, re.I))
+    for (chunk, block, distance), terms in zip(records, documents):
+        if not block or block.block_kind in {'heading', 'answer_space'}:
+            continue
+        if block.block_kind in {'question', 'subpart'} and not explicit_exercise:
+            continue
+        overlap = wanted & terms
+        coverage = sum(weights[term] for term in overlap) / total
+        lexical = min(.90, .45 + .45 * coverage) if len(overlap) >= 2 and coverage >= .25 else 0
+        vector = max(0, 1 - float(distance))
+        score = max(vector, lexical)
+        figures = set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b', chunk.content, re.I))
+        exact_visual = bool(requested_figures & figures and block.block_kind in {'diagram', 'image'}
+                            and str(block.source_asset_id) in approved_assets)
+        if requested_figures and block.block_kind in {'diagram', 'image'} and not exact_visual:
+            continue
+        if exact_visual:
+            score = 1.0
+        if score >= threshold:
+            ranked.append((chunk, score, exact_visual))
+    return sorted(ranked, key=lambda item: (-int(item[2]), -item[1], item[0].page_number, item[0].source_ordinal))
+
+
 def search(db: Session, settings: Settings, principal: Principal, session_ref: str,
            query: str, edition: str | None, limit: int) -> TutorSourceSearchResponse:
     session = _session(db, settings, principal, session_ref)
@@ -105,19 +157,22 @@ def search(db: Session, settings: Settings, principal: Principal, session_ref: s
             message="No approved textbook topic is available.", query=query)
     vector = embed_texts(settings, [query])[0]
     distance = RetrievalChunk.embedding.cosine_distance(vector)
-    rows = db.execute(select(RetrievalChunk, distance.label("distance")).where(
+    rows = db.execute(select(RetrievalChunk, DocumentBlock, distance.label("distance")).join(
+        DocumentBlock, DocumentBlock.id == RetrievalChunk.source_item_id).where(
         RetrievalChunk.status == "active", RetrievalChunk.source_type == "textbook_section",
         RetrievalChunk.topic_id == topic.id, RetrievalChunk.topic_content_version_id == version.id,
-    ).order_by(distance, RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(limit)).all()
+        DocumentBlock.needs_review.is_(False),
+    ).order_by(distance, RetrievalChunk.page_number, RetrievalChunk.source_ordinal)).all()
+    approved_assets = {item['documentAssetId'] for item in version.extraction_manifest.get('visualAssets', [])}
+    ranked = _rank_evidence(query, rows, approved_assets, settings.tutor_retrieval_min_score)
     citations = []
-    for chunk, raw_distance in rows:
-        confidence = max(0, 1 - float(raw_distance))
-        if confidence < settings.tutor_retrieval_min_score:
-            continue
+    for chunk, confidence, _ in ranked:
         try:
             citations.append(_citation(db, session, chunk, confidence))
         except DomainError:
             continue
+        if len(citations) >= limit:
+            break
     return TutorSourceSearchResponse(status="exact" if citations else "evidence_insufficient",
         message="Exact approved topic evidence found." if citations else
             "AKURU could not find an exact approved passage in this topic. Do not invent a citation.",

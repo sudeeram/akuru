@@ -178,6 +178,15 @@ def _topic_readiness(db: Session, topic: TextbookTopic) -> TopicReadinessRespons
     final_reviews_ready = (not has_draft_changes) or all(
         documents.final_document(db, link.document_id).confirmed for link in reconstruction_links
     )
+    # Prepared packages need an explicit whole-document decision, even when all
+    # ordinary blocks have individually been marked reviewed.
+    prepared_links = [link for link in text_links if
+                      db.get(Document, link.document_id).source_metadata.get("preparedPackage")]
+    final_reviews_ready = final_reviews_ready and all(
+        documents.final_document(db, link.document_id).confirmed
+        and bool(db.get(Document, link.document_id).source_metadata.get("preparedReview"))
+        for link in prepared_links
+    )
     quality = topic_quality.report(db, topic)
     pending_visuals = int(db.scalar(select(func.count()).select_from(TextbookTopicVisualAsset).where(
         TextbookTopicVisualAsset.topic_id == topic.id, TextbookTopicVisualAsset.status == "selected",

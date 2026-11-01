@@ -43,7 +43,7 @@ export type TutorSession = {
   profileEvents: { fromProfileRef: string; fromProfileVersion: number; toProfileRef: string; toProfileVersion: number; handoverSummary: Record<string, unknown>; createdAt: string }[];
   topicEvents: { fromTopic: TutorSessionTopic; toTopic: TutorSessionTopic; createdAt: string }[];
 };
-export type TutorSessionOptions = { subjects: { id: string; name: string; topics: TutorSessionTopic[] }[]; profiles: TutorProfile[] };
+export type TutorSessionOptions = { pilotMode?: boolean; subjects: { id: string; name: string; topics: TutorSessionTopic[] }[]; profiles: TutorProfile[] };
 export type NextTopicResult = {
   status: 'ready' | 'no_evidence' | 'no_eligible_topics'; message: string; algorithmVersion: string;
   recommendation?: { topic: TutorSessionTopic; reason: string; evidenceRefs: string[];

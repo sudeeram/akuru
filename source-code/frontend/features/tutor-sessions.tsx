@@ -198,7 +198,7 @@ export function TutorSessions({
       <div className="stack">
         <Heading eyebrow="STUDENT · PRACTICE" title="Start a tutor session">
           Choose one covered topic and one of your tutors. Tutor help is
-          available during practice only.
+          available during practice only. {options.pilotMode && "This pilot covers Chemistry Topic 1 — States of Matter by text."}
         </Heading>
         {error && (
           <div className="error" role="alert">
@@ -529,6 +529,7 @@ export function TutorSessions({
         </small>
       </section>
       <TutorSignals refreshKey={agentReply?.turnRef} />
+      {options.pilotMode && <output className="panel">Topic 1 text tutoring pilot: explanations, revision and approved textbook figures are available. Voice, next-topic recommendations and assessed guided practice are not enabled in this pilot.</output>}
       <AdvancedPanel title="Sources, guided practice and session tools">
         {' '}
         <section className="panel stack tutor-next-topic">
@@ -541,7 +542,7 @@ export function TutorSessions({
             </div>
             <Button
               variant="outline"
-              disabled={busy}
+              disabled={busy || options.pilotMode}
               onClick={async () => {
                 setBusy(true);
                 setError('');
@@ -735,7 +736,7 @@ export function TutorSessions({
             {!practice || practice.status === 'submitted' ? (
               <Button
                 className="primary"
-                disabled={busy}
+                disabled={busy || options.pilotMode}
                 onClick={async () => {
                   setBusy(true);
                   setError('');
@@ -933,7 +934,7 @@ export function TutorSessions({
           subjectId={session.subjectId}
           profileIdentity={`${session.currentTutor.profileRef}:${session.currentTutor.version}`}
           disabled={
-            !quota || !quota.enabled || quota.voiceMinutes.remaining <= 0
+            options.pilotMode || !quota || !quota.enabled || quota.voiceMinutes.remaining <= 0
           }
           notify={notify}
           onTranscript={refreshVoiceTranscript}

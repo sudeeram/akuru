@@ -153,10 +153,11 @@ def profile_options(
 
 @router.get("/session-options", response_model=TutorSessionOptionsResponse)
 def session_options(
+    settings: Annotated[Settings, Depends(get_settings)],
     principal: Annotated[Principal, Depends(require_roles("student"))],
     db: Annotated[Session, Depends(get_db)],
 ):
-    return tutor_sessions.options(db, principal.user.id)
+    return tutor_sessions.options(db, principal.user.id, settings)
 
 
 @router.get("/sessions", response_model=TutorSessionListResponse)

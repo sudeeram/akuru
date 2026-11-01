@@ -116,7 +116,7 @@ def create_credential(
     session = tutor_sessions._owned_session(db, principal.user.id, session_ref, lock=True)
     tutor_sessions._require_active(session)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.VOICE,
-                         session.subject_id, "tutor_voice")
+                         session.subject_id, "tutor_voice", topic_id=session.active_topic_id)
     if settings.tutor_release_gates_required:
         from app.services.evaluations import tutor_feature_allowed
         allowed, reason = tutor_feature_allowed(db, session.subject_id, "tutor_voice",

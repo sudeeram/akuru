@@ -2,6 +2,7 @@
 
 Start with [Getting started](GETTING-STARTED.md), then read the guide for your role:
 
+- [Prepared screenshot textbooks](PREPARED-TEXTBOOK-IMPORT.md): local package import, whole-document review and publication.
 - [Admin guide](ADMIN-GUIDE.md): accounts, enrolments, textbooks, topics, coverage and papers.
 - [Parent guide](PARENT-GUIDE.md): your children's progress, assignments and answer reviews.
 - [Student guide](STUDENT-GUIDE.md): term practice, mocks, feedback and study plans.
@@ -16,3 +17,5 @@ Only Admin manages accounts, enrolments and learning documents. This supersedes
 the earlier guides that assigned course setup and uploads to parents.
 
 Developers and operators should start with the [developer handbook](../developer-docs/README.md).
+
+- [Chemistry text tutoring pilot](TUTOR-TEXT-PILOT.md)

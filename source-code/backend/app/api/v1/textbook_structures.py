@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, Header, Query, status
 from sqlalchemy.orm import Session
@@ -14,7 +15,8 @@ from app.schemas.textbook_structures import (
     TopicVisualAssetResponse, TopicVisualAssetUpdateRequest,
 )
 from app.security import Principal
-from app.services import textbook_structures
+from app.schemas.prepared_textbooks import PreparedReviewRequest
+from app.services import textbook_structures, prepared_textbooks
 from app.queue import DocumentQueue, get_document_queue
 from app.storage import ObjectStorage, get_storage
 from app.schemas.documents import DocumentUploadResponse, TopicPartBatchRequest, TopicPartSuggestion, TopicPartSuggestionRequest
@@ -260,3 +262,37 @@ def upload_topic_parts_batch(textbook_ref: str, topic_ref: str, payload: TopicPa
                              queue: Annotated[DocumentQueue, Depends(get_document_queue)]):
     return textbook_structures.upload_topic_parts_batch(db, storage, queue, principal,
                                                         textbook_ref, topic_ref, payload)
+
+
+# Packages are data-only archives. Preview is POST so source bytes never appear
+# in URLs/logs and receives the same CSRF protection as import.
+@router.post("/{textbook_ref}/topics/{topic_ref}/prepared-packages/preview")
+def preview_prepared_package(textbook_ref: str, topic_ref: str,
+                             content: Annotated[bytes, Body(media_type="application/octet-stream")],
+                             _principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                             db: Annotated[Session, Depends(get_db)]) -> dict:
+    return prepared_textbooks.preview(db, textbook_ref, topic_ref, content)
+
+
+@router.post("/{textbook_ref}/topics/{topic_ref}/prepared-packages/import", status_code=201)
+def import_prepared_package(textbook_ref: str, topic_ref: str,
+                            content: Annotated[bytes, Body(media_type="application/octet-stream")],
+                            principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                            db: Annotated[Session, Depends(get_db)],
+                            storage: Annotated[ObjectStorage, Depends(get_storage)]) -> dict:
+    return prepared_textbooks.import_package(db, storage, principal, textbook_ref, topic_ref, content)
+
+
+@router.get("/{textbook_ref}/topics/{topic_ref}/prepared-packages/{document_id}/review")
+def prepared_package_review(textbook_ref: str, topic_ref: str, document_id: UUID,
+                            _principal: Annotated[Principal, Depends(require_roles("admin"))],
+                            db: Annotated[Session, Depends(get_db)]) -> dict:
+    return prepared_textbooks.review_state(db, textbook_ref, topic_ref, document_id)
+
+
+@router.post("/{textbook_ref}/topics/{topic_ref}/prepared-packages/{document_id}/review")
+def confirm_prepared_package(textbook_ref: str, topic_ref: str, document_id: UUID,
+                             payload: PreparedReviewRequest,
+                             principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                             db: Annotated[Session, Depends(get_db)]) -> dict:
+    return prepared_textbooks.confirm_review(db, principal, textbook_ref, topic_ref, document_id, payload)

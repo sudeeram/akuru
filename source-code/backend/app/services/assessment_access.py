@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import DomainError
-from app.models import Assessment
+from app.models import Assessment, TextbookTopicContentVersion
 from app.schemas.assessments import AssessmentMode
 
 
@@ -63,6 +63,23 @@ def tutor_feature_enabled(settings: Settings, capability: TutorCapability) -> bo
     }[capability]
 
 
+PILOT_WORKFLOWS = frozenset({
+    "tutor_text", "tutor_tools", "tutor_learner_context", "tutor_sources", "tutor_visuals",
+})
+
+
+def tutor_pilot_allowed(settings: Settings, student_id: uuid.UUID, workflow: str,
+                        subject_id: str | None = None, topic_id: uuid.UUID | None = None,
+                        model: str | None = None, prompt_version: str | None = None) -> bool:
+    pilot = settings.tutor_text_pilot
+    return bool(pilot and pilot.expires_at > datetime.now(timezone.utc)
+        and pilot.student_id == student_id and workflow in PILOT_WORKFLOWS
+        and (subject_id is None or subject_id == pilot.subject_id)
+        and (topic_id is None or topic_id == pilot.topic_id)
+        and (model is None or model == pilot.model)
+        and (prompt_version is None or prompt_version == pilot.prompt_version))
+
+
 def require_tutor_access(
     db: Session,
     settings: Settings,
@@ -70,6 +87,8 @@ def require_tutor_access(
     capability: TutorCapability,
     subject_id: str | None = None,
     workflow: str | None = None,
+    *, topic_id: uuid.UUID | None = None, model: str | None = None,
+    prompt_version: str | None = None,
 ) -> None:
     """Authorize a tutor capability and block all help during a live formal attempt."""
     if not tutor_feature_enabled(settings, capability):
@@ -84,21 +103,36 @@ def require_tutor_access(
             "AKURU Tutor is unavailable while a formal assessment is active.",
             403,
         )
+    release_workflow = workflow or f"tutor_{capability.value}"
+    if settings.tutor_text_pilot:
+        # While this controlled pilot is configured it is the entire audience,
+        # even if an older broad release exists. Never permit voice or new tools.
+        if not tutor_pilot_allowed(settings, student_id, release_workflow,
+                                   subject_id, topic_id, model, prompt_version):
+            raise DomainError("tutor_pilot_restricted",
+                "This Tutor pilot is limited to its selected student, topic, model and teaching tools.", 403)
+        if topic_id is not None:
+            version = db.get(TextbookTopicContentVersion, settings.tutor_text_pilot.topic_content_version_id)
+            if not version or version.topic_id != topic_id or version.status != "published":
+                raise DomainError("tutor_pilot_content_changed",
+                    "This topic has changed since the Tutor pilot was validated. Ask the Admin to revalidate the pilot.", 403)
+        return
     if settings.tutor_release_gates_required and subject_id:
         from app.services.evaluations import tutor_feature_allowed
         release_workflow = workflow or f"tutor_{capability.value}"
-        allowed, reason = tutor_feature_allowed(db, subject_id, release_workflow)
+        allowed, reason = tutor_feature_allowed(db, subject_id, release_workflow, model, prompt_version)
         if not allowed:
             raise DomainError("tutor_release_blocked", reason, 403)
 
 
 def tutor_capabilities(db: Session, settings: Settings, student_id: uuid.UUID) -> dict:
     formal = active_formal_assessment(db, student_id)
-    blocked = formal is not None
-    reason = "formal_assessment_active" if blocked else None
+    pilot_blocked = bool(settings.tutor_text_pilot and not tutor_pilot_allowed(settings, student_id, "tutor_text"))
+    blocked = formal is not None or pilot_blocked
+    reason = "formal_assessment_active" if formal else "tutor_pilot_restricted" if pilot_blocked else None
     return {
         "textEnabled": settings.tutor_text_enabled and not blocked,
-        "voiceEnabled": settings.tutor_voice_enabled and not blocked,
+        "voiceEnabled": settings.tutor_voice_enabled and not blocked and settings.tutor_text_pilot is None,
         "toolsEnabled": settings.tutor_tools_enabled and not blocked,
         "blockedReason": reason,
     }

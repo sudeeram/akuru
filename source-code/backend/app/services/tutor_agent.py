@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import time
 import uuid
 from collections.abc import Callable
@@ -21,7 +22,7 @@ from app.schemas.tutor_agent import (
 from app.schemas.tutor_sources import TutorCitation
 from app.security import Principal
 from app.services import tutor_context, tutor_history, tutor_quotas, tutor_recommendations, tutor_sessions, tutor_sources
-from app.services.assessment_access import TutorCapability, require_tutor_access
+from app.services.assessment_access import TutorCapability, require_tutor_access, tutor_pilot_allowed
 
 
 Generator = Callable[[AIRequest, uuid.UUID], AIResult]
@@ -41,7 +42,8 @@ def _invoke(db: Session, settings: Settings, principal: Principal, request: AIRe
     started = time.monotonic()
     try:
         result = generator(request, operation_id) if generator else AIAccountRouter(db, settings).generate(
-            request, operation_id=operation_id)
+            request, operation_id=operation_id,
+            required_model=settings.tutor_text_pilot.model if settings.tutor_text_pilot else None)
     except AIProviderError as error:
         tutor_quotas.release_text(db, principal.user.id, quota_operation, estimated_tokens, error.code)
         invocation.status = "failed"; invocation.error_code = error.code
@@ -122,15 +124,26 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
 
     context = tutor_context.build_and_log(db, settings, principal, session.public_ref,
         f"agent-context-{operation_id.hex}")
+    source_query = payload.message
+    # A short follow-up such as "So are they still?" needs the student's own
+    # previous question as retrieval context, not only in the provider transcript.
+    if len(payload.message) <= 160 and re.match(
+        r"^(?:so\b|and\b|what about\b|why[?!.]?$|does (?:it|that)\b|are (?:they|those)\b)",
+        payload.message.strip(), re.I,
+    ):
+        previous = next((turn for turn in reversed(repository.recent(db, session.id))
+                         if turn.role == "student"), None)
+        if previous:
+            source_query = previous.content[:1000] + "\n" + payload.message
     source_result = tutor_sources.search(db, settings, principal, session.public_ref,
-        payload.message, None, 5)
+        source_query, None, 5)
     active = next(item for item in (context.topics if session.active_topic_id else context.units) if item.active)
     evidence_refs = [ref for statement in active.statements for ref in statement.evidenceRefs]
     try:
         practice = tutor_practice.current(db, settings, principal, session.public_ref)
-        practice_allowed = True
+        practice_allowed = settings.tutor_text_pilot is None
     except DomainError as error:
-        if error.code != "tutor_release_blocked": raise
+        if error.code not in {"tutor_release_blocked", "tutor_pilot_restricted"}: raise
         practice, practice_allowed = None, False
     practice_refs = ([f"assessment_result:{practice.question.result.id}"]
                      if practice and practice.question.result else [])
@@ -160,17 +173,20 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
             results.append(TutorToolResult(name="next_unit", status="ready" if recommendation.status == "ready" else "evidence_insufficient",
                 summary=recommendation.message, evidenceRefs=[recommendation.contextOperationRef] if recommendation.contextOperationRef else []))
         except DomainError as error:
-            if error.code != "tutor_release_blocked": raise
+            if error.code not in {"tutor_release_blocked", "tutor_pilot_restricted"}: raise
             recommendation = None
             results.append(TutorToolResult(name="next_unit", status="unavailable",
                 summary="The next-topic tool is not released for this subject."))
     else:
         recommendation = None
-        results.append(TutorToolResult(name="next_topic", status="unavailable", summary="A next-topic recommendation was not requested."))
+        results.append(TutorToolResult(name="next_unit", status="unavailable", summary="A next-topic recommendation was not requested."))
     visual_allowed = True
     if settings.tutor_release_gates_required:
         from app.services.evaluations import tutor_feature_allowed
         visual_allowed, _ = tutor_feature_allowed(db, session.subject_id, "tutor_visuals")
+        if settings.tutor_text_pilot:
+            visual_allowed = tutor_pilot_allowed(settings, principal.user.id, "tutor_visuals",
+                                                 session.subject_id, session.active_topic_id)
     visuals = _media(db, settings, principal, session, source_result.citations,
                      visual_allowed and _visual_requested(payload.message))
     results.append(TutorToolResult(name="deterministic_media", status="ready" if visuals else "evidence_insufficient",
@@ -200,9 +216,9 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     session = tutor_sessions._owned_session(db, principal.user.id, session_ref, lock=True)
     tutor_sessions._require_active(session)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
-                         session.subject_id, "tutor_text")
+                         session.subject_id, "tutor_text", topic_id=session.active_topic_id)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_tools")
+                         session.subject_id, "tutor_tools", topic_id=session.active_topic_id)
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
@@ -248,13 +264,18 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         metadata={"session_ref": session.public_ref, "subject": session.subject_id,
                   "topic": topic.code,
                   "mode": payload.teachingMode})
+    if settings.tutor_text_pilot:
+        from app.models import AIProviderAccount
+        selected = db.scalar(select(AIProviderAccount).where(AIProviderAccount.enabled.is_(True))
+                             .order_by(AIProviderAccount.priority))
+        require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+            session.subject_id, "tutor_text", topic_id=session.active_topic_id,
+            model=selected.model if selected else settings.openai_model or "unconfigured",
+            prompt_version=prompt.version)
     result = _invoke(db, settings, principal, request, operation_id, generator)
-    if settings.tutor_release_gates_required:
-        from app.services.evaluations import tutor_feature_allowed
-        allowed, reason = tutor_feature_allowed(db, session.subject_id, "tutor_text",
-                                                result.model, prompt.version)
-        if not allowed:
-            raise DomainError("tutor_release_blocked", reason, 403)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+        session.subject_id, "tutor_text", topic_id=session.active_topic_id,
+        model=result.model, prompt_version=prompt.version)
     output = TutorProviderOutput.model_validate(result.output)
     allowed = {item.citationRef: item for item in citations}
     if any(ref not in allowed for ref in output.citationRefs):
@@ -284,7 +305,7 @@ def open_media(db: Session, settings: Settings, principal: Principal, storage, s
     session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
     tutor_sessions._require_active(session)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_visuals")
+                         session.subject_id, "tutor_visuals", topic_id=session.active_topic_id)
     row = db.get(EducationalMedia, media_id)
     if not row or row.status != "published" or row.subject_id != session.subject_id or row.topic_id != session.active_topic_id:
         raise DomainError("tutor_media_not_found", "Tutor visual not found.", 404)

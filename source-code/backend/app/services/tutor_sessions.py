@@ -57,7 +57,7 @@ def _eligible_topic(db: Session, student_id: uuid.UUID, subject_id: str, topic_r
     return topic
 
 
-def options(db: Session, student_id: uuid.UUID) -> TutorSessionOptionsResponse:
+def options(db: Session, student_id: uuid.UUID, settings: Settings | None = None) -> TutorSessionOptionsResponse:
     subjects = db.scalars(select(Subject).order_by(Subject.name)).all()
     available = []
     for subject in subjects:
@@ -65,10 +65,16 @@ def options(db: Session, student_id: uuid.UUID) -> TutorSessionOptionsResponse:
             coverage = curriculum_plans.student_coverage(db, student_id, subject.id)
         except DomainError:
             continue
+        if settings and settings.tutor_text_pilot:
+            pilot = settings.tutor_text_pilot
+            topic = db.get(TextbookTopic, pilot.topic_id)
+            coverage.coveredTopics = [t for t in coverage.coveredTopics
+                if pilot.student_id == student_id and topic and t.topicRef == topic.public_ref]
         if coverage.status == "ready" and coverage.coveredTopics:
             available.append(TutorSessionSubjectOption(id=subject.id, name=subject.name,
                 topics=coverage.coveredTopics))
     return TutorSessionOptionsResponse(
+        pilotMode=bool(settings and settings.tutor_text_pilot),
         subjects=available,
         profiles=tutor_profiles.list_for_student(db, student_id).profiles,
     )
@@ -157,6 +163,8 @@ def start(db: Session, settings: Settings, principal: Principal, payload) -> Tut
         raise DomainError("tutor_session_already_active", "End your current tutor session before starting another.", 409)
     _, version = _owned_profile(db, principal.user.id, payload.profileRef)
     topic = _eligible_topic(db, principal.user.id, payload.subjectId, payload.topicRef)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+                         payload.subjectId, "tutor_text", topic_id=topic.id)
     row = TutorSession(public_ref=f"tutor_session_{uuid.uuid4().hex}", student_id=principal.user.id,
                        subject_id=payload.subjectId, active_topic_id=topic.id,
                        current_profile_version_id=version.id, start_request_key=payload.requestKey)
@@ -178,7 +186,7 @@ def add_turn(db: Session, settings: Settings, principal: Principal, session_ref:
     require_tutor_access(db, settings, principal.user.id, capability)
     row = _owned_session(db, principal.user.id, session_ref, lock=True); _require_active(row)
     require_tutor_access(db, settings, principal.user.id, capability, row.subject_id,
-                         "tutor_voice" if capability == TutorCapability.VOICE else "tutor_text")
+                         "tutor_voice" if capability == TutorCapability.VOICE else "tutor_text", topic_id=row.active_topic_id)
     replay = db.scalar(select(TutorTurn).where(TutorTurn.session_id == row.id, TutorTurn.request_key == payload.requestKey))
     if replay:
         return response(db, row)
@@ -245,6 +253,8 @@ def switch_topic(db: Session, settings: Settings, principal: Principal, session_
     if active_practice:
         raise DomainError("tutor_practice_active", "Submit the active guided-practice question before moving topics.", 409)
     topic = _eligible_topic(db, principal.user.id, row.subject_id, payload.topicRef)
+    require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+                         row.subject_id, "tutor_text", topic_id=topic.id)
     if topic.id == row.active_topic_id: raise DomainError("tutor_topic_already_selected", "That topic is already active.", 409)
     db.add(TutorSessionTopicEvent(session_id=row.id, from_topic_id=row.active_topic_id,
         to_topic_id=topic.id, request_key=payload.requestKey))

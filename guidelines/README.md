@@ -3,6 +3,7 @@
 Standards for preparing, interpreting and reviewing source materials before they enter AKURU. Organise each document family in its own folder; keep implementation details in `developer-docs` and delivery work in `source-code/todo`.
 
 - [Past papers](pastpapers/README.md)
+- [Textbooks and screenshot-based preparation](textbooks/README.md)
 
 ## How to apply a guideline
 

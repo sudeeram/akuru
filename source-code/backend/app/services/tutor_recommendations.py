@@ -99,7 +99,7 @@ def recommend(db: Session, settings: Settings, principal: Principal, session_ref
         raise DomainError("tutor_recommendation_subject_mismatch",
                           "Recommendations must stay inside the active tutor subject.", 422)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_next_topic")
+                         session.subject_id, "tutor_next_topic", topic_id=session.active_topic_id)
     coverage = curriculum_plans.student_coverage(db, principal.user.id, subject_id)
     if coverage.status != "ready" or not coverage.coveredTopics:
         return NextTopicResponse(status="no_eligible_topics",

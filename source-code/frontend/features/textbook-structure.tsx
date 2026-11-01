@@ -52,6 +52,7 @@ import {
   type TextbookStructureTopic,
 } from '@/api';
 import { Picker } from './shared';
+import { PreparedTextbookImport } from './prepared-textbook-import';
 
 type Props = {
   subjects: Subject[];
@@ -1681,6 +1682,8 @@ export function TextbookStructureAdmin({
                             refreshBook={() => refresh(book.textbookRef)}
                             notify={notify}
                           />
+                          <PreparedTextbookImport bookRef={book.textbookRef} topicRef={topic.topicRef}
+                            refreshBook={() => refresh(book.textbookRef)} notify={notify} navigate={navigate} />
                           <section
                             className="topic-upload-panel"
                             aria-label={`Upload files to ${topic.code}`}

@@ -16,6 +16,8 @@ This handbook explains the current AKURU implementation for developers. It descr
 
 10. [Student Community](11-student-community.md) — public identities, course discovery, following, privacy and moderation.
 
+See also [prepared screenshot textbook import](../source-code/backend/docs/screenshot-textbook-packages.md) for the local draft archive/review workflow and its security boundary.
+
 ## Architectural principles
 
 - FastAPI and PostgreSQL are authoritative. The browser never grants access by hiding or showing a control.
@@ -43,3 +45,5 @@ This handbook explains the current AKURU implementation for developers. It descr
 The OpenAPI JSON and generated TypeScript contract are generated artifacts. Change the FastAPI schemas and routes first, then regenerate them.
 
 - [Model-answer visuals and drawn submissions](12-model-answer-visuals.md)
+
+- [Controlled text Tutor pilot](../source-code/backend/docs/tutor-controlled-text-pilot.md)

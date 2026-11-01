@@ -1,8 +1,28 @@
+from datetime import datetime
 from functools import lru_cache
+from uuid import UUID
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
+
+
+class TutorTextPilot(BaseModel):
+    """A separately evidenced, temporary one-student text pilot, not a general release."""
+    student_id: UUID
+    subject_id: str
+    topic_id: UUID
+    topic_content_version_id: UUID
+    model: str = Field(min_length=1)
+    prompt_version: str = Field(min_length=1)
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    expires_at: datetime
+
+    @model_validator(mode="after")
+    def require_timezone(self):
+        if self.expires_at.tzinfo is None:
+            raise ValueError("Tutor pilot expiry must include its timezone")
+        return self
 
 
 class Settings(BaseSettings):
@@ -66,6 +86,7 @@ class Settings(BaseSettings):
     ai_max_input_characters: int = Field(default=80_000, ge=1_000, le=500_000)
     ai_max_image_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     ai_max_output_tokens: int = Field(default=4_000, ge=100, le=32_000)
+    tutor_text_pilot: TutorTextPilot | None = None
     tutor_text_enabled: bool = False
     tutor_voice_enabled: bool = False
     tutor_tools_enabled: bool = False

@@ -42,7 +42,10 @@ app.include_router(api_router)
 
 def _request_body_limit(path: str) -> int:
     is_topic_document_upload = (
-        path.startswith("/api/v1/admin/textbooks/") and path.endswith("/documents")
+        path.startswith("/api/v1/admin/textbooks/") and (
+            path.endswith("/documents") or path.endswith("/prepared-packages/preview")
+            or path.endswith("/prepared-packages/import")
+        )
     )
     if path == "/api/v1/documents" or is_topic_document_upload:
         return settings.max_document_bytes

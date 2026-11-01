@@ -23,7 +23,7 @@ class AIAccountRouter:
         self.settings = settings
         self.provider_builder = provider_builder or self._build_openai
 
-    def generate(self, request: AIRequest, *, operation_id: uuid.UUID | None = None) -> AIResult:
+    def generate(self, request: AIRequest, *, operation_id: uuid.UUID | None = None, required_model: str | None = None) -> AIResult:
         operation_id = operation_id or uuid.uuid4()
         now = datetime.now(timezone.utc)
         accounts = self.db.scalars(
@@ -40,7 +40,7 @@ class AIAccountRouter:
         if not configured:
             raise AIProviderError("no_ai_account", "No enabled OpenAI account has a configured credential.")
 
-        required_model = configured[0][0].model
+        required_model = required_model or configured[0][0].model
         eligible = [(account, key) for account, key in configured if account.model == required_model]
         last_error: AIProviderError | None = None
         for number, (account, key) in enumerate(eligible, start=1):

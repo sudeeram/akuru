@@ -87,5 +87,6 @@ class TutorSessionSubjectOption(BaseModel):
 
 
 class TutorSessionOptionsResponse(BaseModel):
+    pilotMode: bool = False
     subjects: list[TutorSessionSubjectOption]
     profiles: list[TutorProfileResponse]

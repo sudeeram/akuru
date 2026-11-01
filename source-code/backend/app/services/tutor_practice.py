@@ -49,10 +49,15 @@ def _response(db: Session, row: TutorPractice, latest_hint: str | None = None) -
 
 
 def current(db: Session, settings: Settings, principal: Principal, session_ref: str):
+    if settings.tutor_text_pilot:
+        session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+        require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+                             session.subject_id, "tutor_text", topic_id=session.active_topic_id)
+        return None  # Assessed guided practice is outside this text pilot.
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_practice")
+                         session.subject_id, "tutor_practice", topic_id=session.active_topic_id)
     row = db.scalar(select(TutorPractice).where(TutorPractice.session_id == session.id)
                     .order_by(TutorPractice.created_at.desc()))
     return _response(db, row) if row else None
@@ -62,7 +67,7 @@ def start(db: Session, settings: Settings, principal: Principal, session_ref: st
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session, active = _active(db, principal.user.id, session_ref, required=False)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_practice")
+                         session.subject_id, "tutor_practice", topic_id=session.active_topic_id)
     replay = db.scalar(select(TutorPractice).where(
         TutorPractice.session_id == session.id, TutorPractice.request_key == request_key))
     if replay:
@@ -84,7 +89,7 @@ def hint(db: Session, settings: Settings, principal: Principal, session_ref: str
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session, row = _active(db, principal.user.id, session_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_practice")
+                         session.subject_id, "tutor_practice", topic_id=session.active_topic_id)
     value = assessments.record_hint(db, principal, row.assessment_id, row.question_id, request_key)
     return _response(db, row, value["hint"])
 
@@ -93,7 +98,7 @@ def answer(db: Session, settings: Settings, principal: Principal, session_ref: s
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session, row = _active(db, principal.user.id, session_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_practice")
+                         session.subject_id, "tutor_practice", topic_id=session.active_topic_id)
     assessments.save_answer(db, principal, row.assessment_id,
         AnswerSave(questionId=row.question_id, answer=text, idempotencyKey=request_key))
     return _response(db, row)
@@ -103,7 +108,7 @@ def submit(db: Session, settings: Settings, principal: Principal, session_ref: s
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT)
     session, row = _active(db, principal.user.id, session_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_practice")
+                         session.subject_id, "tutor_practice", topic_id=session.active_topic_id)
     assessment = assessments.submit(db, principal, row.assessment_id, request_key)
     assessment_marking.evaluate(db, settings, assessments._owned(db, principal, assessment.id, True), request_key)
     row.status = "submitted"; row.submitted_at = datetime.now(timezone.utc)

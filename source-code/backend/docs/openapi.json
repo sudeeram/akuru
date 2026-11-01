@@ -7541,6 +7541,34 @@
         "title": "PortalStateResponse",
         "type": "object"
       },
+      "PreparedReviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmWholeDocument": {
+            "title": "Confirmwholedocument",
+            "type": "boolean"
+          },
+          "contentHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "decisions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 100,
+            "title": "Decisions",
+            "type": "object"
+          }
+        },
+        "required": [
+          "contentHash",
+          "confirmWholeDocument"
+        ],
+        "title": "PreparedReviewRequest",
+        "type": "object"
+      },
       "ProgressionPairResponse": {
         "properties": {
           "grade": {
@@ -13262,6 +13290,11 @@
       },
       "TutorSessionOptionsResponse": {
         "properties": {
+          "pilotMode": {
+            "default": false,
+            "title": "Pilotmode",
+            "type": "boolean"
+          },
           "profiles": {
             "items": {
               "$ref": "#/components/schemas/TutorProfileResponse"
@@ -19342,6 +19375,462 @@
           }
         },
         "summary": "Topic Launch Readiness",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/prepared-packages/import": {
+      "post": {
+        "operationId": "import_prepared_package_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__prepared_packages_import_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Content",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Import Prepared Package Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Prepared Packages Import Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Import Prepared Package",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/prepared-packages/preview": {
+      "post": {
+        "operationId": "preview_prepared_package_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__prepared_packages_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "contentMediaType": "application/octet-stream",
+                "title": "Content",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Preview Prepared Package Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Prepared Packages Preview Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Preview Prepared Package",
+        "tags": [
+          "textbook structures"
+        ]
+      }
+    },
+    "/api/v1/admin/textbooks/{textbook_ref}/topics/{topic_ref}/prepared-packages/{document_id}/review": {
+      "get": {
+        "operationId": "prepared_package_review_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__prepared_packages__document_id__review_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Prepared Package Review Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Prepared Packages  Document Id  Review Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Prepared Package Review",
+        "tags": [
+          "textbook structures"
+        ]
+      },
+      "post": {
+        "operationId": "confirm_prepared_package_api_v1_admin_textbooks__textbook_ref__topics__topic_ref__prepared_packages__document_id__review_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "textbook_ref",
+            "required": true,
+            "schema": {
+              "title": "Textbook Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "topic_ref",
+            "required": true,
+            "schema": {
+              "title": "Topic Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreparedReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Confirm Prepared Package Api V1 Admin Textbooks  Textbook Ref  Topics  Topic Ref  Prepared Packages  Document Id  Review Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Confirm Prepared Package",
         "tags": [
           "textbook structures"
         ]
