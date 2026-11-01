@@ -55,3 +55,11 @@ Recorded six append-only assessments with all 38 subpart estimates through authe
 | I01–I03 | Passed | Authenticated APIs, expected revisions, pre-write comparison, read-back and separate append-only metadata. No direct database writes or publication. |
 
 Admin must confirm content and coverage before approval. Automatic scientific drawing assessment remains disabled. Conditional marking/manual-only gates remain active. Confidence does not satisfy release gates. Licensed PDFs/images/text, payloads, credentials and detailed snapshots remain in ignored `tmp/` / `pastpapers/` locations and production storage.
+
+## Deployment and acceptance
+
+Release `5860681734667942092bd619cc5ce90e71f36639` deployed on 2026-11-01 at 01:19:59 UTC using the reviewed-release script and its encrypted backup gate. Evidence: `/data/akuru/release-evidence/deployed-5860681734667942092bd619cc5ce90e71f36639-20261101T011959Z.txt`. No new migration was required; production remains at `0017_official_question_analyses`, with no schema drift.
+
+Local verification: 107 frontend tests, 19 focused backend question-review/confidence/provenance tests, TypeScript and targeted lint passed. Seven existing backend dependency deprecation warnings remain. Production HTTPS/security-header, service-health, timer, route-fallback and loopback-binding acceptance passed.
+
+Read-only production browser verification passed for both 1C (10 questions / 49 subparts) and 2C (6 / 38): dedicated route, question/subpart scope filters, model filtering, current confidence values, detailed source/provenance/history, responsive scrolling at 1440px and 390px, and links opening the exact review subpart without enabling Save. The compact question navigation contains no confidence percentages. Authenticated read-back confirmed all 2C content, revisions and approvals unchanged by assessment or browser checks, with every assessment current. An unauthenticated Admin API request returned 401. No browser errors occurred. Unrelated local navigation/style edits from another chat were excluded from this release.
