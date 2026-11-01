@@ -85,6 +85,19 @@ export function TutorSessions({
   const [expandedSource, setExpandedSource] =
     useState<TutorCitationContext | null>(null);
   const textInput = useRef<HTMLInputElement | null>(null);
+  const latestTurnElement = useRef<HTMLElement | null>(null);
+  const latestTurnRef = session?.turns.at(-1)?.turnRef;
+  useEffect(() => {
+    if (!latestTurnRef) return;
+    // Keep the beginning of a new answer visible, including for long replies.
+    // Typing, quota updates and other rerenders must not move the reader.
+    latestTurnElement.current?.scrollIntoView({
+      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth',
+      block: 'start',
+    });
+  }, [latestTurnRef]);
   const load = useCallback(async () => {
     try {
       const [choices, profiles, sessions, allowance] = await Promise.all([
@@ -399,7 +412,12 @@ export function TutorSessions({
         ) : (
           <div className="tutor-turn-list">
             {session.turns.map((turn) => (
-              <article key={turn.turnRef} className={`tutor-turn ${turn.role}`}>
+              <article
+                key={turn.turnRef}
+                className={`tutor-turn ${turn.role}`}
+                ref={turn.turnRef === latestTurnRef ? latestTurnElement : undefined}
+                style={{ scrollMarginBlockStart: '6rem' }}
+              >
                 <strong>
                   {turn.role === 'student' ? 'You' : session.currentTutor.name}
                 </strong>
