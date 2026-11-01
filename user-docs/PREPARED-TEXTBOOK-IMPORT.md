@@ -1,6 +1,6 @@
 # Importing a textbook prepared from screenshots
 
-This workflow is available in the new local build. It has not been deployed to production as part of this task.
+The import workflow was deployed on 2026-11-01. Importing still creates a separate draft: the prepared Topic 1 candidate has not been imported into production or substituted for its current published source.
 
 1. An operator prepares the screenshot-derived reading document, figures, tables, exercises and exception list, then creates a validated AKURU ZIP package. A Word document or newly typeset primary PDF is not required.
 2. Sign in as Admin. Open **Textbooks → View textbooks → Manage**, then the destination topic. Expand **Import prepared screenshot textbook**.

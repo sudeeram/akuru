@@ -12,3 +12,7 @@ The Node runtime security patch does not resolve npm package vulnerabilities. Th
 - [ ] Run frontend tests, typecheck, lint, build, route/authentication and populated learning/review workflow checks.
 - [ ] Commit/push the reviewed dependency changes, deploy with backups and run production acceptance.
 - [ ] Rerun the audit; document resolved findings and any explicitly accepted remaining risk with a concrete follow-up. Update the plan status and evidence.
+
+## Reconfirmed during text Tutor deployment — 2026-11-01
+
+Production `npm ci` again reported 29 findings; `npm audit --omit=dev` reported the same 23 (1 critical, 10 high, 11 moderate, 1 low). Detailed report: `/tmp/akuru-text-pilot-dependency-audit.json` on the Ubuntu server. The critical entry remains `proxy-addr`; other high entries include body-parser, seroval, undici and build/tooling paths. This is a repeat of existing findings, not evidence that every affected function is reachable or that the running application is unaffected. No package/lockfile remediation was attempted in the teaching pilot. Complete the runtime-path triage and compatible security updates above.
