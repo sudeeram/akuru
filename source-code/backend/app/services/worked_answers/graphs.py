@@ -2,6 +2,7 @@
 import math
 import pymupdf
 from app.schemas.worked_answers import GraphSolution
+from app.schemas.scientific_diagrams import DiagramSolution
 
 LABEL = "AI-generated worked answer — not an official Pearson answer"
 RENDERER_VERSION = "graph-renderer-v1"
@@ -17,6 +18,12 @@ def fit_coefficients(points):
 
 def validate_source(solution: GraphSolution, source: dict):
     """Source table and axes must be explicitly verified, never inferred silently."""
+    if isinstance(solution, DiagramSolution):
+        if source.get('schemaVersion') != solution.schemaVersion or source.get('facts') != solution.facts.model_dump():
+            raise ValueError('Generated diagram differs from the verified scientific facts.')
+        if set(s.partLabel for s in solution.steps) != set(source.get('partLabels', [])):
+            raise ValueError('Generated steps do not match the selected subparts.')
+        return
     for key in ("xAxis", "yAxis", "points"):
         expected = source.get(key)
         if expected != solution.model_dump()[key]:
@@ -27,6 +34,9 @@ def validate_source(solution: GraphSolution, source: dict):
 
 def render(solution: GraphSolution, step_index: int) -> bytes:
     """Raster PNG keeps model-generated strings inert and preserves aspect ratio."""
+    if isinstance(solution, DiagramSolution):
+        from .scientific_diagrams import render as render_diagram
+        return render_diagram(solution, step_index)
     step = solution.steps[step_index]
     left, top, width, height = 105, 80, 600, 420
     x, y = solution.xAxis, solution.yAxis

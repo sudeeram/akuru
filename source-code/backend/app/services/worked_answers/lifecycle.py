@@ -7,7 +7,8 @@ from sqlalchemy import select
 from app.errors import DomainError
 from app.models import GeneratedWorkedAnswer, OfficialPaperReviewQuestion, DocumentVersion, DocumentBlock, AuditEvent
 from app.services.official_paper_reviews import _workspace, _validate_bound_versions, _validate_evidence
-from app.schemas.worked_answers import GraphSolution
+from app.schemas.worked_answers import parse_solution
+from app.schemas.scientific_diagrams import DiagramSolution
 from .graphs import validate_source, render, LABEL, RENDERER_VERSION
 
 
@@ -101,10 +102,10 @@ def create(db,principal,paper_id,number,payload):
 
 
 def import_draft(db,principal,paper_id,number,payload):
-    """Register a Codex-prepared graph without pretending an API account generated it.
+    """Register a Codex-prepared answer without pretending an API account generated it.
 
     Source, geometry and rendering checks are identical to queued generation;
-    scientific approval and attachment remain separate Admin decisions.
+    scientific approval is required before automatic private attachment.
     """
     w,q,digest,manifest=_verified_source(db,paper_id,number,payload.expectedQuestionRevision,payload.graph)
     if payload.solution.confidencePercent is None:
@@ -125,13 +126,14 @@ def import_draft(db,principal,paper_id,number,payload):
             return response(row,digest)
     if any(row.status in ('queued','processing') for row in existing):
         raise DomainError('generation_running','This question already has a pending generation.',409)
+    scientific=isinstance(payload.solution,DiagramSolution)
     row=GeneratedWorkedAnswer(id=uuid.uuid4(),question_id=q.id,source_hash=digest,source_manifest=manifest,
         graph_input=graph_input,solution=solution,created_by=principal.user.id,status='awaiting_review',revision=1,
         provenance={'sourceQuestionRevision':q.revision,'provider':'Codex conversation',
-            'model':'Codex-prepared draft','promptVersion':'operator-assisted-graph-v1',
-            'rendererVersion':RENDERER_VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),
+            'model':'Codex-prepared draft','promptVersion':'operator-assisted-science-v1' if scientific else 'operator-assisted-graph-v1',
+            'rendererVersion':'science-diagram-renderer-v1' if scientific else RENDERER_VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),
             'generationNote':payload.generationNote,
-            'checks':['verified axes unchanged','verified points unchanged','subparts matched',
+            'checks':(['verified scientific facts unchanged'] if scientific else ['verified axes unchanged','verified points unchanged'])+['subparts matched',
                       'geometry valid','render succeeded'],
             'scientificReviewRequired':True})
     db.add(row)
@@ -162,7 +164,7 @@ def review(db,storage,principal,paper_id,number,answer_id,payload):
         row.reviewed_by=None;row.reviewed_at=None
     elif payload.action=='approve':
         if payload.solution is not None: raise DomainError('save_edits_first','Save and preview edits before approving.',422)
-        solution=GraphSolution.model_validate(row.solution);validate_source(solution,row.graph_input)
+        solution=parse_solution(row.solution);validate_source(solution,row.graph_input)
         row.status='approved';row.reviewed_by=principal.user.id;row.reviewed_at=datetime.now(timezone.utc)
     else:
         row.status='rejected';row.reviewed_by=principal.user.id;row.reviewed_at=datetime.now(timezone.utc)
@@ -194,8 +196,11 @@ def attach(db,storage,principal,paper_id,number,answer_id,expected_question_revi
         q.status='needs_correction'
         db.add(AuditEvent(actor_id=principal.user.id,action='official_review.question_reopened_for_worked_answer',
             target_type='document',target_id=str(paper_id),event_data={'number':number,'workedAnswerId':str(row.id)}))
-    solution=GraphSolution.model_validate(row.solution)
+    solution=parse_solution(row.solution)
     validate_source(solution,row.graph_input)
+    scientific=isinstance(solution,DiagramSolution)
+    from .scientific_diagrams import describe_facts
+    data_text=describe_facts(solution.facts) if scientific else '; '.join(f'{p.x:g}, {p.y:g}' for p in solution.points)
     data=json.loads(json.dumps(q.review_data))
     assets=[]
     for i,step in enumerate(solution.steps):
@@ -210,15 +215,15 @@ def attach(db,storage,principal,paper_id,number,answer_id,expected_question_revi
                     'sourceHash':digest,'questionId':str(q.id),'partLabel':step.partLabel,'label':LABEL,
                     'solutionHash':hashlib.sha256(json.dumps(row.solution,sort_keys=True).encode()).hexdigest(),
                     'explanation':step.explanation,'limitations':solution.limitations,
-                    'dataText': '; '.join(f'{p.x:g}, {p.y:g}' for p in solution.points),
+                    'dataText': data_text,
                     'provenance':row.provenance,'reviewedBy':str(row.reviewed_by),'reviewedAt':row.reviewed_at.isoformat()})
             db.add(asset)
         part=next(p for p in data['parts'] if p['label']==step.partLabel)
         entry={'assetId':str(asset.id),'partLabel':step.partLabel,'pointCodes':[p['code'] for p in part['markingPoints']],
-            'caption':solution.title,'altText':f"{solution.xAxis.label}; {solution.yAxis.label}. {step.explanation}"[:2000],
+            'caption':solution.title,'altText':(step.explanation if scientific else f"{solution.xAxis.label}; {solution.yAxis.label}. {step.explanation}")[:2000],
             'status':'approved','origin':'ai_generated','workedAnswerId':str(row.id),
             'explanation':step.explanation,'limitations':solution.limitations,
-            'dataText': '; '.join(f'{p.x:g}, {p.y:g}' for p in solution.points)}
+            'dataText': data_text}
         # Replace only previous generated answers for this part, not official crops.
         part['answerVisuals']=[v for v in part.get('answerVisuals',[]) if v.get('origin')!='ai_generated']+[entry]
         assets.append(str(asset.id))

@@ -4,7 +4,7 @@ Created: 2026-10-31
 
 ## Scope and trust
 
-The first renderer supports a verified two-dimensional data table, plotted crosses, anomaly circles and ordinary least-squares straight lines. It rejects arbitrary generated code and unsupported diagram types. The AI proposes a declarative `GraphSolution`; trusted PyMuPDF code renders PNGs. No image-generation API or new plotting dependency is needed.
+The first renderer supports a verified two-dimensional data table, plotted crosses, anomaly circles and ordinary least-squares straight lines. It rejects arbitrary generated code and unsupported diagram types. A second typed format, `science-diagram-v1`, supports qualitative volume/time curves, exothermic energy profiles and main-group ion pairs (atomic numbers 1–20, 1–18 ion electrons). The AI proposes a declarative `GraphSolution`; trusted PyMuPDF code renders PNGs. No image-generation API or new plotting dependency is needed.
 
 The answer always displays **AI-generated worked answer — not an official Pearson answer**, including a permanent label inside each PNG. Official marking criteria, caps, tolerances and follow-through remain authoritative. Displaying a worked example does not enable automatic marking of drawings.
 
@@ -60,3 +60,12 @@ The reviewed 1C source assessment is recorded in `ai-generated-worked-answers-1c
 Release `39d4ae7` was deployed with migration 0016, after encrypted backup. Production schema check, API/worker/web health, authenticated Admin desktop/mobile review, unauthenticated API rejection and synthetic Admin/Student browser acceptance passed. The backend suite passed 226 tests (1 skipped) and the frontend suite passed 103 tests.
 
 The feature remains in its safe generation-disabled state because the owner deferred OpenAI configuration. There are no generated production answers, and no current paper review was modified. Enabling credentials and the flag later does not publish any answer: generation, scientific review, attachment and normal release gates still apply.
+
+
+## Qualitative science diagrams
+
+Externally prepared science candidates use the same Admin `import-draft` endpoint, private preview, source fingerprint, approval and attachment lifecycle as graphs. The historical `graph` request/storage field also accepts `DiagramInput`; `solution` accepts `DiagramSolution`. No schema migration is needed because existing source/solution columns store versioned JSON. Queued OpenAI generation remains graph-only; this change does not claim automatic provider generation of these new formats.
+
+`facts.kind` chooses `volume_time`, `exothermic_profile` or `ionic_pair`. Typed bounded facts are copied exactly from verified input to solution. Part labels must match the verified question. The trusted renderer fixes geometry: a smooth origin-to-horizontal curve with no invented numerical data, a lower product energy level with single-headed upward activation and downward ΔH arrows, or complete electron shells/brackets/charges. Ion symbol, atomic number and nonzero charge are checked; shell counts derive from electron count rather than supplied drawing coordinates. Arbitrary code, SVG, remote media and unbounded primitives are not accepted. Text is escaped before raster rendering. These checks do not replace independent scientific review.
+
+Admin can edit the title, explanations and limitations while retaining immutable scientific facts; graph-only point/fit controls are hidden for diagrams. Approval attaches immutable PNGs as `ai_generated` answer visuals and retains existing official answers. Text equivalents include the verified scientific facts and explanations. Draft imports leave question content, approval, published snapshots and current source-confidence metadata untouched.

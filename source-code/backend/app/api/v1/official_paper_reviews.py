@@ -11,7 +11,7 @@ from app.permissions import require_csrf_roles, require_roles
 from app.schemas.official_paper_reviews import (
     CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
-from app.schemas.worked_answers import GenerateWorkedAnswer, ImportWorkedAnswerDraft, ReviewWorkedAnswer, GraphSolution, AttachWorkedAnswer
+from app.schemas.worked_answers import GenerateWorkedAnswer, ImportWorkedAnswerDraft, ReviewWorkedAnswer, parse_solution, AttachWorkedAnswer
 from app.services.worked_answers import lifecycle as worked_answers
 from app.services.worked_answers.graphs import render as render_worked_graph
 from app.security import Principal
@@ -157,7 +157,7 @@ def preview_worked_answer(paper_id: uuid.UUID, number: str, answer_id: uuid.UUID
     row=next((r for r in worked_answers.listing(db,paper_id,number) if r['id']==str(answer_id)),None)
     if not row or not row['solution'] or not 0 <= step < len(row['solution'].get('steps',[])):
         raise DomainError('worked_answer_not_found','Worked answer step not found.',404)
-    return Response(render_worked_graph(GraphSolution.model_validate(row['solution']),step),media_type='image/png',
+    return Response(render_worked_graph(parse_solution(row['solution']),step),media_type='image/png',
         headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
 
 

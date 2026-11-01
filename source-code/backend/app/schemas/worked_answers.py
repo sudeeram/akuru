@@ -1,10 +1,8 @@
 """Bounded declarative graph specifications; never executable model code."""
 from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
-
-
-class StrictModel(BaseModel):
-    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+from pydantic import Field, model_validator, TypeAdapter
+from app.schemas.worked_answers_base import StrictModel
+from app.schemas.scientific_diagrams import DiagramInput, DiagramSolution
 
 
 class Axis(StrictModel):
@@ -106,18 +104,22 @@ class GenerateWorkedAnswer(StrictModel):
 class ImportWorkedAnswerDraft(StrictModel):
     """An externally prepared candidate, still subject to Admin review."""
     expectedQuestionRevision: int = Field(ge=1)
-    graph: GraphInput
-    solution: GraphSolution
+    graph: GraphInput | DiagramInput
+    solution: GraphSolution | DiagramSolution
     generationNote: str = Field(min_length=20, max_length=2000)
 
 
 class ReviewWorkedAnswer(StrictModel):
     expectedRevision: int = Field(ge=1)
     action: Literal["edit", "approve", "reject"]
-    solution: GraphSolution | None = None
+    solution: GraphSolution | DiagramSolution | None = None
     reviewNote: str = Field(default="", max_length=2000)
 
 
 class AttachWorkedAnswer(StrictModel):
     expectedQuestionRevision: int = Field(ge=1)
     reopenApproved: bool = False
+
+
+def parse_solution(value):
+    return TypeAdapter(GraphSolution | DiagramSolution).validate_python(value)

@@ -13,16 +13,22 @@ type Axis = { label: string; minimum: number; maximum: number; tick: number };
 type Step = {
   partLabel: string;
   explanation: string;
-  showPoints: boolean;
-  circleIndexes: number[];
-  fits: { pointIndexes: number[]; fromX: number; toX: number; label: string }[];
+  showPoints?: boolean;
+  circleIndexes?: number[];
+  fits?: {
+    pointIndexes: number[];
+    fromX: number;
+    toX: number;
+    label: string;
+  }[];
 };
 type Solution = {
-  schemaVersion: 'graph-v1';
+  schemaVersion: 'graph-v1' | 'science-diagram-v1';
+  facts?: Record<string, unknown>;
   title: string;
-  xAxis: Axis;
-  yAxis: Axis;
-  points: { x: number; y: number }[];
+  xAxis?: Axis;
+  yAxis?: Axis;
+  points?: { x: number; y: number }[];
   steps: Step[];
   limitations: string;
   confidencePercent?: number | null;
@@ -196,8 +202,8 @@ export function GeneratedWorkedAnswers({
         {!ready && (
           <output>
             Generation is not configured. Drafts prepared by Codex can still be
-            reviewed and approved below. Enable worked answers
-            and configure an OpenAI account to generate new drafts here.
+            reviewed and approved below. Enable worked answers and configure an
+            OpenAI account to generate new drafts here.
           </output>
         )}
         <details>
@@ -363,8 +369,8 @@ export function GeneratedWorkedAnswers({
               <p className="small">
                 Estimated confidence: {row.solution.confidencePercent}% —{' '}
                 {row.solution.confidenceBasis}. This is an AI estimate, not a
-                verified probability of correctness. Check the source and science
-                before approval.
+                verified probability of correctness. Check the source and
+                science before approval.
               </p>
             )}
             {['awaiting_review', 'approved', 'rejected'].includes(
@@ -386,25 +392,26 @@ export function GeneratedWorkedAnswers({
                       setEdit(structuredClone(row.solution));
                     }}
                   >
-                    Edit explanation and plotting instructions
+                    Edit worked-answer explanation
                   </Button>
                   <Button
-                    disabled={busy || dirty || (row.status === 'approved' && row.assets.length > 0)}
+                    disabled={
+                      busy ||
+                      dirty ||
+                      (row.status === 'approved' && row.assets.length > 0)
+                    }
                     onClick={() =>
-                      void run(
-                        async () => {
-                          await request(`${root}/${row.id}/review`, {
-                            method: 'POST',
-                            body: {
-                              expectedRevision: row.revision,
-                              action: 'approve',
-                              reviewNote,
-                            },
-                          });
-                          onAttached();
-                        },
-                        'Worked answer approved and attached. Review the question before release.',
-                      )
+                      void run(async () => {
+                        await request(`${root}/${row.id}/review`, {
+                          method: 'POST',
+                          body: {
+                            expectedRevision: row.revision,
+                            action: 'approve',
+                            reviewNote,
+                          },
+                        });
+                        onAttached();
+                      }, 'Worked answer approved and attached. Review the question before release.')
                     }
                   >
                     {row.status === 'approved' && row.assets.length > 0
@@ -462,42 +469,17 @@ export function GeneratedWorkedAnswers({
                             }
                           />
                         </label>
-                        <p className="small">
-                          Data points are numbered from 1. Verified source
-                          values are immutable; generate again to correct source
-                          inputs.
-                        </p>
-                        <label>
-                          Circle point numbers, separated by commas
-                          <Input
-                            value={step.circleIndexes
-                              .map((n) => n + 1)
-                              .join(',')}
-                            onChange={(e) =>
-                              setEdit({
-                                ...edit,
-                                steps: edit.steps.map((s, j) =>
-                                  j === i
-                                    ? {
-                                        ...s,
-                                        circleIndexes: e.target.value.trim()
-                                          ? e.target.value
-                                              .split(',')
-                                              .map((n) => Number(n) - 1)
-                                          : [],
-                                      }
-                                    : s,
-                                ),
-                              })
-                            }
-                          />
-                        </label>
-                        {step.fits.map((fit, k) => (
-                          <div className="form-grid" key={k}>
+                        {edit.schemaVersion === 'graph-v1' && (
+                          <>
+                            <p className="small">
+                              Data points are numbered from 1. Verified source
+                              values are immutable; generate again to correct
+                              source inputs.
+                            </p>
                             <label>
-                              Line: {fit.label} · point numbers
+                              Circle point numbers, separated by commas
                               <Input
-                                value={fit.pointIndexes
+                                value={(step.circleIndexes || [])
                                   .map((n) => n + 1)
                                   .join(',')}
                                 onChange={(e) =>
@@ -507,18 +489,11 @@ export function GeneratedWorkedAnswers({
                                       j === i
                                         ? {
                                             ...s,
-                                            fits: s.fits.map((f, l) =>
-                                              l === k
-                                                ? {
-                                                    ...f,
-                                                    pointIndexes: e.target.value
-                                                      .split(',')
-                                                      .map(
-                                                        (n) => Number(n) - 1,
-                                                      ),
-                                                  }
-                                                : f,
-                                            ),
+                                            circleIndexes: e.target.value.trim()
+                                              ? e.target.value
+                                                  .split(',')
+                                                  .map((n) => Number(n) - 1)
+                                              : [],
                                           }
                                         : s,
                                     ),
@@ -526,40 +501,80 @@ export function GeneratedWorkedAnswers({
                                 }
                               />
                             </label>
-                            {(['fromX', 'toX'] as const).map((key) => (
-                              <label key={key}>
-                                {key}
-                                <Input
-                                  type="number"
-                                  step="any"
-                                  value={fit[key]}
-                                  onChange={(e) =>
-                                    setEdit({
-                                      ...edit,
-                                      steps: edit.steps.map((s, j) =>
-                                        j === i
-                                          ? {
-                                              ...s,
-                                              fits: s.fits.map((f, l) =>
-                                                l === k
-                                                  ? {
-                                                      ...f,
-                                                      [key]: Number(
-                                                        e.target.value,
-                                                      ),
-                                                    }
-                                                  : f,
-                                              ),
-                                            }
-                                          : s,
-                                      ),
-                                    })
-                                  }
-                                />
-                              </label>
+                            {(step.fits || []).map((fit, k) => (
+                              <div className="form-grid" key={k}>
+                                <label>
+                                  Line: {fit.label} · point numbers
+                                  <Input
+                                    value={fit.pointIndexes
+                                      .map((n) => n + 1)
+                                      .join(',')}
+                                    onChange={(e) =>
+                                      setEdit({
+                                        ...edit,
+                                        steps: edit.steps.map((s, j) =>
+                                          j === i
+                                            ? {
+                                                ...s,
+                                                fits: (s.fits || []).map(
+                                                  (f, l) =>
+                                                    l === k
+                                                      ? {
+                                                          ...f,
+                                                          pointIndexes:
+                                                            e.target.value
+                                                              .split(',')
+                                                              .map(
+                                                                (n) =>
+                                                                  Number(n) - 1,
+                                                              ),
+                                                        }
+                                                      : f,
+                                                ),
+                                              }
+                                            : s,
+                                        ),
+                                      })
+                                    }
+                                  />
+                                </label>
+                                {(['fromX', 'toX'] as const).map((key) => (
+                                  <label key={key}>
+                                    {key}
+                                    <Input
+                                      type="number"
+                                      step="any"
+                                      value={fit[key]}
+                                      onChange={(e) =>
+                                        setEdit({
+                                          ...edit,
+                                          steps: edit.steps.map((s, j) =>
+                                            j === i
+                                              ? {
+                                                  ...s,
+                                                  fits: (s.fits || []).map(
+                                                    (f, l) =>
+                                                      l === k
+                                                        ? {
+                                                            ...f,
+                                                            [key]: Number(
+                                                              e.target.value,
+                                                            ),
+                                                          }
+                                                        : f,
+                                                  ),
+                                                }
+                                              : s,
+                                          ),
+                                        })
+                                      }
+                                    />
+                                  </label>
+                                ))}
+                              </div>
                             ))}
-                          </div>
-                        ))}
+                          </>
+                        )}
                       </fieldset>
                     ))}
                     <label>

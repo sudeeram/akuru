@@ -59,12 +59,16 @@ export interface Schemas {
   "CreateReviewCrop": { "source"?: "paper" | "scheme"; "page": number; "kind": "diagram" | "table"; "x0": number; "y0": number; "x1": number; "y1": number; "altText": string; };
   "CurriculumPlanResponse": { "versionNumber": number; "status": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "groupLabel"?: string; "groups"?: Array<Schemas["PlanTopicGroupResponse"]>; "periods": Array<Schemas["PlanPeriod"]>; "publishedPeriods"?: Array<Schemas["PlanPeriod"]>; "changes"?: Array<Schemas["PlanChangeResponse"]>; "requiresPublishedChangeConfirmation"?: boolean; "basedOnVersion"?: number | null; "createdAt"?: string | null; "publishedAt"?: string | null; };
   "DeterministicMediaCreate": { "kind": "circuit_svg" | "forces_svg" | "geometry_svg" | "plot_svg"; "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "parameters"?: { [key: string]: unknown; }; };
+  "DiagramInput": { "schemaVersion": "science-diagram-v1"; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "partLabels": Array<string>; "verificationNote": string; };
+  "DiagramSolution": { "schemaVersion": "science-diagram-v1"; "title": string; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "steps": Array<Schemas["DiagramStep"]>; "limitations": string; "confidencePercent": number; "confidenceBasis": string; };
+  "DiagramStep": { "partLabel": string; "explanation": string; };
   "DocumentExtractionResponse": { "documentId": string; "versionId": string; "status": string; "pages"?: Array<Schemas["ExtractionPageResponse"]>; };
   "DocumentJobResponse": { "id": string; "documentId": string; "documentVersionId": string; "stage": string; "status": string; "progress": number; "attemptCount": number; "extractionVersion": string; "errorCode"?: string | null; "errorMessage"?: string | null; "result"?: { [key: string]: unknown; }; "queuedAt": string; "startedAt"?: string | null; "completedAt"?: string | null; };
   "DocumentListResponse": { "documents": Array<Schemas["DocumentResponse"]>; };
   "DocumentResponse": { "id": string; "kind": Schemas["DocumentType"]; "courseId": string; "subjectId": string; "title": string; "originalFilename": string; "contentType": string; "sizeBytes": number; "checksum": string; "status": string; "edition"?: string | null; "year"?: number | null; "session"?: string | null; "component"?: string | null; "variant"?: string | null; "sourceDocumentId"?: string | null; "sourceMetadata"?: { [key: string]: unknown; }; "versionId": string; "versionNumber": number; "createdAt": string; "removedAt"?: string | null; };
   "DocumentType": "textbook" | "reference" | "past_paper" | "mark_scheme" | "examiner_report";
   "DocumentUploadResponse": { "document": Schemas["DocumentResponse"]; "job": Schemas["DocumentJobResponse"]; };
+  "EnergyFacts": { "kind": "exothermic_profile"; "reactants": string; "products": string; };
   "ErrorItem": { "code": string; "message": string; "details"?: Array<{ [key: string]: unknown; }>; };
   "ErrorResponse": { "error": Schemas["ErrorItem"]; };
   "EvaluationCase": { "caseId": string; "category": "inventory" | "ocr" | "equation" | "diagram" | "mapping" | "topic_citation" | "marking" | "feedback" | "repeatability" | "tutor_factual" | "tutor_mathematical" | "tutor_grounding" | "tutor_personalisation" | "tutor_recommendation" | "tutor_persona" | "tutor_security" | "tutor_handover" | "tutor_voice" | "tutor_preset_safety" | "tutor_operations"; "input"?: { [key: string]: unknown; }; "expected": { [key: string]: unknown; }; };
@@ -108,7 +112,9 @@ export interface Schemas {
   "HintInteractionRequest": { "idempotencyKey": string; };
   "HintInteractionResponse": { "hint": string; "total": number; };
   "IllustrationCreate": { "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "prompt": string; };
-  "ImportWorkedAnswerDraft": { "expectedQuestionRevision": number; "graph": Schemas["GraphInput"]; "solution": Schemas["GraphSolution"]; "generationNote": string; };
+  "ImportWorkedAnswerDraft": { "expectedQuestionRevision": number; "graph": Schemas["GraphInput"] | Schemas["DiagramInput"]; "solution": Schemas["GraphSolution"] | Schemas["DiagramSolution"]; "generationNote": string; };
+  "Ion": { "symbol": string; "atomicNumber": number; "charge": number; };
+  "IonFacts": { "kind": "ionic_pair"; "ions": Array<Schemas["Ion"]>; };
   "LearnerContextRequest": { "requestKey": string; };
   "LearnerContextResponse": { "operationRef": string; "contextVersion": string; "generatedAt": string; "subjectId": string; "activeTopic": Schemas["PlanTopicResponse"]; "topics"?: Array<Schemas["ContextTopic"]>; "evidence": Array<Schemas["ContextEvidence"]>; "providerContext": Schemas["ProviderLearnerContext"]; };
   "LoginRequest": { "username": string; "password": string; };
@@ -191,7 +197,7 @@ export interface Schemas {
   "ReviewPart": { "label"?: string; "marks": number; "prompt"?: string; "visualAssetIds"?: Array<string>; "answerVisuals"?: Array<Schemas["AnswerVisual"]>; "answerVisualRequired"?: boolean; "responseType"?: "text" | "drawing"; "markingPoints"?: Array<Schemas["ReviewMarkingPoint"]>; "alternatives"?: Array<string>; "examinerAdvice"?: string; "paperSources"?: Array<Schemas["ReviewEvidence"]>; "schemeSources"?: Array<Schemas["ReviewEvidence"]>; "reportSources"?: Array<Schemas["ReviewEvidence"]>; "scoringRules"?: Schemas["MarkingRules"]; "assessmentReadiness"?: "unreviewed" | "automatic" | "manual_only"; "assessmentReadinessReason"?: string; "coverage"?: "unreviewed" | "supported" | "partial_or_uncertain" | "outside_current_coverage"; "topicRefs"?: Array<string>; "textbookEvidence"?: Array<Schemas["TextbookPageEvidence"]>; "coverageReason"?: string; "status"?: "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "excluded"; "extractionConfidence"?: Schemas["ExtractionConfidence"] | null; };
   "ReviewQuestionData": { "marks": number; "sharedStem"?: string; "prompt"?: string; "paperSources"?: Array<Schemas["ReviewEvidence"]>; "visualAssetIds"?: Array<string>; "candidateVisualAssetIds"?: Array<string>; "visualAltText"?: string; "parts": Array<Schemas["ReviewPart"]>; "exclusionReason"?: string; "extractionConfidence"?: Schemas["ExtractionConfidence"] | null; };
   "ReviewQuestionResponse": { "number": string; "revision": number; "status": "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "excluded"; "data": Schemas["ReviewQuestionData"]; "reviewedBy"?: string | null; "reviewedAt"?: string | null; "analysisContentHash"?: string | null; "analysisVersion"?: number; "accuracyAnalysis"?: Schemas["QuestionAnalysisResponse"] | null; "extractionAnalysis"?: Schemas["QuestionAnalysisResponse"] | null; };
-  "ReviewWorkedAnswer": { "expectedRevision": number; "action": "edit" | "approve" | "reject"; "solution"?: Schemas["GraphSolution"] | null; "reviewNote"?: string; };
+  "ReviewWorkedAnswer": { "expectedRevision": number; "action": "edit" | "approve" | "reject"; "solution"?: Schemas["GraphSolution"] | Schemas["DiagramSolution"] | null; "reviewNote"?: string; };
   "SafetyEventListResponse": { "events": Array<Schemas["SafetyEventResponse"]>; };
   "SafetyEventResponse": { "eventRef": string; "studentName": string; "category": string; "severity": "low" | "medium" | "high" | "critical"; "action": string; "notificationStatus": string; "reviewStatus": string; "createdAt": string; };
   "SafetyReviewRequest": { "status": "reviewed" | "resolved"; "note": string; };
@@ -300,6 +306,7 @@ export interface Schemas {
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
   "UpdateStudentRequest": { "id": string; "name": string; "parentId": string; "level": "iGCSE"; "grade": "Grade 10" | "Grade 11"; "term": "Term1" | "Term2" | "Term3"; "progression": Array<string>; "subjects": Array<string>; };
   "UserResponse": { "id": string; "username": string; "name": string; "role": "admin" | "parent" | "student"; "mustChangePassword": boolean; };
+  "VolumeTimeFacts": { "kind": "volume_time"; "xLabel": string; "yLabel": string; };
   "WorkedStep": { "partLabel": string; "explanation": string; "showPoints"?: true; "circleIndexes"?: Array<number>; "fits"?: Array<Schemas["Fit"]>; };
   "WorkingFileResponse": { "id": string; "name": string; "contentType": string; "ocrText": string; "ocrConfidence": number; "needsReview": boolean; };
 }

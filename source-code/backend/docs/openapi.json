@@ -2957,6 +2957,160 @@
         "title": "DeterministicMediaCreate",
         "type": "object"
       },
+      "DiagramInput": {
+        "additionalProperties": false,
+        "properties": {
+          "facts": {
+            "discriminator": {
+              "mapping": {
+                "exothermic_profile": "#/components/schemas/EnergyFacts",
+                "ionic_pair": "#/components/schemas/IonFacts",
+                "volume_time": "#/components/schemas/VolumeTimeFacts"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VolumeTimeFacts"
+              },
+              {
+                "$ref": "#/components/schemas/EnergyFacts"
+              },
+              {
+                "$ref": "#/components/schemas/IonFacts"
+              }
+            ],
+            "title": "Facts"
+          },
+          "partLabels": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Partlabels",
+            "type": "array"
+          },
+          "schemaVersion": {
+            "const": "science-diagram-v1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "verificationNote": {
+            "maxLength": 2000,
+            "minLength": 20,
+            "title": "Verificationnote",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "facts",
+          "partLabels",
+          "verificationNote"
+        ],
+        "title": "DiagramInput",
+        "type": "object"
+      },
+      "DiagramSolution": {
+        "additionalProperties": false,
+        "properties": {
+          "confidenceBasis": {
+            "maxLength": 1000,
+            "minLength": 20,
+            "title": "Confidencebasis",
+            "type": "string"
+          },
+          "confidencePercent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Confidencepercent",
+            "type": "integer"
+          },
+          "facts": {
+            "discriminator": {
+              "mapping": {
+                "exothermic_profile": "#/components/schemas/EnergyFacts",
+                "ionic_pair": "#/components/schemas/IonFacts",
+                "volume_time": "#/components/schemas/VolumeTimeFacts"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/VolumeTimeFacts"
+              },
+              {
+                "$ref": "#/components/schemas/EnergyFacts"
+              },
+              {
+                "$ref": "#/components/schemas/IonFacts"
+              }
+            ],
+            "title": "Facts"
+          },
+          "limitations": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Limitations",
+            "type": "string"
+          },
+          "schemaVersion": {
+            "const": "science-diagram-v1",
+            "title": "Schemaversion",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/DiagramStep"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "title",
+          "facts",
+          "steps",
+          "limitations",
+          "confidencePercent",
+          "confidenceBasis"
+        ],
+        "title": "DiagramSolution",
+        "type": "object"
+      },
+      "DiagramStep": {
+        "additionalProperties": false,
+        "properties": {
+          "explanation": {
+            "maxLength": 6000,
+            "minLength": 20,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "partLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "partLabel",
+          "explanation"
+        ],
+        "title": "DiagramStep",
+        "type": "object"
+      },
       "DocumentExtractionResponse": {
         "properties": {
           "documentId": {
@@ -3289,6 +3443,35 @@
           "job"
         ],
         "title": "DocumentUploadResponse",
+        "type": "object"
+      },
+      "EnergyFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "exothermic_profile",
+            "title": "Kind",
+            "type": "string"
+          },
+          "products": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Products",
+            "type": "string"
+          },
+          "reactants": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Reactants",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "reactants",
+          "products"
+        ],
+        "title": "EnergyFacts",
         "type": "object"
       },
       "ErrorItem": {
@@ -5536,10 +5719,26 @@
             "type": "string"
           },
           "graph": {
-            "$ref": "#/components/schemas/GraphInput"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphInput"
+              },
+              {
+                "$ref": "#/components/schemas/DiagramInput"
+              }
+            ],
+            "title": "Graph"
           },
           "solution": {
-            "$ref": "#/components/schemas/GraphSolution"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GraphSolution"
+              },
+              {
+                "$ref": "#/components/schemas/DiagramSolution"
+              }
+            ],
+            "title": "Solution"
           }
         },
         "required": [
@@ -5549,6 +5748,60 @@
           "generationNote"
         ],
         "title": "ImportWorkedAnswerDraft",
+        "type": "object"
+      },
+      "Ion": {
+        "additionalProperties": false,
+        "properties": {
+          "atomicNumber": {
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "Atomicnumber",
+            "type": "integer"
+          },
+          "charge": {
+            "maximum": 3.0,
+            "minimum": -3.0,
+            "title": "Charge",
+            "type": "integer"
+          },
+          "symbol": {
+            "pattern": "^[A-Z][a-z]?$",
+            "title": "Symbol",
+            "type": "string"
+          }
+        },
+        "required": [
+          "symbol",
+          "atomicNumber",
+          "charge"
+        ],
+        "title": "Ion",
+        "type": "object"
+      },
+      "IonFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "ions": {
+            "items": {
+              "$ref": "#/components/schemas/Ion"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Ions",
+            "type": "array"
+          },
+          "kind": {
+            "const": "ionic_pair",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ions"
+        ],
+        "title": "IonFacts",
         "type": "object"
       },
       "LearnerContextRequest": {
@@ -9228,9 +9481,13 @@
                 "$ref": "#/components/schemas/GraphSolution"
               },
               {
+                "$ref": "#/components/schemas/DiagramSolution"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Solution"
           }
         },
         "required": [
@@ -13956,6 +14213,35 @@
           "mustChangePassword"
         ],
         "title": "UserResponse",
+        "type": "object"
+      },
+      "VolumeTimeFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "volume_time",
+            "title": "Kind",
+            "type": "string"
+          },
+          "xLabel": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Xlabel",
+            "type": "string"
+          },
+          "yLabel": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Ylabel",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "xLabel",
+          "yLabel"
+        ],
+        "title": "VolumeTimeFacts",
         "type": "object"
       },
       "WorkedStep": {

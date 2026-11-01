@@ -68,3 +68,8 @@ For a question whose official marking scheme describes a graph but contains no w
 Prefer the official scheme diagram when one exists. June 2025 1C Q7(c)(i–iii) is the planned graph pilot; Q5(c)(ii) already has official diagrams, and Q9(a)(i)/(iii) should use diagrams from scheme page 13. A generated graph is an illustrative solution: valid Student fits and follow-through readings may vary. This feature does not enable automatic marking of drawings.
 
 A Codex-prepared answer may also appear in this panel as **Awaiting review** while live OpenAI generation remains disabled. Inspect its graph and explanations against the exact question and scheme, then use steps 4–6 above. It cannot be attached or shown to Students merely because the draft exists.
+
+
+### Qualitative AI-generated answer diagrams
+
+Some questions have marking criteria without an official drawn model. AKURU can hold separately prepared AI-generated curve, energy-profile and ion-diagram drafts in **AI-generated worked answers**. Expand the matching **Part … — preview worked answer**, compare its explanation and confidence with the source, then choose **Approve worked answer** or **Reject**. Approval attaches it to that subpart automatically. The AI label remains visible to students when answer-reveal rules allow access. A draft alone does not satisfy the required-answer gate or approve the question, and it does not enable automatic marking of student drawings.
