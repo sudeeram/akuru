@@ -216,6 +216,20 @@ export type PastPaperChatState = {
   message: string;
 };
 export type TutorAgentReply = {
+  answerBasis?:
+    | 'grounded'
+    | 'supplementary'
+    | 'mixed'
+    | 'clarification'
+    | 'outside_scope'
+    | 'uncertain'
+    | null;
+  teachingSections?: {
+    basis: 'grounded' | 'supplementary';
+    content: string;
+    citationRefs: string[];
+  }[];
+  retrievalProvenance?: Record<string, unknown>;
   pastPaper?: PastPaperChatState | null;
   operationRef: string;
   turnRef: string;

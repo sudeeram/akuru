@@ -97,3 +97,7 @@ The Tutor's exam-intent path now runs before textbook retrieval. It serves expli
 Source release and account release are separate: Admin confirms individual subparts in the paper-review UI, while the operator enables an explicit Student allowlist. Normal Tutor pilot and formal-assessment restrictions still apply. Selection/reveal is deterministic and free of model calls. Automatic scoring stays behind its existing model/prompt-specific quality gate; if unavailable, answers remain saved and approved guidance remains readable.
 
 See [implementation and operations](../source-code/backend/docs/tutor-past-paper-chat.md) and [Student/Admin procedures](../user-docs/TUTOR-PAST-PAPER-PRACTICE.md).
+
+## Supplementary text teaching
+
+The opt-in `tutor_teaching` policy and prompt 2.0.0 separate textbook-supported content from explicitly labelled additional explanation. Source/assessment authorization is unchanged; supplementary knowledge cannot become official marking evidence. Existing TutorTurn JSON retains sections, answer basis and retrieval provenance, avoiding a new migration. A durable existing chat-request registry protects paid-call retries. See [implementation, validation and rollout](../source-code/backend/docs/tutor-supplementary-teaching.md). Live evaluation and production activation remain pending.

@@ -72,12 +72,17 @@ def tutor_pilot_allowed(settings: Settings, student_id: uuid.UUID, workflow: str
                         subject_id: str | None = None, topic_id: uuid.UUID | None = None,
                         model: str | None = None, prompt_version: str | None = None) -> bool:
     pilot = settings.tutor_text_pilot
+    extra_enabled = bool(settings.tutor_supplementary_enabled and pilot
+                         and pilot.supplementary_prompt_version and pilot.supplementary_evidence_sha256)
+    permitted_workflows = PILOT_WORKFLOWS | ({"tutor_supplementary"} if extra_enabled else set())
+    permitted_prompts = {pilot.prompt_version} if pilot else set()
+    if extra_enabled: permitted_prompts.add(pilot.supplementary_prompt_version)
     return bool(pilot and pilot.expires_at > datetime.now(timezone.utc)
-        and pilot.student_id == student_id and workflow in PILOT_WORKFLOWS
+        and pilot.student_id == student_id and workflow in permitted_workflows
         and (subject_id is None or subject_id == pilot.subject_id)
         and (topic_id is None or topic_id == pilot.topic_id)
         and (model is None or model == pilot.model)
-        and (prompt_version is None or prompt_version == pilot.prompt_version))
+        and (prompt_version is None or prompt_version in permitted_prompts))
 
 
 def require_tutor_access(

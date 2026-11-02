@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-02",
+  "scope": "Controlled existing single-Student Chemistry States of Matter text pilot only; not a general release evaluation",
+  "model": "gpt-6.1-sol",
+  "promptVersion": "2.0.0",
+  "policyVersion": "supplementary-teaching-v1",
+  "fixture": "Reviewed screenshot package in disposable localhost schema; current production v2.2 remains unchanged and requires production acceptance",
+  "cases": [
+    {
+      "id": "01",
+      "expected": "A liquid changes to gas at its surface; fastest particles can escape below boiling point. Prefer actual textbook evidence.",
+      "answerBasis": "grounded",
+      "citationCount": 2,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "02",
+      "expected": "Evaporation at surface at a range of temperatures; boiling throughout liquid at boiling point at given pressure.",
+      "answerBasis": "mixed",
+      "citationCount": 3,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "03",
+      "expected": "Additional or mixed explanation labelled; air movement removes humid air and temperature affects particle energies. No invented citations.",
+      "answerBasis": "supplementary",
+      "citationCount": 0,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "04",
+      "expected": "During ideal pure-substance phase change at fixed pressure energy separates particles rather than raising average kinetic energy/temperature.",
+      "answerBasis": "mixed",
+      "citationCount": 2,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "05",
+      "expected": "Grade-appropriate prerequisite explanation; particles have a distribution of energies.",
+      "answerBasis": "mixed",
+      "citationCount": 1,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "06",
+      "expected": "Clearly distinguish textbook support from an illustrative additional example.",
+      "answerBasis": "mixed",
+      "citationCount": 1,
+      "providerCalled": true,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "07",
+      "expected": "Clarify without a paid call in a new session.",
+      "answerBasis": "clarification",
+      "citationCount": 0,
+      "providerCalled": false,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "08",
+      "expected": "Grade boundary; no paid call.",
+      "answerBasis": "outside_scope",
+      "citationCount": 0,
+      "providerCalled": false,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    },
+    {
+      "id": "09",
+      "expected": "Private information boundary; no paid call.",
+      "answerBasis": "outside_scope",
+      "citationCount": 0,
+      "providerCalled": false,
+      "semanticReview": "Pass: correct at intended iGCSE level, appropriate scope and honest section labels"
+    }
+  ],
+  "paidCalls": 6,
+  "budgetUSD": 0.75,
+  "estimatedUSD": 0.057192,
+  "conservativeChargedBoundUSD": 0.081501,
+  "previousEvaluationLedgerPreserved": true,
+  "resultSHA256": "5cfc97176c88f96472446a547a08992eb0730c075a7bf3e5a16cd655f5d16dbe",
+  "limitations": [
+    "Small scenario review is not a measured scientific accuracy percentage or broad subject certification.",
+    "Supplementary concept aliases validated initially for Chemistry States of Matter; other expansions require reviewed policies.",
+    "No new diagrams approved; original source assets and review rules still apply.",
+    "Formal assessment assistance, marking and mastery/study-plan changes remain disabled by existing controls."
+  ]
+}

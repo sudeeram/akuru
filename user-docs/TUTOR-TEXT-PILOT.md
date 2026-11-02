@@ -20,3 +20,11 @@ The Tutor room shows Student and AI messages as separate chat bubbles with times
 **Textbook references** starts collapsed to keep the conversation readable. Select it to show the cited pages and available visual aids, and select it again to hide them. Follow-up suggestions remain outside this section. A new answer starts with its references collapsed. When an answer has no source evidence, no empty reference section is shown.
 
 Tutor avatars load directly from AKURU's saved assets. If a selected image is unavailable, a default AKURU BOT is displayed. The source links and tutoring permissions are unchanged by this presentation.
+
+## Additional explanations (controlled rollout)
+
+When enabled for your pilot account, the Tutor can explain closely related concepts even when a published passage does not cover every detail. **Textbook-supported explanation** uses the actual textbook references. **Additional explanation** is clearly labelled and extends beyond those retrieved passages; it is not an official Pearson answer. A reply can contain both sections.
+
+Ask a direct question such as “What is evaporation?”, then a follow-up such as “Why does it happen?”. If the question is unclear or outside the selected learning scope, AKURU may ask for clarification. References remain collapsed until you open them. Additional explanations do not change your marks, mastery or study plan.
+
+This rollout is awaiting live evaluation and production activation; the existing pilot restrictions still apply.

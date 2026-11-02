@@ -13,6 +13,7 @@ import { scrollTutorTurnIntoView } from '@/lib/tutor-chat-scroll';
 import Image from 'next/image';
 import {
   TutorChatAvatar,
+  TutorAnswerBasis,
   TutorMessageContent,
   TutorTextbookEvidence,
 } from './tutor-chat-elements';
@@ -511,6 +512,13 @@ export function TutorSessions({
                       )}
                     </div>
                     <div className="tutor-message-bubble">
+                      {turn.role === 'assistant' && (
+                        <TutorAnswerBasis
+                          basis={
+                            turn.structured?.answerBasis as string | undefined
+                          }
+                        />
+                      )}
                       <TutorMessageContent
                         content={turn.content}
                         formatted={turn.role === 'assistant'}
@@ -700,9 +708,10 @@ export function TutorSessions({
             </Button>
           </form>
           <small className="tutor-chat-privacy">
-            AKURU uses only your eligible topic, verified learner context and
-            approved sources. Proposed tutor observations do not change mastery
-            or your study plan.
+            Textbook references support the textbook-labelled sections.
+            Additional explanations, when enabled, are labelled separately.
+            Proposed tutor observations do not change mastery or your study
+            plan.
           </small>
         </div>
       </section>

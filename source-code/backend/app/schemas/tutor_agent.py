@@ -37,6 +37,25 @@ class TutorProviderOutput(BaseModel):
         return list(dict.fromkeys(value.strip() for value in values if value.strip()))
 
 
+AnswerBasis = Literal["grounded", "supplementary", "mixed", "clarification", "outside_scope", "uncertain"]
+
+
+class TutorTeachingOutput(BaseModel):
+    answerBasis: AnswerBasis
+    groundedContent: str = Field(max_length=6000)
+    additionalContent: str = Field(max_length=6000)
+    boundaryContent: str = Field(max_length=2000)
+    citationRefs: list[str] = Field(max_length=8)
+    followUpChoices: list[str] = Field(max_length=4)
+    proposedSignals: list[TutorSignalProposal] = Field(max_length=6)
+
+
+class TutorTeachingSection(BaseModel):
+    basis: Literal["grounded", "supplementary"]
+    content: str
+    citationRefs: list[str] = Field(default_factory=list)
+
+
 class TutorToolResult(BaseModel):
     name: Literal[
         "learner_context", "next_unit", "approved_source_search", "authorized_source_opening",
@@ -61,6 +80,9 @@ class TutorVisual(BaseModel):
 
 
 class TutorAgentTurnResponse(BaseModel):
+    answerBasis: AnswerBasis | None = None
+    teachingSections: list[TutorTeachingSection] = Field(default_factory=list)
+    retrievalProvenance: dict = Field(default_factory=dict)
     pastPaper: PastPaperChatState | None = None
     operationRef: str
     turnRef: str

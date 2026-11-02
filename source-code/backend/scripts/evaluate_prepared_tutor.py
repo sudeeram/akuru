@@ -54,7 +54,14 @@ class BudgetClient:
             from types import SimpleNamespace
             task=json.loads(kwargs['input'][0]['content'][0]['text'])
             refs=[c['citationRef'] for c in task['approvedCitations']][:1]
-            return SimpleNamespace(output_parsed=TutorProviderOutput(content='Dry-run pipeline check; not a teaching-quality response.',citationRefs=refs),usage=SimpleNamespace(input_tokens=0,output_tokens=0,total_tokens=0),id='dry-run')
+            if kwargs['text_format'].__name__ == 'TutorTeachingOutput':
+                response = kwargs['text_format'](answerBasis='grounded' if refs else 'supplementary',
+                    groundedContent='Dry-run pipeline check.' if refs else '',
+                    additionalContent='' if refs else 'Dry-run additional explanation.', boundaryContent='',
+                    citationRefs=refs, followUpChoices=[], proposedSignals=[])
+            else:
+                response = TutorProviderOutput(content='Dry-run pipeline check; not a teaching-quality response.',citationRefs=refs)
+            return SimpleNamespace(output_parsed=response,usage=SimpleNamespace(input_tokens=0,output_tokens=0,total_tokens=0),id='dry-run')
         if any(part.get('type')!='input_text' for row in kwargs['input'] for part in row['content']):
             raise RuntimeError('This evaluation budget implementation accepts text input only.')
         # Byte count is a deliberately conservative text-token upper bound. Add
@@ -104,6 +111,7 @@ def main():
     for option in ['package','decisions','cases','credentials','output','ledger']:parser.add_argument('--'+option,type=Path,required=True)
     parser.add_argument('--budget-usd',type=float,default=2)
     parser.add_argument('--live',action='store_true')
+    parser.add_argument('--supplementary',action='store_true',help='Evaluate the separately gated supplementary teaching prompt.')
     args=parser.parse_args()
     if not 0<args.budget_usd<=2:raise SystemExit('This reviewed pilot allows at most US$2.')
     if args.output.exists() and list(args.output.glob('case-*.json')):raise SystemExit('Use a new output folder; retain the existing budget ledger across reruns.')
@@ -122,7 +130,8 @@ def main():
        'AKURU_EMBEDDING_PROVIDER':'local','AKURU_AI_MAX_RETRIES':'0','AKURU_AI_MAX_OUTPUT_TOKENS':'4000',
        'AKURU_AI_MAX_INPUT_CHARACTERS':'24000','AKURU_TUTOR_TEXT_ENABLED':'true',
        'AKURU_TUTOR_TOOLS_ENABLED':'true','AKURU_TUTOR_VOICE_ENABLED':'false',
-       'AKURU_TUTOR_RELEASE_GATES_REQUIRED':'false','AKURU_COOKIE_SECURE':'false'}
+       'AKURU_TUTOR_RELEASE_GATES_REQUIRED':'false','AKURU_COOKIE_SECURE':'false',
+       'AKURU_TUTOR_SUPPLEMENTARY_ENABLED':str(args.supplementary).lower()}
     os.environ.update(overrides)
     from sqlalchemy import create_engine,select,text
     from sqlalchemy.orm import Session

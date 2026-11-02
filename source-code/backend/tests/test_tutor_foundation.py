@@ -147,7 +147,8 @@ def test_ordinary_tutor_question_builds_schema_valid_unrequested_recommendation(
     monkeypatch.setattr(tutor_agent.tutor_context, 'build_and_log', lambda *a: context)
     monkeypatch.setattr(tutor_agent.tutor_sources, 'search', lambda *a: SimpleNamespace(status='exact', message='Source available', citations=[]))
     monkeypatch.setattr('app.services.tutor_practice.current', lambda *a: None)
-    session = SimpleNamespace(public_ref='session_test', active_topic_id=uuid.uuid4(), subject_id='chemistry')
+    monkeypatch.setattr(tutor_agent.repository, 'recent', lambda *a: [])
+    session = SimpleNamespace(id=uuid.uuid4(), public_ref='session_test', active_topic_id=uuid.uuid4(), subject_id='chemistry')
     _, _, recommendation, results, _, _ = tutor_agent._tools(
         Mock(), _settings(), Mock(), session,
         TutorAgentTurnRequest(message='Why can liquids flow?', requestKey='ordinary-question'), uuid.uuid4())

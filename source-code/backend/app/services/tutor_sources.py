@@ -100,33 +100,38 @@ def _active_chunks(db: Session, session: TutorSession):
     return topic, version, book
 
 
-_SEARCH_STOP = frozenset('a an the this that these those is are was were be being been of in on at to from for with and or but it its by as me my i you your we our can could should would do does did have has had how why what which when where please explain describe show use using teach calculate about topic unit textbook source states matter so then than same also not only some very more less much many each any if just even always us them their there here such through rather out up down given take part answer ask short revision question questions tell write identify make necessarily exactly really completely'.split())
+_SEARCH_STOP = frozenset('a an the this that these those is are was were be being been of in on at to from for with and or but it its by as me my i you your we our can could should would do does did have has had how why what which when where please explain describe show use using teach calculate about topic unit textbook source states matter so then than same also not only some very more less much many each any if just even always us them their there here such through rather out up down given take part answer ask short revision question questions tell write identify make necessarily exactly really completely definition define mean means vs'.split())
 
 
 def _terms(text: str) -> set[str]:
     text = unicodedata.normalize('NFKC', text).lower()
-    return {word for word in re.findall(r'[^\W_]+', text) if len(word) > 1 and word not in _SEARCH_STOP}
+    aliases = {'evaporate':'evaporation','evaporates':'evaporation','evaporating':'evaporation','evaporated':'evaporation','boils':'boiling','boil':'boiling','melts':'melting','melt':'melting','freezes':'freezing','freeze':'freezing'}
+    return {aliases.get(word, word) for word in re.findall(r'[^\W_]+', text) if len(word) > 1 and word not in _SEARCH_STOP}
 
 
 def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], threshold: float):
     """Combine lexical evidence with vectors; exact approved figure IDs win.
 
-    Lexical fallback requires multiple discriminative terms, not an arbitrary
-    lower vector threshold. Exercise prompts alone are not answer evidence.
+    Lexical fallback uses discriminative overlap or a single exact concept in
+    factual content, without lowering the global vector threshold. Exercise prompts alone are not answer evidence.
     This score ranks evidence; it is not a measured probability of correctness.
     """
     wanted = _terms(query)
     requested_figures = set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b', query, re.I))
-    documents = [_terms(chunk.content) for chunk, _, _ in records]
+    explicit_exercise = bool(re.search(r'\b(?:chapter\s+)?question\s+\d+', query, re.I))
+    evidence_texts = [chunk.content if explicit_exercise else re.split(r"\bCHAPTER QUESTIONS\b", chunk.content, flags=re.I)[0] for chunk, _, _ in records]
+    documents = [_terms(text) for text in evidence_texts]
     frequency = Counter(term for terms in documents for term in terms)
     # Unknown phrasing must not dilute known evidence terms out of a long
-    # student's question. Still require >=2 matching terms in the same passage.
+    # student's question. Single exact concepts have a separate factual-content check.
     weights = {term: math.log(1 + len(records) / (1 + frequency[term]))
                for term in wanted if frequency[term]}
     total = sum(weights.values()) or 1
     ranked = []
     explicit_exercise = bool(re.search(r'\b(?:chapter\s+)?question\s+\d+', query, re.I))
-    for (chunk, block, distance), terms in zip(records, documents):
+    for (chunk, block, distance), terms, evidence_text in zip(records, documents, evidence_texts):
+        if not evidence_text.strip():
+            continue
         if not block or block.block_kind in {'heading', 'answer_space'}:
             continue
         if block.block_kind in {'question', 'subpart'} and not explicit_exercise:
@@ -134,7 +139,12 @@ def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], 
         overlap = wanted & terms
         coverage = sum(weights[term] for term in overlap) / total
         lexical = min(.90, .45 + .45 * coverage) if len(overlap) >= 2 and coverage >= .25 else 0
+        concept_match = overlap & {"evaporation", "boiling", "melting", "freezing", "condensation", "sublimation", "diffusion", "solubility"}
+        if (len(wanted) == 1 or concept_match) and overlap and block.block_kind not in {"image", "diagram", "question", "subpart"}:
+            lexical = .85
         vector = max(0, 1 - float(distance))
+        if evidence_text != chunk.content and not overlap:
+            vector = 0
         score = max(vector, lexical)
         figures = set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b', chunk.content, re.I))
         exact_visual = bool(requested_figures & figures and block.block_kind in {'diagram', 'image'}
@@ -145,7 +155,14 @@ def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], 
             score = 1.0
         if score >= threshold:
             ranked.append((chunk, score, exact_visual))
-    return sorted(ranked, key=lambda item: (-int(item[2]), -item[1], item[0].page_number, item[0].source_ordinal))
+    ordered = sorted(ranked, key=lambda item: (-int(item[2]), -item[1], item[0].page_number, item[0].source_ordinal))
+    seen, unique = set(), []
+    for item in ordered:
+        key = (item[0].page_number, " ".join(item[0].content.split()))
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
 
 
 def search(db: Session, settings: Settings, principal: Principal, session_ref: str,

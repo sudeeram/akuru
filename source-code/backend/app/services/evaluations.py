@@ -48,7 +48,7 @@ TUTOR_METRICS = {
     "tutor_operations": "tutor_operational_readiness",
 }
 TUTOR_RELEASE_MODALITY = {
-    "tutor_text": "text", "tutor_voice": "voice", "tutor_tools": "tools",
+    "tutor_supplementary": "text", "tutor_text": "text", "tutor_voice": "voice", "tutor_tools": "tools",
     "tutor_learner_context": "tools", "tutor_next_unit": "tools", "tutor_sources": "tools",
     "tutor_practice": "tools", "tutor_visuals": "tools",
 }

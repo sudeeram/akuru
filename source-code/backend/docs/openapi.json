@@ -12462,6 +12462,25 @@
       },
       "TutorAgentTurnResponse": {
         "properties": {
+          "answerBasis": {
+            "anyOf": [
+              {
+                "enum": [
+                  "grounded",
+                  "supplementary",
+                  "mixed",
+                  "clarification",
+                  "outside_scope",
+                  "uncertain"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answerbasis"
+          },
           "citations": {
             "items": {
               "$ref": "#/components/schemas/TutorCitation"
@@ -12517,6 +12536,11 @@
             "title": "Provider",
             "type": "string"
           },
+          "retrievalProvenance": {
+            "additionalProperties": true,
+            "title": "Retrievalprovenance",
+            "type": "object"
+          },
           "teachingMode": {
             "enum": [
               "explanation",
@@ -12529,6 +12553,13 @@
             ],
             "title": "Teachingmode",
             "type": "string"
+          },
+          "teachingSections": {
+            "items": {
+              "$ref": "#/components/schemas/TutorTeachingSection"
+            },
+            "title": "Teachingsections",
+            "type": "array"
           },
           "toolResults": {
             "items": {
@@ -13914,6 +13945,35 @@
           "requestKey"
         ],
         "title": "TutorSwitchTopicRequest",
+        "type": "object"
+      },
+      "TutorTeachingSection": {
+        "properties": {
+          "basis": {
+            "enum": [
+              "grounded",
+              "supplementary"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "citationRefs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Citationrefs",
+            "type": "array"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": [
+          "basis",
+          "content"
+        ],
+        "title": "TutorTeachingSection",
         "type": "object"
       },
       "TutorToolResult": {

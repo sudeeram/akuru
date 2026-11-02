@@ -53,13 +53,20 @@ def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
     strengths = [s.observation for s in signals if s.category in {"confidence", "engagement"}]
     difficulties = [s.observation for s in signals if s.category in {"misconception", "practice_need"}]
     next_steps = [f"Continue guided practice for {topic.code} · {topic.title}." for topic in topics[:3]]
+    basis_expression = TutorTurn.response_data["answerBasis"].as_string()
+    bases = db.execute(select(basis_expression, func.count())
+        .where(TutorTurn.session_id == session.id, TutorTurn.role == "assistant")
+        .group_by(basis_expression)).all()
+    basis_counts = {basis: count for basis, count in bases if basis}
+    additional = any(basis_counts.get(basis, 0) for basis in ("mixed", "supplementary"))
     row = TutorSessionSummary(public_ref=f"summary_{uuid.uuid4().hex}", session_id=session.id,
         student_id=session.student_id, subject_id=session.subject_id,
         topics_covered=[{"code": topic.code,"title": topic.title,"topicRef":topic.public_ref,
               "groupTitle":db.get(TextbookGroup,topic.group_id).title} for topic in topics],
-        activities=["Tutor conversation"] + (["Guided practice"] if practices else []),
+        activities=["Tutor conversation"] + (["Guided practice"] if practices else [])
+            + (["Includes additional explanations, not official textbook evidence"] if additional else []),
         strengths=strengths, difficulties=difficulties, next_steps=next_steps,
-        usage_data={"aiRequests": int(ai[0]), "textTokens": int(ai[1]), "voiceTurns": db.scalar(select(func.count()).select_from(TutorTurn).where(TutorTurn.session_id == session.id, TutorTurn.modality == "voice")) or 0})
+        usage_data={"answerBasisCounts": basis_counts, "aiRequests": int(ai[0]), "textTokens": int(ai[1]), "voiceTurns": db.scalar(select(func.count()).select_from(TutorTurn).where(TutorTurn.session_id == session.id, TutorTurn.modality == "voice")) or 0})
     db.add(row); db.flush(); return row
 
 
@@ -111,7 +118,7 @@ def support_transcript(db: Session, principal: Principal, session_ref: str, reas
         target_id=session_ref, event_data={"reason": reason, "turnCount": len(turns)})); db.commit()
     return {"sessionRef": session_ref, "studentName": db.get(User, session.student_id).display_name,
         "turns": [{"turnRef": row.public_ref, "role": row.role, "modality": row.modality,
-                   "content": row.content, "purged": row.purged_at is not None, "createdAt": row.created_at} for row in turns]}
+                   "content": row.content, "answerBasis": (row.response_data or {}).get("answerBasis") if not row.purged_at else None, "purged": row.purged_at is not None, "createdAt": row.created_at} for row in turns]}
 
 
 def purge_preview(db: Session, days: int) -> dict:

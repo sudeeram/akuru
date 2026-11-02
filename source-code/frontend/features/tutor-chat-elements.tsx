@@ -153,3 +153,20 @@ export function TutorTextbookEvidence({
     </details>
   );
 }
+
+export function TutorAnswerBasis({ basis }: { basis?: string | null }) {
+  const labels: Record<string, string> = {
+    grounded: 'Textbook-supported',
+    supplementary: 'Additional explanation',
+    mixed: 'Textbook + additional explanation',
+    clarification: 'Clarification needed',
+    outside_scope: 'Learning boundary',
+    uncertain: 'Needs clarification',
+  };
+  if (!basis || !labels[basis]) return null;
+  return (
+    <span className={`tutor-answer-basis tutor-answer-basis-${basis}`}>
+      {labels[basis]}
+    </span>
+  );
+}

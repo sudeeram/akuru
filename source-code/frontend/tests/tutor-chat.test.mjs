@@ -33,8 +33,12 @@ for (const name of [
     .replaceAll(JSON.stringify(name), JSON.stringify(target))
     .replaceAll(`'${name}'`, JSON.stringify(target));
 }
-const { TutorMessageContent, TutorTextbookEvidence, TutorChatAvatar } =
-  await import(url(source));
+const {
+  TutorMessageContent,
+  TutorTextbookEvidence,
+  TutorChatAvatar,
+  TutorAnswerBasis,
+} = await import(url(source));
 const render = (Component, props) =>
   renderToStaticMarkup(createElement(Component, props));
 
@@ -232,4 +236,21 @@ test('past-paper feedback is labelled, folded and safely escaped after reveal', 
   assert.doesNotMatch(html, /<script>|<details[^>]*\bopen/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /no independent mastery credit/);
+});
+
+test('teaching basis labels distinguish supplementary material and preserve legacy transcripts', () => {
+  assert.equal(render(TutorAnswerBasis, {}), '');
+  assert.equal(render(TutorAnswerBasis, { basis: 'unknown' }), '');
+  assert.match(
+    render(TutorAnswerBasis, { basis: 'supplementary' }),
+    /Additional explanation/,
+  );
+  assert.match(
+    render(TutorAnswerBasis, { basis: 'mixed' }),
+    /Textbook.*additional/i,
+  );
+  assert.match(
+    render(TutorAnswerBasis, { basis: 'grounded' }),
+    /Textbook-supported/,
+  );
 });

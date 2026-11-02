@@ -484,3 +484,27 @@
 .tutor-chat-shell .tutor-turn {
   flex-shrink: 0;
 }
+
+.tutor-answer-basis {
+  display: inline-flex;
+  max-width: 100%;
+  white-space: normal;
+  border-radius: 8px;
+  padding: 4px 9px;
+  margin-bottom: 8px;
+  font-size: 0.75rem;
+  font-weight: 650;
+  background: #e9f5ee;
+  color: #235439;
+}
+.tutor-answer-basis-supplementary,
+.tutor-answer-basis-mixed {
+  background: #fff2d6;
+  color: #6b4900;
+}
+.tutor-answer-basis-clarification,
+.tutor-answer-basis-outside_scope,
+.tutor-answer-basis-uncertain {
+  background: #eeeaf7;
+  color: #514272;
+}

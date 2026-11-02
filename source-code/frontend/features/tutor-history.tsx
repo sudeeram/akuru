@@ -1,4 +1,5 @@
 'use client';
+import { TutorAnswerBasis, TutorMessageContent } from './tutor-chat-elements';
 import { StatusBadge } from '@/components/portal/badges';
 import {
   AdvancedPanel,
@@ -55,6 +56,7 @@ export function TutorHistory({
       turnRef: string;
       role: string;
       content: string;
+      answerBasis?: string | null;
       purged: boolean;
     }[];
   } | null>(null);
@@ -253,7 +255,10 @@ export function TutorHistory({
                 <strong>
                   {item.studentName} · {item.category.replace('_', ' ')}
                 </strong>
-                <StatusBadge status={item.severity} tone={item.severity === 'low' ? 'neutral' : undefined} />
+                <StatusBadge
+                  status={item.severity}
+                  tone={item.severity === 'low' ? 'neutral' : undefined}
+                />
               </div>
               <p>{item.action}</p>
               <small>
@@ -369,7 +374,11 @@ export function TutorHistory({
                 {transcript.turns.map((turn) => (
                   <article className="card" key={turn.turnRef}>
                     <strong>{turn.role}</strong>
-                    <p>{turn.content}</p>
+                    <TutorAnswerBasis basis={turn.answerBasis} />
+                    <TutorMessageContent
+                      content={turn.content}
+                      formatted={turn.role === 'assistant'}
+                    />
                     {turn.purged && <small>Content purged</small>}
                   </article>
                 ))}

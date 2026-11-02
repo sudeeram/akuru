@@ -8,16 +8,17 @@ from datetime import datetime, timezone
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert
 
 from app.ai.base import AIProviderError, AIRequest, AIResult
-from app.ai.prompts import get_tutor_prompt
+from app.ai.prompts import get_tutor_prompt, get_teaching_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TutorProfileVersion, TutorTurn
+from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TutorProfileVersion, TutorTurn, TutorPaperChatRequest, StudentProgression
 from app.repositories import tutor_agent as repository
 from app.schemas.tutor_agent import (
-    TutorAgentTurnRequest, TutorAgentTurnResponse, TutorProviderOutput, TutorToolResult, TutorVisual,
+    TutorAgentTurnRequest, TutorAgentTurnResponse, TutorProviderOutput, TutorTeachingOutput, TutorToolResult, TutorVisual,
 )
 from app.schemas.tutor_sources import TutorCitation
 from app.security import Principal
@@ -118,23 +119,38 @@ def _media(db: Session, settings: Settings, principal: Principal, session,
     return visuals[:4]
 
 
+def _source_query(db, session, payload):
+    from app.services.tutor_teaching import resolve_query
+    previous = next((turn for turn in reversed(repository.recent(db, session.id)) if turn.role == "student"), None)
+    return resolve_query(payload.message, previous.content if previous else None)
+
+
+def _complete_claim(db, session, request_key):
+    claim = db.get(TutorPaperChatRequest, (session.id, request_key))
+    if claim:
+        claim.completed = True
+        db.commit()
+
+
+def _teaching_boundary(db, session, payload, operation_id, basis, message, provenance):
+    stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
+        content=message, teachingMode=payload.teachingMode, answerBasis=basis,
+        retrievalProvenance=provenance, followUpChoices=[],
+        provider="akuru", model="teaching-boundary-v1", promptName="tutor-teaching-boundary", promptVersion="1.0.0").model_dump(mode="json")
+    turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored,
+        [], operation_id, "akuru", "teaching-boundary-v1", "tutor-teaching-boundary", "1.0.0")
+    _complete_claim(db, session, payload.requestKey)
+    _record_safety(db, session, turn)
+    return _response(turn, stored)
+
+
 def _tools(db: Session, settings: Settings, principal: Principal, session, payload: TutorAgentTurnRequest,
            operation_id: uuid.UUID):
     from app.services import tutor_practice
 
     context = tutor_context.build_and_log(db, settings, principal, session.public_ref,
         f"agent-context-{operation_id.hex}")
-    source_query = payload.message
-    # A short follow-up such as "So are they still?" needs the student's own
-    # previous question as retrieval context, not only in the provider transcript.
-    if len(payload.message) <= 160 and re.match(
-        r"^(?:so\b|and\b|what about\b|why[?!.]?$|does (?:it|that)\b|are (?:they|those)\b)",
-        payload.message.strip(), re.I,
-    ):
-        previous = next((turn for turn in reversed(repository.recent(db, session.id))
-                         if turn.role == "student"), None)
-        if previous:
-            source_query = previous.content[:1000] + "\n" + payload.message
+    source_query, _ = _source_query(db, session, payload)
     source_result = tutor_sources.search(db, settings, principal, session.public_ref,
         source_query, None, 5)
     active = next(item for item in (context.topics if session.active_topic_id else context.units) if item.active)
@@ -230,11 +246,43 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     group = db.get(TextbookGroup, topic.group_id)
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)
     operation_id = uuid.uuid4()
+    from app.services import tutor_teaching
+    teaching_enabled = settings.tutor_supplementary_enabled
+    resolved_query, query_strategy = _source_query(db, session, payload)
+    version = tutor_sources._published_version(db, topic)
+    provenance = {"queryStrategy": query_strategy, "policyVersion": tutor_teaching.POLICY_VERSION,
+        "topicContentVersionId": str(version.id) if version else None,
+        "topicContentVersion": version.version_number if version else None}
+    if teaching_enabled:
+        require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT, session.subject_id,
+            "tutor_supplementary", topic_id=session.active_topic_id)
+        # Reuse the durable per-session chat request registry (historical table name).
+        # Helpers commit during retrieval/accounting; a row lock alone cannot stop
+        # a concurrent retry from making a second paid call after those commits.
+        claimed = db.execute(insert(TutorPaperChatRequest).values(session_id=session.id,
+            request_key=payload.requestKey).on_conflict_do_nothing()
+            .returning(TutorPaperChatRequest.request_key)).scalar()
+        if not claimed:
+            replay = repository.replay(db, session.id, payload.requestKey)
+            if replay:
+                return _response(replay, replay.response_data)
+            raise DomainError("tutor_request_pending", "This request is processing or was interrupted. Reload this conversation before sending another request.", 409)
+        db.commit()
+        pre_scope, pre_message = tutor_teaching.boundary(session.subject_id, topic.title, payload.message, resolved_query, [])
+        if pre_scope == "outside_scope":
+            return _teaching_boundary(db, session, payload, operation_id, pre_scope, pre_message,
+                {**provenance, "retrievalStatus": "not_searched", "availableCitationRefs": [], "usedCitationRefs": []})
     context, citations, recommendation, tool_results, visuals, practice = _tools(
         db, settings, principal, session, payload, operation_id)
-    if not citations and not (recommendation and recommendation.status == "ready") and payload.teachingMode != "exam_technique":
+    scope, scope_message = tutor_teaching.boundary(session.subject_id, topic.title, payload.message, resolved_query, citations)
+    provenance.update({"retrievalStatus": "exact" if citations else "evidence_insufficient",
+        "availableCitationRefs": [c.citationRef for c in citations], "relatedConcepts": tutor_teaching.related(session.subject_id, topic.title, resolved_query)})
+    if teaching_enabled and scope in {"clarification", "outside_scope"} and not (recommendation and recommendation.status == "ready"):
+        return _teaching_boundary(db, session, payload, operation_id, scope, scope_message,
+            {**provenance, "usedCitationRefs": []})
+    if not teaching_enabled and not citations and not (recommendation and recommendation.status == "ready") and payload.teachingMode != "exam_technique":
         stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
-            content="I could not find enough approved evidence in this topic to explain that reliably. Try rephrasing the question or ask your administrator to review the textbook extraction.",
+            content="I did not find a matching published passage for that question. Try naming the concept more precisely. Additional explanations are not enabled for this session.",
             teachingMode=payload.teachingMode, citations=[],
             followUpChoices=["Can you help me rephrase my question?"], toolResults=tool_results,
             visuals=visuals, proposedSignals=[], provider="akuru", model="evidence-gate-v1",
@@ -244,9 +292,15 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         _record_safety(db, session, turn)
         return _response(turn, stored)
     history = [{"role": row.role, "content": row.content[:1200]} for row in repository.recent(db, session.id)]
-    prompt = get_tutor_prompt(payload.teachingMode)
+    prompt = get_teaching_prompt(payload.teachingMode) if teaching_enabled else get_tutor_prompt(payload.teachingMode)
+    progression = db.scalar(select(StudentProgression).where(
+        StudentProgression.student_id == principal.user.id, StudentProgression.is_current.is_(True)))
     task_data = {
+        "teachingPolicy": {"supplementaryAllowed": teaching_enabled and scope == "related",
+            "relatedConcepts": provenance["relatedConcepts"], "policyVersion": tutor_teaching.POLICY_VERSION,
+            "instruction": "Additional explanations are not official textbook/exam evidence. Use no invented references or learner history."},
         "scope": {"course": "iGCSE", "subject": session.subject_id,
+                  "grade": progression.grade if progression else None,
                   "activeTopic": {"code": topic.code, "title": topic.title,
                       "groupCode": group.code, "groupTitle": group.title}},
         "tutorProfile": {"name": profile.name, "tone": profile.tone, "friendliness": profile.friendliness,
@@ -264,7 +318,7 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     }
     request = AIRequest(purpose="tutoring", prompt_name=prompt.name, prompt_version=prompt.version,
         instructions=prompt.instructions, task=json.dumps(task_data, ensure_ascii=False),
-        output_type=TutorProviderOutput,
+        output_type=TutorTeachingOutput if teaching_enabled else TutorProviderOutput,
         metadata={"session_ref": session.public_ref, "subject": session.subject_id,
                   "topic": topic.code,
                   "mode": payload.teachingMode})
@@ -280,10 +334,15 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
         session.subject_id, "tutor_text", topic_id=session.active_topic_id,
         model=result.model, prompt_version=prompt.version)
-    output = TutorProviderOutput.model_validate(result.output)
+    output = (TutorTeachingOutput if teaching_enabled else TutorProviderOutput).model_validate(result.output)
     allowed = {item.citationRef: item for item in citations}
     if any(ref not in allowed for ref in output.citationRefs):
         raise DomainError("tutor_output_invalid", "The Tutor returned an unauthorized or invented citation.", 502)
+    sections = []
+    canonical_content = output.content if not teaching_enabled else ""
+    if teaching_enabled:
+        canonical_content, sections = tutor_teaching.validate_output(output, allowed, scope == "related")
+    provenance["usedCitationRefs"] = output.citationRefs
     validated_citations: list[TutorCitation] = [tutor_sources.get_citation(
         db, settings, principal, session_ref, ref) for ref in output.citationRefs]
     known_evidence = ({item.ref for item in context.evidence} | set(allowed) | {"turn:current"} |
@@ -291,7 +350,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     if any(ref not in known_evidence for signal in output.proposedSignals for ref in signal.evidenceRefs):
         raise DomainError("tutor_output_invalid", "The Tutor returned an unsupported learner signal.", 502)
     stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
-        content=output.content, teachingMode=payload.teachingMode, citations=validated_citations,
+        content=canonical_content, answerBasis=output.answerBasis if teaching_enabled else None,
+        teachingSections=sections, retrievalProvenance=provenance, teachingMode=payload.teachingMode, citations=validated_citations,
         followUpChoices=output.followUpChoices, toolResults=tool_results, visuals=visuals,
         proposedSignals=output.proposedSignals, provider=result.provider, model=result.model,
         promptName=prompt.name, promptVersion=prompt.version).model_dump(mode="json")
@@ -299,6 +359,8 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored,
         source_ids, operation_id, result.provider, result.model, prompt.name, prompt.version)
     _record_safety(db, session, turn)
+    if teaching_enabled:
+        _complete_claim(db, session, payload.requestKey)
     repository.append_signals(db, session, turn, output.proposedSignals,
         result.provider, result.model, prompt.name, prompt.version)
     return _response(turn, stored)
