@@ -2,7 +2,7 @@
 
 Created: 2026-11-01
 Started: 2026-11-02
-Status: ongoing — implemented and evaluated locally; controlled production deployment/acceptance pending.
+Status: ongoing — deployed and pilot activated; normal signed-in Student acceptance pending.
 Priority: high — improve the current single-student teaching pilot.
 
 ## Objective
@@ -68,7 +68,7 @@ Support three explicit outcomes: textbook-grounded teaching with real citations;
 
 - [x] Document the new answer types, their limitations, operator controls and the reason teaching differs from assessment evidence requirements.
 - [x] Prepare a rollback/kill switch that can disable supplementary teaching without removing textbook-grounded tutoring. Keep the initial deployment limited to the authorized pilot audience and subject/topic scope.
-- [ ] Obtain deployment authorization, commit/push the reviewed changes, take the normal production backup, deploy and update the applicable pilot/release configuration and evidence.
+- [x] Obtain deployment authorization, commit/push the reviewed changes, take the normal production backup, deploy and update the applicable pilot/release configuration and evidence.
 - [ ] Verify the Student flow on production: a useful evaporation answer, a related follow-up, honest labels/citations, safe scope boundaries and recorded usage. Use normal authorized sign-in; do not synthesize additional Student credentials.
 - [ ] Confirm health/security checks, retain acceptance evidence and mark this plan complete only after the full permitted release scope is verified. Record remaining limitations explicitly.
 
@@ -96,3 +96,9 @@ Production baseline: 54 active Topic 1 version-2 chunks; evaporation is explaine
 Local results: 308 backend tests passed, one existing skip; 116 frontend tests passed; typecheck/lint/build and generated contracts checked. The zero-cost nine-case pipeline run and the separately authorized live Evaluation run passed. Six paid calls estimated US$0.057192 with US$0.081501 conservatively charged against the new US$0.75 phase ledger; the original cumulative ledger remains unchanged. The evaluated fixture is the prepared screenshot candidate, so normal production v2.2 acceptance is still required. Desktop/mobile synthetic UI checks confirmed readable labels, folded references and automatic scrolling.
 
 Evaluation evidence: `source-code/backend/evaluations/tutor/supplementary-teaching-20261102.json`. No migration. Supplementary aliases are initially validated for Chemistry States of Matter; this is not unrestricted all-subject supplementary release.
+
+Production release `fe526cf8f272fb3bc2815182ecf3141af8bd1499` deployed via the encrypted-backup playbook on 2026-11-02. The existing roshinika-only Topic 1 pilot now permits supplementary prompt 2.0.0, with the original subject/topic/content/model/expiry unchanged. Original grounded prompt 1.0.2 remains the rollback. Evaluation SHA256: `3785c9a21792634724af0d8e0b597e0cd549689022cbedaa6ef9c6e417675801`. Activation evidence: `/data/akuru/release-evidence/tutor-supplementary-20261102T070907Z-activation.json`. HTTPS/header/authentication/route/service/timer/loopback acceptance passed; read-only gates allow roshinika and deny laura. Existing npm dependency advisories remain tracked in `todo/planned/TODO-NPM-DEPENDENCY-SECURITY.md`; no dependency upgrades were made.
+
+Read-only published-source comparison with local embeddings: evaporation query 0→9 ranked matches; boiling point 6→11; melting point 6→7; evaporation-versus-boiling 5→14. These are ranking counts, not accuracy percentages; the ordinary source limit still bounds the passages supplied. The current production v2.2 sources remain unchanged.
+
+The normal Student browser session had expired. Sign-in requested through the in-app browser; final real chat, source-link and recorded-usage verification remain pending that sign-in. Do not mark this plan completed until those checks pass.

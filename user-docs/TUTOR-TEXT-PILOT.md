@@ -27,4 +27,4 @@ When enabled for your pilot account, the Tutor can explain closely related conce
 
 Ask a direct question such as “What is evaporation?”, then a follow-up such as “Why does it happen?”. If the question is unclear or outside the selected learning scope, AKURU may ask for clarification. References remain collapsed until you open them. Additional explanations do not change your marks, mastery or study plan.
 
-This rollout is awaiting live evaluation and production activation; the existing pilot restrictions still apply.
+Enabled on 2026-11-02 for the existing roshinika Chemistry Topic 1 pilot. The existing pilot restrictions still apply.
