@@ -7,6 +7,11 @@ import { useWorkspaceSearch } from '@/lib/use-workspace-search';
 /* State effects synchronise API-loaded defaults with the session form. */
 /* eslint-disable react/react-compiler */
 import Image from 'next/image';
+import {
+  TutorChatAvatar,
+  TutorMessageContent,
+  TutorTextbookEvidence,
+} from './tutor-chat-elements';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRightLeft,
@@ -16,6 +21,8 @@ import {
   MessageCircle,
   Send,
   Square,
+  UserRound,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -75,6 +82,7 @@ export function TutorSessions({
     [busy, setBusy] = useState(false);
   const [teachingMode, setTeachingMode] =
     useState<TutorAgentReply['teachingMode']>('explanation');
+  const [pendingMessage, setPendingMessage] = useState('');
   const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
   const [practice, setPractice] = useState<TutorPractice | null>(null),
     [practiceAnswer, setPracticeAnswer] = useState('');
@@ -86,6 +94,7 @@ export function TutorSessions({
     useState<TutorCitationContext | null>(null);
   const textInput = useRef<HTMLInputElement | null>(null);
   const latestTurnElement = useRef<HTMLElement | null>(null);
+  const pendingTurnElement = useRef<HTMLDivElement | null>(null);
   const latestTurnRef = session?.turns.at(-1)?.turnRef;
   useEffect(() => {
     if (!latestTurnRef) return;
@@ -98,6 +107,13 @@ export function TutorSessions({
       block: 'start',
     });
   }, [latestTurnRef]);
+  useEffect(() => {
+    if (pendingMessage)
+      pendingTurnElement.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'auto',
+      });
+  }, [pendingMessage]);
   const load = useCallback(async () => {
     try {
       const [choices, profiles, sessions, allowance] = await Promise.all([
@@ -211,7 +227,9 @@ export function TutorSessions({
       <div className="stack">
         <Heading eyebrow="STUDENT · PRACTICE" title="Start a tutor session">
           Choose one covered topic and one of your tutors. Tutor help is
-          available during practice only. {options.pilotMode && "This pilot covers Chemistry Topic 1 — States of Matter by text."}
+          available during practice only.{' '}
+          {options.pilotMode &&
+            'This pilot covers Chemistry Topic 1 — States of Matter by text.'}
         </Heading>
         {error && (
           <div className="error" role="alert">
@@ -294,8 +312,9 @@ export function TutorSessions({
     options.subjects.find((item) => item.id === session.subjectId)?.topics ||
     [];
   const activeLabel = `${session.activeTopic.groupCode} · ${session.activeTopic.code} · ${session.activeTopic.title}`;
+  const tutorName = session.currentTutor.name;
   return (
-    <div className="stack">
+    <div className="stack tutor-room-page">
       <Heading
         eyebrow="STUDENT · TUTOR ROOM"
         title={`${session.currentTutor.name} is helping you`}
@@ -325,14 +344,12 @@ export function TutorSessions({
       )}
       {quota && <QuotaSummary quota={quota} />}
       <section className="panel tutor-room-header">
-        {avatar && (
-          <Image
-            width={105}
-            height={105}
-            src={avatar.imagePath}
-            alt={`${session.currentTutor.name} avatar`}
-          />
-        )}
+        <TutorChatAvatar
+          key={avatar?.code || 'default'}
+          src={avatar?.imagePath}
+          name={tutorName}
+          size={64}
+        />
         <div>
           <MetadataBadge>{session.subjectId.toUpperCase()}</MetadataBadge>
           <h2>{activeLabel}</h2>
@@ -393,161 +410,276 @@ export function TutorSessions({
         </div>
       </section>
       <section
-        className="panel stack tutor-transcript"
+        className="panel tutor-transcript tutor-chat-shell"
         aria-label="Tutor transcript"
       >
-        <div className="panel-heading">
-          <div>
-            <MetadataBadge>
-              <ArrowRightLeft size={13} /> CONTINUOUS HANDOVER
-            </MetadataBadge>
-            <h2>Conversation</h2>
+        <header className="tutor-chat-header">
+          <TutorChatAvatar
+            key={avatar?.code || 'default'}
+            src={avatar?.imagePath}
+            name={tutorName}
+            size={44}
+          />
+          <div className="tutor-chat-heading">
+            <h2>{tutorName}</h2>
+            <p>AI study companion · {session.activeTopic.title}</p>
           </div>
-        </div>
-        {!session.turns.length ? (
+          <span className="tutor-chat-status">
+            <span aria-hidden="true" />
+            {pendingMessage ? 'Thinking…' : 'Ready to help'}
+          </span>
+        </header>
+        {!session.turns.length && !pendingMessage ? (
           <Empty title="Ask your first question">
             AKURU will retain this message with the tutor version that received
             it.
           </Empty>
         ) : (
-          <div className="tutor-turn-list">
-            {session.turns.map((turn) => (
-              <article
-                key={turn.turnRef}
-                className={`tutor-turn ${turn.role}`}
-                ref={turn.turnRef === latestTurnRef ? latestTurnElement : undefined}
-                style={{ scrollMarginBlockStart: '6rem' }}
-              >
-                <strong>
-                  {turn.role === 'student' ? 'You' : session.currentTutor.name}
-                </strong>
-                <p>{turn.content}</p>
-                <small>
-                  {turn.modality === 'voice' ? 'Voice transcript' : 'Text'} ·
-                  tutor version {turn.profileVersion}
-                </small>
-              </article>
-            ))}
+          <div
+            className="tutor-turn-list"
+            aria-label="Conversation messages"
+            // Keyboard users must be able to scroll the bounded conversation.
+            // oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+            tabIndex={0}
+          >
+            <div className="tutor-chat-session-label">
+              <span>Learning together</span>
+            </div>
+            {session.turns.map((turn) => {
+              const turnProfile = options.profiles.find(
+                (item) => item.profileRef === turn.profileRef,
+              );
+              const turnName = turnProfile?.name || 'AKURU Tutor';
+              const turnAvatar = profileOptions?.avatars.find(
+                (item) => item.code === turnProfile?.avatarCode,
+              );
+              const date = new Date(turn.createdAt);
+              const hasTime = !Number.isNaN(date.getTime());
+              return (
+                <article
+                  key={turn.turnRef}
+                  className={`tutor-turn ${turn.role}`}
+                  ref={
+                    turn.turnRef === latestTurnRef
+                      ? latestTurnElement
+                      : undefined
+                  }
+                  style={{ scrollMarginBlockStart: '6rem' }}
+                >
+                  {turn.role === 'student' ? (
+                    <span className="tutor-student-avatar" aria-hidden="true">
+                      <UserRound size={19} />
+                    </span>
+                  ) : (
+                    <TutorChatAvatar
+                      key={turnAvatar?.code || 'default'}
+                      src={turnAvatar?.imagePath}
+                      name={turnName}
+                      size={34}
+                    />
+                  )}
+                  <div className="tutor-message-body">
+                    <div className="tutor-message-meta">
+                      <strong>
+                        {turn.role === 'student' ? 'You' : turnName}
+                      </strong>
+                      {hasTime && (
+                        <time dateTime={turn.createdAt}>
+                          {date.toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </time>
+                      )}
+                    </div>
+                    <div className="tutor-message-bubble">
+                      <TutorMessageContent
+                        content={turn.content}
+                        formatted={turn.role === 'assistant'}
+                      />
+                    </div>
+                    <small className="tutor-message-provenance">
+                      {turn.modality === 'voice'
+                        ? 'Voice transcript'
+                        : turn.role === 'assistant'
+                          ? 'AI tutor'
+                          : 'You'}{' '}
+                      · tutor version {turn.profileVersion}
+                    </small>
+                  </div>
+                </article>
+              );
+            })}
+            {pendingMessage && (
+              <div ref={pendingTurnElement} className="tutor-pending-turn">
+                <article className="tutor-turn student">
+                  <span className="tutor-student-avatar" aria-hidden="true">
+                    <UserRound size={19} />
+                  </span>
+                  <div className="tutor-message-body">
+                    <div className="tutor-message-meta">
+                      <strong>You</strong>
+                    </div>
+                    <div className="tutor-message-bubble">
+                      <TutorMessageContent
+                        content={pendingMessage}
+                        formatted={false}
+                      />
+                    </div>
+                    <small className="tutor-message-provenance">
+                      Sending to your tutor…
+                    </small>
+                  </div>
+                </article>
+                <output className="tutor-typing" aria-live="polite">
+                  <Sparkles size={16} aria-hidden="true" />
+                  {tutorName} is preparing a reply
+                  <span className="tutor-typing-dots" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                </output>
+              </div>
+            )}
           </div>
         )}
         {agentReply && (
-          <aside
-            className="agent-evidence stack"
-            aria-label="Evidence used by tutor and visual aids"
-          >
-            {agentReply.citations.map((citation) => (
-              <a
-                className="citation-link"
-                key={citation.citationRef}
-                href={citation.assetUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <BookMarked size={14} />
-                {citation.textbookTitle} · {citation.pageReference}
-              </a>
-            ))}
-            {agentReply.visuals.map((visual) => (
-              <TutorVisualAid
-                visual={visual}
-                key={`${visual.visualType}:${visual.contentUrl || visual.title}`}
-              />
-            ))}
+          <div className="tutor-chat-extras">
+            <TutorTextbookEvidence
+              key={agentReply.turnRef}
+              sourceCount={agentReply.citations.length}
+              visualCount={agentReply.visuals.length}
+            >
+              {agentReply.citations.map((citation) => (
+                <a
+                  className="citation-link"
+                  key={citation.citationRef}
+                  href={citation.assetUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <BookMarked size={14} />
+                  {citation.textbookTitle} · {citation.pageReference}
+                </a>
+              ))}
+              {agentReply.visuals.map((visual) => (
+                <TutorVisualAid
+                  visual={visual}
+                  key={`${visual.visualType}:${visual.contentUrl || visual.title}`}
+                />
+              ))}
+            </TutorTextbookEvidence>
             {!!agentReply.followUpChoices.length && (
               <div className="follow-up-choices">
-                <strong>Continue with:</strong>
+                <span className="tutor-follow-up-label">Try a follow-up</span>
                 {agentReply.followUpChoices.map((choice) => (
                   <button
                     type="button"
                     key={choice}
-                    onClick={() => setMessage(choice)}
+                    disabled={busy}
+                    onClick={() => {
+                      setMessage(choice);
+                      textInput.current?.focus();
+                    }}
                   >
                     {choice}
                   </button>
                 ))}
               </div>
             )}
-          </aside>
+          </div>
         )}
-        <label className="tutor-mode">
-          <span>Teaching approach</span>
-          <select
-            value={teachingMode}
-            disabled={busy}
-            onChange={(event) =>
-              setTeachingMode(
-                event.target.value as TutorAgentReply['teachingMode'],
-              )
-            }
+        <div className="tutor-chat-compose-area">
+          <label className="tutor-mode">
+            <span>Teaching approach</span>
+            <select
+              value={teachingMode}
+              disabled={busy}
+              onChange={(event) =>
+                setTeachingMode(
+                  event.target.value as TutorAgentReply['teachingMode'],
+                )
+              }
+            >
+              <option value="explanation">Explanation</option>
+              <option value="questions">Questions</option>
+              <option value="guided_practice">Guided practice</option>
+              <option value="socratic_practice">Socratic practice</option>
+              <option value="revision">Revision</option>
+              <option value="exam_technique">Exam technique</option>
+              <option value="french_conversation">French conversation</option>
+            </select>
+          </label>
+          <form
+            className="tutor-composer tutor-chat-composer"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const content = message.trim();
+              if (!content || busy) return;
+              setPendingMessage(content);
+              setBusy(true);
+              setError('');
+              try {
+                const reply = await addTutorAgentTurn(
+                  session.sessionRef,
+                  content,
+                  teachingMode,
+                  key(),
+                );
+                setAgentReply(reply);
+                setMessage('');
+                const [refreshed, allowance] = await Promise.all([
+                  getTutorSessions(),
+                  getTutorQuota(),
+                ]);
+                setSession(
+                  refreshed.sessions.find(
+                    (item) => item.sessionRef === session.sessionRef,
+                  ) || session,
+                );
+                setQuota(allowance);
+              } catch (cause) {
+                setError(errorMessage(cause));
+              } finally {
+                setPendingMessage('');
+                setBusy(false);
+              }
+            }}
           >
-            <option value="explanation">Explanation</option>
-            <option value="questions">Questions</option>
-            <option value="guided_practice">Guided practice</option>
-            <option value="socratic_practice">Socratic practice</option>
-            <option value="revision">Revision</option>
-            <option value="exam_technique">Exam technique</option>
-            <option value="french_conversation">French conversation</option>
-          </select>
-        </label>
-        <form
-          className="tutor-composer"
-          onSubmit={async (event) => {
-            event.preventDefault();
-            const content = message.trim();
-            if (!content) return;
-            setBusy(true);
-            setError('');
-            try {
-              const reply = await addTutorAgentTurn(
-                session.sessionRef,
-                content,
-                teachingMode,
-                key(),
-              );
-              setAgentReply(reply);
-              setMessage('');
-              const [refreshed, allowance] = await Promise.all([
-                getTutorSessions(),
-                getTutorQuota(),
-              ]);
-              setSession(
-                refreshed.sessions.find(
-                  (item) => item.sessionRef === session.sessionRef,
-                ) || session,
-              );
-              setQuota(allowance);
-            } catch (cause) {
-              setError(errorMessage(cause));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <Input
-            ref={textInput}
-            aria-label="Message your tutor"
-            placeholder="Ask about this topic…"
-            value={message}
-            onChange={(event) => setMessage(event.target.value)}
-            maxLength={8000}
-          />
-          <Button
-            className="primary"
-            type="submit"
-            disabled={busy || !message.trim()}
-          >
-            <Send size={16} />
-            Send
-          </Button>
-        </form>
-        <small>
-          AKURU uses only your eligible topic, verified learner context and
-          approved sources. Proposed tutor observations do not change mastery or
-          your study plan.
-        </small>
+            <Input
+              ref={textInput}
+              aria-label="Message your tutor"
+              placeholder="Ask your tutor a question…"
+              disabled={busy}
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+              maxLength={8000}
+            />
+            <Button
+              className="primary"
+              type="submit"
+              disabled={busy || !message.trim()}
+            >
+              <Send size={16} />
+              Send
+            </Button>
+          </form>
+          <small className="tutor-chat-privacy">
+            AKURU uses only your eligible topic, verified learner context and
+            approved sources. Proposed tutor observations do not change mastery
+            or your study plan.
+          </small>
+        </div>
       </section>
       <TutorSignals refreshKey={agentReply?.turnRef} />
-      {options.pilotMode && <output className="panel">Topic 1 text tutoring pilot: explanations, revision and approved textbook figures are available. Voice, next-topic recommendations and assessed guided practice are not enabled in this pilot.</output>}
+      {options.pilotMode && (
+        <output className="panel">
+          Topic 1 text tutoring pilot: explanations, revision and approved
+          textbook figures are available. Voice, next-topic recommendations and
+          assessed guided practice are not enabled in this pilot.
+        </output>
+      )}
       <AdvancedPanel title="Sources, guided practice and session tools">
         {' '}
         <section className="panel stack tutor-next-topic">
@@ -798,9 +930,31 @@ export function TutorSessions({
                   key={url}
                 />
               ))}
-              <DrawingSubmissions assessmentId={practice.assessmentId} questionId={practice.question.id} parts={practice.question.drawingParts} files={practice.question.drawingFiles} disabled={busy || practice.status !== 'active'} onSaved={async () => setPractice(await getTutorPractice(session.sessionRef))} />
-              {practice.status === 'active' && practice.question.generatedWorkedAnswerAvailable && <PracticeWorkedAnswer key={practice.question.id} assessmentId={practice.assessmentId} questionId={practice.question.id} />}
-              {practice.status === 'submitted' && <ModelAnswerVisuals assessmentId={practice.assessmentId} questionId={practice.question.id} visuals={practice.question.rubric?.answerVisuals} />}
+              <DrawingSubmissions
+                assessmentId={practice.assessmentId}
+                questionId={practice.question.id}
+                parts={practice.question.drawingParts}
+                files={practice.question.drawingFiles}
+                disabled={busy || practice.status !== 'active'}
+                onSaved={async () =>
+                  setPractice(await getTutorPractice(session.sessionRef))
+                }
+              />
+              {practice.status === 'active' &&
+                practice.question.generatedWorkedAnswerAvailable && (
+                  <PracticeWorkedAnswer
+                    key={practice.question.id}
+                    assessmentId={practice.assessmentId}
+                    questionId={practice.question.id}
+                  />
+                )}
+              {practice.status === 'submitted' && (
+                <ModelAnswerVisuals
+                  assessmentId={practice.assessmentId}
+                  questionId={practice.question.id}
+                  visuals={practice.question.rubric?.answerVisuals}
+                />
+              )}
               {practice.status === 'active' ? (
                 <>
                   <label className="stack">
@@ -911,7 +1065,14 @@ export function TutorSessions({
                   {practice.question.result.markingDecisions.map((decision) => (
                     <p className="source-note" key={decision.pointId}>
                       <strong>
-                        {decision.creditState === 'matched_capped' ? 'Correct · mark limit reached' : decision.creditState === 'not_required' ? 'Optional · not required' : decision.awarded ? 'Awarded' : 'Not awarded'}:
+                        {decision.creditState === 'matched_capped'
+                          ? 'Correct · mark limit reached'
+                          : decision.creditState === 'not_required'
+                            ? 'Optional · not required'
+                            : decision.awarded
+                              ? 'Awarded'
+                              : 'Not awarded'}
+                        :
                       </strong>{' '}
                       {decision.rationale}
                       <br />
@@ -952,7 +1113,10 @@ export function TutorSessions({
           subjectId={session.subjectId}
           profileIdentity={`${session.currentTutor.profileRef}:${session.currentTutor.version}`}
           disabled={
-            options.pilotMode || !quota || !quota.enabled || quota.voiceMinutes.remaining <= 0
+            options.pilotMode ||
+            !quota ||
+            !quota.enabled ||
+            quota.voiceMinutes.remaining <= 0
           }
           notify={notify}
           onTranscript={refreshVoiceTranscript}

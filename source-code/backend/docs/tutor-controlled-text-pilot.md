@@ -15,3 +15,11 @@ Initial deployment uses the already Admin-reviewed/published Topic 1 content. Th
 Rollback: set both text and tools flags false and restart API/worker. Keep the pilot setting while disabling to avoid accidentally falling back to any broad release. Retain transcripts/audit/evidence and API usage records; do not reset passwords or delete learning data. Restore the previous reviewed code release only if required; no schema migration is introduced by this pilot.
 
 For a wider release, complete the full evaluation corpus/staging/audience progression and remove the temporary pilot configuration only after the broader release has been separately authorized.
+
+## Tutor chat presentation
+
+The Student conversation uses `frontend/features/tutor-chat-elements.tsx` and `frontend/app/tutor-chat.css`. The layout is inspired by the PreSkool chat reference, implemented with AKURU components/assets without third-party chat scripts or remote avatars. Direct, unoptimized static images avoid the unsupported optimizer path; missing images have a fallback. Textbook evidence uses a native, keyboard-accessible disclosure, keyed per reply and closed by default.
+
+The small answer formatter renders text-only paragraphs, bold spans, inline code and ordered/unordered lists as React nodes. It does not interpret raw HTML, Markdown links or model-created URLs. Formula Unicode and ordinary Student input are preserved. No backend contract, source access, AI prompt or model change is involved.
+
+Local visual fixture: `node source-code/frontend/tests/tutor-chat-preview.mjs` from the repository root after a frontend build. It prints a loopback-only URL, mocks the API with synthetic conversations and makes no paid calls. `/mobile?missing-avatar` renders a 390px frame and tests the missing-avatar path. Stop the fixture after testing. Unit checks are in `frontend/tests/tutor-chat.test.mjs`.

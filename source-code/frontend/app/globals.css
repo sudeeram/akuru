@@ -8,6 +8,7 @@
 @import './profile.css';
 @import './student-avatar.css';
 @import './badges.css';
+@import './tutor-chat.css';
 @custom-variant dark (&:is(.dark *));
 @theme inline {
   --color-background: var(--background);

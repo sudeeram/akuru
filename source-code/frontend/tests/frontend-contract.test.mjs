@@ -559,7 +559,7 @@ test('student tutor room retains transcripts and supports explicit tutor and top
   assert.match(tutorSessions, /getTutorSessionOptions/);
   assert.match(tutorSessions, /switchTutorProfile/);
   assert.match(tutorSessions, /switchTutorTopic/);
-  assert.match(tutorSessions, /CONTINUOUS HANDOVER/);
+  assert.match(tutorSessions, /Your transcript stays together/);
   assert.match(tutorSessions, /profileVersion/);
   assert.match(api, /requestKey/);
   assert.doesNotMatch(tutorSessions, /MediaRecorder|audioBlob|raw audio/i);
@@ -592,10 +592,10 @@ test('structured text tutor supports teaching modes, evidence and recoverable ke
   assert.match(tutorSessions, /Teaching approach/);
   assert.match(tutorSessions, /Socratic practice/);
   assert.match(tutorSessions, /French conversation/);
-  assert.match(tutorSessions, /Evidence used by tutor/);
+  assert.match(tutorSessions, /<TutorTextbookEvidence/);
   assert.match(tutorSessions, /followUpChoices/);
   assert.match(tutorSessions, /setMessage\(''\)/);
-  assert.match(tutorSessions, /<form className="tutor-composer" onSubmit=/);
+  assert.match(tutorSessions, /<form className="tutor-composer tutor-chat-composer" onSubmit=/);
   assert.match(
     tutorSessions,
     /Proposed tutor observations do not change mastery/,

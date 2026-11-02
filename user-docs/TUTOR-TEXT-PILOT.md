@@ -12,3 +12,11 @@ The initial pilot is available to the selected Student account only, for Chemist
 Answers are AI generated and can need correction. AKURU should explain missing source evidence rather than invent textbook claims or personal performance history. Tutor help is blocked during formal assessments. The Admin can disable the pilot; it also has a configured expiry.
 
 Production conversations use the AKURU-backend OpenAI project and the existing per-student allowance. The separate Evaluation budget does not cap production usage. No password change is needed to enable the pilot.
+
+## Conversation controls
+
+The Tutor room shows Student and AI messages as separate chat bubbles with timestamps. While a request is being sent, the question appears immediately with a reply-preparation indicator; the page brings the new answer into view when it arrives.
+
+**Textbook references** starts collapsed to keep the conversation readable. Select it to show the cited pages and available visual aids, and select it again to hide them. Follow-up suggestions remain outside this section. A new answer starts with its references collapsed. When an answer has no source evidence, no empty reference section is shown.
+
+Tutor avatars load directly from AKURU's saved assets. If a selected image is unavailable, a default AKURU BOT is displayed. The source links and tutoring permissions are unchanged by this presentation.
