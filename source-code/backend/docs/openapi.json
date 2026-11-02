@@ -7037,6 +7037,79 @@
         "title": "PartAccuracy",
         "type": "object"
       },
+      "PastPaperChatState": {
+        "properties": {
+          "alternatives": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "answerRevealed": {
+            "default": false,
+            "title": "Answerrevealed",
+            "type": "boolean"
+          },
+          "examinerAdvice": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Examineradvice",
+            "type": "array"
+          },
+          "markingGuidance": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Markingguidance",
+            "type": "array"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "paperTitle": {
+            "title": "Papertitle",
+            "type": "string"
+          },
+          "practice": {
+            "$ref": "#/components/schemas/TutorPracticeResponse"
+          },
+          "questionLabel": {
+            "title": "Questionlabel",
+            "type": "string"
+          },
+          "sources": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "state": {
+            "enum": [
+              "awaiting_answer",
+              "answered",
+              "revealed",
+              "expired"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "practice",
+          "paperTitle",
+          "questionLabel",
+          "state"
+        ],
+        "title": "PastPaperChatState",
+        "type": "object"
+      },
       "PlanChangeResponse": {
         "properties": {
           "change": {
@@ -8759,6 +8832,37 @@
           "embeddingModel"
         ],
         "title": "ReindexResponse",
+        "type": "object"
+      },
+      "ReleasePastPaperPart": {
+        "properties": {
+          "confirmSelfContained": {
+            "title": "Confirmselfcontained",
+            "type": "boolean"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "partLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "revision": {
+            "exclusiveMinimum": 0.0,
+            "title": "Revision",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "partLabel",
+          "revision",
+          "confirmSelfContained"
+        ],
+        "title": "ReleasePastPaperPart",
         "type": "object"
       },
       "ReleaseResponse": {
@@ -12384,6 +12488,16 @@
             "title": "Operationref",
             "type": "string"
           },
+          "pastPaper": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PastPaperChatState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "promptName": {
             "title": "Promptname",
             "type": "string"
@@ -13820,7 +13934,8 @@
               "mastery_summary",
               "study_plan_context",
               "guided_practice",
-              "deterministic_media"
+              "deterministic_media",
+              "past_paper_practice"
             ],
             "title": "Name",
             "type": "string"
@@ -15368,6 +15483,83 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/chat-releases": {
+      "get": {
+        "operationId": "chat_releases_api_v1_admin_official_paper_reviews__paper_id__chat_releases_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Chat Releases",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/prepare-official-drafts": {
       "post": {
         "operationId": "prepare_official_drafts_api_v1_admin_official_paper_reviews__paper_id__prepare_official_drafts_post",
@@ -15765,6 +15957,118 @@
           }
         },
         "summary": "Record Analysis",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": {
+      "post": {
+        "operationId": "release_chat_part_api_v1_admin_official_paper_reviews__paper_id__questions__number__chat_release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleasePastPaperPart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Release Chat Part",
         "tags": [
           "official-paper-reviews"
         ]
@@ -34542,6 +34846,178 @@
           }
         },
         "summary": "Next Unit",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/past-paper": {
+      "get": {
+        "operationId": "past_paper_current_api_v1_tutoring_sessions__session_ref__past_paper_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/PastPaperChatState"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Past Paper Current Api V1 Tutoring Sessions  Session Ref  Past Paper Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Past Paper Current",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/past-paper/assets/{asset_id}": {
+      "get": {
+        "operationId": "past_paper_asset_api_v1_tutoring_sessions__session_ref__past_paper_assets__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Past Paper Asset",
         "tags": [
           "tutoring"
         ]

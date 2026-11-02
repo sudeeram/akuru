@@ -42,7 +42,8 @@ def _official_points(question: AssessmentQuestion) -> list[dict]:
 
 
 def _sources(db: Session, question: AssessmentQuestion, limit: int) -> list[dict]:
-    manifest = [{"type": "frozen_question", "questionVersionId": str(question.source_question_version_id),
+    manifest = [{"type": "frozen_question", "questionVersionId": str(question.source_question_version_id) if question.source_question_version_id else None,
+                 "tutorPaperReleaseId": str(question.tutor_paper_release_id) if question.tutor_paper_release_id else None,
                  "documentVersionId": str(question.source_document_version_id), "locations": question.source_locations},
                 {"type": "frozen_rubric", "rubric": question.rubric}]
     topic_ids = [uuid.UUID(value) for value in (question.topic_ids or [])]
@@ -163,11 +164,29 @@ def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, Ass
     return result
 
 
-def evaluate(db: Session, settings: Settings, assessment: Assessment, request_key: str) -> None:
+def evaluate(db: Session, settings: Settings, assessment: Assessment, request_key: str, *, generator=None) -> None:
+    generate = generator or _generate
     assessment = db.scalar(select(Assessment).where(Assessment.id == assessment.id).with_for_update())
     if assessment.status not in {"submitted", "expired"} or not assessment.submitted_at:
         raise DomainError("assessment_submission_required", "Submit the assessment before AKURU marks it.", 409)
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment.id).order_by(AssessmentQuestion.sequence)).all()
+    chat_questions = [q for q in questions if q.tutor_paper_release_id]
+    if chat_questions:
+        from app.models import AIProviderAccount
+        from app.security import Principal
+        from app.services.tutor_past_papers import authorize_assessment
+        principal = Principal(user=db.get(User, assessment.student_id), session=None)
+        authorize_assessment(db, settings, principal, assessment)
+        selected = db.scalar(select(AIProviderAccount).where(AIProviderAccount.enabled.is_(True)).order_by(AIProviderAccount.priority))
+        model = selected.model if selected else settings.openai_model or "unconfigured"
+        allowed, reason = evaluations.automatic_feedback_allowed(db, assessment.subject_id, 1.0, model, get_prompt("assessment").version)
+        if not allowed and any(not q.rubric.get("drawingParts") for q in chat_questions):
+            raise DomainError("assessment_feedback_not_released", reason, 409)
+        if generator is None:
+            from app.services import tutor_agent
+            def generate(mark_db, mark_settings, request):
+                request.metadata["session_ref"] = chat_questions[0].rubric["tutorSessionRef"]
+                return tutor_agent._invoke(mark_db, mark_settings, principal, request, uuid.uuid4(), None)
     request_count = sum((1 if settings.assessment_drawing_suggestions_enabled else 0) if q.rubric.get("drawingParts") else 2 for q in questions)
     if request_count:
         usage_limits.reserve_assessment(db, settings, assessment, request_key, request_count)
@@ -191,7 +210,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
                     working = [db.get(AssessmentWorkingFile, uuid.UUID(file_id)) for file_id in ids]
                     if any(not file or file.student_id != assessment.student_id or file.assessment_id != assessment.id for file in working):
                         raise DomainError("drawing_missing", "Original drawing unavailable.", 409)
-                    suggestion = drawing_assessment.propose(db, get_storage(), settings, question, answer, working, points, _generate)
+                    suggestion = drawing_assessment.propose(db, get_storage(), settings, question, answer, working, points, generate)
                     used_tokens += suggestion.usage.total_tokens or 0
                     awarded = _validate(suggestion.output.decisions, points, question.marks, question.rubric.get("scoringRules"))
                     pending.awarded_marks = awarded
@@ -225,11 +244,11 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         metadata = {"learner_ref": usage_limits.pseudonymous_student_id(settings, assessment.student_id), "subject_id": assessment.subject_id}
         try:
             instructions = f"For structured rubrics, return evidence matches for every point before caps. Quote exact student wording for each awarded match. Distinct points may share evidence; synonyms for one point never create extra points. Backend code applies all caps. Do not describe unused alternatives as errors once sufficient marks are earned; do not claim a numerical total in generated feedback. {prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
-            first = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
+            first = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
                 prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting),
                 output_type=AssessmentPassOne, metadata=metadata))
             _validate(first.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
-            second = _generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
+            second = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
                 prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting, first.output.model_dump()),
                 output_type=AssessmentPassTwo, metadata=metadata))
             used_tokens += (first.usage.total_tokens or 0) + (second.usage.total_tokens or 0)

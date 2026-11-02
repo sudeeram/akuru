@@ -89,3 +89,11 @@ Official-paper accuracy estimates and extraction provenance are stored separatel
 The implementation uses a versioned `GeneratedWorkedAnswer` draft and durable worker polling, the existing OpenAI account router, strict declarative graph schemas and trusted PyMuPDF plotting. Admin approval immediately attaches immutable, explicitly generated private assets into the existing `AnswerVisual` release/snapshot pipeline and reopens an approved question for its changed answer. Source hashes invalidate current drafts without rewriting historical attempt answers.
 
 Practice reveals record `worked_answer` interactions and exclude those questions from independent mastery evidence. Formal assessment assistance is rejected; rubric/image release follows the existing submission gate. Live OpenAI generation is disabled by default and requires configured account aliases. An Admin-only Codex-prepared draft import can create a source-bound, rendered candidate without a live provider key; it enters the same independent review and attach gates. See [the backend architecture and operation guide](../source-code/backend/docs/ai-generated-worked-answers.md) and [the 1C source audit](../source-code/backend/docs/ai-generated-worked-answers-1c-audit.md).
+
+## Past-paper chat practice
+
+The Tutor's exam-intent path now runs before textbook retrieval. It serves explicitly released, approved, self-contained paper subparts with exact scheme guidance; it does not invent official answers. Migration 0018 adds immutable `tutor_paper_releases`, durable request claims and an alternative source FK on `assessment_questions`. Existing assessment storage, drawing uploads, two-pass marking, assistance events, quotas and Student-owned mastery are reused.
+
+Source release and account release are separate: Admin confirms individual subparts in the paper-review UI, while the operator enables an explicit Student allowlist. Normal Tutor pilot and formal-assessment restrictions still apply. Selection/reveal is deterministic and free of model calls. Automatic scoring stays behind its existing model/prompt-specific quality gate; if unavailable, answers remain saved and approved guidance remains readable.
+
+See [implementation and operations](../source-code/backend/docs/tutor-past-paper-chat.md) and [Student/Admin procedures](../user-docs/TUTOR-PAST-PAPER-PRACTICE.md).

@@ -1,4 +1,7 @@
 'use client';
+import { request } from '@/api/core/client';
+import { TutorPastPaperCard } from './tutor-past-paper-card';
+import type { PastPaperChatState } from '@/api/tutoring/tutor.types';
 import { ModelAnswerVisuals, PracticeWorkedAnswer } from './answer-visuals';
 import { DrawingSubmissions } from './drawing-submissions';
 import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
@@ -85,6 +88,7 @@ export function TutorSessions({
     useState<TutorAgentReply['teachingMode']>('explanation');
   const [pendingMessage, setPendingMessage] = useState('');
   const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
+  const [pastPaper, setPastPaper] = useState<PastPaperChatState | null>(null);
   const [practice, setPractice] = useState<TutorPractice | null>(null),
     [practiceAnswer, setPracticeAnswer] = useState('');
   const [nextTopic, setNextTopic] = useState<NextTopicResult | null>(null);
@@ -143,6 +147,14 @@ export function TutorSessions({
             )
         : undefined;
       setAgentReply((retained?.structured as TutorAgentReply) || null);
+      setPastPaper(null);
+      if (active) {
+        await request<PastPaperChatState | null>(
+          `tutoring/sessions/${active.sessionRef}/past-paper`,
+        )
+          .then(setPastPaper)
+          .catch(() => setPastPaper(null));
+      }
       if (active) {
         const retainedPractice = await getTutorPractice(active.sessionRef);
         setPractice(retainedPractice);
@@ -508,7 +520,9 @@ export function TutorSessions({
                       {turn.modality === 'voice'
                         ? 'Voice transcript'
                         : turn.role === 'assistant'
-                          ? 'AI tutor'
+                          ? turn.structured?.model === 'approved-exam-tools-v1'
+                            ? 'Reviewed exam tools'
+                            : 'AI tutor'
                           : 'You'}{' '}
                       · tutor version {turn.profileVersion}
                     </small>
@@ -596,6 +610,19 @@ export function TutorSessions({
             )}
           </div>
         )}
+        {pastPaper && (
+          <TutorPastPaperCard
+            value={pastPaper}
+            busy={busy}
+            refresh={() => {
+              void request<PastPaperChatState | null>(
+                `tutoring/sessions/${session.sessionRef}/past-paper`,
+              )
+                .then(setPastPaper)
+                .catch((cause) => setError(errorMessage(cause)));
+            }}
+          />
+        )}
         <div className="tutor-chat-compose-area">
           <label className="tutor-mode">
             <span>Teaching approach</span>
@@ -634,6 +661,7 @@ export function TutorSessions({
                   key(),
                 );
                 setAgentReply(reply);
+                if (reply.pastPaper) setPastPaper(reply.pastPaper);
                 setMessage('');
                 const [refreshed, allowance] = await Promise.all([
                   getTutorSessions(),
@@ -683,7 +711,8 @@ export function TutorSessions({
         <output className="panel">
           Topic 1 text tutoring pilot: explanations, revision and approved
           textbook figures are available. Voice, next-topic recommendations and
-          assessed guided practice are not enabled in this pilot.
+          general guided practice are not enabled in this text pilot. Separately
+          released past-paper chat may be available for your account.
         </output>
       )}
       <AdvancedPanel title="Sources, guided practice and session tools">

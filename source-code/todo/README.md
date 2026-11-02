@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Past-paper questions and approved answers in Tutor chat](ongoing/TODO-TUTOR-PAST-PAPER-CHAT.md) — explicit subpart releases, covered Student practice and exact approved guidance.
+
 - [AI-generated worked answers](ongoing/TODO-AI-GENERATED-WORKED-ANSWERS.md) — reviewed, clearly labelled graph solutions and controlled Student help; first pilot: 1C Q7(c)(i–iii).
 
 

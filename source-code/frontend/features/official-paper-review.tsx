@@ -4,6 +4,7 @@ import {
   getReviewTopicEvidence,
   type TextbookPageOption,
 } from '@/api/assessments/official-paper-review.api';
+import { TutorPastPaperReleases } from './tutor-past-paper-releases';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
@@ -1112,6 +1113,7 @@ export function OfficialPaperReview({
           Prepare official paper and scheme drafts
         </Button>
       )}
+      {review && <TutorPastPaperReleases paperId={paperId} review={review} />}
       <details className="pr-paper-details" open={!review}>
         <summary>Paper details & source attachments</summary>
         <div className="stack pr-details-body">

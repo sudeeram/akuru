@@ -51,7 +51,7 @@ def download(db, storage, principal, assessment_id, question_id, asset_id):
         raise DomainError("answer_visual_not_found", "Model answer is not available.", 404)
     revealed = False
     from app.services.assessments import _now
-    if getattr(assessment, "mode", None) == "practice" and assessment.status == "active" and assessment.ends_at > _now():
+    if getattr(assessment, "mode", None) == "practice":
         from app.models import AssessmentInteraction
         revealed = bool(db.scalar(select(AssessmentInteraction.id).where(
             AssessmentInteraction.assessment_id == assessment.id,

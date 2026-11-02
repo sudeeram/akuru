@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.tutor_sources import TutorCitation
+from app.schemas.tutor_past_papers import PastPaperChatState
 
 
 TeachingMode = Literal[
@@ -39,7 +40,7 @@ class TutorProviderOutput(BaseModel):
 class TutorToolResult(BaseModel):
     name: Literal[
         "learner_context", "next_unit", "approved_source_search", "authorized_source_opening",
-        "mastery_summary", "study_plan_context", "guided_practice", "deterministic_media",
+        "mastery_summary", "study_plan_context", "guided_practice", "deterministic_media", "past_paper_practice",
     ]
     status: Literal["ready", "evidence_insufficient", "unavailable"]
     summary: str
@@ -60,6 +61,7 @@ class TutorVisual(BaseModel):
 
 
 class TutorAgentTurnResponse(BaseModel):
+    pastPaper: PastPaperChatState | None = None
     operationRef: str
     turnRef: str
     content: str

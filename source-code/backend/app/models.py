@@ -1404,12 +1404,35 @@ class Assessment(Base):
     )
 
 
+class TutorPaperChatRequest(Base):
+    __tablename__ = "tutor_paper_chat_requests"
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), primary_key=True)
+    request_key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    completed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TutorPaperRelease(Base):
+    __tablename__ = "tutor_paper_releases"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    question_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_paper_review_questions.id", ondelete="RESTRICT"))
+    part_label: Mapped[str] = mapped_column(String(40))
+    revision: Mapped[int] = mapped_column(Integer)
+    fingerprint: Mapped[str] = mapped_column(String(64))
+    snapshot: Mapped[dict] = mapped_column(JSON)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    released_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"))
+    released_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (UniqueConstraint("question_id", "part_label", "fingerprint", name="uq_tutor_paper_release_source"),)
+
+
 class AssessmentQuestion(Base):
     __tablename__ = "assessment_questions"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     assessment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assessments.id", ondelete="CASCADE"), index=True)
     sequence: Mapped[int] = mapped_column(Integer)
-    source_question_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("official_question_versions.id", ondelete="RESTRICT"))
+    source_question_version_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("official_question_versions.id", ondelete="RESTRICT"))
+    tutor_paper_release_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tutor_paper_releases.id", ondelete="RESTRICT"))
     source_document_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("document_versions.id", ondelete="RESTRICT"))
     question_number: Mapped[str] = mapped_column(String(40))
     prompt: Mapped[str] = mapped_column(Text)
@@ -1426,6 +1449,7 @@ class AssessmentQuestion(Base):
     difficulty: Mapped[str] = mapped_column(String(24), default="mixed", server_default="mixed")
     __table_args__ = (
         CheckConstraint("sequence > 0 AND marks > 0", name="ck_assessment_question_values"),
+        CheckConstraint("(source_question_version_id IS NOT NULL) <> (tutor_paper_release_id IS NOT NULL)", name="ck_assessment_question_source"),
         UniqueConstraint("assessment_id", "sequence", name="uq_assessment_question_sequence"),
         UniqueConstraint("assessment_id", "source_question_version_id", name="uq_assessment_question_source"),
     )

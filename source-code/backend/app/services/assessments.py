@@ -206,6 +206,9 @@ def _owned(db, principal, assessment_id, lock=False):
     query = select(Assessment).where(Assessment.id == assessment_id, Assessment.student_id == principal.user.id)
     row = db.scalar(query.with_for_update() if lock else query)
     if not row: raise DomainError("assessment_not_found", "Assessment not found.", 404)
+    from app.config import get_settings
+    from app.services.tutor_past_papers import authorize_assessment
+    authorize_assessment(db, get_settings(), principal, row)
     return row
 
 def admin_assessment(db, assessment_id):
@@ -218,6 +221,7 @@ def admin_assessment(db, assessment_id):
 def response(db, row):
     if row.status == "active" and row.ends_at <= _now(): row.status = "expired"; db.commit(); db.refresh(row)
     visible = row.status in {"submitted", "expired"} and row.submitted_at is not None
+    revealed = set(db.scalars(select(AssessmentInteraction.question_id).where(AssessmentInteraction.assessment_id == row.id, AssessmentInteraction.kind == "worked_answer")).all())
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == row.id).order_by(AssessmentQuestion.sequence)).all()
     asset_ids = {uuid.UUID(asset_id) for question in questions for asset_id in question.asset_ids}
     descriptions = {str(asset.id): asset.asset_metadata.get("altText", "") for asset in db.scalars(
@@ -239,12 +243,19 @@ def response(db, row):
             generatedWorkedAnswerAvailable=row.mode == "practice" and any(v.get("origin") == "ai_generated" and v.get("status") == "approved" for v in q.rubric.get("answerVisuals", [])),
             drawingParts=q.rubric.get("drawingParts", []),
             drawingFiles=answers[q.id].drawing_files if q.id in answers else {},
-            rubric=q.rubric if visible else None,
+            rubric=q.rubric if visible or q.id in revealed else None,
             result=assessment_marking.result_response(results[q.id]) if q.id in results else None) for q in questions])
 
 def list_assessments(db, principal):
     rows = db.scalars(select(Assessment).where(Assessment.student_id == principal.user.id).order_by(Assessment.started_at.desc())).all()
-    return AssessmentListResponse(assessments=[response(db, row) for row in rows])
+    available = []
+    for row in rows:
+        try:
+            _owned(db, principal, row.id)
+            available.append(response(db, row))
+        except DomainError:
+            continue
+    return AssessmentListResponse(assessments=available)
 
 def save_answer(db, principal, assessment_id, payload):
     row = _owned(db, principal, assessment_id, True); existing = db.get(AssessmentAnswer, (row.id, payload.questionId))
@@ -302,5 +313,10 @@ def authorize_asset(db, principal, assessment_id, asset_id):
         source = questions[0].source_question_version_id if questions else None
         question = db.get(OfficialQuestionVersion, source) if source else None
         material = db.get(OfficialMaterialVersion, question.material_version_id) if question else None
-    if not material: raise DomainError("assessment_asset_not_found", "Assessment asset not found.", 404)
+    if not material:
+        from app.models import DocumentVersion
+        matching = next((q for q in questions if str(asset_id) in q.asset_ids and q.tutor_paper_release_id), None)
+        if matching:
+            return db.get(DocumentVersion, matching.source_document_version_id).document_id
+        raise DomainError("assessment_asset_not_found", "Assessment asset not found.", 404)
     return material.document_id

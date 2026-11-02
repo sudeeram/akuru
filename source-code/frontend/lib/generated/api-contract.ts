@@ -141,6 +141,7 @@ export interface Schemas {
   "PaperReviewResponse": { "paperDocumentId": string; "paperVersionId": string; "schemeDocumentId": string | null; "reportDocumentId": string | null; "expectedQuestionCount": number; "questionCount": number; "approvedCount": number; "wholePaperReady": boolean; "assessmentReleaseReady"?: boolean; "automaticAssessmentReady"?: boolean; "assessmentBlockers"?: Array<string>; "blockers": Array<string>; "questions": Array<Schemas["ReviewQuestionResponse"]>; };
   "ParagraphOperationRequest": { "action": "join_previous" | "split" | "restore_extracted"; "splitOffset"?: number | null; };
   "PartAccuracy": { "percent": number; "reasons": Array<string>; "sourceChecks": Array<Schemas["SourceAccuracy"]>; "label": string; "provenance"?: Array<Schemas["AnalysisProvenance"]>; };
+  "PastPaperChatState": { "practice": Schemas["TutorPracticeResponse"]; "paperTitle": string; "questionLabel": string; "answerRevealed"?: boolean; "markingGuidance"?: Array<{ [key: string]: unknown; }>; "alternatives"?: Array<string>; "examinerAdvice"?: Array<string>; "sources"?: Array<{ [key: string]: unknown; }>; "state": "awaiting_answer" | "answered" | "revealed" | "expired"; "message"?: string; };
   "PlanChangeResponse": { "topicRef": string; "code": string; "title": string; "change": string; "fromPeriod"?: string | null; "toPeriod"?: string | null; };
   "PlanGenerateRequest": { "studentId"?: string | null; };
   "PlanHistoryResponse": { "plans": Array<Schemas["StudyPlanResponse"]>; };
@@ -185,6 +186,7 @@ export interface Schemas {
   "RecordQuestionAnalysis": { "expectedQuestionRevision": number; "expectedAnalysisVersion": number; "expectedContentHash": string; "stage"?: "extraction" | "accuracy"; "methodVersion": string; "provenance": Array<Schemas["AnalysisProvenance"]>; "question": Schemas["AccuracyEstimate"]; "parts": Array<Schemas["PartAccuracy"]>; };
   "ReindexRequest": { "documentId": string; };
   "ReindexResponse": { "documentId": string; "indexedChunks": number; "supersededChunks": number; "embeddingModel": string; };
+  "ReleasePastPaperPart": { "partLabel": string; "revision": number; "confirmSelfContained": boolean; "enabled"?: boolean; };
   "ReleaseResponse": { "subjectId": string; "workflow": string; "mode": string; "runId": string | null; "confidenceThreshold": number; "audience": string; "activatedAt": string; };
   "ReleaseUpdate": { "subjectId": string; "workflow": "assessment_feedback" | "content_publication" | "tutor_text" | "tutor_voice" | "tutor_tools" | "tutor_learner_context" | "tutor_next_unit" | "tutor_sources" | "tutor_practice" | "tutor_visuals"; "mode": "review_required" | "automatic"; "runId"?: string | null; "confidenceThreshold"?: number; "audience"?: "admin_testing" | "parent_pilot" | "students"; };
   "ReorderRequest": { "refs": Array<string>; };
@@ -266,7 +268,7 @@ export interface Schemas {
   "TopicVisualAssetUpdateRequest": { "status": "selected" | "approved" | "rejected"; "caption"?: string; "altText"?: string; };
   "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
   "TutorAgentTurnRequest": { "message": string; "teachingMode"?: "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "requestKey": string; };
-  "TutorAgentTurnResponse": { "operationRef": string; "turnRef": string; "content": string; "teachingMode": "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "citations"?: Array<Schemas["TutorCitation"]>; "followUpChoices"?: Array<string>; "toolResults"?: Array<Schemas["TutorToolResult"]>; "visuals"?: Array<Schemas["TutorVisual"]>; "proposedSignals"?: Array<Schemas["TutorSignalProposal"]>; "provider": string; "model": string; "promptName": string; "promptVersion": string; };
+  "TutorAgentTurnResponse": { "pastPaper"?: Schemas["PastPaperChatState"] | null; "operationRef": string; "turnRef": string; "content": string; "teachingMode": "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "citations"?: Array<Schemas["TutorCitation"]>; "followUpChoices"?: Array<string>; "toolResults"?: Array<Schemas["TutorToolResult"]>; "visuals"?: Array<Schemas["TutorVisual"]>; "proposedSignals"?: Array<Schemas["TutorSignalProposal"]>; "provider": string; "model": string; "promptName": string; "promptVersion": string; };
   "TutorAvatarResponse": { "code": string; "name": string; "description": string; "imagePath": string; "presentation": "masculine" | "feminine" | "neutral"; "enabled"?: boolean | null; "sortOrder"?: number | null; };
   "TutorCapabilitiesResponse": { "textEnabled": boolean; "voiceEnabled": boolean; "toolsEnabled": boolean; "blockedReason"?: string | null; };
   "TutorCitation": { "citationRef": string; "documentVersion": number; "textbookTitle": string; "textbookEdition": string; "topicRef": string; "topicCode": string; "topicTitle": string; "groupLabel": string; "groupCode": string; "groupTitle": string; "contentKind": string; "passage": string; "pdfPageIndex": number; "pdfPageNumber": number; "printedPageLabel"?: string | null; "pageReference": string; "boundingBox": { [key: string]: unknown; }; "confidence": number; "assetRef": string; "sourceUrl": string; "assetUrl": string; };
@@ -297,7 +299,7 @@ export interface Schemas {
   "TutorSummaryResponse": { "summaryRef": string; "sessionRef": string; "studentName": string; "subjectId": string; "topicsCovered": Array<{ [key: string]: unknown; }>; "activities": Array<string>; "strengths": Array<string>; "difficulties": Array<string>; "suggestedNextSteps": Array<string>; "usage": { [key: string]: unknown; }; "createdAt": string; };
   "TutorSwitchProfileRequest": { "profileRef": string; "requestKey": string; };
   "TutorSwitchTopicRequest": { "topicRef": string; "requestKey": string; };
-  "TutorToolResult": { "name": "learner_context" | "next_unit" | "approved_source_search" | "authorized_source_opening" | "mastery_summary" | "study_plan_context" | "guided_practice" | "deterministic_media"; "status": "ready" | "evidence_insufficient" | "unavailable"; "summary": string; "evidenceRefs"?: Array<string>; };
+  "TutorToolResult": { "name": "learner_context" | "next_unit" | "approved_source_search" | "authorized_source_opening" | "mastery_summary" | "study_plan_context" | "guided_practice" | "deterministic_media" | "past_paper_practice"; "status": "ready" | "evidence_insufficient" | "unavailable"; "summary": string; "evidenceRefs"?: Array<string>; };
   "TutorTopicEventResponse": { "fromTopic": Schemas["PlanTopicResponse"]; "toTopic": Schemas["PlanTopicResponse"]; "createdAt": string; };
   "TutorTurnCreateRequest": { "content": string; "modality"?: "text" | "voice"; "requestKey": string; };
   "TutorTurnResponse": { "turnRef": string; "role": "student" | "assistant"; "modality": "text" | "voice"; "content": string; "sequence": number; "profileRef": string; "profileVersion": number; "sources"?: Array<string>; "structured"?: { [key: string]: unknown; }; "createdAt": string; };
@@ -324,10 +326,12 @@ export interface ApiOperations {
   "POST /api/v1/admin/curriculum-plans/{subject_id}/draft": { request: unknown; response: Schemas["CurriculumPlanResponse"] };
   "POST /api/v1/admin/curriculum-plans/{subject_id}/publish": { request: Schemas["PublishPlanRequest"]; response: Schemas["CurriculumPlanResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}": { request: unknown; response: Schemas["PaperReviewResponse"] };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-releases": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/prepare-official-drafts": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions": { request: Schemas["SaveReviewQuestion"]; response: Schemas["PaperReviewResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: unknown; response: Array<Schemas["QuestionAnalysisResponse"]> };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: Schemas["RecordQuestionAnalysis"]; response: Schemas["QuestionAnalysisResponse"] };
+  "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": { request: Schemas["ReleasePastPaperPart"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: Schemas["GenerateWorkedAnswer"]; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/import-draft": { request: Schemas["ImportWorkedAnswerDraft"]; response: unknown };
@@ -525,6 +529,8 @@ export interface ApiOperations {
   "POST /api/v1/tutoring/sessions/{session_ref}/learner-context": { request: Schemas["LearnerContextRequest"]; response: Schemas["LearnerContextResponse"] };
   "GET /api/v1/tutoring/sessions/{session_ref}/media/{media_id}": { request: unknown; response: unknown };
   "POST /api/v1/tutoring/sessions/{session_ref}/next-topic": { request: Schemas["NextTopicRequest"]; response: Schemas["NextTopicResponse"] };
+  "GET /api/v1/tutoring/sessions/{session_ref}/past-paper": { request: unknown; response: Schemas["PastPaperChatState"] | null };
+  "GET /api/v1/tutoring/sessions/{session_ref}/past-paper/assets/{asset_id}": { request: unknown; response: unknown };
   "GET /api/v1/tutoring/sessions/{session_ref}/practice": { request: unknown; response: Schemas["TutorPracticeResponse"] | null };
   "POST /api/v1/tutoring/sessions/{session_ref}/practice": { request: Schemas["TutorPracticeStart"]; response: Schemas["TutorPracticeResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/practice/answer": { request: Schemas["TutorPracticeAnswer"]; response: Schemas["TutorPracticeResponse"] };

@@ -134,3 +134,102 @@ test('nested conversation scrolling positions the answer without competing smoot
   scrollTutorTurnIntoView(turn, true);
   assert.equal(calls[1][1].behavior, 'instant');
 });
+
+const reactURL = import.meta.resolve('react');
+const cardStubs = {
+  './drawing-submissions': url(
+    'export function DrawingSubmissions(){return null;}',
+  ),
+  './answer-visuals': url('export function ModelAnswerVisuals(){return null;}'),
+  './learning-media': url(
+    `import {createElement as h} from ${JSON.stringify(reactURL)}; export function Equation({value}){return h('code',null,value);} export function LearningImage({src,description}){return h('img',{src,alt:description});}`,
+  ),
+  './tutor-chat-elements': url(source),
+};
+let cardSource = ts.transpileModule(
+  readFileSync(
+    new URL('../features/tutor-past-paper-card.tsx', import.meta.url),
+    'utf8',
+  ),
+  {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ES2022,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  },
+).outputText;
+for (const [name, target] of Object.entries({
+  ...cardStubs,
+  'react/jsx-runtime': import.meta.resolve('react/jsx-runtime'),
+})) {
+  cardSource = cardSource
+    .replaceAll(JSON.stringify(name), JSON.stringify(target))
+    .replaceAll(`'${name}'`, JSON.stringify(target));
+}
+const { TutorPastPaperCard } = await import(url(cardSource));
+const practiceCard = {
+  paperTitle: 'Chemistry 1C',
+  questionLabel: '3(a)',
+  state: 'awaiting_answer',
+  answerRevealed: false,
+  markingGuidance: [{ text: 'Secret scheme guidance' }],
+  alternatives: [],
+  examinerAdvice: [],
+  sources: [
+    {
+      label: 'Paper · Page 6',
+      url: '/api/v1/tutoring/sessions/test/past-paper/assets/source',
+    },
+  ],
+  practice: {
+    assessmentId: 'assessment-test',
+    practiceRef: 'practice-test',
+    topicTitle: 'Mixtures',
+    assetUrls: ['/api/v1/private-diagram'],
+    question: {
+      id: 'question-test',
+      marks: 2,
+      prompt: 'Explain the start line.',
+      sharedStem: 'The chromatogram shows the inks.',
+      equations: ['H₂O'],
+      assetIds: ['diagram'],
+      assetDescriptions: { diagram: 'Start line and solvent front' },
+      drawingParts: [],
+      drawingFiles: {},
+    },
+  },
+};
+test('past-paper card shows exact shared context and accessible visuals without pre-answer guidance', () => {
+  const html = render(TutorPastPaperCard, {
+    value: practiceCard,
+    busy: false,
+    refresh: () => {},
+  });
+  assert.match(html, /Explain the start line/);
+  assert.match(html, /The chromatogram shows the inks/);
+  assert.match(html, /alt="Start line and solvent front"/);
+  assert.match(html, /H₂O/);
+  assert.doesNotMatch(html, /Secret scheme guidance|Approved marking guidance/);
+  assert.match(html, /Paper · Page 6/);
+  assert.match(html, /My answer:/);
+});
+test('past-paper feedback is labelled, folded and safely escaped after reveal', () => {
+  const value = {
+    ...practiceCard,
+    state: 'revealed',
+    answerRevealed: true,
+    markingGuidance: [
+      { text: 'Pencil is insoluble. <script>alert(1)</script>' },
+    ],
+  };
+  const html = render(TutorPastPaperCard, {
+    value,
+    busy: false,
+    refresh: () => {},
+  });
+  assert.match(html, /<summary>Approved marking guidance<\/summary>/);
+  assert.doesNotMatch(html, /<script>|<details[^>]*\bopen/);
+  assert.match(html, /&lt;script&gt;/);
+  assert.match(html, /no independent mastery credit/);
+});

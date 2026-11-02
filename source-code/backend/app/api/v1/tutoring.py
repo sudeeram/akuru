@@ -431,3 +431,30 @@ def update_voice(
     db: Annotated[Session, Depends(get_db)],
 ):
     return tutor_profiles.update_voice(db, principal, code, payload)
+
+
+from app.schemas.tutor_past_papers import PastPaperChatState
+
+
+@router.get("/sessions/{session_ref}/past-paper", response_model=PastPaperChatState | None)
+def past_paper_current(session_ref: str, response: Response,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    from app.services import tutor_past_papers
+    session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+    tutor_past_papers.require_access(db, settings, principal, session)
+    response.headers["Cache-Control"] = "private, no-store"
+    return tutor_past_papers.state(db, settings, principal, session)
+
+
+@router.get("/sessions/{session_ref}/past-paper/assets/{asset_id}")
+def past_paper_asset(session_ref: str, asset_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    from app.services import tutor_past_papers
+    session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+    asset = tutor_past_papers.asset(db, settings, principal, session, asset_id)
+    stored = storage.get(asset.object_key, asset.mime_type)
+    return Response(content=stored.content, media_type=stored.content_type,
+        headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})

@@ -23,3 +23,7 @@ The Student conversation uses `frontend/features/tutor-chat-elements.tsx` and `f
 The small answer formatter renders text-only paragraphs, bold spans, inline code and ordered/unordered lists as React nodes. It does not interpret raw HTML, Markdown links or model-created URLs. Formula Unicode and ordinary Student input are preserved. No backend contract, source access, AI prompt or model change is involved.
 
 Local visual fixture: `node source-code/frontend/tests/tutor-chat-preview.mjs` from the repository root after a frontend build. It prints a loopback-only URL, mocks the API with synthetic conversations and makes no paid calls. `/mobile?missing-avatar` renders a 390px frame and tests the missing-avatar path. Stop the fixture after testing. Unit checks are in `frontend/tests/tutor-chat.test.mjs`.
+
+## Separately released past-paper chat
+
+The text-only gate remains unchanged. A separate explicit Student allowlist and practice-release mechanism can now enable reviewed exam subparts within the same enrolled subject and cumulative covered topics. This does not enable general guided practice or automatic assessment feedback. See [Tutor past-paper chat](tutor-past-paper-chat.md) for migration 0018, source release, assistance semantics, model/quota controls and rollback.

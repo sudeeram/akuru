@@ -35,7 +35,7 @@ def _invoke(db: Session, settings: Settings, principal: Principal, request: AIRe
                            max(500, len(request.instructions) + len(request.task) + settings.ai_max_output_tokens))
     tutor_quotas.reserve_text(db, principal.user.id, quota_operation, estimated_tokens)
     invocation = AIInvocation(actor_id=principal.user.id, provider="account-router", model="ordered-account",
-        purpose="tutoring", prompt_name=request.prompt_name, prompt_version=request.prompt_version,
+        purpose=request.purpose, prompt_name=request.prompt_name, prompt_version=request.prompt_version,
         schema_name=request.output_type.__name__, status="processing",
         request_metadata={"operationRef": f"tutor_operation_{operation_id.hex}", "sessionRef": request.metadata["session_ref"]})
     db.add(invocation); db.flush()
@@ -222,6 +222,10 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
+    from app.services import tutor_past_papers
+    exam_reply = tutor_past_papers.handle(db, settings, principal, session, payload, generator)
+    if exam_reply is not None:
+        return exam_reply
     topic = db.get(TextbookTopic, session.active_topic_id)
     group = db.get(TextbookGroup, topic.group_id)
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)

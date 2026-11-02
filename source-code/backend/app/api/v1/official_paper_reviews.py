@@ -178,3 +178,22 @@ def worked_answer_capabilities(paper_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)]):
     official_paper_reviews._workspace(db,paper_id)
     return worked_answers.capabilities(db,settings)
+
+
+@router.get("/{paper_id}/chat-releases")
+def chat_releases(paper_id: uuid.UUID,
+    _principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services import tutor_past_papers
+    return tutor_past_papers.admin_releases(db, paper_id)
+
+
+from app.schemas.tutor_past_papers import ReleasePastPaperPart
+
+
+@router.post("/{paper_id}/questions/{number}/chat-release")
+def release_chat_part(paper_id: uuid.UUID, number: str, payload: ReleasePastPaperPart,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services import tutor_past_papers
+    return tutor_past_papers.release_part(db, principal, paper_id, number, payload)

@@ -19,3 +19,4 @@ the earlier guides that assigned course setup and uploads to parents.
 Developers and operators should start with the [developer handbook](../developer-docs/README.md).
 
 - [Chemistry text tutoring pilot](TUTOR-TEXT-PILOT.md)
+- [Past-paper practice in Tutor chat](TUTOR-PAST-PAPER-PRACTICE.md)

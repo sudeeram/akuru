@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     ai_max_image_bytes: int = Field(default=20 * 1024 * 1024, ge=1024, le=100 * 1024 * 1024)
     ai_max_output_tokens: int = Field(default=4_000, ge=100, le=32_000)
     tutor_text_pilot: TutorTextPilot | None = None
+    tutor_past_paper_chat_enabled: bool = False
+    tutor_past_paper_chat_student_ids: list[UUID] = Field(default_factory=list)
     tutor_text_enabled: bool = False
     tutor_voice_enabled: bool = False
     tutor_tools_enabled: bool = False
