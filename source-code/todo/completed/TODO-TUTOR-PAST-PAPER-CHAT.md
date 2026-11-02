@@ -2,7 +2,8 @@
 
 Created: 2026-11-02
 Started: 2026-11-02
-Status: ongoing — implementation and local verification in progress; production acceptance pending.
+Completed: 2026-11-02
+Status: completed — implemented, tested, committed, pushed and verified on production for the authorized one-student practice pilot.
 Priority: high — let Students use reviewed iGCSE past papers through the existing chat interface.
 
 ## Outcome and scope
@@ -88,12 +89,12 @@ Creating this plan does not enable the feature. Full timed mock exams and newly 
 
 ## Step 7 — Document and release the verified feature
 
-- [ ] Update Student/Parent/Admin user docs and developer architecture with commands, readiness requirements, supported question types, answer labels, scoring limitations and troubleshooting.
-- [ ] Obtain implementation/deployment authorization as applicable, commit/push reviewed changes, back up production and deploy through the normal reviewed release workflow.
-- [ ] Enable only the agreed pilot audience and eligible content after the practice gates pass. Use normal authorized sign-in for production checks; do not manufacture Student sessions.
-- [ ] Verify the exact request “Can you ask me a question from igcse chemistry paper?” produces an eligible question, not the textbook-extraction refusal. Complete an answer/help/reveal/next-question cycle and a named-paper question discussion.
-- [ ] Verify source/asset authorization, health/security acceptance, usage records and Student isolation; retain release evidence and a rollback/disable procedure.
-- [ ] Mark complete only when the released Student flow works end to end; record remaining content blockers separately.
+- [x] Update Student/Parent/Admin user docs and developer architecture with commands, readiness requirements, supported question types, answer labels, scoring limitations and troubleshooting.
+- [x] Obtain implementation/deployment authorization as applicable, commit/push reviewed changes, back up production and deploy through the normal reviewed release workflow.
+- [x] Enable only the agreed pilot audience and eligible content after the practice gates pass. Use normal authorized sign-in for production checks; do not manufacture Student sessions.
+- [x] Verify the exact request “Can you ask me a question from igcse chemistry paper?” produces an eligible question, not the textbook-extraction refusal. Complete an answer/help/reveal/next-question cycle and a named-paper question discussion.
+- [x] Verify source/asset authorization, health/security acceptance, usage records and Student isolation; retain release evidence and a rollback/disable procedure.
+- [x] Mark complete only when the released Student flow works end to end; record remaining content blockers separately.
 
 ## Definition of done
 
@@ -117,7 +118,20 @@ Create a separate implementation plan after this flow is verified. Reuse the ass
 - Added migration 0018: immutable, explicitly released approved subparts and durable request-idempotency claims; assessment question sources use an XOR constraint. Clean disposable-database upgrade/downgrade/re-upgrade and Alembic metadata checks passed.
 - Reused existing TutorPractice, Assessment, answers, drawing uploads, marking rules, two-pass marking, Student quotas and mastery. Added Admin release/withdraw UI and authenticated APIs, deterministic chat routing and Student exam cards with private source-page images.
 - Initial read-only production audit: all 1C questions approved, 2C unreviewed, no published OfficialMaterialVersion bank. Only 1C Q3(a/b/c) currently has confirmed automatic readiness plus supported topic mappings. Q1(a/c) and Q3(d) remain unreleased because readiness is unreviewed; no review/coverage values were changed to expand the bank.
-- Release scope: roshinika only, existing Tutor text pilot audience/expiry retained. Exam items may use covered published topics in the same subject; ordinary textbook teaching remains anchored to the original pilot topic.
+- Release scope: the existing authorized pilot Student only, existing Tutor text pilot audience/expiry retained. Exam items may use covered published topics in the same subject; ordinary textbook teaching remains anchored to the original pilot topic.
 - Live evaluation is predeclared as normal-browser selection, hint, reveal, named lookup, next question and saved-answer checks against actual approved evidence, with **zero paid AI calls**. Two-pass marking is tested with deterministic provider fixtures; production automatic scoring remains blocked unless its separate genuine evaluation release passes. No new Evaluation budget is assumed or ledger reset.
 - Supplementary free-form concept teaching and full mock exams remain separate plans. The exam discussion path currently serves exact approved guidance/examiner advice and practice actions; it does not generate new official answers.
 - Production deployment and acceptance evidence will be recorded below before this plan is closed.
+
+## Production acceptance — 2026-11-02
+
+- Application commits: `17aa996` (feature), `d069750` (exact paper/subpart reference safeguard). Both pushed to GitHub and deployed with the reviewed release script, encrypted backups and migration checks.
+- Full final backend suite: **296 passed, 1 existing skip**. Frontend: **115 passed**; typecheck, lint, generated API contract and build passed. Disposable clean migration upgrade/downgrade/re-upgrade and local/production Alembic metadata checks passed.
+- Released **June 2025 1C Q3(a), Q3(b), Q3(c)** through the authenticated Admin API. Approvals, textbook content and coverage were not changed. No 2C material was released.
+- Activated only the existing pilot Student after verifying VM `vm02-large`, reviewed SHA, protected environment symlink/permissions, eligible source readiness and unchanged remaining runtime settings. A protected environment backup is retained; the original text-pilot expiry and gates remain intact.
+- Normal signed-in Student browser checks passed: original request returned Q3(b), diagram loaded, hint worked, exact marking guidance and reviewed examiner advice appeared, and the scheme link opened a real private image rather than JSON. Next selected Q3(c), a labelled deployment-check answer saved without a score, and named lookup selected Q3(a). A new browser page restored the same approved practice state.
+- Actual production browser layouts checked at **439px and 1280px**: no horizontal overflow or broken images; question diagram loaded with its start-line/solvent-front labels. An additional synthetic desktop fixture was checked and stopped afterward.
+- All four new read/release endpoint probes returned **401 without authentication**. Formal assessment, sibling isolation, CSRF, coverage revocation, source staleness, request replay and two-pass accounting were covered by integration tests.
+- **Zero paid provider calls**, **zero assessment scores** and no score-based mastery from verification. Three test practice attempts remain as auditable records; the single test response is explicitly labelled deployment verification, not Student performance. No fake credentials/sessions or passing evaluation records were created.
+- Standard production HTTPS, security-header, route/fallback, service/timer and loopback checks passed. Runtime evidence: `/data/akuru/release-evidence/tutor-past-paper-chat-20261102-acceptance.json`; deployment receipts are retained beside it. Screenshots are ignored local artifacts under `tmp`.
+- Remaining content/release limitations: Q1(a/c), Q3(d) and 2C still require their genuine readiness/review steps; automatic scoring is independently gated, and full mock exams/supplementary teaching remain outside this completed phase. Existing dependency-audit remediation remains in its separate security plan; no dependencies were changed by this feature.

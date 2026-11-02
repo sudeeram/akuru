@@ -4,7 +4,6 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Past-paper questions and approved answers in Tutor chat](ongoing/TODO-TUTOR-PAST-PAPER-CHAT.md) — explicit subpart releases, covered Student practice and exact approved guidance.
 
 - [AI-generated worked answers](ongoing/TODO-AI-GENERATED-WORKED-ANSWERS.md) — reviewed, clearly labelled graph solutions and controlled Student help; first pilot: 1C Q7(c)(i–iii).
 
@@ -56,6 +55,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [Past-paper questions and approved answers in Tutor chat](completed/TODO-TUTOR-PAST-PAPER-CHAT.md) — verified one-student production pilot with explicitly released 1C subparts, private source evidence and approved answers.
 
 - [Node.js production and OpenClaw security patch](completed/TODO-NODEJS-SECURITY-PATCH.md) — patched/verified on 2026-10-31; local installation explicitly deferred to its own planned task.
 
