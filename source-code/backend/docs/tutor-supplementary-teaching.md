@@ -1,6 +1,6 @@
 # Bounded supplementary text teaching
 
-Deployed: 2026-11-02, release `fe526cf8f272fb3bc2815182ecf3141af8bd1499`. Live scenario evaluation and production infrastructure/scope checks passed. Final normal signed-in Student chat acceptance is pending.
+Deployed: 2026-11-02, release `fe526cf8f272fb3bc2815182ecf3141af8bd1499`. Live scenario evaluation and production infrastructure/scope checks passed. Normal signed-in Student chat acceptance passed, including real citations, mixed replies, follow-ups, reload persistence and usage records.
 
 ## Behaviour and source honesty
 
@@ -34,4 +34,4 @@ Deterministic tests: `tests/test_tutor_teaching.py`, existing retrieval, pilot, 
 
 Predeclared semantic cases: `evaluations/tutor/supplementary-teaching-cases.json`. Use `scripts/evaluate_prepared_tutor.py --supplementary` with the separately authorized Evaluation budget. Without `--live`, it runs a zero-cost schema/persistence pipeline check, not a teaching-quality evaluation. The prepared screenshot candidate is a local fixture, not the current production v2.2 source; production must also be checked with the normal authorized Student session. Preserve the original cumulative evaluation ledger and retain any new phase's budget record separately.
 
-Baseline production audit on 2026-11-02 found a detailed evaporation explanation on PDF page 6 among 54 active Topic 1 version-2 chunks. The failure of “What is evaporation?” was a single-term retrieval threshold issue, not missing textbook content. Five chunks mention evaporation, with a chapter-exercise tail excluded from factual ranking. The nine-case local live evaluation passed for the controlled pilot; production signed-in chat acceptance remains pending. See `evaluations/tutor/supplementary-teaching-20261102.json`.
+Baseline production audit on 2026-11-02 found a detailed evaporation explanation on PDF page 6 among 54 active Topic 1 version-2 chunks. The failure of “What is evaporation?” was a single-term retrieval threshold issue, not missing textbook content. Five chunks mention evaporation, with a chapter-exercise tail excluded from factual ranking. The nine-case local live evaluation passed for the controlled pilot; production signed-in chat acceptance subsequently passed. See `evaluations/tutor/supplementary-teaching-20261102.json`.

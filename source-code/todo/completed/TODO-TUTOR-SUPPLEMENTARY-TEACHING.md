@@ -2,7 +2,8 @@
 
 Created: 2026-11-01
 Started: 2026-11-02
-Status: ongoing — deployed and pilot activated; normal signed-in Student acceptance pending.
+Completed: 2026-11-02
+Status: completed — existing single-Student production pilot verified.
 Priority: high — improve the current single-student teaching pilot.
 
 ## Objective
@@ -69,8 +70,8 @@ Support three explicit outcomes: textbook-grounded teaching with real citations;
 - [x] Document the new answer types, their limitations, operator controls and the reason teaching differs from assessment evidence requirements.
 - [x] Prepare a rollback/kill switch that can disable supplementary teaching without removing textbook-grounded tutoring. Keep the initial deployment limited to the authorized pilot audience and subject/topic scope.
 - [x] Obtain deployment authorization, commit/push the reviewed changes, take the normal production backup, deploy and update the applicable pilot/release configuration and evidence.
-- [ ] Verify the Student flow on production: a useful evaporation answer, a related follow-up, honest labels/citations, safe scope boundaries and recorded usage. Use normal authorized sign-in; do not synthesize additional Student credentials.
-- [ ] Confirm health/security checks, retain acceptance evidence and mark this plan complete only after the full permitted release scope is verified. Record remaining limitations explicitly.
+- [x] Verify the Student flow on production: a useful evaporation answer, a related follow-up, honest labels/citations, safe scope boundaries and recorded usage. Use normal authorized sign-in; do not synthesize additional Student credentials.
+- [x] Confirm health/security checks, retain acceptance evidence and mark this plan complete only after the full permitted release scope is verified. Record remaining limitations explicitly.
 
 ## Acceptance criteria
 
@@ -93,7 +94,7 @@ Support three explicit outcomes: textbook-grounded teaching with real citations;
 
 Production baseline: 54 active Topic 1 version-2 chunks; evaporation is explained on PDF page 6. The short query failed the former two-term lexical requirement. The published source was not replaced.
 
-Local results: 308 backend tests passed, one existing skip; 116 frontend tests passed; typecheck/lint/build and generated contracts checked. The zero-cost nine-case pipeline run and the separately authorized live Evaluation run passed. Six paid calls estimated US$0.057192 with US$0.081501 conservatively charged against the new US$0.75 phase ledger; the original cumulative ledger remains unchanged. The evaluated fixture is the prepared screenshot candidate, so normal production v2.2 acceptance is still required. Desktop/mobile synthetic UI checks confirmed readable labels, folded references and automatic scrolling.
+Local results: 308 backend tests passed, one existing skip; 116 frontend tests passed; typecheck/lint/build and generated contracts checked. The zero-cost nine-case pipeline run and the separately authorized live Evaluation run passed. Six paid calls estimated US$0.057192 with US$0.081501 conservatively charged against the new US$0.75 phase ledger; the original cumulative ledger remains unchanged. The evaluated fixture is the prepared screenshot candidate, and normal production v2.2 acceptance subsequently passed. Desktop/mobile synthetic UI checks confirmed readable labels, folded references and automatic scrolling.
 
 Evaluation evidence: `source-code/backend/evaluations/tutor/supplementary-teaching-20261102.json`. No migration. Supplementary aliases are initially validated for Chemistry States of Matter; this is not unrestricted all-subject supplementary release.
 
@@ -101,4 +102,4 @@ Production release `fe526cf8f272fb3bc2815182ecf3141af8bd1499` deployed via the e
 
 Read-only published-source comparison with local embeddings: evaporation query 0→9 ranked matches; boiling point 6→11; melting point 6→7; evaporation-versus-boiling 5→14. These are ranking counts, not accuracy percentages; the ordinary source limit still bounds the passages supplied. The current production v2.2 sources remain unchanged.
 
-The normal Student browser session had expired. Sign-in requested through the in-app browser; final real chat, source-link and recorded-usage verification remain pending that sign-in. Do not mark this plan completed until those checks pass.
+The user signed in normally as roshinika. Production checks passed: evaporation answered from published evidence; source image opened printed page 5/PDF page 6; wet-clothes and pronoun-follow-up replies separated textbook support from additional explanation; an advanced-topic request was redirected without a provider call; answer labels survived reload. Three production AKURU-backend calls recorded 13,447 total tokens (5,494 + 3,926 + 4,027), separately from the Evaluation budget. No assessment marks or mastery were awarded. Acceptance evidence: `/data/akuru/release-evidence/tutor-supplementary-20261102-acceptance.json`. Screenshot: ignored local `tmp/tutor-supplementary-production.png`.
