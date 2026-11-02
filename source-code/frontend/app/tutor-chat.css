@@ -476,3 +476,11 @@
 .tutor-chat-shell .student .tutor-message-copy {
   color: #fff;
 }
+
+.tutor-chat-shell .tutor-turn-list {
+  scroll-margin-block-start: 6rem;
+  scroll-margin-block-end: 1rem;
+}
+.tutor-chat-shell .tutor-turn {
+  flex-shrink: 0;
+}

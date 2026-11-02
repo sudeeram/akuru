@@ -4,6 +4,7 @@ import { DrawingSubmissions } from './drawing-submissions';
 import { MetadataBadge, StatusBadge } from '@/components/portal/badges';
 import { useFocusMode, AdvancedPanel } from '@/components/portal/workspace';
 import { useWorkspaceSearch } from '@/lib/use-workspace-search';
+import { scrollTutorTurnIntoView } from '@/lib/tutor-chat-scroll';
 /* State effects synchronise API-loaded defaults with the session form. */
 /* eslint-disable react/react-compiler */
 import Image from 'next/image';
@@ -98,21 +99,26 @@ export function TutorSessions({
   const latestTurnRef = session?.turns.at(-1)?.turnRef;
   useEffect(() => {
     if (!latestTurnRef) return;
-    // Keep the beginning of a new answer visible, including for long replies.
+    // Wait for focus-mode layout to settle, then position each scroll container.
     // Typing, quota updates and other rerenders must not move the reader.
-    latestTurnElement.current?.scrollIntoView({
-      behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
-      block: 'start',
+    let layoutFrame: number | undefined;
+    const frame = window.requestAnimationFrame(() => {
+      layoutFrame = window.requestAnimationFrame(() => {
+        if (latestTurnElement.current)
+          scrollTutorTurnIntoView(
+            latestTurnElement.current,
+            window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+          );
+      });
     });
+    return () => {
+      window.cancelAnimationFrame(frame);
+      if (layoutFrame !== undefined) window.cancelAnimationFrame(layoutFrame);
+    };
   }, [latestTurnRef]);
   useEffect(() => {
-    if (pendingMessage)
-      pendingTurnElement.current?.scrollIntoView({
-        block: 'nearest',
-        behavior: 'auto',
-      });
+    if (pendingMessage && pendingTurnElement.current)
+      scrollTutorTurnIntoView(pendingTurnElement.current, true);
   }, [pendingMessage]);
   const load = useCallback(async () => {
     try {

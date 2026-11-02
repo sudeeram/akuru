@@ -102,3 +102,35 @@ test('tutor avatars use direct static images and supply a default when no preset
     /src="\/akuru-bots\/akuru-bot-say.png\?v=/,
   );
 });
+
+const scrollSource = ts.transpileModule(
+  readFileSync(new URL('../lib/tutor-chat-scroll.ts', import.meta.url), 'utf8'),
+  {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.ES2022,
+    },
+  },
+).outputText;
+const { scrollTutorTurnIntoView } = await import(url(scrollSource));
+test('nested conversation scrolling positions the answer without competing smooth animations', () => {
+  const calls = [];
+  const list = {
+    scrollTop: 300,
+    getBoundingClientRect: () => ({ top: 100 }),
+    scrollTo: (options) => calls.push(['inner', options]),
+    scrollIntoView: (options) => calls.push(['outer', options]),
+  };
+  const turn = {
+    closest: () => list,
+    getBoundingClientRect: () => ({ top: 500 }),
+  };
+  scrollTutorTurnIntoView(turn, false);
+  assert.deepEqual(calls, [
+    ['inner', { top: 684, behavior: 'instant' }],
+    ['outer', { block: 'nearest', behavior: 'smooth' }],
+  ]);
+  calls.length = 0;
+  scrollTutorTurnIntoView(turn, true);
+  assert.equal(calls[1][1].behavior, 'instant');
+});
