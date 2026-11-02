@@ -190,29 +190,36 @@ def state(db, settings, principal, session):
             else 'expired' if assessment.ends_at <= datetime.now(timezone.utc) else 'awaiting_answer')
 
 
+def identity(message):
+    component = re.search(r"\b([12]CR?)\b", message, re.I)
+    year = re.search(r"\b(20\d{2})\b", message)
+    month = re.search(r"\b(january|june|november)\b", message, re.I)
+    number = re.search(r"\b(?:question|q)\s*(\d{1,2})(?!\d)", message, re.I)
+    tail = message[number.end():] if number else ""
+    part = re.match(r"\s*(?:part\s+)?(?:\(([a-z])\)|([a-z])\b)(?:\s*\(([ivx]+)\))?", tail, re.I)
+    if not part:
+        part = re.search(r"\bpart\s+(?:\(([a-z])\)|([a-z])\b)(?:\s*\(([ivx]+)\))?", message, re.I)
+    label = ((part[1] or part[2]).lower() + (f"({part[3].lower()})" if part[3] else "")) if part else None
+    return {'component': component[1].upper() if component else None, 'year': int(year[1]) if year else None,
+        'session': month[1].lower() if month else None, 'number': number[1] if number else None, 'part': label}
+
+
 def select_question(db, settings, principal, session, key, message):
     require_access(db, settings, principal, session)
     pool = eligible(db, principal.user.id, session.subject_id)
     # Only exact identity filters; never silently substitute a different component/session.
-    component = re.search(r'\b([12]CR?)\b', message, re.I)
-    year = re.search(r'\b(20\d{2})\b', message)
-    month = re.search(r'\b(january|june|november)\b', message, re.I)
-    number = re.search(r'\b(?:question|q)\s*(\d{1,2})(?:\s*\(([a-z])\)(?:\s*\(([ivx]+)\))?|([a-z])(?:\s*\(([ivx]+)\))?\b)?', message, re.I)
+    requested = identity(message)
     subject_text = re.sub(r'human[ -]biology', 'human_biology', message, flags=re.I)
     for subject, canonical in [('maths','maths'),('mathematics','maths'),('human_biology','human-biology'),('physics','physics'),('biology','biology'),('english','english'),('french','french'),('ict','ict'),('chemistry','chemistry')]:
         if re.search(rf'\b{subject}\b', subject_text, re.I) and canonical != session.subject_id:
             raise DomainError('practice_subject_mismatch', 'Start a Tutor session in the requested enrolled subject first.', 409)
-    if component: pool = [r for r in pool if r.snapshot['component'].upper() == component[1].upper()]
-    if year: pool = [r for r in pool if str(r.snapshot.get('year')) == year[1]]
-    if month: pool = [r for r in pool if (r.snapshot.get('session') or '').lower() == month[1].lower()]
-    if number:
-        pool = [r for r in pool if r.snapshot['number'] == number[1]]
-        if number[2] or number[4]:
-            part_letter, roman = number[2] or number[4], number[3] or number[5]
-            label = part_letter.lower() + (f'({roman.lower()})' if roman else '')
-            pool = [r for r in pool if r.part_label == label]
-        elif len(pool) > 1:
-            raise DomainError('practice_question_ambiguous', 'Choose a subpart: ' + ', '.join(f"{r.snapshot['component']} Q{r.snapshot['number']}({r.part_label})" for r in pool[:12]), 409)
+    for field in ['component', 'year', 'session', 'number']:
+        if requested[field] is not None:
+            pool = [r for r in pool if str(r.snapshot.get(field, '')).lower() == str(requested[field]).lower()]
+    if requested['part']:
+        pool = [r for r in pool if r.part_label == requested['part']]
+    elif requested['number'] and len(pool) > 1:
+        raise DomainError('practice_question_ambiguous', 'Choose a subpart: ' + ', '.join(f"{r.snapshot['component']} Q{r.snapshot['number']}({r.part_label})" for r in pool[:12]), 409)
     if not pool:
         raise DomainError('practice_question_unavailable', 'No released past-paper question matches within your published, covered topics. Try asking for any available Chemistry question, or ask Admin to release more reviewed items.', 409)
     replay = db.scalar(select(TutorPractice).where(TutorPractice.session_id == session.id, TutorPractice.request_key == key))
@@ -324,7 +331,7 @@ def handle(db, settings, principal, session, payload, generator=None):
     action = intent(payload.message, active=bool(previous and previous.status == 'active'))
     if action is None:
         # Follow-ups about a completed exam question remain in the exam workflow.
-        if previous and re.search(r'\b(mark scheme|examiner|this question|that question|my answer)\b', payload.message, re.I):
+        if previous and re.search(r'\b(mark scheme|examiner|this question|that question|my answer|lose marks|lost marks|my marks|my response)\b', payload.message, re.I):
             action = 'help'
         else: return None
     # A durable claim survives helper/provider commits. Concurrent retries cannot
@@ -342,6 +349,13 @@ def handle(db, settings, principal, session, payload, generator=None):
     choices = ['Ask me a past-paper question']
     try:
         require_access(db, settings, principal, session)
+        requested = identity(payload.message)
+        if previous and action in {'reveal', 'hint', 'answer', 'help'}:
+            reference = db.get(TutorPaperRelease, db.get(AssessmentQuestion, previous.question_id).tutor_paper_release_id)
+            mismatch = any(requested[f] is not None and str(requested[f]).lower() != str(reference.snapshot.get(f, '')).lower()
+                for f in ['component', 'year', 'session', 'number']) or (requested['part'] is not None and requested['part'] != reference.part_label)
+            if mismatch:
+                raise DomainError('practice_reference_mismatch', 'That names a different question or subpart. Finish the current item, then ask to discuss the specific paper and subpart before revealing its answer.', 409)
         if action == 'mock':
             content = 'Full mock exams are not available through this chat yet. I can help you practise released past-paper questions one at a time.'
         elif action == 'stop':

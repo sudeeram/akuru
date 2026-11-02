@@ -113,6 +113,9 @@ def test_chat_select_hint_reveal_next_and_private_sources_without_model_calls(au
     assert send('Give me a hint')['pastPaper']['markingGuidance']==[]
     scheme_url=f'/api/v1/tutoring/sessions/{ref}/past-paper/assets/{scheme[4].id}'
     assert client.get(scheme_url).status_code==404
+    mismatch=send('Show approved answer for question 1(b)')
+    assert mismatch['pastPaper'] is None and 'different question or subpart' in mismatch['content']
+    assert db.scalar(select(func.count()).select_from(AssessmentInteraction).where(AssessmentInteraction.assessment_id==uuid.UUID(aid),AssessmentInteraction.kind=='worked_answer'))==0
     revealed=send('Show approved answer')['pastPaper']
     assert revealed['state']=='revealed' and len(revealed['markingGuidance'])==2
     assert db.scalar(select(func.count()).select_from(AssessmentAnswer).where(AssessmentAnswer.assessment_id==uuid.UUID(aid)))==0
@@ -230,3 +233,12 @@ def test_released_marking_reuses_two_pass_router_quotas_and_preserves_unaided_at
     feedback=send('Show approved answer')['pastPaper']
     assert feedback['answerRevealed'] is False
     assert db.scalar(select(func.count()).select_from(AssessmentInteraction).where(AssessmentInteraction.assessment_id==uuid.UUID(selected['practice']['assessmentId']),AssessmentInteraction.kind=='worked_answer'))==0
+
+
+@pytest.mark.parametrize('text,number,part',[
+    ('Discuss 1C question 3(a)','3','a'),('Show answer for Q3c(ii)','3','c(ii)'),
+    ('Question 3 in June 2025','3',None),('Question 3 part b','3','b'),('What about part c?',None,'c'),
+])
+def test_exact_question_identity_does_not_confuse_words_with_labels(text,number,part):
+    found=service.identity(text)
+    assert found['number']==number and found['part']==part
