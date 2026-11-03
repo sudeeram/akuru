@@ -522,7 +522,7 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             missing = [name for name, valid in (
                 ("wording", part.prompt.strip()), ("paper evidence", part.paperSources),
                 ("scheme evidence", part.schemeSources), ("marking points", part.markingPoints),
-                ("label", part.label.strip()), ("positive marks", part.marks > 0),
+                ("label", part.label.strip() or len(data.parts) == 1), ("positive marks", part.marks > 0),
                 ("coverage decision", part.coverage != "unreviewed"), ("coverage reason", part.coverage == "outside_current_coverage" or part.coverageReason.strip())) if not valid]
             if missing:
                 raise DomainError("part_incomplete", f"Part {part.label}: complete {', '.join(missing)} before content approval.", 409)

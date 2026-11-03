@@ -467,3 +467,28 @@ def test_rich_draft_seed_preserves_private_proposals_but_cannot_approve(auth_cli
     assert saved['markingPoints'][0]['text']=='Two source details'
     assert saved['reportSources'][0]['assetId']==str(report[4].id)
     assert not response.json()['wholePaperReady'] and not response.json()['automaticAssessmentReady']
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("part_count,expected_status", [(1, 200), (2, 409)])
+def test_whole_question_may_omit_subpart_label_but_multipart_may_not(auth_client, part_count, expected_status):
+    import copy
+    client, headers, _, paper, scheme, _, topic = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    started = client.post(root + "/start", headers=headers, json={
+        "schemeDocumentId": str(scheme[0].id), "expectedQuestionCount": 2})
+    assert started.status_code == 200, started.text
+    body = _question(paper, scheme, topic)
+    body["data"]["parts"][0]["label"] = ""
+    if part_count == 2:
+        other = copy.deepcopy(body["data"]["parts"][0])
+        other["label"] = "b"
+        body["data"]["parts"].append(other)
+        body["data"]["marks"] = 4
+    saved = client.post(root + "/questions", headers=headers, json=body)
+    assert saved.status_code == expected_status, saved.text
+    if expected_status == 200:
+        assert saved.json()["approvedCount"] == 1
+        assert saved.json()["questions"][0]["data"]["parts"][0]["label"] == ""
+    else:
+        assert saved.json()["error"]["code"] == "part_incomplete"

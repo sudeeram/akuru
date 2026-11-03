@@ -224,3 +224,19 @@ def test_cover_misprint_override_requires_all_three_hashes_and_keeps_observed_co
     assert rows[2]['internalComponent']=='2B' and rows[2]['verifiedComponent']=='2BR'
     assert 'internal_component_conflict_or_unreadable'not in rows[2]['issues']
     assert rows[2]['reportPagesByQuestion']=={'6':[5,6]}
+
+
+def test_closed_connection_retries_reads_but_never_blindly_repeats_writes(monkeypatch):
+    import http.client, io
+    from unittest.mock import Mock
+    monkeypatch.setattr(importer.time, 'sleep', lambda _: None)
+    client = importer.Client.__new__(importer.Client)
+    client.origin = 'https://example.test'; client.csrf = 'test'; client.opener = Mock()
+    client.opener.open.side_effect = [http.client.RemoteDisconnected(), io.BytesIO(b'{"ok":true}')]
+    assert client.call('documents') == {'ok': True}
+    assert client.opener.open.call_count == 2
+    client.opener.open.reset_mock()
+    client.opener.open.side_effect = [http.client.RemoteDisconnected()]
+    with pytest.raises(http.client.RemoteDisconnected):
+        client.call('documents', {'write': True})
+    assert client.opener.open.call_count == 1

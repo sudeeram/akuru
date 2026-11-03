@@ -32,6 +32,11 @@ class Client:
                     if body is not None or _attempt>=3:raise
                     time.sleep(1)
                     return self.call(path,_attempt=_attempt+1)
+        except (http.client.RemoteDisconnected, TimeoutError, ConnectionError):
+            # Read-only retries are safe; an interrupted write needs receipt/read-back recovery.
+            if body is not None or _attempt >= 3:raise
+            time.sleep(2**_attempt)
+            return self.call(path,_attempt=_attempt+1)
         except urllib.error.HTTPError as error:
             if body is None and error.code in {429,502,503,504} and _attempt<3:
                 error.close();time.sleep(2**_attempt)
