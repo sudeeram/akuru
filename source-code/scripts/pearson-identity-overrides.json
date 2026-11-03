@@ -1,0 +1,38 @@
+[
+  {
+    "paperKey": "4BI1-2017-2020-JANUARY-2BR",
+    "subject": "biology",
+    "role": "examinerReport",
+    "sourceSha256": {
+      "question": "a641072bce89e42b5cf1f251f5b79ad05a81e4dd471a0bc3a00080ae6bf9eb5b",
+      "markScheme": "9702cd9ef5af9884006abf1fc7fbd84acc5512e17d3ac7a5d58819d66f61e0ab",
+      "examinerReport": "cb3076397e4d8c3e578eff11a95350aa689df728d0cfdcd9032248875c4fe0b6"
+    },
+    "coverComponent": "2B",
+    "verifiedComponent": "2BR",
+    "review": "guidelines/pastpapers/igcse/reviews/2026-11-04-biology-january-2020-2br-report-identity.md",
+    "reason": "All six question contexts and their order match the exact 2BR paper; standard 2B has seven different questions. Preserve the incorrect cover label as a publisher-source discrepancy.",
+    "reportPagesByQuestion": {
+      "1": [
+        3
+      ],
+      "2": [
+        4
+      ],
+      "3": [
+        4
+      ],
+      "4": [
+        4,
+        5
+      ],
+      "5": [
+        5
+      ],
+      "6": [
+        5,
+        6
+      ]
+    }
+  }
+]

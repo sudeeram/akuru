@@ -15,7 +15,7 @@ The imported Biology material is a draft bank for Admin review. Upload completio
 ## Known exceptions
 
 - June 2021 has final and provisional schemes. Only the final schemes are paired for active review. Examiner reports were not supplied; feedback must not claim report advice is available.
-- January 2020's source named `PaperBR` is internally identified as 2BR in its paper and scheme. The ambiguous report says 2B and is deliberately not attached as a verified 2BR report.
+- January 2020's source named `PaperBR` is internally identified as 2BR in its paper and scheme. The report cover says 2B, but all six question contexts match 2BR. It is linked with a verified-body/cover-misprint note; see the [identity review](../guidelines/pastpapers/igcse/reviews/2026-11-04-biology-january-2020-2br-report-identity.md). The original cover is preserved.
 - An original-paper release needs all questions reconciled and approved. An individual self-contained question can be released to Tutor practice separately when its existing access and review gates pass.
 
 Nothing in this intake automatically approves questions, enables Student papers, changes child coverage or extends a time-limited Tutor pilot.

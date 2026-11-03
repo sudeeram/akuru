@@ -6,6 +6,7 @@ Licensed output belongs under the ignored source tree.
 """
 from __future__ import annotations
 import hashlib
+import json
 import re
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -57,6 +58,29 @@ def catalogue(root: Path, subject='biology'):
                 sha256=digest(path),pages=len(pdf),internalComponent=internal,identityBasis=identity_basis,
                 provisional=provisional,issues=issues,
                 lowTextPages=[i+1 for i,t in enumerate(texts) if len(re.sub(r'\s','',t))<80]))
+    apply_identity_overrides(rows)
+    return rows
+
+
+def apply_identity_overrides(rows, overrides=None):
+    """Only explicitly reviewed, exact-three-file exceptions may resolve a cover conflict."""
+    if overrides is None:
+        overrides=json.loads(Path(__file__).with_name('pearson-identity-overrides.json').read_text())
+    for exception in overrides:
+        selected={}
+        for role,sha in exception['sourceSha256'].items():
+            candidates=[r for r in rows if r['paperKey']==exception['paperKey'] and r['subject']==exception['subject'] and r['kind']==role and r['sha256']==sha]
+            if len(candidates)!=1:break
+            selected[role]=candidates[0]
+        else:
+            report=selected[exception['role']]
+            if report['internalComponent']!=exception['coverComponent'] or report['component']!=exception['verifiedComponent']:continue
+            report['issues']=[i for i in report['issues'] if i!='internal_component_conflict_or_unreadable']
+            report['issues'].append('reviewed_cover_misprint')
+            report['identityBasis']='reviewed_body_comparison'
+            report['identityReview']=exception['review']
+            report['verifiedComponent']=exception['verifiedComponent']
+            report['reportPagesByQuestion']=exception.get('reportPagesByQuestion',{})
     return rows
 
 
@@ -250,6 +274,10 @@ def build_bank(root: Path, rows: list[dict], keys: list[str]|None=None):
                     part['schemeGuidance']='\n'.join(t for m in matches for t in m.get('guidanceCells',[]))
                     if not matches:issues.append(f"Part {part['label']}: scheme row not confidently located.")
                 report_rows=reports.get(q,[])
+                reviewed_pages=selected.get('examinerReport',{}).get('reportPagesByQuestion',{}).get(str(q))
+                if reviewed_pages:
+                    with pymupdf.open(root/selected['examinerReport']['path']) as report_pdf:
+                        report_rows=[dict(pages=reviewed_pages,text='\n'.join(report_pdf[p-1].get_text() for p in reviewed_pages))]
                 scheme_pages=sorted({p for part in parts for p in part['schemePages']})
                 bank['questions'].append(dict(paperKey=key,component=paper['component'],number=str(q),marks=marks,
                     sharedStemExtractionCandidate=stem,rawQuestionExtraction=clean_text(region),studentPrompt=None,
@@ -260,6 +288,7 @@ def build_bank(root: Path, rows: list[dict], keys: list[str]|None=None):
                     topicMappings=[],issues=issues,reviewStatus='not_approved_for_import_or_students'))
                 previous_end=endpage
         bank['papers'].append(dict(paperKey=key,component=paper['component'],variant=paper['variant'],year=paper['year'],session=paper['session'],
+            identityExceptions={k:r['identityReview'] for k,r in selected.items() if r.get('identityReview')},
             files={k:r['path'] for k,r in selected.items()},sourceSha256={k:r['sha256'] for k,r in selected.items()},questionCount=len(totals),totalMarks=expected))
     validate_bank(bank)
     return bank

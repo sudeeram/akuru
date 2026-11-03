@@ -67,3 +67,7 @@ Existing AKURU official-paper review, exact evidence links, answer-visual contro
 [Pearson 4BI1 specification, Issue 3 September 2024](https://qualifications.pearson.com/content/dam/pdf/International%20GCSE/Biology/2017/specification-and-sample-assessments/international-gcse-biology-2017-specification1.pdf): Paper 1 is 120 minutes/110 marks; Paper 2 is 75 minutes/70 marks and can assess all content including bold B statements. Textbook unit numbering is not a substitute for this qualification specification. Preserve issue/version applicability to historical papers and distinguish linear 4BI1 from modular qualifications.
 
 Implementation plan: [Biology past-paper intake](../todo/ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md).
+
+## Subsequent identity resolution — 2026-11-04
+
+The January 2020 report was initially quarantined. Comparing all six question discussions against both papers confirms it belongs to 2BR despite its 2B cover label. A [hash-bound source review](../../guidelines/pastpapers/igcse/reviews/2026-11-04-biology-january-2020-2br-report-identity.md) records the decision. The final eligible corpus is 130 exam-source PDFs; only the two provisional schemes remain nonactive. The original audit findings above describe the pre-resolution state.

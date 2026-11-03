@@ -211,3 +211,16 @@ def test_rich_seed_uses_only_bounded_private_draft_fields():
     assert set(fields)=={'markingPoints','responseType','assessmentReadinessReason','coverageReason'}
     assert fields['markingPoints'][0]['text']=='Nucleus'
     assert 'status'not in fields and 'topicRefs'not in fields
+
+
+def test_cover_misprint_override_requires_all_three_hashes_and_keeps_observed_cover():
+    import copy
+    rows=[dict(paperKey='p',subject='biology',kind=role,sha256=role,component='2BR',internalComponent='2B' if role=='examinerReport' else '2BR',issues=['internal_component_conflict_or_unreadable'] if role=='examinerReport' else []) for role in ['question','markScheme','examinerReport']]
+    override=dict(paperKey='p',subject='biology',role='examinerReport',sourceSha256={r['kind']:r['sha256'] for r in rows},coverComponent='2B',verifiedComponent='2BR',review='review.md',reportPagesByQuestion={'6':[5,6]})
+    wrong=copy.deepcopy(rows);wrong[0]['sha256']='new-source'
+    intake.apply_identity_overrides(wrong,[override])
+    assert 'internal_component_conflict_or_unreadable' in wrong[2]['issues']
+    intake.apply_identity_overrides(rows,[override])
+    assert rows[2]['internalComponent']=='2B' and rows[2]['verifiedComponent']=='2BR'
+    assert 'internal_component_conflict_or_unreadable'not in rows[2]['issues']
+    assert rows[2]['reportPagesByQuestion']=={'6':[5,6]}

@@ -184,6 +184,8 @@ def run(args):
     existing=client.call('documents')['documents'];topic_evidence=None
     for bank in banks:
         paper=bank['papers'][0]
+        if paper.get('identityExceptions',{}).get('examinerReport'):
+            bank['provenance']=[{**p,'method':'codex_assisted','provider':'OpenAI (Codex source comparison)','notes':'Native text extraction with Codex-assisted identity comparison. Report body matches all six 2BR questions; cover says 2B. Exact conversation model ID was not exposed. Review: '+paper['identityExceptions']['examinerReport']} if p['role']=='report' else p for p in bank['provenance']]
         if 'examinerReport' not in paper['files']:
             bank['provenance']=[{**p,'method':'unknown','notes':'No verified examiner report is attached; absent or quarantined source.'} if p['role']=='report' else p for p in bank['provenance']]
         key=paper['paperKey'];entry=state['papers'].setdefault(key,dict(documents={},seeded=False,enriched=False,visuals=False))
@@ -199,6 +201,7 @@ def run(args):
             else:
                 params=dict(kind=api_kind,courseId=bank['course'],subjectId=bank['subject'],title=f'Pearson Edexcel {bank["subject"].title()} {paper["session"]} {paper["year"]} {paper["component"]} {api_kind.replace("_"," ")}',year=paper['year'],session=paper['session'],component=paper['component'],variant=paper['variant'],publisher='Pearson')
                 if kind!='question':params['sourceDocumentId']=selected['question']
+                if kind in paper.get('identityExceptions',{}):params['title']+=' (verified body; cover misprint)'
                 path=root/relative
                 result=client.call('documents?'+urllib.parse.urlencode(params),path.read_bytes(),path.name);document=result['document'];existing.append(document)
             selected[kind]=document['id'];entry['documents'][kind]=dict(id=document['id'],sha256=sha,versionId=document['versionId'])

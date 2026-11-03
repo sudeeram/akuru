@@ -11,7 +11,7 @@ Bring the supplied **linear Pearson Edexcel International GCSE Biology 4BI1 (201
 
 Sources: ignored `pastpapers/igcse/biology/`. Evidence: [intake assessment](../../docs/biology-pastpaper-intake-assessment.md) and [all-file inventory](../../docs/biology-pastpaper-inventory-2026-11-04.csv).
 
-Baseline: **132 PDFs / 3,723 pages / 44 candidate paper sets / 369 top-level question candidates**. 44 papers, 44 final schemes, two additional provisional schemes, 42 report files. All paper-total markers reconcile, but no question/subpart semantic review has been completed by this audit. One report identity is unresolved and two June 2021 reports are absent.
+Baseline: **132 PDFs / 3,723 pages / 44 candidate paper sets / 369 top-level question candidates**. 44 papers, 44 final schemes, two additional provisional schemes, 42 report files. All paper-total markers reconcile, but no question/subpart semantic review has been completed by this audit. The January 2020 report cover discrepancy has been resolved by an exact-source body comparison; two June 2021 reports are absent.
 
 Apply [iGCSE intake standard 1.3.0](../../../guidelines/pastpapers/igcse/README.md), its [batch checklist](../../../guidelines/pastpapers/igcse/extraction-checklist.md) and the [shared conformance backlog](../planned/TODO-IGCSE-PASTPAPER-ANALYSIS.md). Reuse existing review, confidence/provenance, scoring and publication functionality; do not create a parallel Biology assessment implementation. Complete necessary shared work with reference cases rather than declaring the whole conformance backlog complete.
 
@@ -39,7 +39,7 @@ Acceptance: all 132 files have a recorded disposition; no silent overwrites, mer
 ## Step 1 — Establish specification and Biology readiness
 
 - [ ] Obtain the official 4BI1 specification from Pearson, record issue/hash/applicability, and review/publish it as an authenticated Student reference using the existing workflow.
-- [ ] Verify Paper 1B/1BR: 120 minutes, 110 marks; Paper 2B/2BR: 75 minutes, 70 marks. Check existing generic timer logic; remove any Chemistry-specific assumption where needed.
+- [x] Verify Paper 1B/1BR: 120 minutes, 110 marks; Paper 2B/2BR: 75 minutes, 70 marks. Check existing generic timer logic; remove any Chemistry-specific assumption where needed.
 - [ ] Preserve Paper 2's access to all specification content, including bold B statements; do not treat it as only the textbook's later units.
 - [ ] Verify current published Biology textbook, six groups, 22 topic identities/content versions, and actual cumulative student coverage. Do not grant or alter child coverage as part of source intake.
 - [ ] Prepare a reviewed specification-statement-to-topic crosswalk, keeping unclear/missing coverage explicit. Record stable topic references and original visual-reference printed-page evidence where available; do not rely on mutable reflow page numbers.
@@ -52,9 +52,9 @@ Acceptance: qualification and source versions are explicit; specification covera
 - [x] Parameterise the existing Chemistry catalogue/pilot/draft-bank scripts or provide a shared adapter for 4BI1 and B/BR components; retain Chemistry regression behaviour.
 - [ ] Use native text/layout first, render source pages, and apply targeted OCR or vision to necessary image regions. Classify blank/answer-space pages separately from extraction failures.
 - [ ] Detect labels/geometry, nested part boundaries and cross-page context; do not split only at mark lines or copy a hard-coded Chemistry question count.
-- [ ] Reuse the supported unreleased draft-bank contract and exact source-hash checks. Add dry-run validation, stable references, safe retry receipts and expected-revision conflicts without bypassing Admin APIs.
-- [ ] Record precise question/scheme/report provenance independently: native/OCR method, actual model identity when known, guideline/profile/schema/prompt versions, timestamps and inspected regions. Keep unknown identities unknown.
-- [ ] Add only migrations proven necessary by a contract gap; otherwise reuse existing tables/APIs. Document any unsupported structure and hold automatic marking instead of flattening it silently.
+- [x] Reuse the supported unreleased draft-bank contract and exact source-hash checks. Add dry-run validation, stable references, safe retry receipts and expected-revision conflicts without bypassing Admin APIs.
+- [x] Record precise question/scheme/report provenance independently: native/OCR method, actual model identity when known, guideline/profile/schema/prompt versions, timestamps and inspected regions. Keep unknown identities unknown.
+- [x] Add only migrations proven necessary by a contract gap; otherwise reuse existing tables/APIs. Document any unsupported structure and hold automatic marking instead of flattening it silently.
 
 Acceptance: Biology proposals validate locally; malformed, cross-subject, wrong-series, wrong-variant and stale-hash payloads fail closed.
 
@@ -67,14 +67,14 @@ Acceptance: Biology proposals validate locally; malformed, cross-subject, wrong-
 - [ ] Extract actual marking points and instructions into each part, including any-N caps, alternatives, linked explanations, duplicate credit, tolerances, units and maximum marks. Link evidence as well as populating rules.
 - [ ] Extract relevant report guidance with exact question/subpart association and continuation pages. Keep handwriting, examiner annotations, candidate answers and awarded marks distinct. Preserve uncertain spans and originals; do not convert wrong candidate examples into accepted answers.
 - [ ] Propose Biology-only topic mappings using reviewed content and specification crosswalk; provide stable topic evidence and original printed-page references where available. Flag incidental word overlap and cross-topic dependencies.
-- [ ] Attach per-question/per-subpart accuracy-confidence estimates and reasons, independently for paper, scheme and report. They are estimates, not measured correctness; missing/unchecked evidence must be visible. Keep dedicated accuracy-page sorting and existing approvals independent.
+- [x] Attach per-question/per-subpart accuracy-confidence estimates and reasons, independently for paper, scheme and report. They are estimates, not measured correctness; missing/unchecked evidence must be visible. Keep dedicated accuracy-page sorting and existing approvals independent.
 
 Acceptance: every part and mark is accounted for, every essential visual is reviewable, and every uncertain source/rule has a located issue. No automatic approval.
 
 ## Step 4 — Stage and review through AKURU Admin
 
 - [ ] Dry-run the pilot against local/disposable data and compare the staged proposal with the supported API contract.
-- [ ] With an explicit production intake instruction, back up and upload the two question papers, exact schemes and reports through authenticated Admin APIs; create only unpublished review workspaces/proposals. Save receipts and exact version/hash associations.
+- [x] With an explicit production intake instruction, back up and upload the two question papers, exact schemes and reports through authenticated Admin APIs; create only unpublished review workspaces/proposals. Save receipts and exact version/hash associations.
 - [ ] Confirm Biology is discoverable in the existing exam-paper workspace and dedicated accuracy page. Show linked/unlinked evidence, subpart approvals, draft saves, visual statuses and toast feedback using existing UI behaviour.
 - [ ] Prepopulate proposed visual descriptions, mapping reasons, rubric points and report associations for Admin verification. Do not require repeated manual evidence linking when exact links already exist.
 - [ ] Let Admin save incomplete reviews and resume, approve subparts independently, and reopen corrections without silently overwriting approved content. Use existing optimistic revision controls.
@@ -114,7 +114,7 @@ Acceptance: an end-to-end original paper, coverage-filtered mock and released Tu
 - [ ] Add extraction fixtures for organism diagram labels/scale bars, graph axes, table continuation, multiple-choice boundaries, handwritten report examples, practical-method marking and any-N explanation caps.
 - [ ] Run existing Chemistry and generic security regressions: authentication, Admin-only imports, CSRF/rate limits, family isolation, unauthorized assets, stale revisions, duplicate imports and private answer leakage.
 - [ ] Verify biological notation (CO₂/O₂, powers, magnification, µm/mm, percentages and ratios) and calculation tolerances against source evidence; distinguish examiner-approved alternatives from supplementary teaching.
-- [ ] Update user/developer docs with actual Biology upload/review/release navigation and unsupported/manual workflows.
+- [x] Update user/developer docs with actual Biology upload/review/release navigation and unsupported/manual workflows.
 - [ ] For any code release, run backend/frontend tests, API-contract checks and production build, then commit/push/deploy only with rollout authorization; back up first, apply only required migrations and verify HTTPS/service/access gates.
 - [ ] Record source-data imports and code deployments separately. Save non-secret evidence; keep PDFs, crops, student data, credentials and extracted licensed content out of Git.
 - [ ] Reconcile final dispositions for 44 paper sets and all 132 supplied files; mark this plan completed only when accepted scope is delivered or explicit deferred items are moved to another plan.
@@ -127,8 +127,10 @@ Start with **Step 0: authoritative Biology catalogue and exception handling**, t
 ## Implementation evidence — 2026-11-04
 
 - Shared native-layout builder and authenticated resumable importer implemented; [runbook](../../docs/pearson-biology-intake.md).
-- All 44 local banks validate: 369 questions, 1,711 subparts, 3,197 source marking-point proposals. All question/subpart mark totals reconcile. These are extraction proposals, not 369 approved source comparisons.
+- All 44 local banks validate: 369 questions, 1,711 subparts, 4,726 source marking-point proposals. All question/subpart mark totals reconcile. These are extraction proposals, not 369 approved source comparisons.
 - June 2025 1B/2B pilot uploaded via Admin APIs: 16 questions/76 subparts; saved records checked against local proposals. Exact paper/scheme/report companions attached; all remain unapproved and manual-only for marking.
 - Official 4BI1 specification downloaded and verified as Issue 3 (56 pages); reference review/publication and an approved specification-topic crosswalk remain separate work.
 - Native answer/guidance table columns, missing source numerals, repeated continuation question labels, full-question allocations, MC option retention, conservative topic hints and interrupted-save recovery are handled with synthetic regression cases.
 - No paid AI calls, automatic approvals, Student releases or child-coverage changes are part of this intake. Manual crop/rubric/report/coverage acceptance remains open; do not mark the whole roadmap complete on draft ingestion alone.
+
+- Subsequent source comparison resolved the January 2020 report identity: all six discussions match 2BR. The exact three-hash exception and original cover discrepancy are retained in [the review](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-biology-january-2020-2br-report-identity.md). Final source intake therefore uses 130 exam PDFs, with the two provisional schemes remaining nonactive.
