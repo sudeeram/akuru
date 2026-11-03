@@ -137,9 +137,9 @@ def official_paper_duration(document: Document, target_marks: int) -> int:
     if isinstance(configured, int) and not isinstance(configured, bool) and 1 <= configured <= 360:
         return configured
     component = (document.component or "").strip().upper().replace("PAPER", "").replace(" ", "")
-    if component in {"1", "1C", "1CR"}:
+    if component in {"1", "1C", "1CR", "1B", "1BR"}:
         return 120
-    if component in {"2", "2C", "2CR"}:
+    if component in {"2", "2C", "2CR", "2B", "2BR"}:
         return 75
     raise DomainError("official_paper_duration_required",
                       "Set the official paper component or duration before students can take this paper.", 409)

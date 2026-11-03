@@ -42,3 +42,12 @@ def include_nearby_labels(page: pymupdf.Page, visual: pymupdf.Rect) -> pymupdf.R
             if aligned_vertical or aligned_side:
                 expanded |= box
     return expanded & page.rect
+
+
+def candidate_alt_text(page: pymupdf.Page, kind: str, box: pymupdf.Rect, page_number: int) -> str:
+    """Source-only description proposal; never a claim that the crop is complete."""
+    text=' '.join(page.get_textbox(box).split())
+    text=re.sub(r'DO\s+NOT\s+WRITE\s+IN\s+THIS\s+AREA', '', text, flags=re.I).strip()
+    description=f'Source question {kind} on PDF page {page_number}.'
+    if text:description+=' Visible source labels/text: '+text[:500]+'.'
+    return description+' Check the full source page, crop boundaries and description before approving.'

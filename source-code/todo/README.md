@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Pearson Biology past-paper intake](ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md) — audited 132 PDFs; staged 1B/2B pilot, reviewed source/rubric/visual intake, then standard and regional expansion.
+
 
 - [AI-generated worked answers](ongoing/TODO-AI-GENERATED-WORKED-ANSWERS.md) — reviewed, clearly labelled graph solutions and controlled Student help; first pilot: 1C Q7(c)(i–iii).
 
@@ -28,6 +30,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 
 - [Local Node.js security patch](planned/TODO-LOCAL-NODEJS-SECURITY-PATCH.md) — deferred by request; update the laptop through NVM before running the frontend.

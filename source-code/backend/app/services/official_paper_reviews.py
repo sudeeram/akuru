@@ -26,7 +26,7 @@ from app.schemas.official_materials import (
 )
 from app.security import Principal
 from app.services import official_materials
-from app.services.paper_visual_layout import PROPOSAL_VERSION, include_nearby_labels
+from app.services.paper_visual_layout import PROPOSAL_VERSION, include_nearby_labels, candidate_alt_text
 from app.storage import ObjectStorage
 
 
@@ -303,6 +303,12 @@ def generate_review_candidates(db: Session, storage: ObjectStorage, principal: P
                 DocumentAsset.page_number == page_number,
                 DocumentAsset.asset_kind.in_(("candidate_diagram_crop", "candidate_table_crop")))).all()
             if existing:
+                for asset in existing:
+                    if not asset.asset_metadata.get('reviewApproved') and not asset.asset_metadata.get('altText'):
+                        meta=dict(asset.asset_metadata)
+                        meta['altText']=candidate_alt_text(page,meta['kind'],pymupdf.Rect(asset.bounding_box['x0'],asset.bounding_box['y0'],asset.bounding_box['x1'],asset.bounding_box['y1']),page_number)
+                        meta['descriptionMethod']='source-label-proposal-v1'
+                        asset.asset_metadata=meta
                 candidates_by_page[page_number] = [str(asset.id) for asset in existing]
                 continue
             candidates_by_page[page_number] = []
@@ -317,7 +323,7 @@ def generate_review_candidates(db: Session, storage: ObjectStorage, principal: P
                     asset_kind=f"candidate_{kind}_crop", object_key=key, mime_type="image/png",
                     sha256=hashlib.sha256(image).hexdigest(), size_bytes=len(image), page_number=page_number,
                     bounding_box={"x0":box.x0,"y0":box.y0,"x1":box.x1,"y1":box.y1},
-                    asset_metadata={"reviewCrop":True,"reviewApproved":False,"kind":kind,"altText":"",
+                    asset_metadata={"reviewCrop":True,"reviewApproved":False,"kind":kind,"altText":candidate_alt_text(page,kind,box,page_number),"descriptionMethod":"source-label-proposal-v1",
                         "proposalVersion":PROPOSAL_VERSION,
                         "normalizedBounds":{"x0":box.x0/page.rect.width,"y0":box.y0/page.rect.height,
                                             "x1":box.x1/page.rect.width,"y1":box.y1/page.rect.height}}))

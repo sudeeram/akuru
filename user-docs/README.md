@@ -20,3 +20,5 @@ Developers and operators should start with the [developer handbook](../developer
 
 - [Chemistry text tutoring pilot](TUTOR-TEXT-PILOT.md)
 - [Past-paper practice in Tutor chat](TUTOR-PAST-PAPER-PRACTICE.md)
+
+- [Biology past-paper Admin review](BIOLOGY-PAST-PAPER-REVIEW.md) — draft intake, source exceptions and separate approval/release gates.
