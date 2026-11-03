@@ -1,4 +1,6 @@
 'use client';
+
+import { tutorLearningContextChanged } from '@/lib/tutor-session-context';
 import { request } from '@/api/core/client';
 import { TutorPastPaperCard } from './tutor-past-paper-card';
 import type { PastPaperChatState } from '@/api/tutoring/tutor.types';
@@ -201,6 +203,14 @@ export function TutorSessions({
     setError('');
     try {
       const result = await operation();
+      if (tutorLearningContextChanged(session, result)) {
+        setPastPaper(null);
+        setPractice(null);
+        setPracticeAnswer('');
+        setMessage('');
+        setPendingMessage('');
+        setSourceQuery('');
+      }
       setSession(result.status === 'active' ? result : null);
       setNextTopic(null);
       setSources(null);
