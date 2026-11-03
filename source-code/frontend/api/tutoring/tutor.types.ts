@@ -243,6 +243,18 @@ export type TutorAgentReply = {
     | 'exam_technique'
     | 'french_conversation';
   citations: TutorCitation[];
+  topicMatches?: {
+    topicRef: string;
+    topicCode: string;
+    topicTitle: string;
+    groupCode: string;
+    groupTitle: string;
+    textbookTitle: string;
+    contentVersion: number;
+    pageReference: string;
+    excerpt: string;
+    active: boolean;
+  }[];
   followUpChoices: string[];
   toolResults: {
     name: string;

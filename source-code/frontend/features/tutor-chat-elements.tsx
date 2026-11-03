@@ -1,5 +1,6 @@
 'use client';
 
+import type { TutorAgentReply } from '@/api';
 import { Fragment, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import { Bot, BookOpen, ChevronDown } from 'lucide-react';
@@ -168,5 +169,45 @@ export function TutorAnswerBasis({ basis }: { basis?: string | null }) {
     <span className={`tutor-answer-basis tutor-answer-basis-${basis}`}>
       {labels[basis]}
     </span>
+  );
+}
+
+export function TutorTopicMatches({
+  matches,
+  activeTopicRef,
+  busy,
+  onOpen,
+}: {
+  matches: NonNullable<TutorAgentReply['topicMatches']>;
+  activeTopicRef: string;
+  busy: boolean;
+  onOpen: (topicRef: string) => void;
+}) {
+  if (!matches.length) return null;
+  return (
+    <section aria-label="Matching textbook topics">
+      {matches.map((match) => (
+        <article className="card" key={match.topicRef}>
+          <h3>
+            {match.groupCode} · {match.groupTitle} — {match.topicCode} ·{' '}
+            {match.topicTitle}
+          </h3>
+          <p>
+            {match.textbookTitle} · {match.pageReference} · Content v
+            {match.contentVersion}
+          </p>
+          <blockquote>{match.excerpt}</blockquote>
+          <button
+            type="button"
+            disabled={busy || match.topicRef === activeTopicRef}
+            onClick={() => onOpen(match.topicRef)}
+          >
+            {match.topicRef === activeTopicRef
+              ? 'Current topic'
+              : 'Open this topic'}
+          </button>
+        </article>
+      ))}
+    </section>
   );
 }

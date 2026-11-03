@@ -12568,6 +12568,13 @@
             "title": "Toolresults",
             "type": "array"
           },
+          "topicMatches": {
+            "items": {
+              "$ref": "#/components/schemas/TutorTopicMatch"
+            },
+            "title": "Topicmatches",
+            "type": "array"
+          },
           "turnRef": {
             "title": "Turnref",
             "type": "string"
@@ -14042,6 +14049,64 @@
           "createdAt"
         ],
         "title": "TutorTopicEventResponse",
+        "type": "object"
+      },
+      "TutorTopicMatch": {
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "boolean"
+          },
+          "contentVersion": {
+            "title": "Contentversion",
+            "type": "integer"
+          },
+          "excerpt": {
+            "title": "Excerpt",
+            "type": "string"
+          },
+          "groupCode": {
+            "title": "Groupcode",
+            "type": "string"
+          },
+          "groupTitle": {
+            "title": "Grouptitle",
+            "type": "string"
+          },
+          "pageReference": {
+            "title": "Pagereference",
+            "type": "string"
+          },
+          "textbookTitle": {
+            "title": "Textbooktitle",
+            "type": "string"
+          },
+          "topicCode": {
+            "title": "Topiccode",
+            "type": "string"
+          },
+          "topicRef": {
+            "title": "Topicref",
+            "type": "string"
+          },
+          "topicTitle": {
+            "title": "Topictitle",
+            "type": "string"
+          }
+        },
+        "required": [
+          "topicRef",
+          "topicCode",
+          "topicTitle",
+          "groupCode",
+          "groupTitle",
+          "textbookTitle",
+          "contentVersion",
+          "pageReference",
+          "excerpt",
+          "active"
+        ],
+        "title": "TutorTopicMatch",
         "type": "object"
       },
       "TutorTurnCreateRequest": {

@@ -120,6 +120,9 @@ Open My tutors to build your tutor team. You can create more than one tutor, cho
 
 Open Tutor room to begin a practice conversation in one of your covered units. You can change to another tutor or move to another covered unit in the same subject without losing the transcript. Each message is retained with the tutor profile version used at that time. Tutor help is disabled during mock and official assessments.
 
+You can also ask where a concept belongs, for example: **“I have learnt about viruses. Which topic does this belong to?”** AKURU searches the published topics you can access in the selected subject and shows textbook excerpts, page references and matching topics. Choose **Open this topic** to move there in the same conversation. A lookup does not change topics automatically. If no reliable match is found, name the concept more precisely; inaccessible or unpublished topics are not included.
+
+
 AKURU stores typed messages, structured text Tutor replies and text transcripts of voice turns. It does not store raw voice recordings. Live voice capture is added in a later Tutor step.
 
 For a text conversation, choose the teaching approach that matches what you want: an explanation, questions, guided or Socratic practice, revision, exam technique, or French conversation. Type your message and press Enter or choose Send. AKURU can show the approved textbook citation, an approved visual and suggested follow-up questions with its reply. If a request fails, your typed message remains so you can retry it. AKURU will say when it lacks approved evidence instead of inventing a textbook answer.

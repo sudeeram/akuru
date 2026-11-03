@@ -79,7 +79,21 @@ class TutorVisual(BaseModel):
     sourceRefs: list[str] = Field(default_factory=list)
 
 
+class TutorTopicMatch(BaseModel):
+    topicRef: str
+    topicCode: str
+    topicTitle: str
+    groupCode: str
+    groupTitle: str
+    textbookTitle: str
+    contentVersion: int
+    pageReference: str
+    excerpt: str
+    active: bool
+
+
 class TutorAgentTurnResponse(BaseModel):
+    topicMatches: list[TutorTopicMatch] = Field(default_factory=list)
     answerBasis: AnswerBasis | None = None
     teachingSections: list[TutorTeachingSection] = Field(default_factory=list)
     retrievalProvenance: dict = Field(default_factory=dict)

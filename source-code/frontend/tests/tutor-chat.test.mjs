@@ -38,6 +38,7 @@ const {
   TutorTextbookEvidence,
   TutorChatAvatar,
   TutorAnswerBasis,
+  TutorTopicMatches,
 } = await import(url(source));
 const render = (Component, props) =>
   renderToStaticMarkup(createElement(Component, props));
@@ -253,4 +254,24 @@ test('teaching basis labels distinguish supplementary material and preserve lega
     render(TutorAnswerBasis, { basis: 'grounded' }),
     /Textbook-supported/,
   );
+});
+
+
+test('topic discovery renders safe evidence and uses current session state after a topic switch', () => {
+  const props = {
+    matches: [{ topicRef: 'topic2', topicCode: '2', topicTitle: 'Organisms', groupCode: '1',
+      groupTitle: 'Life', textbookTitle: 'Biology', pageReference: 'Page 30', contentVersion: 1,
+      excerpt: 'Viruses <script>unsafe</script>', active: false }],
+    activeTopicRef: 'topic1', busy: false, onOpen() {},
+  };
+  const html = render(TutorTopicMatches, props);
+  assert.match(html, /Open this topic/);
+  assert.match(html, /Page 30/);
+  assert.doesNotMatch(html, /<script/);
+  assert.match(html, /&lt;script&gt;/);
+  const current = render(TutorTopicMatches, {...props, activeTopicRef: 'topic2'});
+  assert.match(current, /disabled=""/);
+  assert.match(current, /Current topic/);
+  assert.match(render(TutorTopicMatches, {...props, busy: true}), /disabled=""/);
+  assert.equal(render(TutorTopicMatches, {...props, matches: []}), '');
 });

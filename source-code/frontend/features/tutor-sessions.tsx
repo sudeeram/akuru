@@ -18,6 +18,7 @@ import {
   TutorAnswerBasis,
   TutorMessageContent,
   TutorTextbookEvidence,
+  TutorTopicMatches,
 } from './tutor-chat-elements';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -584,6 +585,17 @@ export function TutorSessions({
         )}
         {agentReply && (
           <div className="tutor-chat-extras">
+            <TutorTopicMatches
+              matches={agentReply.topicMatches || []}
+              activeTopicRef={session.activeTopic.topicRef}
+              busy={busy}
+              onOpen={(topicRef) =>
+                void act(
+                  () => switchTutorTopic(session.sessionRef, topicRef, key()),
+                  'Active topic changed.',
+                )
+              }
+            />
             <TutorTextbookEvidence
               key={agentReply.turnRef}
               sourceCount={agentReply.citations.length}
@@ -728,9 +740,9 @@ export function TutorSessions({
       <TutorSignals refreshKey={agentReply?.turnRef} />
       {options.pilotMode && (
         <output className="panel">
-          Text tutoring pilot: explanations, revision and approved
-          textbook figures are available. Voice, next-topic recommendations and
-          general guided practice are not enabled in this text pilot. Separately
+          Text tutoring pilot: explanations, revision and approved textbook
+          figures are available. Voice, next-topic recommendations and general
+          guided practice are not enabled in this text pilot. Separately
           released past-paper chat may be available for your account.
         </output>
       )}

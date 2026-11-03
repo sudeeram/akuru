@@ -238,6 +238,11 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
+    from app.services import tutor_topic_discovery
+    discovery = tutor_topic_discovery.handle(db, settings, principal, session, payload)
+    if discovery is not None:
+        _record_safety(db, session, repository.replay(db, session.id, payload.requestKey))
+        return discovery
     from app.services import tutor_past_papers
     exam_reply = tutor_past_papers.handle(db, settings, principal, session, payload, generator)
     if exam_reply is not None:
