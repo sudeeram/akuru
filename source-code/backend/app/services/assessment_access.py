@@ -5,7 +5,7 @@ from enum import StrEnum
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import Settings
+from app.config import Settings, TutorTextPilotScope
 from app.errors import DomainError
 from app.models import Assessment, TextbookTopicContentVersion
 from app.schemas.assessments import AssessmentMode
@@ -68,6 +68,19 @@ PILOT_WORKFLOWS = frozenset({
 })
 
 
+def tutor_pilot_scopes(settings: Settings) -> tuple[TutorTextPilotScope, ...]:
+    pilot = settings.tutor_text_pilot
+    return (pilot, *pilot.additional_scopes) if pilot else ()
+
+
+def tutor_pilot_scope(settings: Settings, student_id: uuid.UUID,
+                      subject_id: str | None = None, topic_id: uuid.UUID | None = None) -> TutorTextPilotScope | None:
+    return next((scope for scope in tutor_pilot_scopes(settings)
+                 if scope.student_id == student_id
+                 and (subject_id is None or scope.subject_id == subject_id)
+                 and (topic_id is None or scope.topic_id == topic_id)), None)
+
+
 def tutor_pilot_allowed(settings: Settings, student_id: uuid.UUID, workflow: str,
                         subject_id: str | None = None, topic_id: uuid.UUID | None = None,
                         model: str | None = None, prompt_version: str | None = None) -> bool:
@@ -78,9 +91,8 @@ def tutor_pilot_allowed(settings: Settings, student_id: uuid.UUID, workflow: str
     permitted_prompts = {pilot.prompt_version} if pilot else set()
     if extra_enabled: permitted_prompts.add(pilot.supplementary_prompt_version)
     return bool(pilot and pilot.expires_at > datetime.now(timezone.utc)
-        and pilot.student_id == student_id and workflow in permitted_workflows
-        and (subject_id is None or subject_id == pilot.subject_id)
-        and (topic_id is None or topic_id == pilot.topic_id)
+        and tutor_pilot_scope(settings, student_id, subject_id, topic_id) is not None
+        and workflow in permitted_workflows
         and (model is None or model == pilot.model)
         and (prompt_version is None or prompt_version in permitted_prompts))
 
@@ -115,9 +127,10 @@ def require_tutor_access(
         if not tutor_pilot_allowed(settings, student_id, release_workflow,
                                    subject_id, topic_id, model, prompt_version):
             raise DomainError("tutor_pilot_restricted",
-                "This Tutor pilot is limited to its selected student, topic, model and teaching tools.", 403)
+                "This Tutor pilot is limited to its approved students, topics, model and teaching tools.", 403)
         if topic_id is not None:
-            version = db.get(TextbookTopicContentVersion, settings.tutor_text_pilot.topic_content_version_id)
+            scope = tutor_pilot_scope(settings, student_id, subject_id, topic_id)
+            version = db.get(TextbookTopicContentVersion, scope.topic_content_version_id)
             if not version or version.topic_id != topic_id or version.status != "published":
                 raise DomainError("tutor_pilot_content_changed",
                     "This topic has changed since the Tutor pilot was validated. Ask the Admin to revalidate the pilot.", 403)

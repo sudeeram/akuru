@@ -85,3 +85,83 @@ def test_router_pins_pilot_model_without_charging_a_different_model():
         AIAccountRouter(database, s, builder).generate(Mock(), required_model="gpt-6.1-sol")
     assert error.value.code == "no_compatible_ai_account"
     builder.assert_not_called()
+
+
+def test_additional_scopes_are_exact_and_preserve_original_chemistry_grant():
+    other, biology, version = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    scope = dict(student_id=other, subject_id="biology", topic_id=biology,
+                 topic_content_version_id=version, evidence_sha256="b" * 64)
+    s = settings(additional_scopes=[scope])
+    database = db()
+    database.get.side_effect = lambda model, key: SimpleNamespace(
+        topic_id=biology if key == version else TOPIC, status="published")
+    require_tutor_access(database, s, other, TutorCapability.TEXT, "biology", topic_id=biology)
+    assert database.get.call_args.args[1] == version
+    require_tutor_access(database, s, STUDENT, TutorCapability.TEXT, "chemistry", topic_id=TOPIC)
+    assert database.get.call_args.args[1] == VERSION
+    for student, subject, topic in [(other, "chemistry", TOPIC), (STUDENT, "biology", biology),
+                                     (uuid.uuid4(), "biology", biology), (other, "biology", TOPIC)]:
+        with pytest.raises(DomainError) as caught:
+            require_tutor_access(database, s, student, TutorCapability.TEXT, subject, topic_id=topic)
+        assert caught.value.code == "tutor_pilot_restricted"
+    assert tutor_capabilities(db(), s, other)["textEnabled"]
+    assert not tutor_capabilities(db(), s, other)["voiceEnabled"]
+    with pytest.raises(DomainError):
+        require_tutor_access(database, s, other, TutorCapability.TEXT, "biology",
+                             topic_id=biology, model="unapproved-model")
+    with pytest.raises(DomainError):
+        require_tutor_access(database, s, other, TutorCapability.TEXT, "biology",
+                             topic_id=biology, prompt_version="unapproved-prompt")
+
+
+def test_additional_scope_expiry_content_change_and_formal_assessment_fail_closed():
+    other, biology, version = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    scopes = [dict(student_id=other, subject_id="biology", topic_id=biology,
+                   topic_content_version_id=version, evidence_sha256="b" * 64)]
+    for status in ("superseded", "missing"):
+        database = db()
+        database.get.return_value = None if status == "missing" else SimpleNamespace(topic_id=biology, status=status)
+        with pytest.raises(DomainError) as caught:
+            require_tutor_access(database, settings(additional_scopes=scopes), other,
+                                 TutorCapability.TEXT, "biology", topic_id=biology)
+        assert caught.value.code == "tutor_pilot_content_changed"
+    for expired, formal in [(True, False), (False, True)]:
+        s = settings(additional_scopes=scopes,
+                     expires_at=datetime.now(timezone.utc) + timedelta(days=-1 if expired else 1))
+        database = db()
+        database.scalar.return_value = object() if formal else None
+        with pytest.raises(DomainError) as caught:
+            require_tutor_access(database, s, other, TutorCapability.TEXT, "biology", topic_id=biology)
+        assert caught.value.code == ("tutor_disabled_during_formal_assessment" if formal else "tutor_pilot_restricted")
+
+
+def test_additional_scope_requires_evidence_and_rejects_duplicate_grants():
+    scope = dict(student_id=STUDENT, subject_id="chemistry", topic_id=TOPIC,
+                 topic_content_version_id=VERSION, evidence_sha256="b" * 64)
+    with pytest.raises(ValidationError): settings(additional_scopes=[scope])
+    scope["topic_id"] = uuid.uuid4()
+    with pytest.raises(ValidationError): settings(additional_scopes=[scope, scope])
+    del scope["evidence_sha256"]
+    with pytest.raises(ValidationError): settings(additional_scopes=[scope])
+
+
+def test_options_only_show_covered_explicit_scopes_for_the_current_student(monkeypatch):
+    from app.services import tutor_sessions
+    other, biology, version = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+    s = settings(additional_scopes=[dict(student_id=other, subject_id="biology", topic_id=biology,
+                 topic_content_version_id=version, evidence_sha256="b" * 64)])
+    database = db()
+    database.scalars.return_value.all.return_value = [SimpleNamespace(id="biology", name="Biology"),
+                                                       SimpleNamespace(id="chemistry", name="Chemistry")]
+    database.get.side_effect = lambda model, key: SimpleNamespace(public_ref="bio" if key == biology else "chem")
+    from app.schemas.curriculum_plans import PlanTopicResponse
+    def coverage(db, student, subject):
+        refs = ["bio", "not-released"] if subject == "biology" else ["chem"]
+        return SimpleNamespace(status="ready", coveredTopics=[PlanTopicResponse(topicRef=r, code=r,
+            title=r, groupRef="group", groupCode="1", groupTitle="Unit 1") for r in refs])
+    monkeypatch.setattr(tutor_sessions.curriculum_plans, "student_coverage", coverage)
+    monkeypatch.setattr(tutor_sessions.tutor_profiles, "list_for_student", lambda db, student: SimpleNamespace(profiles=[]))
+    result = tutor_sessions.options(database, other, s)
+    assert [subject.id for subject in result.subjects] == ["biology"]
+    assert [topic.topicRef for topic in result.subjects[0].topics] == ["bio"]
+    assert not tutor_sessions.options(database, uuid.uuid4(), s).subjects

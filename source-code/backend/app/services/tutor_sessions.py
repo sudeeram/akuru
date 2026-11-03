@@ -20,7 +20,7 @@ from app.schemas.tutor_sessions import (
 )
 from app.security import Principal
 from app.services import curriculum_plans, tutor_history, tutor_profiles, tutor_quotas
-from app.services.assessment_access import TutorCapability, require_tutor_access
+from app.services.assessment_access import TutorCapability, require_tutor_access, tutor_pilot_scopes
 
 
 def _uuid(value: str, field: str) -> uuid.UUID:
@@ -66,10 +66,10 @@ def options(db: Session, student_id: uuid.UUID, settings: Settings | None = None
         except DomainError:
             continue
         if settings and settings.tutor_text_pilot:
-            pilot = settings.tutor_text_pilot
-            topic = db.get(TextbookTopic, pilot.topic_id)
-            coverage.coveredTopics = [t for t in coverage.coveredTopics
-                if pilot.student_id == student_id and topic and t.topicRef == topic.public_ref]
+            permitted = {topic.public_ref for scope in tutor_pilot_scopes(settings)
+                         if scope.student_id == student_id and scope.subject_id == subject.id
+                         if (topic := db.get(TextbookTopic, scope.topic_id)) is not None}
+            coverage.coveredTopics = [t for t in coverage.coveredTopics if t.topicRef in permitted]
         if coverage.status == "ready" and coverage.coveredTopics:
             available.append(TutorSessionSubjectOption(id=subject.id, name=subject.name,
                 topics=coverage.coveredTopics))

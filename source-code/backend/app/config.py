@@ -7,21 +7,30 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
 
-class TutorTextPilot(BaseModel):
-    """A separately evidenced, temporary one-student text pilot, not a general release."""
+class TutorTextPilotScope(BaseModel):
+    """An explicit student/subject/topic/version grant, never a wildcard."""
     student_id: UUID
     subject_id: str
     topic_id: UUID
     topic_content_version_id: UUID
+    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class TutorTextPilot(TutorTextPilotScope):
+    """Temporary, model-pinned pilot with explicitly evidenced additional grants."""
+    additional_scopes: list[TutorTextPilotScope] = Field(default_factory=list, max_length=500)
     model: str = Field(min_length=1)
     prompt_version: str = Field(min_length=1)
-    evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     supplementary_prompt_version: str | None = None
     supplementary_evidence_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     expires_at: datetime
 
     @model_validator(mode="after")
     def require_timezone(self):
+        scopes = [self, *self.additional_scopes]
+        keys = [(scope.student_id, scope.subject_id, scope.topic_id) for scope in scopes]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Tutor pilot scopes must be unique per student, subject and topic")
         if self.expires_at.tzinfo is None:
             raise ValueError("Tutor pilot expiry must include its timezone")
         return self
