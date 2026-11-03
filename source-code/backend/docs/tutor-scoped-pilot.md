@@ -15,3 +15,9 @@ Session topic choices are the intersection of the current student's explicit gra
 For Biology rollout, preserve the existing Chemistry grant and add exact entries for the two authorised students and the 22 published Biology topic versions. Keep configuration credentials on the server only; put non-secret evidence and test results under the ignored release-evidence directory. Back up the environment before replacing it and validate the staged configuration before restarting the API.
 
 The pilot expiry is still enforced. This is a scoped controlled release, not a permanent unrestricted subject-wide release. Textbook retrieval preflights do not substitute for checking live teaching quality.
+
+## Biology teaching boundaries and retrieval
+
+Supplementary policy v1.1 has explicit school-level concept lists for the 22 reviewed Biology topic titles. Related explanations remain labelled as additional material and cannot invent page numbers, figures or Pearson marking claims. Topic access is still determined by the exact grant and coverage checks above. Personal treatment and dosing requests are declined; the rules permit textbook explanations of hormones and vaccination.
+
+Retrieval normalises bounded Biology word variants (for example, respiring/respiration and photosynthesising/photosynthesis) before lexical ranking. This fixes a live case where a green-leaf starch passage outranked the published respiration explanation. The existing published-topic/version filters, approval requirements and exclusion of exercise prompts from answer evidence remain intact. These ranking scores are not accuracy probabilities.

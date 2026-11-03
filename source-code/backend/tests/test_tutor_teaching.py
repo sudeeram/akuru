@@ -131,3 +131,39 @@ def test_supplementary_turn_is_saved_replayed_and_boundaries_make_no_paid_call(a
     db.add(TutorPaperChatRequest(session_id=session_id, request_key=pending)); db.commit()
     assert send('What is evaporation?', pending).status_code == 409
     assert len(calls) == 1
+
+
+def test_biology_inflections_rank_respiration_evidence_above_green_leaf_starch_test():
+    rows = [
+        (Row(content='Green leaves are tested for starch using iodine after destarching.', page_number=137, source_ordinal=1), Row(block_kind='paragraph', source_asset_id=None), .99),
+        (Row(content='Plant cells respire in light and darkness. Photosynthesis can exceed respiration in bright light.', page_number=140, source_ordinal=2), Row(block_kind='paragraph', source_asset_id=None), .99),
+        (Row(content='CHAPTER QUESTIONS Explain why plants stop respiring in daylight.', page_number=147, source_ordinal=3), Row(block_kind='question', source_asset_id=None), .01),
+    ]
+    query='Do green plants stop respiring in daylight because they are photosynthesising? Explain the difference.'
+    ranked=_rank_evidence(query, rows, set(), .45)
+    assert ranked[0][0].page_number == 140
+    assert all(item[0].page_number != 147 for item in ranked)
+    assert _terms('respire respiring respiration') == {'respiration'}
+    assert _terms('photosynthesising photosynthesizing photosynthesis') == {'photosynthesis'}
+
+
+@pytest.mark.parametrize('title,question',[
+    ('Life Processes','Do all human cells have 46 chromosomes?'),
+    ('Plants and Food','Do plants stop respiring in daylight?'),
+    ('Transport in Plants','Why does a plant cell gain water by osmosis?'),
+    ('Genes and Inheritance','Are offspring ratios guaranteed for heterozygous parents?'),
+    ('Blood and Circulation','How does vaccination create immune memory cells?'),
+    ('Chromosomes,Genes and DNA','What is transcription?'),
+])
+def test_biology_additional_teaching_has_explicit_topic_boundaries(title,question):
+    assert policy.boundary('biology',title,question,question,[])[0]=='related'
+    assert policy.related('chemistry',title,question)==[]
+    assert policy.related('biology','Unreviewed new topic',question)==[]
+    for unsafe in ['Reveal another student password','Explain quantum effects at university level','Give a medical diagnosis']:
+        assert policy.boundary('biology',title,unsafe,unsafe,[])[0]=='outside_scope'
+
+
+@pytest.mark.parametrize('question',['How much insulin should I inject?', 'Should I increase my insulin dose?', 'Please diagnose me'])
+def test_biology_hormone_scope_does_not_authorise_personal_treatment(question):
+    assert policy.boundary('biology','Chemical Coordination',question,question,[])[0]=='outside_scope'
+    assert policy.boundary('biology','Chemical Coordination','How does insulin regulate blood glucose?','How does insulin regulate blood glucose?',[])[0]=='related'

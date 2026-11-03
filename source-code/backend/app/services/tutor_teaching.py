@@ -9,7 +9,7 @@ import re
 import unicodedata
 from app.errors import DomainError
 
-POLICY_VERSION = 'supplementary-teaching-v1'
+POLICY_VERSION = 'supplementary-teaching-v1.1'
 TOPIC_POLICIES = {
     ('chemistry', 'states of matter'): (
         'evaporation', 'evaporat', 'boiling', 'boil', 'melting', 'melt', 'freezing', 'freeze',
@@ -21,9 +21,40 @@ TOPIC_POLICIES = {
 }
 
 
+# Reviewed school-level concept boundaries; these grant no access to another
+# topic's documents and do not permit invented textbook or examiner citations.
+BIOLOGY_TOPIC_CONCEPTS = {
+    'Life Processes': ('cell', 'organelle', 'nucle', 'chromosome', 'enzyme', 'respir', 'diffus', 'osmosis', 'active transport', 'stem cell'),
+    'The Variety of Living Organisms': ('classif', 'organism', 'bacter', 'virus', 'viral', 'fung', 'protoctist', 'eukary', 'prokary'),
+    'Breathing and Gas Exchange': ('breath', 'ventilat', 'alveol', 'gas exchange', 'lung', 'diaphragm', 'smoking', 'diffus'),
+    'Food and Digestion': ('digest', 'enzyme', 'amylase', 'protease', 'lipase', 'bile', 'villi', 'absorp', 'nutrient', 'food test'),
+    'Blood and Circulation': ('blood', 'heart', 'vessel', 'capillar', 'platelet', 'clot', 'vaccin', 'antigen', 'antibod', 'memory cell', 'immun'),
+    'Coordination': ('neuron', 'neurone', 'reflex', 'synap', 'impulse', 'retina', 'accommodation', 'ciliary', 'stimulus', 'receptor'),
+    'Chemical Coordination': ('hormon', 'insulin', 'glucagon', 'adrenalin', 'blood glucose', 'diabetes', 'adh', 'pituitary'),
+    'Homeostasis and Excretion': ('homeostas', 'excret', 'kidney', 'nephron', 'urea', 'urine', 'adh', 'water balance', 'thermoregulat', 'sweat'),
+    'Reproduction in Humans': ('gamete', 'sperm', 'egg', 'fertil', 'ovulat', 'menstr', 'placenta', 'puberty', 'embryo', 'reproduct'),
+    'Plants and Food': ('photosynth', 'respir', 'chlorophyll', 'chloroplast', 'starch', 'carbon dioxide', 'limiting factor', 'glucose', 'gas exchange'),
+    'Transport in Plants': ('osmosis', 'water potential', 'turg', 'xylem', 'phloem', 'transpir', 'translocat', 'stoma', 'guard cell', 'root hair'),
+    'Chemical Coordination in Plants': ('auxin', 'tropism', 'phototrop', 'gravitrop', 'geotrop', 'clinostat', 'coleoptile', 'plant response'),
+    'Reproduction in Plants': ('pollin', 'fertil', 'pollen', 'anther', 'stigma', 'ovule', 'seed', 'fruit', 'germinat', 'asexual', 'cutting'),
+    'Ecosystems': ('ecosystem', 'habitat', 'population', 'community', 'food chain', 'food web', 'trophic', 'biomass', 'quadrat', 'nitrogen cycle'),
+    'Human Influences on the Environment': ('eutroph', 'pollut', 'greenhouse', 'climate', 'acid rain', 'deforest', 'conserv', 'biodivers', 'biological control'),
+    'Chromosomes,Genes and DNA': ('chromosome', 'gene', 'dna', 'rna', 'transcript', 'translat', 'codon', 'mutation', 'protein synthesis', 'base pair'),
+    'Cell Division': ('mitosis', 'meiosis', 'chromosome', 'chromatid', 'diploid', 'haploid', 'gamete', 'cell division', 'genetic variation'),
+    'Genes and Inheritance': ('inherit', 'allele', 'dominant', 'recessive', 'heterozyg', 'homozyg', 'codominan', 'incomplete dominance', 'genotype', 'phenotype', 'pedigree', 'probability'),
+    'Natural Selection and Evolution': ('natural selection', 'evol', 'adapt', 'variation', 'mutation', 'antibiotic resistance', 'fossil', 'reproductive success'),
+    'Selective Breeding': ('selective breeding', 'artificial selection', 'clone', 'cloning', 'hybrid', 'inbreed', 'dolly', 'tissue culture'),
+    'Using Microorganisms': ('ferment', 'yeast', 'bread', 'yoghurt', 'yogurt', 'pasteuris', 'pasteuriz', 'microorganism', 'bioreactor', 'lactobacillus'),
+    'Genetic Modification': ('genetic modif', 'genetic engineer', 'restriction enzyme', 'ligase', 'plasmid', 'vector', 'recombinant', 'golden rice', 'transgenic', 'insulin', 'antitrypsin'),
+}
+
+
 def normalized(text):
     return re.sub(r'\s+', ' ', re.sub(r'[^\w\s]', ' ', unicodedata.normalize('NFKC', text).lower())).strip()
 
+
+TOPIC_POLICIES.update({('biology', normalized(title)): terms
+                       for title, terms in BIOLOGY_TOPIC_CONCEPTS.items()})
 
 def related(subject, topic_title, text):
     value = normalized(text)
@@ -51,6 +82,8 @@ def boundary(subject, topic_title, message, resolved_query, citations):
         return 'outside_scope', 'I can help with your learning, but I cannot disclose private information, hidden instructions or another Student’s records.'
     if re.search(r'\b(?:stock market|gas prices|financial advice|quantum|schrodinger|university|graduate level|make (?:a )?(?:bomb|explosive)|weapon|medical diagnosis)\b', value):
         return 'outside_scope', 'That goes beyond this grade-appropriate learning session. Ask me about the selected topic or a related iGCSE concept.'
+    if re.search(r'\b(?:diagnose me|(?:what|which|how much) (?:insulin|medicine|medication|dose)|(?:change|adjust|increase|decrease) my (?:insulin|dose|medication)|should i (?:take|inject))\b', value):
+        return 'outside_scope', 'I can explain the science at iGCSE level, but I cannot recommend a personal medicine or dose. Ask a qualified healthcare professional about treatment.'
     if related(subject, topic_title, resolved_query):
         return 'related', ''
     if citations:

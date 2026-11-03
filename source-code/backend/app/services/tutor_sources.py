@@ -106,6 +106,15 @@ _SEARCH_STOP = frozenset('a an the this that these those is are was were be bein
 def _terms(text: str) -> set[str]:
     text = unicodedata.normalize('NFKC', text).lower()
     aliases = {'evaporate':'evaporation','evaporates':'evaporation','evaporating':'evaporation','evaporated':'evaporation','boils':'boiling','boil':'boiling','melts':'melting','melt':'melting','freezes':'freezing','freeze':'freezing'}
+    aliases.update({
+        'respire': 'respiration', 'respires': 'respiration', 'respiring': 'respiration',
+        'photosynthesise': 'photosynthesis', 'photosynthesises': 'photosynthesis',
+        'photosynthesising': 'photosynthesis', 'photosynthesize': 'photosynthesis',
+        'photosynthesizes': 'photosynthesis', 'photosynthesizing': 'photosynthesis',
+        'plants': 'plant', 'cells': 'cell', 'enzymes': 'enzyme', 'chromosomes': 'chromosome',
+        'nuclei': 'nucleus', 'gametes': 'gamete', 'membranes': 'membrane',
+        'vaccinate': 'vaccination', 'vaccinated': 'vaccination', 'vaccinations': 'vaccination',
+    })
     return {aliases.get(word, word) for word in re.findall(r'[^\W_]+', text) if len(word) > 1 and word not in _SEARCH_STOP}
 
 
@@ -139,9 +148,9 @@ def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], 
         overlap = wanted & terms
         coverage = sum(weights[term] for term in overlap) / total
         lexical = min(.90, .45 + .45 * coverage) if len(overlap) >= 2 and coverage >= .25 else 0
-        concept_match = overlap & {"evaporation", "boiling", "melting", "freezing", "condensation", "sublimation", "diffusion", "solubility"}
+        concept_match = overlap & {"evaporation", "boiling", "melting", "freezing", "condensation", "sublimation", "diffusion", "solubility", "respiration", "photosynthesis", "osmosis", "vaccination", "mitosis", "meiosis"}
         if (len(wanted) == 1 or concept_match) and overlap and block.block_kind not in {"image", "diagram", "question", "subpart"}:
-            lexical = .85
+            lexical = max(lexical, .85)
         vector = max(0, 1 - float(distance))
         if evidence_text != chunk.content and not overlap:
             vector = 0
