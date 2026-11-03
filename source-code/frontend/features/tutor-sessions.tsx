@@ -248,7 +248,7 @@ export function TutorSessions({
           Choose one covered topic and one of your tutors. Tutor help is
           available during practice only.{' '}
           {options.pilotMode &&
-            'This pilot covers Chemistry Topic 1 — States of Matter by text.'}
+            'This text tutoring pilot includes the covered topics listed below.'}
         </Heading>
         {error && (
           <div className="error" role="alert">
@@ -718,7 +718,7 @@ export function TutorSessions({
       <TutorSignals refreshKey={agentReply?.turnRef} />
       {options.pilotMode && (
         <output className="panel">
-          Topic 1 text tutoring pilot: explanations, revision and approved
+          Text tutoring pilot: explanations, revision and approved
           textbook figures are available. Voice, next-topic recommendations and
           general guided practice are not enabled in this text pilot. Separately
           released past-paper chat may be available for your account.
