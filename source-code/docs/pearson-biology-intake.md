@@ -55,3 +55,12 @@ Synthetic tests cover B/BR timing, native layout/MC boundaries, nested context, 
 Native layout heuristics do not prove all semantic relationships. Broad report heading ranges, missing/merged scheme rows, photographs, source typos, conditional scoring and difficult table continuation require Admin review. Record issues at their source locations. A low-confidence draft is useful review input, not a release failure that can be solved by increasing its percentage.
 
 Related: [intake assessment](biology-pastpaper-intake-assessment.md), [delivery plan](../todo/ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md), [shared conformance backlog](../todo/planned/TODO-IGCSE-PASTPAPER-ANALYSIS.md).
+
+
+## Bulk intake refinement (2026-11-04)
+
+Native extractor `pearson-native-layout-v1.1` also normalises the older private-font bullet glyph and handles correct MC answers without parentheses. The rebuilt corpus has 4,726 source point proposals. This improves transcription coverage, not semantic approval.
+
+`reviewProposalVersion: 1` is an additive, private seeding format. It accepts only bounded marking-point proposals, response type, coverage reason and scoring-review notes; the server binds all paper/scheme/report page assets to the workspace's exact versions. Status remains unreviewed, confirmed topic links stay empty, and readiness is forced to manual-only. Invalid versions and attempts to import approval/automatic-readiness fields are rejected. The client validates the returned fields and source pages before checkpointing a fully populated seed. This avoids downloading every extraction page and resaving every question individually for new workspaces. Legacy banks retain their existing behaviour and the client can fall back to ordinary per-question enrichment.
+
+Read-only requests retry bounded transient failures. Mutations are not blindly retried. A local exclusive lock prevents simultaneous imports using the same source root, and checkpoints always have mode 0600. Neither retry handling nor bulk seeding changes publication gates.

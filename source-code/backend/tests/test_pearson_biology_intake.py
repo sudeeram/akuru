@@ -157,3 +157,57 @@ def test_complete_build_handles_repeated_continuation_question_number(tmp_path):
 def test_inconsistent_subpart_totals_block_intake():
     bank=dict(status='local_draft_unreleased',studentAccess=False,papers=[dict(paperKey='p',questionCount=1,totalMarks=2)],questions=[dict(paperKey='p',number='1',marks=2,subparts=[dict(label='a',marks=1)])])
     with pytest.raises(ValueError,match='subpart inventory'):intake.validate_bank(bank)
+
+
+def test_get_transient_failure_retries_but_post_is_never_repeated(monkeypatch):
+    from unittest.mock import Mock
+    import urllib.error,io
+    monkeypatch.setattr(importer.time,'sleep',lambda _:None)
+    def failure():return urllib.error.HTTPError('https://example.test/api',502,'Bad gateway',{},io.BytesIO(b'{}'))
+    client=importer.Client.__new__(importer.Client);client.origin='https://example.test';client.csrf='test';client.opener=Mock()
+    client.opener.open.side_effect=[failure(),io.BytesIO(b'{"ok":true}')]
+    assert client.call('documents')=={'ok':True}
+    assert client.opener.open.call_count==2
+    client.opener.open.reset_mock();client.opener.open.side_effect=[failure()]
+    with pytest.raises(RuntimeError,match='502'):client.call('documents',{'write':True})
+    assert client.opener.open.call_count==1
+
+
+def test_private_checkpoint_replaces_existing_world_readable_file(tmp_path):
+    import stat
+    path=tmp_path/'receipt.json';path.write_text('{}');path.chmod(0o644)
+    importer.save_private(path,{'status':'draft'})
+    assert stat.S_IMODE(path.stat().st_mode)==0o600
+    assert json.loads(path.read_text())=={'status':'draft'}
+
+
+def test_existing_same_hash_with_wrong_session_is_not_adopted(tmp_path,monkeypatch):
+    from unittest.mock import Mock
+    import hashlib
+    source=tmp_path/'source.pdf';source.write_bytes(b'%PDF fixture');sha=hashlib.sha256(source.read_bytes()).hexdigest()
+    out=tmp_path/'.akuru-intake';out.mkdir()
+    paper=dict(paperKey='4BI1-test',component='1B',year=2025,session='June',variant='standard',files={'question':'source.pdf'},sourceSha256={'question':sha})
+    (out/'4-test.json').write_text(json.dumps(dict(status='local_draft_unreleased',studentAccess=False,subject='biology',course='igcse',provenance=[],papers=[paper],questions=[])))
+    client=Mock();client.call.return_value={'documents':[dict(checksum=sha,removedAt=None,subjectId='biology',courseId='igcse',kind='past_paper',component='1B',year=2025,session='January',variant='standard')]}
+    monkeypatch.setattr(importer,'Client',Mock(return_value=client))
+    args=Row(source_root=tmp_path,paper_key=None,execute=True,origin='https://example.test',credentials=tmp_path/'unused.env',receipt=None)
+    with pytest.raises(RuntimeError,match='different source identity'):importer.run(args)
+    client.call.assert_called_once_with('documents')
+
+
+def test_older_pdf_private_font_bullets_and_plain_mc_answers_are_extracted():
+    points=intake.proposed_points('An explanation that makes reference to three points:\n\uf0b7 photosynthesis (1)\n\uf0b7 sunlight (1)\n\uf0b7 chloroplasts (1)')
+    assert len(points)==3 and points[0]['text']=='photosynthesis (1)'
+    points=intake.proposed_points('The only correct answer is\nA it is digested into amino acids\nB is not correct as bile does not digest protein')
+    assert len(points)==1 and points[0]['text'].startswith('A it is digested')
+
+
+def test_rich_seed_uses_only_bounded_private_draft_fields():
+    question=dict(sharedStemExtractionCandidate='',issues=[],subparts=[dict(label='a',marks=1,sourcePages=[2],schemePages=[4],extractionCandidate='Name a cell.',schemeExtractionCandidate='Nucleus',proposedMarkingPoints=[dict(code='P1',text='Nucleus',kind='other')])],source={'reportHeadingCandidatePdfPages':[]})
+    bank={'questions':[question]}
+    importer.prepare_rich_seed(bank,None)
+    assert bank['reviewProposalVersion']==1
+    fields=question['subparts'][0]['reviewProposal']
+    assert set(fields)=={'markingPoints','responseType','assessmentReadinessReason','coverageReason'}
+    assert fields['markingPoints'][0]['text']=='Nucleus'
+    assert 'status'not in fields and 'topicRefs'not in fields

@@ -97,6 +97,15 @@ class SaveReviewQuestion(BaseModel):
     data: ReviewQuestionData
 
 
+class SeedPartProposal(BaseModel):
+    """Private draft fields only; approval and scoring readiness are server-owned."""
+    model_config = {"extra": "forbid"}
+    markingPoints: list[ReviewMarkingPoint] = Field(default_factory=list, max_length=200)
+    responseType: Literal["text", "drawing"] = "text"
+    assessmentReadinessReason: str = Field(default="Native proposal; review exact scoring rules before release.", max_length=4000)
+    coverageReason: str = Field(default="Topic mapping has not been reviewed.", max_length=4000)
+
+
 class SeedPaperReview(BaseModel):
     draftBank: dict
     coverageTriage: dict | None = None

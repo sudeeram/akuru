@@ -6,6 +6,8 @@ import uuid
 
 import pymupdf
 
+from pydantic import ValidationError
+
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -641,6 +643,10 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
         OfficialPaperReviewQuestion.workspace_id == workspace.id)):
         raise DomainError("review_already_started", "Import proposals only into an empty review workspace.", 409)
     bank = payload.draftBank
+    proposal_version = bank.get("reviewProposalVersion")
+    if proposal_version is not None and (type(proposal_version) is not int or proposal_version != 1):
+        raise DomainError("unsupported_seed_proposal_version", "Unsupported draft proposal version.", 422)
+    rich_proposals = bank.get("reviewProposalVersion") == 1
     paper = _paper(db, paper_id)
     paper_version = db.get(DocumentVersion, workspace.paper_version_id)
     if bank.get("status") != "local_draft_unreleased" or bank.get("studentAccess") is not False or bank.get("course") != paper.course_id or bank.get("subject") != paper.subject_id:
@@ -687,12 +693,23 @@ def seed(db: Session, principal: Principal, paper_id: uuid.UUID,
         scheme_text = q.get("markScheme", {}).get("rawExtraction", "")
         parts = []
         for part in q["subparts"]:
+            proposal_fields = {}
+            if rich_proposals:
+                from app.schemas.official_paper_reviews import SeedPartProposal
+                try:
+                    proposal_fields = SeedPartProposal.model_validate(part.get("reviewProposal", {})).model_dump(mode="json")
+                except ValidationError as error:
+                    raise DomainError("invalid_seed_proposal", "Check the private draft proposal fields; approval and automatic readiness cannot be imported.", 422) from error
             suggestion = triage.get((q["component"], str(q["number"]), part["label"]), {})
             parts.append({
                 "label": part["label"], "marks": part["marks"],
                 "prompt": part.get("extractionCandidate", ""),
-                "paperSources": paper_sources, "schemeSources": scheme_sources,
-                "coverageReason": suggestion.get("reason", ""),
+                "paperSources": sources(part.get("sourcePages", q["source"]["questionPdfPages"]), workspace.paper_version_id) if rich_proposals else paper_sources,
+                "schemeSources": sources(part.get("schemePages", q["source"]["schemePdfPages"]), workspace.scheme_version_id) if rich_proposals else scheme_sources,
+                "reportSources": sources(q["source"].get("reportHeadingCandidatePdfPages", []), workspace.report_version_id) if rich_proposals else [],
+                **proposal_fields,
+                **({"assessmentReadiness": "manual_only"} if rich_proposals else {}),
+                "coverageReason": proposal_fields.get("coverageReason", suggestion.get("reason", "")),
                 "status": "unreviewed", "coverage": "unreviewed", "topicRefs": [],
                 "extractionConfidence": estimate(part.get("extractionCandidate", ""), page_confidences,
                     scheme_text, report_confidences=report_confidences),

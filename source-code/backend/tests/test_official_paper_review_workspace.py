@@ -431,3 +431,39 @@ def test_coverage_reason_optional_only_outside_current_coverage(auth_client, cov
         assert reloaded['status'] == 'approved' and reloaded['coverageReason'] == ''
     else:
         assert 'coverage reason' in result.text
+
+
+@pytest.mark.integration
+def test_rich_draft_seed_preserves_private_proposals_but_cannot_approve(auth_client):
+    client, headers, session, paper, scheme, report, _ = _setup(auth_client)
+    root = f"/api/v1/admin/official-paper-reviews/{paper[0].id}"
+    assert client.post(root + '/start', headers=headers, json={
+        'schemeDocumentId': str(scheme[0].id), 'reportDocumentId': str(report[0].id),
+        'expectedQuestionCount': 1}).status_code == 200
+    part = {'label':'a','marks':2,'extractionCandidate':'Draw the diagram.',
+        'sourcePages':[1], 'schemePages':[1], 'reviewProposal':{
+            'markingPoints':[{'code':'P1','text':'Two source details','kind':'other'}],
+            'responseType':'drawing','coverageReason':'Unreviewed topic hint.',
+            'assessmentReadinessReason':'Check exact source and conditional rules.'}}
+    bank = {'status':'local_draft_unreleased','studentAccess':False,'course':'igcse','subject':'chemistry',
+        'reviewProposalVersion':1,'papers':[{'paperKey':'rich','component':'1C','questionCount':1,'totalMarks':2,
+        'sourceSha256':{'question':paper[1].sha256,'markScheme':scheme[1].sha256,'examinerReport':report[1].sha256}}],
+        'questions':[{'paperKey':'rich','component':'1C','number':'1','marks':2,'studentPrompt':None,'topicMappings':[],
+        'rawQuestionExtraction':'Draw the diagram.','subparts':[part],
+        'source':{'questionPdfPages':[1],'schemePdfPages':[1],'reportHeadingCandidatePdfPages':[1]}}]}
+    bank['reviewProposalVersion']=[]
+    assert client.post(root+'/seed',headers=headers,json={'draftBank':bank}).status_code==422
+    bank['reviewProposalVersion']=1
+    part['reviewProposal']['assessmentReadiness']='automatic'
+    rejected=client.post(root+'/seed',headers=headers,json={'draftBank':bank})
+    assert rejected.status_code==422 and rejected.json()['error']['code']=='invalid_seed_proposal'
+    part['reviewProposal'].pop('assessmentReadiness')
+    response=client.post(root+'/seed',headers=headers,json={'draftBank':bank})
+    assert response.status_code==200,response.text
+    question=response.json()['questions'][0];saved=question['data']['parts'][0]
+    assert question['status']=='unreviewed' and saved['status']=='unreviewed'
+    assert saved['assessmentReadiness']=='manual_only' and saved['coverage']=='unreviewed'
+    assert saved['responseType']=='drawing' and saved['topicRefs']==[]
+    assert saved['markingPoints'][0]['text']=='Two source details'
+    assert saved['reportSources'][0]['assetId']==str(report[4].id)
+    assert not response.json()['wholePaperReady'] and not response.json()['automaticAssessmentReady']

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pymupdf
 
-VERSION = 'pearson-native-layout-v1'
+VERSION = 'pearson-native-layout-v1.1'
 TOTAL = re.compile(r'Total for Question\s*(\d+)\s*=\s*(\d+)\s*marks', re.I)
 LABEL = re.compile(r'^\(([a-z]+)\)\s*(?:\(([ivx]+)\))?\s*', re.I)
 FURNITURE = re.compile(r'DO\s+NOT\s+WRITE|Turn over|^\*?P\d{5,}[A-Z]?\d*\*?$|Total for (?:Question|paper)|^Answer ALL questions|^Some questions must|^answer, put a line|^and then mark|^BLANK PAGE', re.I)
@@ -164,13 +164,16 @@ def scheme_entries(pdf):
 
 def proposed_points(answer):
     """Transcribe source bullets; never infer executable scoring semantics."""
+    answer=answer.replace('\uf0b7','•')
     if not answer.strip():return []
-    if re.search(r'(?m)^\s*[A-D]\s*\(',answer):
+    if 'only correct answer' in answer.lower():
+        candidates=[next((line.strip() for line in answer.splitlines() if re.match(r'^\s*[A-D]\s+(?!is not|is incorrect|is not correct)',line,re.I)), '')]
+    elif re.search(r'(?m)^\s*[A-D]\s*\(',answer):
         candidates=[next(line.strip() for line in answer.splitlines() if re.match(r'^\s*[A-D]\s*\(',line))]
     else:
         candidates=re.split(r'(?:^|\n)\s*(?:•|\d+\.)\s*',answer)
-        candidates=[text.strip() for text in candidates if text.strip() and not re.match(r'^(?:An? (?:answer|explanation)|The (?:only correct answer|following)|[Rr]eference to)',text.strip())]
-    return [dict(code=f'P{i+1}',text=text,kind='other') for i,text in enumerate(candidates) if len(text)<=2000][:200]
+        candidates=[text.strip() for text in candidates if text.strip() and (len(candidates)==1 or not re.match(r'^(?:An? (?:answer|explanation)|The (?:only correct answer|following)|[Rr]eference to)',text.strip()))]
+    return [dict(code=f'P{i+1}',text=text,kind='other') for i,text in enumerate(candidates) if text and len(text)<=2000][:200]
 
 
 def report_sections(pdf):

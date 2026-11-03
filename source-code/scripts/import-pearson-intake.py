@@ -4,7 +4,7 @@
 Default is a source-hash-validated dry run. Keep credential/receipt files ignored.
 """
 from __future__ import annotations
-import argparse,hashlib,http.cookiejar,http.client,json,math,os,re,ssl,time,urllib.error,urllib.parse,urllib.request
+import argparse,fcntl,hashlib,http.cookiejar,http.client,json,math,os,re,ssl,time,urllib.error,urllib.parse,urllib.request
 from collections import Counter
 from pathlib import Path
 import certifi
@@ -19,7 +19,7 @@ class Client:
         self.opener=urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context(cafile=certifi.where())),urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
         env=dotenv_values(credential_file)
         self.csrf=self.call('auth/login',{'username':env['AKURU_ADMIN_USERNAME'],'password':env['AKURU_ADMIN_PASSWORD']})['csrfToken']
-    def call(self,path,body=None,filename=None):
+    def call(self,path,body=None,filename=None,_attempt=0):
         headers={'Origin':self.origin};data=None
         if body is not None:
             headers.update({'Content-Type':'application/pdf' if filename else 'application/json','X-CSRF-Token':self.csrf})
@@ -29,9 +29,13 @@ class Client:
             with self.opener.open(urllib.request.Request(self.origin+'/api/v1/'+path,data=data,headers=headers),timeout=240) as response:
                 try:return json.load(response)
                 except http.client.IncompleteRead:
-                    if body is not None:raise
-                    with self.opener.open(urllib.request.Request(self.origin+'/api/v1/'+path,headers=headers),timeout=240) as retry:return json.load(retry)
+                    if body is not None or _attempt>=3:raise
+                    time.sleep(1)
+                    return self.call(path,_attempt=_attempt+1)
         except urllib.error.HTTPError as error:
+            if body is None and error.code in {429,502,503,504} and _attempt<3:
+                error.close();time.sleep(2**_attempt)
+                return self.call(path,_attempt=_attempt+1)
             try:detail=json.loads(error.read()).get('error',{});message=detail.get('message','Request failed');code=detail.get('code','unknown')
             except Exception:message='Request failed';code='unknown'
             raise RuntimeError(f'{error.code} {code}: {message}') from None
@@ -40,6 +44,7 @@ class Client:
 def save_private(path,data):
     path.parent.mkdir(parents=True,exist_ok=True)
     temp=path.with_suffix('.new');fd=os.open(temp,os.O_CREAT|os.O_TRUNC|os.O_WRONLY,0o600)
+    os.fchmod(fd,0o600)
     with os.fdopen(fd,'w') as stream:json.dump(data,stream,ensure_ascii=False,indent=2)
     os.replace(temp,path)
 
@@ -131,8 +136,44 @@ def suggest_topics(prompt, topic_evidence):
     ranked.sort(key=lambda row:(-row[0],row[1]['topicRef']))
     return [(item,terms) for score,item,terms in ranked[:2] if score>=ranked[0][0]*.8] if ranked else []
 
+
+def topic_reason(q, part, evidence):
+    hints=suggest_topics(q.get('sharedStemExtractionCandidate','')+' '+part['prompt'],evidence)
+    if not hints:return part['coverageReason']
+    return 'Proposed matches only; verify full concepts and prerequisites. '+ '; '.join(item['code']+' '+item['title']+' (source terms: '+', '.join(terms[:8])+')' for item,terms in hints)+'. Original printed-page evidence has not been selected automatically.'
+
+
+def prepare_rich_seed(bank, evidence):
+    bank['reviewProposalVersion']=1
+    for q in bank['questions']:
+        for part in q['subparts']:
+            # Build the same bounded fields as the legacy enrichment path, with
+            # no asset IDs: the server resolves pages against the exact versions.
+            template={'data':{'parts':[{'label':part['label'],'prompt':part['extractionCandidate']}]}}
+            fields=enrich_question(q,template,{})['parts'][0]
+            if evidence is not None:fields['coverageReason']=topic_reason(q,fields,evidence)
+            part['reviewProposal']={k:fields[k] for k in ('markingPoints','responseType','assessmentReadinessReason','coverageReason')}
+
+
+def rich_seed_matches(bank, response):
+    if bank.get('reviewProposalVersion')!=1:return False
+    for q in bank['questions']:
+        live=next((item for item in response['questions'] if item['number']==q['number']),None)
+        if not live or live['status']!='unreviewed' or live['data']['prompt']!=q['rawQuestionExtraction']:return False
+        if len(live['data']['parts'])!=len(q['subparts']):return False
+        for part,actual in zip(q['subparts'],live['data']['parts']):
+            if actual['label']!=part['label'] or actual['marks']!=part['marks'] or actual['prompt']!=part['extractionCandidate']:return False
+            if actual['status']!='unreviewed' or actual['assessmentReadiness']!='manual_only' or actual['topicRefs'] or actual['coverage']!='unreviewed':return False
+            for field,expected in part['reviewProposal'].items():
+                if field=='markingPoints':expected=[dict(dependsOn=None,followThrough=False,acceptedAnswers=[],**point) for point in expected]
+                if actual[field]!=expected:return False
+            for field,expected in [('paperSources',part['sourcePages']),('schemeSources',part['schemePages']),('reportSources',q['source']['reportHeadingCandidatePdfPages'])]:
+                if {s['page'] for s in actual[field]}!=set(expected):return False
+    return True
+
 def run(args):
     root=args.source_root.resolve();banks=planned_banks(root,args.paper_key)
+    if not banks:raise ValueError('No source-validated draft banks selected')
     if not args.execute:
         print(json.dumps(dict(mode='dry_run',papers=len(banks),questions=sum(len(b['questions']) for b in banks),files=sum(len(b['papers'][0]['files']) for b in banks),studentAccess=False)));return
     if not args.origin or not args.credentials:raise ValueError('--execute requires --origin and --credentials')
@@ -180,11 +221,15 @@ def run(args):
         if current and current.get('reportDocumentId') not in (None, selected.get('examinerReport')):raise RuntimeError('Existing review uses a different report')
         if not current or (selected.get('examinerReport') and not current.get('reportDocumentId')):
             current=client.call(endpoint+'/start',dict(schemeDocumentId=selected['markScheme'],reportDocumentId=selected.get('examinerReport'),expectedQuestionCount=expected))
+        new_seed=False
         if not current['questionCount']:
-            client.call(endpoint+'/start',dict(schemeDocumentId=selected['markScheme'],reportDocumentId=selected.get('examinerReport'),expectedQuestionCount=expected))
+            if args.suggest_topics and topic_evidence is None:
+                topic_evidence=[client.call(endpoint+'/topics/'+topic['topicRef']+'/evidence') for topic in client.call(endpoint+'/topics')]
+                save_private(root/'.akuru-intake/topic-evidence.json',topic_evidence)
+            prepare_rich_seed(bank,topic_evidence if args.suggest_topics else None)
             entry['seedPending']=True;save_private(receipt,state)
             current=client.call(endpoint+'/seed',dict(draftBank=bank))
-            entry['seeded']=True;entry.pop('seedPending',None);save_private(receipt,state)
+            entry['seeded']=True;entry.pop('seedPending',None);new_seed=True;save_private(receipt,state)
         pending=entry.get('pendingQuestion')
         if pending:
             saved=next(q for q in current['questions'] if q['number']==pending['number'])
@@ -195,6 +240,10 @@ def run(args):
                 entry.pop('pendingQuestion');save_private(receipt,state)
             else:raise RuntimeError('Pending write conflicts with current review; refusing overwrite')
         if args.refresh_generated:entry['enriched']=False
+        if new_seed and rich_seed_matches(bank,current):
+            entry['enriched']=True
+            entry['enrichedQuestions']={q['number']:q['revision'] for q in current['questions']}
+            entry['richSeedVersion']=1;save_private(receipt,state)
         if not entry['enriched']:
             # Never overwrite resumed reviews if an Admin has already edited a part.
             if any(q['status']!='unreviewed' or any(p['status']!='unreviewed' for p in q['data']['parts']) for q in current['questions']):raise RuntimeError('Admin review started: skip automated enrichment and review manually')
@@ -212,10 +261,9 @@ def run(args):
                 desired=enrich_question(q,live,pages)
                 if args.suggest_topics:
                     for part in desired['parts']:
-                        hints=suggest_topics(q.get('sharedStemExtractionCandidate','')+' '+part['prompt'],topic_evidence)
                         part['topicRefs']=[]  # Hints are not confirmed coverage links.
                         part['coverage']='unreviewed'
-                        if hints:part['coverageReason']='Proposed matches only; verify full concepts and prerequisites. '+ '; '.join(item['code']+' '+item['title']+' (source terms: '+', '.join(terms[:8])+')' for item,terms in hints)+'. Original printed-page evidence has not been selected automatically.'
+                        part['coverageReason']=topic_reason(q,part,topic_evidence)
                 pending=dict(number=q['number'],expectedRevision=live['revision'],status='unreviewed',data=desired)
                 entry['pendingQuestion']=pending;save_private(receipt,state)
                 try:
@@ -255,7 +303,7 @@ def run(args):
             overall=estimate(question['data']);overall['percent']=min(overall['percent'],*(p['percent'] for p in part_estimates))
             analysis=client.call(endpoint+'/questions/'+question['number']+'/analyses',dict(
                 expectedQuestionRevision=question['revision'],expectedAnalysisVersion=question['analysisVersion'],
-                expectedContentHash=question['analysisContentHash'],stage='extraction',methodVersion='pearson-native-layout-v1',
+                expectedContentHash=question['analysisContentHash'],stage='extraction',methodVersion=bank.get('extractorVersion','pearson-native-layout-v1'),
                 provenance=bank['provenance'],question=overall,parts=part_estimates))
             entry.setdefault('analysisVersions',{})[question['number']]=analysis['version'];save_private(receipt,state)
         entry.update(status='draft_review_ready',questionCount=expected,reviewUrl=args.origin.rstrip('/')+'/admin/exam-documents/review/'+selected['question'])
@@ -263,4 +311,12 @@ def run(args):
 
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('source_root',type=Path);parser.add_argument('--paper-key',action='append');parser.add_argument('--origin');parser.add_argument('--credentials',type=Path);parser.add_argument('--receipt',type=Path);parser.add_argument('--execute',action='store_true');parser.add_argument('--suggest-topics',action='store_true');parser.add_argument('--refresh-generated',action='store_true',help='Refresh only drafts whose exact last revisions are in this receipt');run(parser.parse_args())
+    parser=argparse.ArgumentParser();parser.add_argument('source_root',type=Path);parser.add_argument('--paper-key',action='append');parser.add_argument('--origin');parser.add_argument('--credentials',type=Path);parser.add_argument('--receipt',type=Path);parser.add_argument('--execute',action='store_true');parser.add_argument('--suggest-topics',action='store_true');parser.add_argument('--refresh-generated',action='store_true',help='Refresh only drafts whose exact last revisions are in this receipt');args=parser.parse_args()
+    if args.execute:
+        lockpath=args.source_root/'.akuru-intake/intake.lock';lockpath.parent.mkdir(parents=True,exist_ok=True)
+        with lockpath.open('a') as lock:
+            os.chmod(lockpath,0o600)
+            try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            except BlockingIOError:raise SystemExit('Another intake is running for this source root')
+            run(args)
+    else:run(args)
