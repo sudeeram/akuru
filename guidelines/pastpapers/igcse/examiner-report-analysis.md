@@ -2,7 +2,7 @@
 
 Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-11-01
+Last updated: 2026-11-04
 
 ## Identify the type of evidence
 
@@ -33,3 +33,9 @@ Candidate examples can contain deliberately incorrect answers. They must be stor
 ## Useful output
 
 Propose concise advice tied to exact report evidence: what candidates missed, why marks were lost and what a complete answer requires. Preserve the distinction between a direct examiner statement and an AKURU-derived teaching suggestion. Require review before transcription or derived advice is treated as trusted learning content.
+
+## Native-PDF regression cases: Biology June 2025
+
+Recognise headings both with and without whitespace (`Question 3` and `Question3`), including Roman subpart labels outside parentheses. Preserve physical continuation pages even when a page consists entirely of a scanned candidate example and has no native text. Stop question-specific ranges before the paper summary/grade-boundary appendix. Assign commentary at subpart scope rather than attaching every example for the question to every part.
+
+The examiner's own typed prose can contain errors. Compare numerical claims with the original graph/table and scheme; retain the original report, flag the conflict and write clearly attributed derived guidance. Never copy candidate mistakes or a contradictory prose sentence into scoring criteria. Reading typed commentary and inspecting selected examples does not establish complete literal handwriting transcription.

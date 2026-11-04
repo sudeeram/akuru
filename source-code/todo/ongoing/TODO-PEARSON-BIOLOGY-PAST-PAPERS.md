@@ -134,3 +134,13 @@ Start with **Step 0: authoritative Biology catalogue and exception handling**, t
 - No paid AI calls, automatic approvals, Student releases or child-coverage changes are part of this intake. Manual crop/rubric/report/coverage acceptance remains open; do not mark the whole roadmap complete on draft ingestion alone.
 
 - Subsequent source comparison resolved the January 2020 report identity: all six discussions match 2BR. The exact three-hash exception and original cover discrepancy are retained in [the review](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-biology-january-2020-2br-report-identity.md). Final source intake therefore uses 130 exam PDFs, with the two provisional schemes remaining nonactive.
+
+## June 2025 standard source-comparison acceptance — 2026-11-04
+
+- [x] Compare 1B/2B question and scheme renders, all 22 existing question crops, typed examiner commentary and exact subpart/physical report continuation ranges; inspect selected handwritten examples without claiming a complete literal transcript.
+- [x] Correct decimal splitting, non-credit rubric preambles, gap-fill continuation text, calculation/rubric guidance and missing/nonspecific report associations through Admin APIs. Replace the clipped Q7 blood-component fragments with one complete inspected crop.
+- [x] Record and read back 16 append-only accuracy assessments for 76 subparts; preserve import-time extraction history and all approval/release/coverage decisions.
+- [x] Add generic synthetic regressions and update extraction guidelines. Backend verification: 366 passed, one skipped.
+- [ ] Admin adjudication: 1B Q4(b)(ii) paper/report three marks versus scheme four; 2B Q6(b)(i) scheme says three points versus two-mark allocation. Both remain manual-only.
+
+Result: 14/16 questions and 74/76 subparts exceed 70%. Source fidelity confidence is separate from approval and executable scoring. See [the dated audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-june-2025-biology-source-comparison.md). Other papers remain preliminary extraction drafts; the remaining roadmap/manual release gates stay open.

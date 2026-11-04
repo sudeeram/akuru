@@ -240,3 +240,33 @@ def test_closed_connection_retries_reads_but_never_blindly_repeats_writes(monkey
     with pytest.raises(http.client.RemoteDisconnected):
         client.call('documents', {'write': True})
     assert client.opener.open.call_count == 1
+
+
+def test_marking_point_split_keeps_decimal_values_and_omits_description_heading():
+    points = intake.proposed_points("A description that includes\n1. 0.683 × 100 = 68.3 (2)\n2. 67.9 or 68 (2)")
+    assert len(points) == 2
+    assert points[0]['text'] == '0.683 × 100 = 68.3 (2)'
+    assert points[1]['text'] == '67.9 or 68 (2)'
+
+
+def test_report_headings_without_space_keep_image_only_continuations_and_stop_summary():
+    import pymupdf
+    with pymupdf.open() as pdf:
+        pdf.new_page().insert_text((70, 70), 'Question3(b)ii')
+        pdf.new_page()  # candidate image with no native text
+        pdf.new_page().insert_text((70, 70), 'This example earned two marks.')
+        pdf.new_page().insert_text((70, 70), 'Question 4(a)')
+        pdf.new_page().insert_text((70, 70), 'Paper Summary')
+        sections = intake.report_sections(pdf)
+        assert sections[3][0]['pages'] == [1, 2, 3]
+        assert sections[4][0]['pages'] == [4]
+
+
+def test_gap_fill_continuation_words_after_leading_dots_are_not_answer_furniture():
+    with pymupdf.open() as pdf:
+        page=pdf.new_page()
+        page.insert_text((60,100), '.................. level.')
+        page.insert_text((60,130), '.................. or movement. Some remains.')
+        page.insert_text((60,160), '1 ..................')
+        lines=intake.line_records(pdf)
+        assert [r['text'] for r in lines] == ['.................. level.', '.................. or movement. Some remains.']

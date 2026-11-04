@@ -19,3 +19,11 @@ The imported Biology material is a draft bank for Admin review. Upload completio
 - An original-paper release needs all questions reconciled and approved. An individual self-contained question can be released to Tutor practice separately when its existing access and review gates pass.
 
 Nothing in this intake automatically approves questions, enables Student papers, changes child coverage or extends a time-limited Tutor pilot.
+
+## June 2025 pilot confidence reassessment
+
+The standard 1B and 2B drafts have a later source-comparison assessment on their **Accuracy confidence** pages. These values are separate from the original extraction estimates and do not approve or release a question. Fourteen of the sixteen questions and 74 of the 76 subparts exceed 70% confidence. A question uses its weakest subpart's score.
+
+Two source-instruction discrepancies remain for Admin attention: **1B Q4(b)(ii)** (three marks in the question/report, four in the scheme) and **2B Q6(b)(i)** (two-mark allocation but the scheme introduction says three). Their notes retain the discrepancy and automatic marking remains held. Report-derived advice also flags erroneous prose about the largest pupil-diameter decrease and water loss after watering. Consult the original data and scheme.
+
+All questions/subparts remain unreviewed and manual-only. Review the actual content and visual candidates before approval; confidence is not an approval shortcut.

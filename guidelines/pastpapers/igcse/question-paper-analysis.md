@@ -2,7 +2,7 @@
 
 Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-11-01
+Last updated: 2026-11-04
 
 ## Identity and evidence
 
@@ -64,3 +64,9 @@ Map each subpart to stable topic references. Explain the curriculum relationship
 ## Named structure captions: June 2025 1C Q8 regression
 
 Include the printed names beneath separate structures (for example, diamond and graphite), even when the PDF stores them as independent text blocks outside the vector drawing bounds. Keep each caption with its own structure and applicable subpart. Compare against the complete source page; do not infer a name from the structure or borrow a neighbouring caption. The `visual-layout-v2` native-text proposal heuristic expands nearby compact labels conservatively, but does not approve candidates, handle every scanned/rotated layout, or rewrite existing reviewed crops. Existing incomplete crops need an explicit reviewed replacement.
+
+## Gap-fill continuation and complete grouped diagrams
+
+A line beginning with dotted blanks may still contain essential text, such as the word after the blank or the remainder of a sentence. Exclude only complete answer-space lines; preserve meaningful words after leading dots. Compare the number and order of gaps against the answer list.
+
+When several labelled drawings form one comparison diagram (for example, five blood components), individual vector clusters are not necessarily independent figures. Compare every proposed crop with the full page and preserve all components/labels needed to answer the relevant part. Replace clipped fragments with a complete source crop; do not add answer identities to the accessible description.

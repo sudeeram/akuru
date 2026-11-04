@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pymupdf
 
-VERSION = 'pearson-native-layout-v1.1'
+VERSION = 'pearson-native-layout-v1.2'
 TOTAL = re.compile(r'Total for Question\s*(\d+)\s*=\s*(\d+)\s*marks', re.I)
 LABEL = re.compile(r'^\(([a-z]+)\)\s*(?:\(([ivx]+)\))?\s*', re.I)
 FURNITURE = re.compile(r'DO\s+NOT\s+WRITE|Turn over|^\*?P\d{5,}[A-Z]?\d*\*?$|Total for (?:Question|paper)|^Answer ALL questions|^Some questions must|^answer, put a line|^and then mark|^BLANK PAGE', re.I)
@@ -93,7 +93,7 @@ def line_records(pdf):
                 text=''.join(s['text'] for s in line['spans']).strip()
                 x0,y0,x1,y1=line['bbox']
                 if not text or x0<25 or x0>page.rect.width-55 or y0>page.rect.height-55:continue
-                if FURNITURE.search(text) or re.fullmatch(r'[.\s\u2026]{4,}',text) or re.match(r'^\d*\s*\.{5,}',text):continue
+                if FURNITURE.search(text) or re.fullmatch(r'[.\s\u2026]{4,}',text) or re.fullmatch(r'\d*\s*\.{5,}\s*',text):continue
                 # Source fonts sometimes encode checkbox glyphs as private-use characters.
                 # Options are kept as text; the original page retains the actual boxes.
                 records.append(dict(page=number,x=x0,y=y0,text=text,box=list(line['bbox'])))
@@ -195,21 +195,27 @@ def proposed_points(answer):
     elif re.search(r'(?m)^\s*[A-D]\s*\(',answer):
         candidates=[next(line.strip() for line in answer.splitlines() if re.match(r'^\s*[A-D]\s*\(',line))]
     else:
-        candidates=re.split(r'(?:^|\n)\s*(?:•|\d+\.)\s*',answer)
-        candidates=[text.strip() for text in candidates if text.strip() and (len(candidates)==1 or not re.match(r'^(?:An? (?:answer|explanation)|The (?:only correct answer|following)|[Rr]eference to)',text.strip()))]
+        candidates=re.split(r'(?:^|\n)\s*(?:•|\d+\.(?!\d))\s*',answer)
+        candidates=[text.strip() for text in candidates if text.strip() and (len(candidates)==1 or not re.match(r'^(?:An? (?:answer|explanation|description)|The (?:only correct answer|following)|[Rr]eference to)',text.strip()))]
     return [dict(code=f'P{i+1}',text=text,kind='other') for i,text in enumerate(candidates) if text and len(text)<=2000][:200]
 
 
 def report_sections(pdf):
-    records=line_records(pdf);starts=[]
-    for i,r in enumerate(records):
-        m=re.match(r'^Question\s+(\d+)\b',r['text'],re.I)
-        if m:starts.append((i,int(m[1])))
+    # A report may omit whitespace after Question and place entire candidate
+    # examples on image-only continuation pages. Keep physical page ranges.
+    starts=[];stop=len(pdf)+1
+    for page_number,page in enumerate(pdf,1):
+        for line in page.get_text().splitlines():
+            text=line.strip()
+            if re.fullmatch(r'Paper Summary',text,re.I):stop=min(stop,page_number)
+            match=re.fullmatch(r'Question\s*(\d+)\s*(?:\([a-z]\))?\s*(?:\(?[ivx]+\)?)?',text,re.I)
+            if match:starts.append((page_number,int(match[1])))
     out=defaultdict(list)
-    for n,(start,q) in enumerate(starts):
-        end=starts[n+1][0] if n+1<len(starts) else len(records)
-        region=records[start:end]
-        out[q].append(dict(text=clean_text(region),pages=sorted({r['page'] for r in region})))
+    for index,(start,question) in enumerate(starts):
+        end=starts[index+1][0] if index+1<len(starts) else stop
+        pages=list(range(start,end))
+        if pages:
+            out[question].append(dict(text='\n'.join(pdf[n-1].get_text() for n in pages),pages=pages))
     return out
 
 

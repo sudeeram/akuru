@@ -2,7 +2,7 @@
 
 Standard: `akuru-igcse-pastpapers` 1.3.0
 
-Last updated: 2026-11-01
+Last updated: 2026-11-04
 
 ## Match and read the source
 
@@ -70,3 +70,12 @@ If a scheme is missing or a necessary instruction/diagram is unreadable, retain 
 ## AI-generated worked examples when the scheme has no plot
 
 First inspect the original scheme page: a missing AKURU visual association does not mean the official answer is missing. Prefer an official reference diagram where present. When the scheme supplies plotting instructions without a worked graph, a generated example may be prepared from verified source values and rendered by trusted plotting code. Keep it private until reviewed, visibly label it **AI-generated worked answer — not an official Pearson answer**, and record source/generator versions separately from official evidence. It must not replace the blank question grid, redefine tolerances or follow-through, or enable automatic drawing assessment. Q7(c)(i–iii), June 2025 1C, is the pilot; Q9's scheme page 13 already contains official diagrams.
+
+## Native-PDF regression cases: Biology June 2025
+
+- A numbered-point delimiter must not split decimal values such as `0.683`, `67.9` or `40.82`. Detect list markers separately from numeric answer content.
+- Introductory phrases such as “A description that includes” are instructions, not creditworthy marking points. Keep them outside the point list.
+- Preserve calculation answer credit, method credit and rounding/tolerance instructions together when executable rules cannot express them; retain manual-only scoring.
+- Do not silently resolve disagreements between a question's allocation and a scheme's instruction/mark column. Record all source locations and the discrepancy. An examiner report can inform review but must not silently rewrite the scheme.
+
+See [the June 2025 Biology source comparison](reviews/2026-11-04-june-2025-biology-source-comparison.md).
