@@ -50,6 +50,6 @@ The supplied 1B report contains a typesetting-draft notice. This is recorded as 
 
 Native-layout extractor `pearson-native-layout-v1.2` now retains meaningful words after leading dotted gaps, protects decimal values from numbered-list splitting, omits description preambles from marking points, and preserves no-space report headings/image-only physical continuations. Synthetic tests exercise each failure. This does not automatically re-extract or overwrite the other 42 Biology papers.
 
-Validation: 31 focused intake tests passed; complete backend suite 366 passed, one skipped (existing dependency deprecation warnings). No frontend files or schema migrations are part of this change.
+Validation: 32 focused intake tests passed; complete backend suite 367 passed, one skipped (existing dependency deprecation warnings). No frontend files or schema migrations are part of this change.
 
 Production acceptance: all six source hashes, 16 current accuracy records and 76 subpart assessments were verified through authenticated APIs. Confidence writes preserved content/revisions/approvals. The replacement crop bytes match the inspected local render. Existing Chemistry 1C retains all ten approvals. No Student release was enabled.

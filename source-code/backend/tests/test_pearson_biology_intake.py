@@ -270,3 +270,14 @@ def test_gap_fill_continuation_words_after_leading_dots_are_not_answer_furniture
         page.insert_text((60,160), '1 ..................')
         lines=intake.line_records(pdf)
         assert [r['text'] for r in lines] == ['.................. level.', '.................. or movement. Some remains.']
+
+
+def test_report_two_question_headings_on_one_page_keep_both_associations():
+    import pymupdf
+    with pymupdf.open() as pdf:
+        page=pdf.new_page()
+        page.insert_text((70,70), 'Question 1(a)')
+        page.insert_text((70,150), 'Question 2(b)ii')
+        sections=intake.report_sections(pdf)
+        assert sections[1][0]['pages'] == [1]
+        assert sections[2][0]['pages'] == [1]

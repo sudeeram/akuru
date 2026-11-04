@@ -212,7 +212,7 @@ def report_sections(pdf):
             if match:starts.append((page_number,int(match[1])))
     out=defaultdict(list)
     for index,(start,question) in enumerate(starts):
-        end=starts[index+1][0] if index+1<len(starts) else stop
+        end=max(start+1,starts[index+1][0]) if index+1<len(starts) else max(start+1,stop)
         pages=list(range(start,end))
         if pages:
             out[question].append(dict(text='\n'.join(pdf[n-1].get_text() for n in pages),pages=pages))
