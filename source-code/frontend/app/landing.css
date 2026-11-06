@@ -44,6 +44,7 @@
   letter-spacing: -1.2px;
 }
 .al-logo img {
+  flex-shrink: 0;
   object-fit: contain;
 }
 .al-logo-dot {

@@ -57,10 +57,10 @@ export function LandingPage() {
         <Link to="/" className="al-logo" aria-label="AKURU home">
           <Image
             unoptimized
-            src="/favicon-friendly-bot.png"
+            src="/akuru-bots/akuru-bot-wink.png"
             alt=""
-            width="40"
-            height="40"
+            width="52"
+            height="52"
           />
           <span>
             AKURU<span className="al-logo-dot">.</span>
@@ -365,10 +365,10 @@ export function LandingPage() {
         <Link to="/" className="al-logo">
           <Image
             unoptimized
-            src="/favicon-friendly-bot.png"
+            src="/akuru-bots/akuru-bot-wink.png"
             alt=""
-            width="32"
-            height="32"
+            width="44"
+            height="44"
           />
           <span>
             AKURU<span className="al-logo-dot">.</span>
