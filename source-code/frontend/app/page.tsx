@@ -68,6 +68,7 @@ import {
   PublicLayout,
   StudentLayout,
 } from '@/components/portal-layouts';
+import { LandingPage } from '@/features/landing-page';
 import { createAkuruRouter } from '@/lib/app-router';
 import { clearPrivateQueryState, queryClient } from '@/lib/query-client';
 import { queryKeys } from '@/lib/query-keys';
@@ -130,7 +131,7 @@ const adminNav = [
   ['profile', 'My profile', Users],
   ['security', 'Account security', KeyRound],
 ] as const;
-const router = createAkuruRouter(Portal);
+const router = createAkuruRouter(Portal, LandingPage);
 
 export default function AkuruApplication() {
   const browserReady = useSyncExternalStore(

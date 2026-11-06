@@ -17,13 +17,18 @@ import {
 
 type PortalComponent = ComponentType;
 
-export function createAkuruRouter(Portal: PortalComponent) {
+export function createAkuruRouter(
+  Portal: PortalComponent,
+  LandingPage: ComponentType = Portal,
+) {
   const rootRoute = createRootRoute({
     component: function RouteRoot() {
       const pathname = useRouterState({
         select: (state) => state.location.pathname,
       });
-      return isApplicationPath(pathname) ? (
+      return pathname === '/' ? (
+        <LandingPage />
+      ) : isApplicationPath(pathname) ? (
         <Portal />
       ) : (
         <main className="main-content">
