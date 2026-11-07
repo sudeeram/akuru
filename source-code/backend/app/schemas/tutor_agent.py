@@ -14,7 +14,7 @@ TeachingMode = Literal[
 
 class TutorAgentTurnRequest(BaseModel):
     message: str = Field(min_length=1, max_length=8000)
-    teachingMode: TeachingMode = "explanation"
+    teachingMode: TeachingMode | Literal["auto"] = "auto"
     requestKey: str = Field(min_length=8, max_length=100)
 
 

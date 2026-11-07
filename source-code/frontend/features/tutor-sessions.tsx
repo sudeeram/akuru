@@ -91,8 +91,6 @@ export function TutorSessions({
   const [message, setMessage] = useState(''),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false);
-  const [teachingMode, setTeachingMode] =
-    useState<TutorAgentReply['teachingMode']>('explanation');
   const [pendingMessage, setPendingMessage] = useState('');
   const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
   const [pastPaper, setPastPaper] = useState<PastPaperChatState | null>(null);
@@ -107,6 +105,32 @@ export function TutorSessions({
   const textInput = useRef<HTMLInputElement | null>(null);
   const latestTurnElement = useRef<HTMLElement | null>(null);
   const pendingTurnElement = useRef<HTMLDivElement | null>(null);
+  const [toolAvailability, setToolAvailability] = useState({
+    guidedPractice: false,
+    voice: false,
+    recommendations: false,
+  });
+  useEffect(() => {
+    let cancelled = false;
+    setToolAvailability({
+      guidedPractice: false,
+      voice: false,
+      recommendations: false,
+    });
+    if (session?.status === 'active')
+      void request<typeof toolAvailability>(
+        `tutoring/sessions/${session.sessionRef}/tools`,
+      )
+        .then((value) => {
+          if (!cancelled) setToolAvailability(value);
+        })
+        .catch(() => {
+          /* Fail closed; ordinary text chat remains usable. */
+        });
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.sessionRef, session?.activeTopic.topicRef, session?.status]);
   const latestTurnRef = session?.turns.at(-1)?.turnRef;
   useEffect(() => {
     if (!latestTurnRef) return;
@@ -309,7 +333,9 @@ export function TutorSessions({
                       checked={chatScope === scope}
                       onChange={() => setChatScope(scope)}
                     />
-                    <span>{scope === 'topic' ? 'Topic chat' : 'Subject chat'}</span>
+                    <span>
+                      {scope === 'topic' ? 'Topic chat' : 'Subject chat'}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -501,34 +527,32 @@ export function TutorSessions({
               ))}
             </select>
           </label>
-          <label>
-            <span>
-              {session.chatScope === 'subject'
-                ? 'Practice / voice focus (chat stays subject-wide)'
-                : 'Move topic'}
-            </span>
-            <select
-              value={session.activeTopic.topicRef}
-              disabled={busy}
-              onChange={(event) =>
-                void act(
-                  () =>
-                    switchTutorTopic(
-                      session.sessionRef,
-                      event.target.value,
-                      key(),
-                    ),
-                  'Active topic changed.',
-                )
-              }
-            >
-              {topics.map((item) => (
-                <option key={item.topicRef} value={item.topicRef}>
-                  {item.groupCode} · {item.code} · {item.title}
-                </option>
-              ))}
-            </select>
-          </label>
+          {session.chatScope !== 'subject' && (
+            <label>
+              <span>Move topic</span>
+              <select
+                value={session.activeTopic.topicRef}
+                disabled={busy}
+                onChange={(event) =>
+                  void act(
+                    () =>
+                      switchTutorTopic(
+                        session.sessionRef,
+                        event.target.value,
+                        key(),
+                      ),
+                    'Active topic changed.',
+                  )
+                }
+              >
+                {topics.map((item) => (
+                  <option key={item.topicRef} value={item.topicRef}>
+                    {item.groupCode} · {item.code} · {item.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </section>
       <section
@@ -751,26 +775,10 @@ export function TutorSessions({
           />
         )}
         <div className="tutor-chat-compose-area">
-          <label className="tutor-mode">
-            <span>Teaching approach</span>
-            <select
-              value={teachingMode}
-              disabled={busy}
-              onChange={(event) =>
-                setTeachingMode(
-                  event.target.value as TutorAgentReply['teachingMode'],
-                )
-              }
-            >
-              <option value="explanation">Explanation</option>
-              <option value="questions">Questions</option>
-              <option value="guided_practice">Guided practice</option>
-              <option value="socratic_practice">Socratic practice</option>
-              <option value="revision">Revision</option>
-              <option value="exam_technique">Exam technique</option>
-              <option value="french_conversation">French conversation</option>
-            </select>
-          </label>
+          <small>
+            Ask naturally: “Explain this”, “Quiz me”, or “Help me revise”. AKURU
+            adapts the approach to your request.
+          </small>
           <form
             className="tutor-composer tutor-chat-composer"
             onSubmit={async (event) => {
@@ -784,7 +792,7 @@ export function TutorSessions({
                 const reply = await addTutorAgentTurn(
                   session.sessionRef,
                   content,
-                  teachingMode,
+                  'auto',
                   key(),
                 );
                 setAgentReply(reply);
@@ -838,13 +846,51 @@ export function TutorSessions({
       {options.pilotMode && (
         <output className="panel">
           Text tutoring pilot: explanations, revision and approved textbook
-          figures are available. Voice, next-topic recommendations and general
-          guided practice are not enabled in this text pilot. Separately
-          released past-paper chat may be available for your account.
+          figures are available. Other tools appear only when released and usable
+          for your account. Ask “How can you help me?” to see your available
+          learning activities.
         </output>
       )}
       <AdvancedPanel title="Sources, guided practice and session tools">
-        {' '}
+        {session.chatScope === 'subject' &&
+          (toolAvailability.guidedPractice || toolAvailability.voice) && (
+            <section className="panel stack">
+              <label>
+                <span>
+                  {toolAvailability.guidedPractice && toolAvailability.voice
+                    ? 'Topic for practice and voice'
+                    : toolAvailability.voice
+                      ? 'Topic for voice'
+                      : 'Topic for guided practice'}
+                </span>
+                <select
+                  value={session.activeTopic.topicRef}
+                  disabled={busy}
+                  onChange={(event) =>
+                    void act(
+                      () =>
+                        switchTutorTopic(
+                          session.sessionRef,
+                          event.target.value,
+                          key(),
+                        ),
+                      'Tool focus changed. Your text chat remains subject-wide.',
+                    )
+                  }
+                >
+                  {topics.map((item) => (
+                    <option key={item.topicRef} value={item.topicRef}>
+                      {item.groupCode} · {item.code} · {item.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <small>
+                This selects the topic for these tools only. Your text
+                conversation stays subject-wide.
+              </small>
+            </section>
+          )}{' '}
         <section className="panel stack tutor-next-topic">
           <div className="panel-heading">
             <div>
@@ -855,7 +901,7 @@ export function TutorSessions({
             </div>
             <Button
               variant="outline"
-              disabled={busy || options.pilotMode}
+              disabled={busy || !toolAvailability.recommendations}
               onClick={async () => {
                 setBusy(true);
                 setError('');
@@ -1052,7 +1098,7 @@ export function TutorSessions({
             {!practice || practice.status === 'submitted' ? (
               <Button
                 className="primary"
-                disabled={busy || options.pilotMode}
+                disabled={busy || !toolAvailability.guidedPractice}
                 onClick={async () => {
                   setBusy(true);
                   setError('');
@@ -1274,20 +1320,22 @@ export function TutorSessions({
             </p>
           )}
         </section>
-        <TutorVoice
-          sessionRef={session.sessionRef}
-          subjectId={session.subjectId}
-          profileIdentity={`${session.currentTutor.profileRef}:${session.currentTutor.version}`}
-          disabled={
-            options.pilotMode ||
-            !quota ||
-            !quota.enabled ||
-            quota.voiceMinutes.remaining <= 0
-          }
-          notify={notify}
-          onTranscript={refreshVoiceTranscript}
-          focusText={() => textInput.current?.focus()}
-        />
+        {toolAvailability.voice && (
+          <TutorVoice
+            sessionRef={session.sessionRef}
+            subjectId={session.subjectId}
+            profileIdentity={`${session.currentTutor.profileRef}:${session.currentTutor.version}`}
+            disabled={
+              options.pilotMode ||
+              !quota ||
+              !quota.enabled ||
+              quota.voiceMinutes.remaining <= 0
+            }
+            notify={notify}
+            onTranscript={refreshVoiceTranscript}
+            focusText={() => textInput.current?.focus()}
+          />
+        )}
       </AdvancedPanel>
     </div>
   );
@@ -1324,6 +1372,14 @@ function TutorVisualAid({
   visual: TutorAgentReply['visuals'][number];
 }) {
   const official = visual.visualType === 'official_source';
+  // Only protected, reauthorised stored-asset endpoints can become chat images.
+  if (
+    visual.contentUrl &&
+    !/^\/api\/v1\/tutoring\/sessions\/[a-zA-Z0-9_-]+\/(?:approved-visuals|media)\/[a-f0-9-]+$/.test(
+      visual.contentUrl,
+    )
+  )
+    return null;
   return (
     <article
       className={`tutor-visual tutor-visual-${visual.visualType}`}

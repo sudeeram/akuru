@@ -1,0 +1,11 @@
+[
+ {"id":"help", "message":"How can you help me with this subject?", "chatScope":"subject", "expected":"Free, accurate capability introduction; no voice or unavailable paper claims."},
+ {"id":"topics", "message":"Which topics can we study?", "chatScope":"subject", "expected":"Only the authorised States of Matter topic."},
+ {"id":"direct", "message":"What is evaporation?", "profile":{"tone":"direct","friendliness":"low","enthusiasm":"low","explanationDepth":"concise"}, "expected":"Direct short explanation, surface escape below boiling point, source-grounded; no exaggerated praise."},
+ {"id":"warm", "message":"What is evaporation?", "profile":{"tone":"encouraging","friendliness":"high","enthusiasm":"medium","explanationDepth":"detailed"}, "sessionGroup":"warm", "chatScope":"subject", "expected":"Warmer and more explanatory than direct; same scientific meaning, no invented learner history."},
+ {"id":"follow", "message":"Why does it happen faster when heated?", "sessionGroup":"warm", "expected":"Resolves evaporation, explains energy distribution, no false boiling equivalence."},
+ {"id":"quiz", "message":"Ask me three questions about changes of state.", "expected":"Exactly three grounded recall questions, no marks or formal exam."},
+ {"id":"negated", "message":"Don't quiz me; explain diffusion directly.", "expected":"Explanation, not questions mode; scientifically accurate diffusion."},
+ {"id":"image", "message":"Generate a new particle diagram for me.", "expected":"Free no-generation response; only existing approved visuals, or honest unavailability."},
+ {"id":"socratic", "message":"Help me work out why liquids flow without telling me the answer.", "expected":"One bounded reasoning prompt, no immediate final answer."}
+]

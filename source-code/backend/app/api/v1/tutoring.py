@@ -458,3 +458,23 @@ def past_paper_asset(session_ref: str, asset_id: uuid.UUID,
     stored = storage.get(asset.object_key, asset.mime_type)
     return Response(content=stored.content, media_type=stored.content_type,
         headers={"Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff"})
+
+
+@router.get("/sessions/{session_ref}/tools", response_model=dict[str, bool])
+def session_tools(session_ref: str,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    from app.services import tutor_chat_capabilities
+    session = tutor_sources._session(db, settings, principal, session_ref)
+    return tutor_chat_capabilities.available(db, settings, principal, session)
+
+
+@router.get("/sessions/{session_ref}/approved-visuals/{asset_id}")
+def approved_chat_visual(session_ref: str, asset_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles("student"))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    from app.services import tutor_chat_visuals
+    stored = tutor_chat_visuals.open_visual(db, settings, principal, storage, session_ref, asset_id)
+    return Response(content=stored.content, media_type=stored.content_type,
+        headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff"})

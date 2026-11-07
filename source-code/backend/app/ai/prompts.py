@@ -37,7 +37,7 @@ TUTOR_PROMPTS = {
 }
 
 # Citation grounding clarification; release gates bind to this new prompt version.
-TUTOR_PROMPTS = {mode: PromptDefinition(p.name, "1.1.0", p.purpose, p.instructions)
+TUTOR_PROMPTS = {mode: PromptDefinition(p.name, "1.2.0", p.purpose, p.instructions)
                  for mode, p in TUTOR_PROMPTS.items()}
 
 PROMPTS = {
@@ -80,7 +80,7 @@ def get_tutor_prompt(mode: str) -> PromptDefinition:
         raise ValueError(f"Unsupported tutor mode: {mode}") from exc
 
 
-SUPPLEMENTARY_TUTOR_VERSION = "2.1.0"
+SUPPLEMENTARY_TUTOR_VERSION = "2.2.0"
 
 
 def get_teaching_prompt(mode):

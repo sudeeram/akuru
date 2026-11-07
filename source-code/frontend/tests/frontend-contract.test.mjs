@@ -589,9 +589,9 @@ test('structured text tutor supports teaching modes, evidence and recoverable ke
   assert.match(api, /addTutorAgentTurn/);
   assert.match(api, /agent-turns/);
   assert.match(api, /TutorAgentReply/);
-  assert.match(tutorSessions, /Teaching approach/);
-  assert.match(tutorSessions, /Socratic practice/);
-  assert.match(tutorSessions, /French conversation/);
+  assert.doesNotMatch(tutorSessions, /<span>Teaching approach<\/span>/);
+  assert.match(tutorSessions, /AKURU adapts the approach/);
+  assert.match(tutorSessions, /['"]auto['"]/);
   assert.match(tutorSessions, /<TutorTextbookEvidence/);
   assert.match(tutorSessions, /followUpChoices/);
   assert.match(tutorSessions, /setMessage\(''\)/);

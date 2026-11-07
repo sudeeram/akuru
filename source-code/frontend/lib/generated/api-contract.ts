@@ -267,7 +267,7 @@ export interface Schemas {
   "TopicVisualAssetResponse": { "assetRef": string; "documentId": string; "documentVersionId": string; "documentAssetId": string; "filename": string; "sourceRole": string; "kind": string; "page": number; "printedPage"?: string | null; "boundingBox": { [key: string]: unknown; }; "extractedCaption": string; "status": "unselected" | "selected" | "approved" | "rejected"; "caption": string; "altText": string; "contentUrl": string; };
   "TopicVisualAssetUpdateRequest": { "status": "selected" | "approved" | "rejected"; "caption"?: string; "altText"?: string; };
   "TutorAdminPresetsResponse": { "avatars": Array<Schemas["TutorAvatarResponse"]>; "voices": Array<Schemas["TutorVoiceResponse"]>; };
-  "TutorAgentTurnRequest": { "message": string; "teachingMode"?: "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "requestKey": string; };
+  "TutorAgentTurnRequest": { "message": string; "teachingMode"?: "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation" | "auto"; "requestKey": string; };
   "TutorAgentTurnResponse": { "topicMatches"?: Array<Schemas["TutorTopicMatch"]>; "answerBasis"?: "grounded" | "supplementary" | "mixed" | "clarification" | "outside_scope" | "uncertain" | null; "teachingSections"?: Array<Schemas["TutorTeachingSection"]>; "retrievalProvenance"?: { [key: string]: unknown; }; "pastPaper"?: Schemas["PastPaperChatState"] | null; "operationRef": string; "turnRef": string; "content": string; "teachingMode": "explanation" | "questions" | "guided_practice" | "socratic_practice" | "revision" | "exam_technique" | "french_conversation"; "citations"?: Array<Schemas["TutorCitation"]>; "followUpChoices"?: Array<string>; "toolResults"?: Array<Schemas["TutorToolResult"]>; "visuals"?: Array<Schemas["TutorVisual"]>; "proposedSignals"?: Array<Schemas["TutorSignalProposal"]>; "provider": string; "model": string; "promptName": string; "promptVersion": string; };
   "TutorAvatarResponse": { "code": string; "name": string; "description": string; "imagePath": string; "presentation": "masculine" | "feminine" | "neutral"; "enabled"?: boolean | null; "sortOrder"?: number | null; };
   "TutorCapabilitiesResponse": { "textEnabled": boolean; "voiceEnabled": boolean; "toolsEnabled": boolean; "blockedReason"?: string | null; };
@@ -527,6 +527,7 @@ export interface ApiOperations {
   "POST /api/v1/tutoring/sessions": { request: Schemas["TutorSessionStartRequest"]; response: Schemas["TutorSessionResponse"] };
   "GET /api/v1/tutoring/sessions/{session_ref}": { request: unknown; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/agent-turns": { request: Schemas["TutorAgentTurnRequest"]; response: Schemas["TutorAgentTurnResponse"] };
+  "GET /api/v1/tutoring/sessions/{session_ref}/approved-visuals/{asset_id}": { request: unknown; response: unknown };
   "POST /api/v1/tutoring/sessions/{session_ref}/end": { request: Schemas["TutorEndSessionRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/learner-context": { request: Schemas["LearnerContextRequest"]; response: Schemas["LearnerContextResponse"] };
   "GET /api/v1/tutoring/sessions/{session_ref}/media/{media_id}": { request: unknown; response: unknown };
@@ -545,6 +546,7 @@ export interface ApiOperations {
   "GET /api/v1/tutoring/sessions/{session_ref}/sources/{citation_ref}/context": { request: unknown; response: Schemas["TutorCitationContextResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-profile": { request: Schemas["TutorSwitchProfileRequest"]; response: Schemas["TutorSessionResponse"] };
   "POST /api/v1/tutoring/sessions/{session_ref}/switch-topic": { request: Schemas["TutorSwitchTopicRequest"]; response: Schemas["TutorSessionResponse"] };
+  "GET /api/v1/tutoring/sessions/{session_ref}/tools": { request: unknown; response: { [key: string]: boolean; } };
   "POST /api/v1/tutoring/sessions/{session_ref}/turns": { request: Schemas["TutorTurnCreateRequest"]; response: Schemas["TutorSessionResponse"] };
   "GET /api/v1/tutoring/signals": { request: unknown; response: Schemas["TutorSignalListResponse"] };
   "GET /api/v1/tutoring/students/{student_id}/profiles": { request: unknown; response: Schemas["TutorProfileListResponse"] };

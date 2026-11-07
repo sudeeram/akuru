@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-07",
+  "purpose": "Tutor text personalisation, capability help, automatic teaching intent and approved visual selection",
+  "baselinePromptVersion": "1.2.0",
+  "supplementaryPromptVersion": "2.2.0",
+  "deterministicTestsPassed": true,
+  "audiencePolicy": "Preserve existing pilot students, topic/content grants, model, expiry and security gates",
+  "validation": {
+    "backendPassed": 406,
+    "backendSkipped": 1,
+    "frontendPassed": 120,
+    "typecheck": "passed",
+    "lint": "passed",
+    "frontendBuild": "passed",
+    "routinePaidCalls": 0
+  },
+  "liveEvaluation": {
+    "model": "gpt-6.1-sol",
+    "budgetUSD": 0.75,
+    "estimatedUSD": 0.15747,
+    "conservativeBoundUSD": 0.224802,
+    "paidCalls": 14,
+    "casesCompleted": 23,
+    "disposableSchemasRemoved": true,
+    "sourceChecks": "All returned citation references authorised, printed labels present, displayed assets accessible",
+    "findings": [
+      "Contrasting direct/concise and encouraging/detailed profiles retained evaporation science with visibly different presentation.",
+      "Help, available-topic and image-generation boundary replies made no provider call.",
+      "Requested three-question quiz and negated quiz routed correctly; Socratic support did not disclose the answer.",
+      "Broad word collisions initially selected unhelpful figures. Concept filtering and cell-structure ranking corrected this; refined Biology rerun selected Figures 1.2 and 1.3 instead of division/kidney figures.",
+      "A show-where follow-up suppressed previously shown figures. Explicit show/locate repeat handling was corrected and regression tested after the live rerun. Ambiguous nucleus/DNA references may legitimately ask for clarification."
+    ],
+    "limitations": [
+      "Small qualitative sample, not a general accuracy measurement or guarantee of perfect tone.",
+      "Not every sample topic has an approved visual in the evaluated package; no-match is safer than an unrelated figure.",
+      "Production normal-Student acceptance is recorded in the completion documents after deployment."
+    ]
+  },
+  "coverage": [
+    "Allowlisted property compilation and injection boundaries; soft budgets without clipping or paid style repair",
+    "Automatic intent and negation; French restricted by authorised subject",
+    "Both session scopes, retained profile versions, conversational retrieval, replay and formal-assessment restrictions",
+    "Authoritative per-session tool capabilities; text-only Subject header without tool focus",
+    "Approved published crop manifest integrity and reauthorisation on opening; withdrawal fails closed",
+    "Reject generated/remote/embedded visual substitutes while preserving scientific notation",
+    "Specialised past-paper dispatch and existing assessment/source/privacy regressions",
+    "Desktop and mobile synthetic Subject chat layout; no teaching-approach dropdown"
+  ]
+}

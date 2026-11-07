@@ -221,7 +221,7 @@ export const getTutorCitationContext = (
 export const addTutorAgentTurn = (
   sessionRef: string,
   message: string,
-  teachingMode: TutorAgentReply['teachingMode'],
+  teachingMode: TutorAgentReply['teachingMode'] | 'auto',
   requestKey: string,
 ) =>
   request<TutorAgentReply>(`tutoring/sessions/${sessionRef}/agent-turns`, {

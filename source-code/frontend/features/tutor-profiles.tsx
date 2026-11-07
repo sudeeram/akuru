@@ -44,7 +44,7 @@ const initialDraft: TutorProfileDraft = {
 };
 
 const title = (value: string) =>
-  value
+  (({ childlike: 'Playful', authoritative: 'Structured' })[value] || value)
     .replaceAll('_', ' ')
     .replace(/^./, (character) => character.toUpperCase());
 
@@ -127,7 +127,7 @@ function ProfileCard({
         </div>
         <p>
           <strong>Voice:</strong> {voice?.name || profile.voiceCode} ·{' '}
-          <strong>Speed:</strong> {title(profile.speed)} ·{' '}
+          <strong>Voice speed:</strong> {title(profile.speed)} ·{' '}
           <strong>Detail:</strong> {title(profile.explanationDepth)}
         </p>
         {actions && <div className="button-row">{actions}</div>}
@@ -469,7 +469,7 @@ export function TutorProfiles({
                     }
                   />
                   <Choice
-                    label="Speed"
+                    label="Voice speed"
                     value={draft.speed}
                     values={options.levels}
                     change={(value) =>
@@ -477,6 +477,11 @@ export function TutorProfiles({
                     }
                   />
                 </div>
+                <small>
+                  Voice speed affects speech only. Playful character means
+                  accessible presentation; playful tone adds occasional relevant
+                  analogies. Neither changes the science.
+                </small>
                 <div className="two-cols">
                   <Choice
                     label="Explanation detail"
@@ -501,6 +506,27 @@ export function TutorProfiles({
                     }
                   />
                 </div>
+                <section
+                  className="card stack"
+                  aria-label="Illustrative tutor preview"
+                >
+                  <strong>Illustrative preview - no AI request</strong>
+                  <p>
+                    {draft.tone === 'direct' &&
+                    draft.explanationDepth === 'concise'
+                      ? 'Mitochondria are the site of aerobic respiration, which releases energy for cell activities.'
+                      : draft.explanationDepth === 'detailed'
+                        ? 'Let us connect cell structure to function. Mitochondria are the site of aerobic respiration, which releases energy for cell activities. Muscle cells need energy for contraction, so they contain many mitochondria.'
+                        : 'Mitochondria are the site of aerobic respiration. This releases energy that cells use for activities such as muscle contraction.'}
+                  </p>
+                  <small>
+                    Concise gives the essentials; Standard adds key reasoning;
+                    Detailed adds steps and examples. Guided breaks work into
+                    stages; Socratic encourages reasoning; Example led
+                    illustrates; Exam focused connects to approved exam
+                    guidance. Your request takes priority.
+                  </small>
+                </section>
                 <div className="button-row">
                   <Button type="submit" className="primary" disabled={busy}>
                     <Save size={16} />

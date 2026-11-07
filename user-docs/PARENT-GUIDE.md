@@ -85,3 +85,7 @@ Open Tutors to see the tutor profiles created by each linked child. Tutor choice
 ## Tutor Observations
 
 Each child's learning summary can show recent Tutor observations. These are clearly labelled non-authoritative and include a confidence level and supporting-evidence count. Use them as conversation prompts rather than assessment results. Tutor observations cannot change mastery scores, next-unit recommendations or study plans. Published guided-practice marks still come from the AKURU assessment workflow; feedback awaiting review is not shown to the Tutor as authoritative feedback.
+
+### Tutor presentation preferences
+
+Generated explanations use the selected tutor version's tone, friendliness, enthusiasm, explanation depth and teaching style. Communication character appears as Playful, Balanced or Structured; Voice speed affects speech only. A student's explicit permitted request takes priority over style preferences. These preferences do not change approved questions, marking guidance, safety or the child's performance records. Static previews are illustrations, not guarantees of identical wording.

@@ -111,6 +111,8 @@ def main():
     for option in ['package','decisions','cases','credentials','output','ledger']:parser.add_argument('--'+option,type=Path,required=True)
     parser.add_argument('--budget-usd',type=float,default=2)
     parser.add_argument('--live',action='store_true')
+    parser.add_argument('--subject',choices=['chemistry','biology'],default='chemistry')
+    parser.add_argument('--topic-title',default='States of Matter')
     parser.add_argument('--supplementary',action='store_true',help='Evaluate the separately gated supplementary teaching prompt.')
     args=parser.parse_args()
     if not 0<args.budget_usd<=2:raise SystemExit('This reviewed pilot allows at most US$2.')
@@ -177,11 +179,11 @@ def main():
         student=m.User(username='eval-student',display_name='Synthetic learner',role='student',password_hash=hash_password(uuid.uuid4().hex),must_change_password=False)
         db.add_all([admin,parent,student]);db.flush()
         db.add(m.StudentProfile(student_id=student.id,parent_id=parent.id));db.flush()
-        db.add_all([m.StudentSubject(student_id=student.id,subject_id='chemistry'),m.StudentProgression(student_id=student.id,course_id='igcse',grade=10,term=1,is_current=True)])
+        db.add_all([m.StudentSubject(student_id=student.id,subject_id=args.subject),m.StudentProgression(student_id=student.id,course_id='igcse',grade=10,term=1,is_current=True)])
         db.commit();ap=Principal(user=admin,session=None);sp=Principal(user=student,session=None)
-        book=books.create_textbook(db,ap,TextbookCreateRequest(courseId='igcse',subjectId='chemistry',title='Topic 1 local teaching evaluation',edition='source edition unverified — evaluation only',publisher='owner-supplied screenshots',groupLabel='unit'))
-        book=books.save_group(db,ap,book.textbookRef,GroupSaveRequest(code='1',title='Principles of Chemistry',summary='',sequence=1))
-        book=books.save_topic(db,ap,book.textbookRef,book.groups[0].groupRef,TopicSaveRequest(code='1',title='States of Matter',sequence=1))
+        book=books.create_textbook(db,ap,TextbookCreateRequest(courseId='igcse',subjectId=args.subject,title=args.subject.title()+' local teaching evaluation',edition='source edition unverified — evaluation only',publisher='owner-supplied screenshots',groupLabel='unit'))
+        book=books.save_group(db,ap,book.textbookRef,GroupSaveRequest(code='1',title='Evaluation Unit 1',summary='',sequence=1))
+        book=books.save_topic(db,ap,book.textbookRef,book.groups[0].groupRef,TopicSaveRequest(code='1',title=args.topic_title,sequence=1))
         topic_ref=book.groups[0].topics[0].topicRef
         with tempfile.TemporaryDirectory(prefix='akuru-tutor-evaluation-') as directory:
             storage=LocalObjectStorage(Path(directory))
@@ -196,7 +198,7 @@ def main():
             books.publish_structure(db,ap,book.textbookRef,PublishStructureRequest(confirmCourse=True,confirmSubject=True,confirmEdition=True,confirmStructure=True))
             books.publish_topic_content(db,ap,book.textbookRef,topic_ref,PublishTopicContentRequest(confirmSources=True,confirmExtraction=True,confirmTopic=True))
             topic=db.scalar(select(m.TextbookTopic).where(m.TextbookTopic.public_ref==topic_ref))
-            plan=m.CurriculumPlan(course_id='igcse',subject_id='chemistry',textbook_id=topic.textbook_id,version_number=1,status='published',created_by=admin.id,published_by=admin.id,published_at=datetime.now(timezone.utc))
+            plan=m.CurriculumPlan(course_id='igcse',subject_id=args.subject,textbook_id=topic.textbook_id,version_number=1,status='published',created_by=admin.id,published_by=admin.id,published_at=datetime.now(timezone.utc))
             db.add(plan);db.flush();db.add(m.CurriculumPlanTopic(plan_id=plan.id,grade=10,term=1,topic_id=topic.id));db.commit()
             profile=tutor_profiles.create(db,sp,TutorProfileInput(name='Evaluation Tutor',presentation='neutral',avatarCode='akuru-spark',voiceCode='bright-companion',tone='encouraging',explanationDepth='standard'))
             provider=OpenAIProvider(api_key=key,model=model,timeout_seconds=60,max_retries=0,max_concurrency=1,max_pages=8,max_input_characters=24000,max_image_bytes=1024,max_output_tokens=4000,client=budget)
@@ -206,16 +208,26 @@ def main():
                 if group not in sessions:
                     if active_session:
                         tutor_sessions.end(db,settings,sp,active_session,TutorEndSessionRequest(requestKey='eval-end-'+uuid.uuid4().hex))
-                    sessions[group]=tutor_sessions.start(db,settings,sp,TutorSessionStartRequest(subjectId='chemistry',topicRef=topic_ref,profileRef=profile.profileRef,requestKey='eval-session-'+uuid.uuid4().hex)).sessionRef
+                    if case.get('profile'):
+                        selected_profile=tutor_profiles.create(db,sp,TutorProfileInput(**({**dict(name='Evaluation Tutor',presentation='neutral',avatarCode='akuru-spark',voiceCode='bright-companion'),**case['profile']})))
+                    else:selected_profile=profile
+                    sessions[group]=tutor_sessions.start(db,settings,sp,TutorSessionStartRequest(subjectId=args.subject,topicRef=topic_ref,chatScope=case.get('chatScope','topic'),profileRef=selected_profile.profileRef,requestKey='eval-session-'+uuid.uuid4().hex)).sessionRef
                     active_session=sessions[group]
                 budget.case_id=case['id'];before=len(budget.requests);started=time.monotonic()
                 row={**case,'status':'pending'}
                 try:
-                    reply=tutor_agent.complete_turn(db,settings,sp,sessions[group],TutorAgentTurnRequest(message=case['message'],teachingMode=case.get('teachingMode','explanation'),requestKey='eval-turn-'+uuid.uuid4().hex),generator=lambda request,operation:provider.generate(request))
+                    reply=tutor_agent.complete_turn(db,settings,sp,sessions[group],TutorAgentTurnRequest(message=case['message'],teachingMode=case.get('teachingMode','auto'),requestKey='eval-turn-'+uuid.uuid4().hex),generator=lambda request,operation:provider.generate(request))
                     row.update({'status':'completed','response':reply.model_dump(mode='json'),'providerCalled':len(budget.requests)>before,
                                 'request':budget.requests[-1] if len(budget.requests)>before else None})
                     # Source/asset integrity is deterministic and distinct from semantic review.
                     row['checks']={'citationRefsAuthorised':True,'printedLabelsPresent':all(c.printedPageLabel for c in reply.citations),'visualAssetsAccessible':True}
+                    for visual in reply.visuals:
+                        from app.services import tutor_chat_visuals
+                        asset_id=uuid.UUID(visual.provenance['assetId'])
+                        if '/approved-visuals/' in (visual.contentUrl or ''):
+                            tutor_chat_visuals.open_visual(db,settings,sp,storage,sessions[group],asset_id)
+                        else:
+                            tutor_chat_visuals.open_media(db,settings,sp,storage,sessions[group],asset_id)
                     for c in reply.citations:
                         asset_id=uuid.UUID(hex=c.assetRef.removeprefix('asset_'));asset=db.get(m.DocumentAsset,asset_id)
                         if not asset or not storage.exists(asset.object_key):row['checks']['visualAssetsAccessible']=False

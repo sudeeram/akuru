@@ -1,4 +1,3 @@
-import hashlib
 import json
 import re
 import time
@@ -6,7 +5,7 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime, timezone
 
-from sqlalchemy import or_, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy.dialects.postgresql import insert
 
@@ -15,7 +14,7 @@ from app.ai.prompts import get_tutor_prompt, get_teaching_prompt
 from app.ai.router import AIAccountRouter
 from app.config import Settings
 from app.errors import DomainError
-from app.models import AIInvocation, EducationalMedia, RetrievalChunk, TextbookGroup, TextbookTopic, TutorProfileVersion, TutorTurn, TutorPaperChatRequest, StudentProgression
+from app.models import AIInvocation, RetrievalChunk, TextbookGroup, TextbookTopic, TutorProfileVersion, TutorTurn, TutorPaperChatRequest, StudentProgression
 from app.repositories import tutor_agent as repository
 from app.schemas.tutor_agent import (
     TutorAgentTurnRequest, TutorAgentTurnResponse, TutorProviderOutput, TutorTeachingOutput, TutorToolResult, TutorVisual,
@@ -38,7 +37,10 @@ def _invoke(db: Session, settings: Settings, principal: Principal, request: AIRe
     invocation = AIInvocation(actor_id=principal.user.id, provider="account-router", model="ordered-account",
         purpose=request.purpose, prompt_name=request.prompt_name, prompt_version=request.prompt_version,
         schema_name=request.output_type.__name__, status="processing",
-        request_metadata={"operationRef": f"tutor_operation_{operation_id.hex}", "sessionRef": request.metadata["session_ref"]})
+        request_metadata={"operationRef": f"tutor_operation_{operation_id.hex}", "sessionRef": request.metadata["session_ref"],
+            "personalisationPolicy": request.metadata.get("personalisation_policy"),
+            "routingPolicy": request.metadata.get("routing_policy"), "approachReason": request.metadata.get("approach_reason"),
+            "profileVersionId": request.metadata.get("profile_version_id")})
     db.add(invocation); db.flush()
     started = time.monotonic()
     try:
@@ -68,7 +70,7 @@ def _invoke(db: Session, settings: Settings, principal: Principal, request: AIRe
 
 
 VISUAL_TERMS = {
-    "diagram", "draw", "figure", "graph", "plot", "chart", "image", "picture", "visual",
+    "diagram", "draw", "figure", "graph", "plot", "chart", "image", "picture", "visual", "show", "locate",
     "equation", "formula", "geometry", "triangle", "angle", "circuit", "force", "vector",
 }
 
@@ -82,41 +84,11 @@ def _media(db: Session, settings: Settings, principal: Principal, session,
            citations: list[TutorCitation], requested: bool) -> list[TutorVisual]:
     if not requested:
         return []
-    visuals = [TutorVisual(
-        title=f"Official source · {citation.textbookTitle}, {citation.pageReference}",
-        altText=citation.passage,
-        visualType="official_source", kind=citation.contentKind,
-        contentUrl=citation.assetUrl, readableFallback=citation.passage,
-        equation=citation.passage if citation.contentKind == "equation" else None,
-        sourceLabel=f"{citation.textbookTitle} · {citation.pageReference}",
-        provenance={"origin": "official_textbook", "citationRef": citation.citationRef,
-                    "assetRef": citation.assetRef, "documentVersion": citation.documentVersion,
-                    "reviewState": "published"}, sourceRefs=[citation.citationRef],
-    ) for citation in citations if citation.contentKind in {"image", "diagram", "equation"}]
-    rows = db.scalars(select(EducationalMedia).where(
-        EducationalMedia.status == "published", EducationalMedia.subject_id == session.subject_id,
-        EducationalMedia.topic_id == session.active_topic_id,
-        or_(EducationalMedia.provider == "akuru", EducationalMedia.reviewed_at.is_not(None)),
-    ).order_by(EducationalMedia.created_at.desc()).limit(3)).all()
-    for row in rows:
-        citation_ref = f"citation_{row.source_chunk_id.hex}"
-        try:
-            source = tutor_sources.get_citation(db, settings, principal, session.public_ref, citation_ref)
-        except DomainError:
-            continue
-        visuals.append(TutorVisual(title=row.title, altText=row.alt_text,
-            visualType="explanatory", kind=row.kind,
-            contentUrl=f"/api/v1/tutoring/sessions/{session.public_ref}/media/{row.id}",
-            readableFallback=row.alt_text, sourceLabel=f"Based on {source.textbookTitle} · {source.pageReference}",
-            provenance={"origin": "deterministic" if row.provider == "akuru" else "reviewed_generation",
-                        "mediaId": str(row.id),
-                        "promptDigest": hashlib.sha256(row.prompt.encode()).hexdigest(),
-                        "promptVersion": row.prompt_version, "parameters": row.parameters,
-                        "generator": row.provider, "model": row.model, "responseId": row.response_id,
-                        "reviewState": row.status,
-                        "reviewedAt": row.reviewed_at.isoformat() if row.reviewed_at else None,
-                        "checksum": row.checksum}, sourceRefs=[source.citationRef]))
-    return visuals[:4]
+    from app.services import tutor_chat_visuals
+    query = getattr(session, "_visual_query", "")
+    visuals, status = tutor_chat_visuals.select_visuals(db, settings, principal, session, query, getattr(session, "_previous_visual_assets", ()))
+    session._visual_status = status
+    return visuals
 
 
 def _source_query(db, session, payload):
@@ -156,7 +128,8 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
     evidence_refs = [ref for statement in active.statements for ref in statement.evidenceRefs]
     try:
         practice = tutor_practice.current(db, settings, principal, session.public_ref)
-        practice_allowed = settings.tutor_text_pilot is None
+        from app.services.tutor_chat_capabilities import available
+        practice_allowed = available(db, settings, principal, session)['guidedPractice']
     except DomainError as error:
         if error.code not in {"tutor_release_blocked", "tutor_pilot_restricted"}: raise
         practice, practice_allowed = None, False
@@ -202,12 +175,20 @@ def _tools(db: Session, settings: Settings, principal: Principal, session, paylo
         if settings.tutor_text_pilot:
             visual_allowed = tutor_pilot_allowed(settings, principal.user.id, "tutor_visuals",
                                                  session.subject_id, session.active_topic_id)
-    visuals = _media(db, settings, principal, session, source_result.citations,
-                     visual_allowed and _visual_requested(payload.message))
+    previous_assets = {v.get("provenance", {}).get("assetId") for t in repository.recent(db, session.id)
+                       for v in (getattr(t, "response_data", {}) or {}).get("visuals", [])}
+    session._previous_visual_assets = previous_assets if not _visual_requested(payload.message) else set()
+    session._visual_query = source_query
+    visuals = _media(db, settings, principal, session, source_result.citations, visual_allowed)
+    # Repetition is unnecessary unless a visual was explicitly requested again.
+    previous_assets = {v.get("provenance", {}).get("assetId") for t in repository.recent(db, session.id)
+                       for v in (getattr(t, "response_data", {}) or {}).get("visuals", [])}
+    if not _visual_requested(payload.message):
+        visuals = [v for v in visuals if v.provenance.get("assetId") not in previous_assets]
     results.append(TutorToolResult(name="deterministic_media", status="ready" if visuals else "evidence_insufficient",
         summary=(f"{len(visuals)} authorized active-unit visual aid(s) available. Official source visuals and "
                  "explanatory media remain separately labelled." if visuals else
-                 "No visual was requested or no authorized active-unit visual is available."),
+                 "No matching approved visual is available; do not generate or imply an image. " + str(getattr(session, "_visual_status", "unavailable"))),
         evidenceRefs=[ref for visual in visuals for ref in visual.sourceRefs]))
     return context, source_result.citations, recommendation, results, visuals, practice
 
@@ -237,6 +218,29 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     existing = repository.replay(db, session.id, payload.requestKey)
     if existing:
         return _response(existing, existing.response_data)
+    from app.services import tutor_intent, tutor_personality, tutor_chat_capabilities, tutor_chat_visuals
+    if payload.teachingMode == "french_conversation" and session.subject_id != "french":
+        raise DomainError("tutor_subject_mode_mismatch", "French conversation is available only in a French session.", 422)
+    mode, approach_reason = tutor_intent.select_approach(payload.message, session.subject_id)
+    payload = payload.model_copy(update={"teachingMode": mode})
+    help_kind = tutor_intent.help_kind(payload.message)
+    french_request = session.subject_id != "french" and bool(re.search(r'\b(?:practise|practice|start|have)\b.{0,25}\bfrench (?:conversation|speaking|pronunciation)\b', payload.message, re.I))
+    if french_request:
+        operation_id=uuid.uuid4()
+        return _teaching_boundary(db,session,payload,operation_id,"outside_scope",
+            "French conversation is available in a French session. This conversation stays in your selected subject.",
+            {"routingPolicy": tutor_intent.VERSION, "route": "subject_language_boundary"})
+    if help_kind:
+        content, choices, capabilities = tutor_chat_capabilities.help_response(db, settings, principal, session, help_kind)
+        operation_id = uuid.uuid4()
+        stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
+            content=content, teachingMode=mode, followUpChoices=choices, provider="akuru", model="capability-help-v1",
+            promptName="tutor-capability-help", promptVersion="1.0.0",
+            retrievalProvenance={"routingPolicy": tutor_intent.VERSION, "route": "capability_help", "capabilities": capabilities}).model_dump(mode="json")
+        turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored, [], operation_id,
+            "akuru", "capability-help-v1", "tutor-capability-help", "1.0.0")
+        _record_safety(db, session, turn)
+        return _response(turn, stored)
     from app.services import tutor_topic_discovery
     discovery = tutor_topic_discovery.handle(db, settings, principal, session, payload)
     if discovery is not None:
@@ -246,6 +250,20 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     exam_reply = tutor_past_papers.handle(db, settings, principal, session, payload, generator)
     if exam_reply is not None:
         return exam_reply
+    mode, approach_reason = tutor_intent.select_approach(payload.message, session.subject_id, repository.recent(db, session.id))
+    payload = payload.model_copy(update={"teachingMode": mode})
+    if tutor_chat_visuals.generation_requested(payload.message):
+        query, _ = _source_query(db, session, payload)
+        visuals, visual_status = tutor_chat_visuals.select_visuals(db, settings, principal, session, query, getattr(session, "_previous_visual_assets", ()))
+        operation_id = uuid.uuid4()
+        content = "I do not generate images in chat. " + ("Here is a matching existing approved visual from AKURU." if visuals else "I could not find a matching approved visual. You can ask for a text explanation or name a textbook figure.")
+        stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending", content=content,
+            teachingMode=mode, visuals=visuals, provider="akuru", model="approved-visual-help-v1", promptName="approved-visual-help",promptVersion="1.0.0",
+            retrievalProvenance={"visualPolicy": tutor_chat_visuals.VERSION, "visualStatus": visual_status}).model_dump(mode="json")
+        turn=repository.save_exchange(db,session,payload.message.strip(),payload.requestKey,stored,[],operation_id,
+            "akuru","approved-visual-help-v1","approved-visual-help","1.0.0")
+        _record_safety(db,session,turn)
+        return _response(turn,stored)
     topic = db.get(TextbookTopic, session.active_topic_id)
     group = db.get(TextbookGroup, topic.group_id)
     profile = db.get(TutorProfileVersion, session.current_profile_version_id)
@@ -255,30 +273,36 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     resolved_query, query_strategy = _source_query(db, session, payload)
     version = tutor_sources._published_version(db, topic)
     provenance = {"queryStrategy": query_strategy, "policyVersion": tutor_teaching.POLICY_VERSION,
-        "chatScope": session.chat_scope,
+        "chatScope": session.chat_scope, "routingPolicy": tutor_intent.VERSION, "approachReason": approach_reason,
+        "personalisationPolicy": tutor_personality.VERSION, "profileVersionId": str(profile.id),
         "topicContentVersionId": str(version.id) if version and session.chat_scope == "topic" else None,
         "topicContentVersion": version.version_number if version and session.chat_scope == "topic" else None}
     if teaching_enabled:
         require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT, session.subject_id,
             "tutor_supplementary", topic_id=session.active_topic_id)
-        # Reuse the durable per-session chat request registry (historical table name).
-        # Helpers commit during retrieval/accounting; a row lock alone cannot stop
-        # a concurrent retry from making a second paid call after those commits.
-        claimed = db.execute(insert(TutorPaperChatRequest).values(session_id=session.id,
-            request_key=payload.requestKey).on_conflict_do_nothing()
-            .returning(TutorPaperChatRequest.request_key)).scalar()
-        if not claimed:
-            replay = repository.replay(db, session.id, payload.requestKey)
-            if replay:
-                return _response(replay, replay.response_data)
-            raise DomainError("tutor_request_pending", "This request is processing or was interrupted. Reload this conversation before sending another request.", 409)
-        db.commit()
+    # Reuse the durable per-session chat request registry (historical table name).
+    # Helpers commit during retrieval/accounting; a row lock alone cannot stop
+    # a concurrent retry from making a second paid call after those commits.
+    claimed = db.execute(insert(TutorPaperChatRequest).values(session_id=session.id,
+        request_key=payload.requestKey).on_conflict_do_nothing()
+        .returning(TutorPaperChatRequest.request_key)).scalar()
+    if not claimed:
+        replay = repository.replay(db, session.id, payload.requestKey)
+        if replay:
+            return _response(replay, replay.response_data)
+        raise DomainError("tutor_request_pending", "This request is processing or was interrupted. Reload this conversation before sending another request.", 409)
+    db.commit()
+    if teaching_enabled:
         pre_scope, pre_message = tutor_teaching.boundary(session.subject_id, topic.title, payload.message, resolved_query, [])
         if pre_scope == "outside_scope":
             return _teaching_boundary(db, session, payload, operation_id, pre_scope, pre_message,
                 {**provenance, "retrievalStatus": "not_searched", "availableCitationRefs": [], "usedCitationRefs": []})
     context, citations, recommendation, tool_results, visuals, practice = _tools(
         db, settings, principal, session, payload, operation_id)
+    if getattr(session, "_visual_status", None) == "ambiguous_figure":
+        return _teaching_boundary(db, session, payload, operation_id, "clarification",
+            "That figure number appears in more than one available topic. Which topic or textbook figure do you mean?",
+            {**provenance, "visualPolicy": tutor_chat_visuals.VERSION, "visualStatus": "ambiguous_figure"})
     scope, scope_message = tutor_teaching.boundary(session.subject_id, topic.title, payload.message, resolved_query, citations)
     if session.chat_scope == "subject" and scope != "outside_scope":
         # Supplementary teaching is bounded to the same released topic policies,
@@ -332,7 +356,7 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
                   "practiceFocus" if session.chat_scope == "subject" else "activeTopic": {"code": topic.code, "title": topic.title,
                       "groupCode": group.code, "groupTitle": group.title}},
         "tutorProfile": {"name": profile.name, "tone": profile.tone, "friendliness": profile.friendliness,
-                         "enthusiasm": profile.enthusiasm, "speed": profile.speed,
+                         "enthusiasm": profile.enthusiasm,
                          "communicationCharacter": profile.communication_character,
                          "explanationDepth": profile.explanation_depth, "teachingStyle": profile.teaching_style},
         "learnerContext": context.providerContext.model_dump(mode="json"),
@@ -340,16 +364,19 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         "nextUnitRecommendation": recommendation.model_dump(mode="json") if recommendation else None,
         "guidedPractice": practice.model_dump(mode="json") if practice else None,
         "toolResults": [item.model_dump(mode="json") for item in tool_results],
+        "approvedVisuals": [{"title": v.title, "altText": v.altText, "sourceLabel": v.sourceLabel} for v in visuals],
         "recentTranscript": history,
         "currentTurnEvidenceRef": "turn:current",
         "learnerMessage": payload.message,
     }
+    personality_instructions, personality_values = tutor_personality.compile_policy(profile)
     request = AIRequest(purpose="tutoring", prompt_name=prompt.name, prompt_version=prompt.version,
-        instructions=prompt.instructions, task=json.dumps(task_data, ensure_ascii=False),
+        instructions=prompt.instructions + " " + personality_instructions, task=json.dumps(task_data, ensure_ascii=False),
         output_type=TutorTeachingOutput if teaching_enabled else TutorProviderOutput,
         metadata={"session_ref": session.public_ref, "subject": session.subject_id,
                   "topic": topic.code,
-                  "mode": payload.teachingMode})
+                  "mode": payload.teachingMode, "personalisation_policy": tutor_personality.VERSION,
+                  "routing_policy": tutor_intent.VERSION, "approach_reason": approach_reason, "profile_version_id": str(profile.id)})
     if settings.tutor_text_pilot:
         from app.models import AIProviderAccount
         selected = db.scalar(select(AIProviderAccount).where(AIProviderAccount.enabled.is_(True))
@@ -370,6 +397,11 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     canonical_content = output.content if not teaching_enabled else ""
     if teaching_enabled:
         canonical_content, sections = tutor_teaching.validate_output(output, allowed, scope == "related")
+    tutor_personality.reject_generated_visuals(canonical_content)
+    for value in output.followUpChoices:
+        tutor_personality.reject_generated_visuals(value)
+    provenance["presentationValidation"] = tutor_personality.validate_presentation(canonical_content,
+        output.followUpChoices, personality_values, payload.teachingMode, payload.message)
     provenance["usedCitationRefs"] = output.citationRefs
     validated_citations: list[TutorCitation] = [tutor_sources.get_citation(
         db, settings, principal, session_ref, ref) for ref in output.citationRefs]
@@ -387,20 +419,12 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored,
         source_ids, operation_id, result.provider, result.model, prompt.name, prompt.version)
     _record_safety(db, session, turn)
-    if teaching_enabled:
-        _complete_claim(db, session, payload.requestKey)
+    _complete_claim(db, session, payload.requestKey)
     repository.append_signals(db, session, turn, output.proposedSignals if session.chat_scope == "topic" else [],
         result.provider, result.model, prompt.name, prompt.version)
     return _response(turn, stored)
 
 
 def open_media(db: Session, settings: Settings, principal: Principal, storage, session_ref: str, media_id: uuid.UUID):
-    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS)
-    session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
-    tutor_sessions._require_active(session)
-    require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
-                         session.subject_id, "tutor_visuals", topic_id=session.active_topic_id)
-    row = db.get(EducationalMedia, media_id)
-    if not row or row.status != "published" or row.subject_id != session.subject_id or row.topic_id != session.active_topic_id:
-        raise DomainError("tutor_media_not_found", "Tutor visual not found.", 404)
-    return storage.get(row.object_key, row.content_type)
+    from app.services import tutor_chat_visuals
+    return tutor_chat_visuals.open_media(db, settings, principal, storage, session_ref, media_id)

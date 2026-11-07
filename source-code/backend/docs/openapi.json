@@ -12439,18 +12439,26 @@
             "type": "string"
           },
           "teachingMode": {
-            "default": "explanation",
-            "enum": [
-              "explanation",
-              "questions",
-              "guided_practice",
-              "socratic_practice",
-              "revision",
-              "exam_technique",
-              "french_conversation"
+            "anyOf": [
+              {
+                "enum": [
+                  "explanation",
+                  "questions",
+                  "guided_practice",
+                  "socratic_practice",
+                  "revision",
+                  "exam_technique",
+                  "french_conversation"
+                ],
+                "type": "string"
+              },
+              {
+                "const": "auto",
+                "type": "string"
+              }
             ],
-            "title": "Teachingmode",
-            "type": "string"
+            "default": "auto",
+            "title": "Teachingmode"
           }
         },
         "required": [
@@ -34602,6 +34610,92 @@
         ]
       }
     },
+    "/api/v1/tutoring/sessions/{session_ref}/approved-visuals/{asset_id}": {
+      "get": {
+        "operationId": "approved_chat_visual_api_v1_tutoring_sessions__session_ref__approved_visuals__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Approved Chat Visual",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
     "/api/v1/tutoring/sessions/{session_ref}/end": {
       "post": {
         "operationId": "end_session_api_v1_tutoring_sessions__session_ref__end_post",
@@ -36354,6 +36448,88 @@
           }
         },
         "summary": "Switch Topic",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/tools": {
+      "get": {
+        "operationId": "session_tools_api_v1_tutoring_sessions__session_ref__tools_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Session Tools Api V1 Tutoring Sessions  Session Ref  Tools Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Session Tools",
         "tags": [
           "tutoring"
         ]

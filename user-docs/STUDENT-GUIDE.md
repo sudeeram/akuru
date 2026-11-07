@@ -125,7 +125,13 @@ You can also ask where a concept belongs, for example: **“I have learnt about 
 
 AKURU stores typed messages, structured text Tutor replies and text transcripts of voice turns. It does not store raw voice recordings. Live voice capture is added in a later Tutor step.
 
-For a text conversation, choose the teaching approach that matches what you want: an explanation, questions, guided or Socratic practice, revision, exam technique, or French conversation. Type your message and press Enter or choose Send. AKURU can show the approved textbook citation, an approved visual and suggested follow-up questions with its reply. If a request fails, your typed message remains so you can retry it. AKURU will say when it lacks approved evidence instead of inventing a textbook answer.
+For a text conversation, describe what you need and press Enter or choose Send. AKURU selects the teaching approach for each message: for example, “Explain diffusion”, “Ask me three questions about cells”, “Help me without telling me the answer” or “Help me revise”. An explicit request takes priority over your tutor's preferred style. French conversation is restricted to French sessions.
+
+Ask “How can you help me with this subject?” for an introduction, or “Which topics can we study?” for your available topics. These help replies do not use a paid AI call. Subject chat remains subject-wide; any topic selector inside the separate practice or voice tools affects only those tools. Unavailable tools stay hidden or disabled.
+
+AKURU may show relevant approved textbook figures, with captions and source details. It does not generate new images or display arbitrary image links. If no reliable approved figure exists, it can continue explaining in text. References remain collapsible. If a request fails, your typed message remains so you can retry it.
+
+Tutor preferences influence generated explanations: tone, friendliness, enthusiasm, detail and teaching style. Communication character is labelled Playful, Balanced or Structured. Voice speed affects voice only. The preview is illustrative and makes no AI call. Preferences cannot change scientific facts, approved exam wording, marking rules or access permissions. A session retains its selected profile version; switch to the updated tutor version to apply edits. Style preferences are guidance, so responses will not always match them perfectly.
 
 Use Guided practice to start one question selected from your covered active unit. You can ask for staged hints and save your answer before submitting it. You may change tutors while working on the question, but you must submit it before moving to another unit. Submitted answers use the same AKURU assessment service as other practice. Published feedback shows how marks were decided and an improved answer; feedback needing review stays unavailable until that review is complete.
 

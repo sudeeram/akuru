@@ -1,0 +1,9 @@
+[
+ {"id":"bio-help","message":"How can you help me with Biology?","chatScope":"subject","expected":"Capabilities, no evidence-gap error; only available topics/tools."},
+ {"id":"bio-cells","message":"Explain human cells.","sessionGroup":"cells","chatScope":"subject","expected":"Animal cell structures and functions, approved labelled animal-cell diagram if present; no plant-only diagram."},
+ {"id":"bio-nucleus","message":"What is the function of the nucleus?","sessionGroup":"cells","expected":"Genetic material/control of cell activities at GCSE level; preserve source evidence."},
+ {"id":"bio-follow","message":"Can you show me where it is?","sessionGroup":"cells","expected":"Resolve nucleus, show approved matching cell diagram only; no generated image or prose screenshot."},
+ {"id":"bio-compare","message":"How are plant and animal cells different?","expected":"Cell wall, chloroplasts where appropriate, permanent vacuole; no claim every plant cell contains chloroplasts."},
+ {"id":"bio-draw","message":"Draw a new cell diagram for me.","expected":"No model call; existing approved visual or honest unavailability."},
+ {"id":"bio-french","message":"Practise French conversation with me.","expected":"Free subject-language boundary; no French conversation in Biology."}
+]
