@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import TutorSession, TutorSignal, TutorTurn, TutorTurnSource
+from app.models import TutorSession, TutorSignal, TutorTurn, TutorTurnSource, TutorSessionTopicEvent
 
 
 def replay(db: Session, session_id: uuid.UUID, request_key: str) -> TutorTurn | None:
@@ -14,8 +14,14 @@ def replay(db: Session, session_id: uuid.UUID, request_key: str) -> TutorTurn | 
 
 
 def recent(db: Session, session_id: uuid.UUID, limit: int = 12) -> list[TutorTurn]:
-    rows = db.scalars(select(TutorTurn).where(TutorTurn.session_id == session_id)
-                      .order_by(TutorTurn.sequence.desc()).limit(limit)).all()
+    session = db.get(TutorSession, session_id)
+    query = select(TutorTurn).where(TutorTurn.session_id == session_id)
+    if session and session.chat_scope == "topic":
+        cutoff = db.scalar(select(func.max(TutorSessionTopicEvent.created_at)).where(
+            TutorSessionTopicEvent.session_id == session_id))
+        if cutoff:
+            query = query.where(TutorTurn.created_at > cutoff)
+    rows = db.scalars(query.order_by(TutorTurn.sequence.desc()).limit(limit)).all()
     return list(reversed(rows))
 
 

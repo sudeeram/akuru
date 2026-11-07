@@ -122,6 +122,7 @@ export type TutorTurn = {
   createdAt: string;
 };
 export type TutorSession = {
+  chatScope: 'topic' | 'subject';
   sessionRef: string;
   subjectId: string;
   activeTopic: TutorSessionTopic;

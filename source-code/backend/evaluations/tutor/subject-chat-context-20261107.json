@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-07",
+  "purpose": "Subject/Topic text chat and bounded conversational retrieval",
+  "baselinePromptVersion": "1.1.0",
+  "supplementaryPromptVersion": "2.1.0",
+  "deterministicTestsPassed": true,
+  "evidenceType": "Deterministic integration and regression evidence, not a live semantic accuracy evaluation",
+  "coverage": [
+    "Existing sessions default to Topic chat",
+    "Subject scope survives session creation and reload",
+    "Subject source retrieval crosses only authorised published covered topics",
+    "Citation and nearby-context opening rechecks topic/version access",
+    "Removing coverage revokes cross-topic source access immediately",
+    "Follow-up retrieval includes both student and assistant context",
+    "Direct named requests override old context; ambiguous references require clarification",
+    "Bounded context and topic-switch reset; unchanged profile-switch continuity",
+    "No paid routing call; formal-assessment and existing pilot restrictions retained"
+  ],
+  "liveSemanticAcceptance": "Pending owner testing after deployment; no new live evaluation expenditure authorised",
+  "audiencePolicy": "Preserve existing pilot students, topic/content grants, model and expiry",
+  "validation": {
+    "backendPassed": 380,
+    "backendSkipped": 1,
+    "frontendPassed": 120,
+    "typecheck": "passed",
+    "lint": "passed",
+    "frontendBuild": "passed",
+    "paidCalls": 0
+  }
+}

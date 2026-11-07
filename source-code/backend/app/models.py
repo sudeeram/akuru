@@ -272,6 +272,7 @@ class TutorSession(Base):
     subject_id: Mapped[str] = mapped_column(ForeignKey("subjects.id", ondelete="RESTRICT"), index=True)
     active_topic_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("textbook_topics.id", ondelete="RESTRICT"), index=True)
     current_profile_version_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_profile_versions.id", ondelete="RESTRICT"))
+    chat_scope: Mapped[str] = mapped_column(String(16), default="topic", server_default="topic")
     mode: Mapped[str] = mapped_column(String(16), default="practice", server_default="practice")
     status: Mapped[str] = mapped_column(String(16), default="active", server_default="active", index=True)
     start_request_key: Mapped[str] = mapped_column(String(100))
@@ -279,6 +280,7 @@ class TutorSession(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (
+        CheckConstraint("chat_scope IN ('topic','subject')", name="ck_tutor_session_chat_scope"),
         CheckConstraint("mode = 'practice'", name="ck_tutor_session_mode"),
         CheckConstraint("status IN ('active','ended')", name="ck_tutor_session_status"),
         UniqueConstraint("student_id", "start_request_key", name="uq_tutor_session_start_request"),

@@ -3,6 +3,7 @@ import math
 import re
 import unicodedata
 from collections import Counter
+from types import SimpleNamespace
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -60,7 +61,7 @@ def _asset(db: Session, chunk: RetrievalChunk, page: DocumentPage) -> DocumentAs
 
 def _citation(db: Session, session: TutorSession, chunk: RetrievalChunk,
               confidence: float) -> TutorCitation:
-    topic = db.get(TextbookTopic, session.active_topic_id)
+    topic = db.get(TextbookTopic, chunk.topic_id)
     group = db.get(TextbookGroup, topic.group_id)
     book = db.get(Textbook, topic.textbook_id)
     document = db.get(Document, chunk.document_id)
@@ -167,29 +168,62 @@ def _rank_evidence(query: str, records: list[tuple], approved_assets: set[str], 
     ordered = sorted(ranked, key=lambda item: (-int(item[2]), -item[1], item[0].page_number, item[0].source_ordinal))
     seen, unique = set(), []
     for item in ordered:
-        key = (item[0].page_number, " ".join(item[0].content.split()))
+        key = (getattr(item[0], "topic_id", None), item[0].page_number, " ".join(item[0].content.split()))
         if key not in seen:
             seen.add(key)
             unique.append(item)
     return unique
 
 
+def authorized_topics(db, settings, principal, session):
+    """Shared authorization for subject search, citation opening and nearby context."""
+    if getattr(session, "chat_scope", "topic") == "topic":
+        topic, version, book = _active_chunks(db, session)
+        return [(topic, version, book)] if version else []
+    choice = next((s for s in tutor_sessions.options(db, principal.user.id, settings).subjects
+                   if s.id == session.subject_id), None)
+    result = []
+    for item in choice.topics if choice else []:
+        topic = db.scalar(select(TextbookTopic).where(TextbookTopic.public_ref == item.topicRef,
+            TextbookTopic.subject_id == session.subject_id, TextbookTopic.status == "published"))
+        if not topic:
+            continue
+        try:
+            require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
+                session.subject_id, "tutor_text", topic_id=topic.id)
+            require_tutor_access(db, settings, principal.user.id, TutorCapability.TOOLS,
+                session.subject_id, "tutor_sources", topic_id=topic.id)
+        except DomainError as error:
+            if error.status_code not in {403, 409}:
+                raise
+            continue
+        _, version, book = _active_chunks(db, SimpleNamespace(active_topic_id=topic.id))
+        if version:
+            result.append((topic, version, book))
+    return result
+
+
 def search(db: Session, settings: Settings, principal: Principal, session_ref: str,
            query: str, edition: str | None, limit: int) -> TutorSourceSearchResponse:
     session = _session(db, settings, principal, session_ref)
-    topic, version, book = _active_chunks(db, session)
-    if not version or (edition and book.edition != edition):
+    scopes = [(t, v, b) for t, v, b in authorized_topics(db, settings, principal, session)
+              if not edition or b.edition == edition]
+    if not scopes:
         return TutorSourceSearchResponse(status="evidence_insufficient",
             message="No approved textbook topic is available.", query=query)
     vector = embed_texts(settings, [query])[0]
     distance = RetrievalChunk.embedding.cosine_distance(vector)
+    # Exact topic/version pairs prevent withdrawn or obsolete evidence entering a subject result.
+    from sqlalchemy import or_, and_
+    pairs = or_(*(and_(RetrievalChunk.topic_id == t.id,
+        RetrievalChunk.topic_content_version_id == v.id) for t, v, _ in scopes))
     rows = db.execute(select(RetrievalChunk, DocumentBlock, distance.label("distance")).join(
         DocumentBlock, DocumentBlock.id == RetrievalChunk.source_item_id).where(
         RetrievalChunk.status == "active", RetrievalChunk.source_type == "textbook_section",
-        RetrievalChunk.topic_id == topic.id, RetrievalChunk.topic_content_version_id == version.id,
-        DocumentBlock.needs_review.is_(False),
+        pairs, DocumentBlock.needs_review.is_(False),
     ).order_by(distance, RetrievalChunk.page_number, RetrievalChunk.source_ordinal)).all()
-    approved_assets = {item['documentAssetId'] for item in version.extraction_manifest.get('visualAssets', [])}
+    approved_assets = {item['documentAssetId'] for _, version, _ in scopes
+                       for item in version.extraction_manifest.get('visualAssets', [])}
     ranked = _rank_evidence(query, rows, approved_assets, settings.tutor_retrieval_min_score)
     citations = []
     for chunk, confidence, _ in ranked:
@@ -199,19 +233,19 @@ def search(db: Session, settings: Settings, principal: Principal, session_ref: s
             continue
         if len(citations) >= limit:
             break
+    scope_label = "subject" if getattr(session, "chat_scope", "topic") == "subject" else "topic"
     return TutorSourceSearchResponse(status="exact" if citations else "evidence_insufficient",
-        message="Exact approved topic evidence found." if citations else
-            "AKURU could not find an exact approved passage in this topic. Do not invent a citation.",
+        message=f"Exact approved {scope_label} evidence found." if citations else
+            f"AKURU could not find an exact approved passage in this {scope_label}. Do not invent a citation.",
         query=query, citations=citations)
 
 
 def get_citation(db: Session, settings: Settings, principal: Principal, session_ref: str,
                  citation_ref: str) -> TutorCitation:
     session = _session(db, settings, principal, session_ref)
-    topic, version, _ = _active_chunks(db, session)
+    versions = {(topic.id, version.id) for topic, version, _ in authorized_topics(db, settings, principal, session)}
     chunk = db.get(RetrievalChunk, _chunk_id(citation_ref))
-    if not version or not chunk or chunk.status != "active" or chunk.topic_id != topic.id \
-            or chunk.topic_content_version_id != version.id:
+    if not chunk or chunk.status != "active" or chunk.source_type != "textbook_section" or (chunk.topic_id, chunk.topic_content_version_id) not in versions:
         raise DomainError("tutor_citation_not_found", "Citation not found.", 404)
     return _citation(db, session, chunk, 1)
 
@@ -225,7 +259,7 @@ def nearby_context(db: Session, settings: Settings, principal: Principal, sessio
         RetrievalChunk.status == "active", RetrievalChunk.source_type == "textbook_section",
         RetrievalChunk.topic_content_version_id == selected_chunk.topic_content_version_id,
         RetrievalChunk.document_version_id == selected_chunk.document_version_id,
-        RetrievalChunk.topic_id == session.active_topic_id,
+        RetrievalChunk.topic_id == selected_chunk.topic_id,
         RetrievalChunk.source_ordinal.between(max(0, selected_chunk.source_ordinal - radius),
                                                selected_chunk.source_ordinal + radius),
     ).order_by(RetrievalChunk.source_ordinal)).all()

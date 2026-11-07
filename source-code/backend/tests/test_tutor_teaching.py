@@ -60,8 +60,8 @@ def test_basis_validation_is_separate_from_scientific_accuracy():
 
 def test_supplementary_prompt_does_not_change_baseline_or_assessment_prompts():
     from app.ai.prompts import get_tutor_prompt,get_teaching_prompt,get_prompt
-    assert get_tutor_prompt('explanation').version=='1.0.2'
-    assert get_teaching_prompt('explanation').version=='2.0.0'
+    assert get_tutor_prompt('explanation').version=='1.1.0'
+    assert get_teaching_prompt('explanation').version=='2.1.0'
     assert 'rather than answering from general knowledge' not in get_teaching_prompt('explanation').instructions
     assert get_prompt('assessment').version=='2.0.0'
 

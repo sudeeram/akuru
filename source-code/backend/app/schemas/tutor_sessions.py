@@ -9,7 +9,8 @@ from app.schemas.tutor_profiles import TutorProfileResponse
 
 class TutorSessionStartRequest(BaseModel):
     subjectId: str = Field(min_length=2, max_length=32)
-    topicRef: str = Field(min_length=8, max_length=80)
+    topicRef: str | None = Field(default=None, min_length=8, max_length=80)
+    chatScope: Literal["topic", "subject"] = "topic"
     profileRef: str = Field(min_length=8, max_length=48)
     requestKey: str = Field(min_length=8, max_length=100)
 
@@ -65,6 +66,7 @@ class TutorTopicEventResponse(BaseModel):
 class TutorSessionResponse(BaseModel):
     sessionRef: str
     subjectId: str
+    chatScope: Literal["topic", "subject"] = "topic"
     activeTopic: PlanTopicResponse
     currentTutor: TutorProfileResponse
     mode: Literal["practice"]

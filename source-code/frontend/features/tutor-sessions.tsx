@@ -82,6 +82,9 @@ export function TutorSessions({
   );
   const [session, setSession] = useState<TutorSession | null>(null);
   useFocusMode(Boolean(session));
+  const [chatScope, setChatScope] = useState<'topic' | 'subject'>('topic');
+  const [historySessions, setHistorySessions] = useState<TutorSession[]>([]);
+  const [historyScope, setHistoryScope] = useState('all');
   const [subject, setSubject] = useState(''),
     [topic, setTopic] = useState(''),
     [profile, setProfile] = useState('');
@@ -139,6 +142,7 @@ export function TutorSessions({
       setQuota(allowance);
       setOptions(choices);
       setProfileOptions(profiles);
+      setHistorySessions(sessions.sessions);
       const active =
         sessions.sessions.find((item) => item.status === 'active') || null;
       setSession(active);
@@ -213,6 +217,10 @@ export function TutorSessions({
         setSourceQuery('');
       }
       setSession(result.status === 'active' ? result : null);
+      setHistorySessions((items) => [
+        result,
+        ...items.filter((s) => s.sessionRef !== result.sessionRef),
+      ]);
       setNextTopic(null);
       setSources(null);
       setExpandedSource(null);
@@ -256,8 +264,9 @@ export function TutorSessions({
     return (
       <div className="stack">
         <Heading eyebrow="STUDENT · PRACTICE" title="Start a tutor session">
-          Choose one covered topic and one of your tutors. Tutor help is
-          available during practice only.{' '}
+          Choose Subject chat to explore across your available topics, or Topic
+          chat for focused learning. Tutor help is available during practice
+          only.{' '}
           {options.pilotMode &&
             'This text tutoring pilot includes the covered topics listed below.'}
         </Heading>
@@ -282,11 +291,34 @@ export function TutorSessions({
             onSubmit={(event) => {
               event.preventDefault();
               void act(
-                () => startTutorSession(subject, topic, profile, key()),
+                () =>
+                  startTutorSession(subject, topic, profile, key(), chatScope),
                 'Tutor session started.',
               );
             }}
           >
+            <fieldset className="stack">
+              <legend>Chat scope</legend>
+              <div className="button-row">
+                {(['topic', 'subject'] as const).map((scope) => (
+                  <label key={scope} className="button-row">
+                    <input
+                      type="radio"
+                      name="chat-scope"
+                      value={scope}
+                      checked={chatScope === scope}
+                      onChange={() => setChatScope(scope)}
+                    />
+                    {scope === 'topic' ? 'Topic chat' : 'Subject chat'}
+                  </label>
+                ))}
+              </div>
+              <small>
+                {chatScope === 'subject'
+                  ? 'Ask across the published, covered topics released for you in this subject. AKURU retrieves relevant passages; it does not send the whole textbook.'
+                  : 'Focus on one selected topic. You can move topics during this conversation.'}
+              </small>
+            </fieldset>
             <label className="stack">
               <span>Subject</span>
               <select
@@ -300,19 +332,21 @@ export function TutorSessions({
                 ))}
               </select>
             </label>
-            <label className="stack">
-              <span>Covered topic</span>
-              <select
-                value={topic}
-                onChange={(event) => setTopic(event.target.value)}
-              >
-                {subjectChoice?.topics.map((item) => (
-                  <option key={item.topicRef} value={item.topicRef}>
-                    {item.groupCode} · {item.code} · {item.title}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {chatScope === 'topic' && (
+              <label className="stack">
+                <span>Covered topic</span>
+                <select
+                  value={topic}
+                  onChange={(event) => setTopic(event.target.value)}
+                >
+                  {subjectChoice?.topics.map((item) => (
+                    <option key={item.topicRef} value={item.topicRef}>
+                      {item.groupCode} · {item.code} · {item.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
             <label className="stack">
               <span>Tutor</span>
               <select
@@ -329,19 +363,70 @@ export function TutorSessions({
             <Button
               className="primary"
               type="submit"
-              disabled={busy || !topic || !profile}
+              disabled={
+                busy ||
+                (chatScope === 'topic' && !topic) ||
+                !subject ||
+                !profile
+              }
             >
               <MessageCircle size={16} />
               {busy ? 'Starting…' : 'Enter tutor room'}
             </Button>
           </form>
         )}
+        {!!historySessions.length && (
+          <section className="panel stack">
+            <h2>Your previous conversations</h2>
+            <label>
+              Session type{' '}
+              <select
+                value={historyScope}
+                onChange={(e) => setHistoryScope(e.target.value)}
+              >
+                <option value="all">All chats</option>
+                <option value="subject">Subject chat</option>
+                <option value="topic">Topic chat</option>
+              </select>
+            </label>
+            {historySessions
+              .filter(
+                (s) =>
+                  historyScope === 'all' ||
+                  (s.chatScope || 'topic') === historyScope,
+              )
+              .slice(0, 30)
+              .map((s) => (
+                <details key={s.sessionRef} className="card">
+                  <summary>
+                    {s.subjectId.toUpperCase()} ·{' '}
+                    {s.chatScope === 'subject'
+                      ? 'Subject chat'
+                      : `Topic chat · ${s.activeTopic.title}`}{' '}
+                    · {new Date(s.startedAt).toLocaleDateString()} · {s.status}
+                  </summary>
+                  {s.turns.map((turn) => (
+                    <article key={turn.turnRef} className="stack">
+                      <strong>
+                        {turn.role === 'student' ? 'You' : 'AKURU'}
+                      </strong>
+                      <TutorMessageContent content={turn.content} />
+                    </article>
+                  ))}
+                  {!s.turns.length && <p>No messages in this session.</p>}
+                </details>
+              ))}
+          </section>
+        )}
       </div>
     );
   const topics =
     options.subjects.find((item) => item.id === session.subjectId)?.topics ||
     [];
-  const activeLabel = `${session.activeTopic.groupCode} · ${session.activeTopic.code} · ${session.activeTopic.title}`;
+  const activeLabel =
+    session.chatScope === 'subject'
+      ? `${session.subjectId.toUpperCase()} · Subject chat`
+      : `${session.activeTopic.groupCode} · ${session.activeTopic.code} · ${session.activeTopic.title}`;
   const tutorName = session.currentTutor.name;
   return (
     <div className="stack tutor-room-page">
@@ -384,7 +469,10 @@ export function TutorSessions({
           <MetadataBadge>{session.subjectId.toUpperCase()}</MetadataBadge>
           <h2>{activeLabel}</h2>
           <p>
-            Practice session · Tutor profile version{' '}
+            {session.chatScope === 'subject'
+              ? 'Subject chat across your released topics'
+              : 'Topic chat'}{' '}
+            · Practice only · Tutor profile version{' '}
             {session.currentTutor.version}
           </p>
         </div>
@@ -414,7 +502,11 @@ export function TutorSessions({
             </select>
           </label>
           <label>
-            <span>Move topic</span>
+            <span>
+              {session.chatScope === 'subject'
+                ? 'Practice / voice focus (chat stays subject-wide)'
+                : 'Move topic'}
+            </span>
             <select
               value={session.activeTopic.topicRef}
               disabled={busy}
@@ -452,7 +544,12 @@ export function TutorSessions({
           />
           <div className="tutor-chat-heading">
             <h2>{tutorName}</h2>
-            <p>AI study companion · {session.activeTopic.title}</p>
+            <p>
+              AI study companion ·{' '}
+              {session.chatScope === 'subject'
+                ? 'Subject chat'
+                : session.activeTopic.title}
+            </p>
           </div>
           <span className="tutor-chat-status">
             <span aria-hidden="true" />
@@ -940,7 +1037,10 @@ export function TutorSessions({
           ))}
           <small>
             AKURU names a page only when it finds an authorized passage in your
-            current topic and published textbook edition.
+            {session.chatScope === 'subject'
+              ? 'authorised subject topics'
+              : 'current topic'}{' '}
+            and published textbook edition.
           </small>
         </section>
         <section className="panel stack tutor-guided-practice">

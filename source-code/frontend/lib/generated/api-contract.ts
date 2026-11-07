@@ -287,8 +287,8 @@ export interface Schemas {
   "TutorRecommendationBrief": { "instruction": string; "fixedTopicRef": string; "fixedReason": string; "evidenceRefs": Array<string>; };
   "TutorSessionListResponse": { "sessions": Array<Schemas["TutorSessionResponse"]>; };
   "TutorSessionOptionsResponse": { "pilotMode"?: boolean; "subjects": Array<Schemas["TutorSessionSubjectOption"]>; "profiles": Array<Schemas["TutorProfileResponse"]>; };
-  "TutorSessionResponse": { "sessionRef": string; "subjectId": string; "activeTopic": Schemas["PlanTopicResponse"]; "currentTutor": Schemas["TutorProfileResponse"]; "mode": "practice"; "status": "active" | "ended"; "startedAt": string; "endedAt"?: string | null; "turns"?: Array<Schemas["TutorTurnResponse"]>; "profileEvents"?: Array<Schemas["TutorProfileEventResponse"]>; "topicEvents"?: Array<Schemas["TutorTopicEventResponse"]>; };
-  "TutorSessionStartRequest": { "subjectId": string; "topicRef": string; "profileRef": string; "requestKey": string; };
+  "TutorSessionResponse": { "sessionRef": string; "subjectId": string; "chatScope"?: "topic" | "subject"; "activeTopic": Schemas["PlanTopicResponse"]; "currentTutor": Schemas["TutorProfileResponse"]; "mode": "practice"; "status": "active" | "ended"; "startedAt": string; "endedAt"?: string | null; "turns"?: Array<Schemas["TutorTurnResponse"]>; "profileEvents"?: Array<Schemas["TutorProfileEventResponse"]>; "topicEvents"?: Array<Schemas["TutorTopicEventResponse"]>; };
+  "TutorSessionStartRequest": { "subjectId": string; "topicRef"?: string | null; "chatScope"?: "topic" | "subject"; "profileRef": string; "requestKey": string; };
   "TutorSessionSubjectOption": { "id": string; "name": string; "topics": Array<Schemas["PlanTopicResponse"]>; };
   "TutorSignalListResponse": { "signals": Array<Schemas["TutorSignalResponse"]>; };
   "TutorSignalProposal": { "category": "engagement" | "confidence" | "misconception" | "practice_need"; "observation": string; "evidenceRefs": Array<string>; "confidence": number; };

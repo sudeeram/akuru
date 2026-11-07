@@ -38,6 +38,10 @@ def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
     topic_ids = [session.active_topic_id]
     for event in db.scalars(select(TutorSessionTopicEvent).where(TutorSessionTopicEvent.session_id == session.id)).all():
         topic_ids.extend((event.from_topic_id,event.to_topic_id))
+    from app.models import RetrievalChunk, TutorTurnSource
+    topic_ids.extend(db.scalars(select(RetrievalChunk.topic_id).join(TutorTurnSource,
+        TutorTurnSource.retrieval_chunk_id == RetrievalChunk.id).join(TutorTurn,
+        TutorTurn.id == TutorTurnSource.turn_id).where(TutorTurn.session_id == session.id)).all())
     topics=[db.get(TextbookTopic,value) for value in dict.fromkeys(topic_ids)]
     signals = db.scalars(select(TutorSignal).where(TutorSignal.session_id == session.id)).all()
     practices = db.scalars(select(TutorPractice).where(TutorPractice.session_id == session.id)).all()
@@ -63,7 +67,7 @@ def create_summary(db: Session, session: TutorSession) -> TutorSessionSummary:
         student_id=session.student_id, subject_id=session.subject_id,
         topics_covered=[{"code": topic.code,"title": topic.title,"topicRef":topic.public_ref,
               "groupTitle":db.get(TextbookGroup,topic.group_id).title} for topic in topics],
-        activities=["Tutor conversation"] + (["Guided practice"] if practices else [])
+        activities=["Subject chat" if session.chat_scope == "subject" else "Topic chat", "Tutor conversation"] + (["Guided practice"] if practices else [])
             + (["Includes additional explanations, not official textbook evidence"] if additional else []),
         strengths=strengths, difficulties=difficulties, next_steps=next_steps,
         usage_data={"answerBasisCounts": basis_counts, "aiRequests": int(ai[0]), "textTokens": int(ai[1]), "voiceTurns": db.scalar(select(func.count()).select_from(TutorTurn).where(TutorTurn.session_id == session.id, TutorTurn.modality == "voice")) or 0})

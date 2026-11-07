@@ -148,10 +148,17 @@ export const startTutorSession = (
   topicRef: string,
   profileRef: string,
   requestKey: string,
+  chatScope: 'topic' | 'subject' = 'topic',
 ) =>
   request<TutorSession>('tutoring/sessions', {
     method: 'POST',
-    body: { subjectId, topicRef, profileRef, requestKey },
+    body: {
+      subjectId,
+      topicRef: chatScope === 'topic' ? topicRef : undefined,
+      profileRef,
+      requestKey,
+      chatScope,
+    },
   });
 export const addTutorTurn = (
   sessionRef: string,

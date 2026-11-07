@@ -161,3 +161,24 @@ Some released questions may include an approved **AI-generated worked answer —
 Expand a worked step to see its graph, explanation and limitations. **Graph values** gives a text alternative; **Enlarge diagram** lets you inspect detail. The official marking scheme remains the authority, and a valid hand-drawn best-fit line can differ slightly from the example.
 
 Worked-answer help is disabled during mock exams and official papers. Approved model answers appear only when the existing submission/feedback rules permit them. Not every question has a generated answer.
+
+## Subject chat and Topic chat
+
+In **Tutor room**, choose **Subject chat** to ask across the published, covered
+topics released for you in a subject. Choose **Topic chat** for focused learning
+in one selected topic. End your current session before starting a different
+session type. Existing conversations remain Topic chats.
+
+Subject chat searches relevant passages rather than sending the entire textbook.
+Its **Practice / voice focus** selects the topic for those separate tools; it
+does not restrict the text conversation. Question releases and assessment coverage
+still apply. Tutor help remains unavailable during formal assessments.
+
+Follow-up messages such as "Why does it happen?" or "Explain that more simply"
+use recent conversation context, including the tutor's reply. Be specific when
+several ideas could fit; AKURU should ask when the reference is ambiguous. Very
+old details may need to be repeated. Moving topics in Topic chat starts a fresh
+teaching focus; changing tutor profiles retains the conversation.
+
+On the session-start screen, **Your previous conversations** can be filtered by
+Subject chat or Topic chat and expanded to read the saved messages.

@@ -13474,6 +13474,15 @@
           "activeTopic": {
             "$ref": "#/components/schemas/PlanTopicResponse"
           },
+          "chatScope": {
+            "default": "topic",
+            "enum": [
+              "topic",
+              "subject"
+            ],
+            "title": "Chatscope",
+            "type": "string"
+          },
           "currentTutor": {
             "$ref": "#/components/schemas/TutorProfileResponse"
           },
@@ -13551,6 +13560,15 @@
       },
       "TutorSessionStartRequest": {
         "properties": {
+          "chatScope": {
+            "default": "topic",
+            "enum": [
+              "topic",
+              "subject"
+            ],
+            "title": "Chatscope",
+            "type": "string"
+          },
           "profileRef": {
             "maxLength": 48,
             "minLength": 8,
@@ -13570,15 +13588,21 @@
             "type": "string"
           },
           "topicRef": {
-            "maxLength": 80,
-            "minLength": 8,
-            "title": "Topicref",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 8,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Topicref"
           }
         },
         "required": [
           "subjectId",
-          "topicRef",
           "profileRef",
           "requestKey"
         ],

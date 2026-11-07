@@ -138,7 +138,7 @@ def response(db: Session, row: TutorSession) -> TutorSessionResponse:
         for event in db.scalars(select(TutorSessionTopicEvent).where(TutorSessionTopicEvent.session_id == row.id).order_by(
             TutorSessionTopicEvent.created_at, TutorSessionTopicEvent.id)).all()]
     return TutorSessionResponse(
-        sessionRef=row.public_ref, subjectId=row.subject_id, activeTopic=_topic_response(db, topic),
+        sessionRef=row.public_ref, subjectId=row.subject_id, chatScope=row.chat_scope, activeTopic=_topic_response(db, topic),
         currentTutor=tutor_profiles.profile_version_response(profile, selected_version), mode=row.mode, status=row.status,
         startedAt=row.started_at, endedAt=row.ended_at, turns=turn_responses,
         profileEvents=profile_events, topicEvents=topic_events,
@@ -162,11 +162,22 @@ def start(db: Session, settings: Settings, principal: Principal, payload) -> Tut
     if active:
         raise DomainError("tutor_session_already_active", "End your current tutor session before starting another.", 409)
     _, version = _owned_profile(db, principal.user.id, payload.profileRef)
-    topic = _eligible_topic(db, principal.user.id, payload.subjectId, payload.topicRef)
+    if payload.chatScope == "topic" and not payload.topicRef:
+        raise DomainError("tutor_topic_required", "Select a topic for Topic chat.", 422)
+    if payload.chatScope == "subject":
+        choice = next((item for item in options(db, principal.user.id, settings).subjects
+                       if item.id == payload.subjectId), None)
+        if not choice or not choice.topics:
+            raise DomainError("tutor_coverage_not_ready", "No released, covered topics are available for this subject.", 409)
+        # Retain an explicit focus for existing topic-specific practice/voice tools.
+        topic_ref = payload.topicRef or choice.topics[0].topicRef
+    else:
+        topic_ref = payload.topicRef
+    topic = _eligible_topic(db, principal.user.id, payload.subjectId, topic_ref)
     require_tutor_access(db, settings, principal.user.id, TutorCapability.TEXT,
                          payload.subjectId, "tutor_text", topic_id=topic.id)
     row = TutorSession(public_ref=f"tutor_session_{uuid.uuid4().hex}", student_id=principal.user.id,
-                       subject_id=payload.subjectId, active_topic_id=topic.id,
+                       subject_id=payload.subjectId, active_topic_id=topic.id, chat_scope=payload.chatScope,
                        current_profile_version_id=version.id, start_request_key=payload.requestKey)
     db.add(row)
     try:
