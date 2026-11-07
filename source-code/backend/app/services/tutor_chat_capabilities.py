@@ -41,6 +41,25 @@ def available(db, settings, principal, session):
             'pastPapers':papers,'automaticMarking':False}
 
 
+def topic_outline(db,topics):
+    """Group only the already-authorised topic options, using the book's label."""
+    from sqlalchemy import select
+    from app.models import Textbook,TextbookGroup
+    refs={t.groupRef for t in topics}
+    labels=dict(db.execute(select(TextbookGroup.public_ref,Textbook.group_label)
+        .join(Textbook,TextbookGroup.textbook_id==Textbook.id)
+        .where(TextbookGroup.public_ref.in_(refs))).all()) if refs else {}
+    groups={}
+    for topic in topics:
+        groups.setdefault(topic.groupRef,[]).append(topic)
+    sections=[]
+    for ref,items in groups.items():
+        first=items[0]
+        heading=f"**{labels.get(ref,'unit').title()} {first.groupCode} · {first.groupTitle}**"
+        sections.append(heading+'\n'+'\n'.join(f'- Topic {t.code} · {t.title}' for t in items))
+    return '\n\n'.join(sections)
+
+
 def help_response(db,settings,principal,session,kind):
     from app.services import tutor_sessions
     from app.models import TextbookTopic
@@ -49,7 +68,7 @@ def help_response(db,settings,principal,session,kind):
     subject=choice.name if choice else session.subject_id.title()
     capabilities=available(db,settings,principal,session)
     if kind=='topics':
-        content=f'Here are the published, covered {subject} topics released for you:\n\n'+ '\n'.join(f'- {t.groupCode} · {t.code} · {t.title}' for t in topics)
+        content=f'Here are the published, covered {subject} units and topics released for you:\n\n'+topic_outline(db,topics)
         if session.chat_scope=='topic':
             content+='\n\nThis is a Topic chat. Use Move topic to choose another available topic; I will not switch it automatically.'
         choices=['How can you help me with this subject?']
@@ -60,7 +79,11 @@ def help_response(db,settings,principal,session,kind):
         if capabilities['guidedPractice']: content+='\n- Open an eligible saved guided-practice question using the practice tools.'
         if capabilities['voice']: content+='\n- Use the voice tools, subject to your microphone permission and remaining allowance.'
         if capabilities['recommendations']: content+='\n- Use Find next topic for evidence-based guidance; I will say when there are not enough assessed results to personalise it.'
-        content+='\n\nAsk me to explain a concept, quiz you, or list the available topics. What would you like to work on?'
+        if topics and (kind=='overview' or session.chat_scope=='subject'):
+            content+='\n\nHere are the published, covered units and topics available to you:\n\n'+topic_outline(db,topics)
+            if session.chat_scope=='topic':
+                content+='\n\nThis is a Topic chat. Use Move topic to choose another available topic.'
+        content+='\n\nChoose a topic above, or ask me to explain a concept or quiz you. What would you like to work on?'
         active=db.get(TextbookTopic,session.active_topic_id)
         focus=next((t for t in topics if active and t.topicRef == active.public_ref), topics[0] if topics else None)
         choices=['Which topics can we study?'] + ([f'Ask me three questions about {focus.title}'] if focus else [])

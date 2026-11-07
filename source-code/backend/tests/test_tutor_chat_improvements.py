@@ -89,6 +89,15 @@ def test_help_and_topic_list_are_saved_replayed_private_and_free(auth_client,mon
  assert client.post(path+'/agent-turns',headers=headers,json={'message':'How can you help me with this subject?','requestKey':key}).json()['turnRef']==r.json()['turnRef']
  topics=client.post(path+'/agent-turns',headers=headers,json={'message':'Which topics can we study?','requestKey':uuid.uuid4().hex})
  assert topics.status_code==200 and topic.title in topics.json()['content']
+ from app.models import TutorSession,TextbookGroup
+ from sqlalchemy import select
+ session=db.scalar(select(TutorSession).where(TutorSession.public_ref==ref));session.chat_scope='subject';db.commit()
+ overview=client.post(path+'/agent-turns',headers=headers,json={'message':'Can you tell me what can you teach me on this subject?','requestKey':uuid.uuid4().hex})
+ assert overview.status_code==200,overview.text
+ group=db.get(TextbookGroup,topic.group_id)
+ assert topic.title in overview.json()['content'] and group.title in overview.json()['content']
+ assert 'Clarification' not in overview.json()['content'] and 'Topic '+topic.code in overview.json()['content']
+ assert overview.json()['provider']=='akuru'
  tools=client.get(path+'/tools');assert tools.status_code==200 and tools.json()['voice'] is False
  french=client.post(path+'/agent-turns',headers=headers,json={'message':'Bonjour','teachingMode':'french_conversation','requestKey':uuid.uuid4().hex})
  assert french.status_code==422
@@ -176,3 +185,41 @@ def test_general_cells_prefer_structure_and_preserve_explicit_repeat(monkeypatch
  assert len(result)==1 and result[0].title==structure[3]['caption']
  result,_=visuals.select_visuals(Mock(),None,None,session,'Earlier question: What is the function of the nucleus?\nCurrent follow-up: Can you show me where it is?',{str(structure[4].id)})
  assert len(result)==1 and result[0].title==structure[3]['caption']
+
+
+@pytest.mark.parametrize('message',[
+ 'Can you tell me what can you teach me on this subject?',
+ 'What can you teach me?',
+ 'What can you teach me about Biology?',
+ 'Could you please tell me what I can learn in this subject?',
+ 'Please tell me what can you teach me on this subject?',
+ 'Which units and topics can you teach me?',
+ 'What will we cover in this course?',
+ 'What can I study here?',
+])
+def test_subject_overview_paraphrases(message):
+ assert intent.help_kind(message)=='overview'
+
+
+@pytest.mark.parametrize('message',[
+ 'Can you tell me what cells are?',
+ 'Can you tell me how diffusion works?',
+ 'What can you teach me about viruses?',
+ 'What can you teach me on this subject and explain osmosis?',
+ 'How can you help me understand cells?',
+])
+def test_factual_or_mixed_overview_requests_still_require_grounding(message):
+ assert intent.help_kind(message) is None
+
+
+def test_topic_outline_groups_authorised_topics_with_book_labels():
+ from app.services.tutor_chat_capabilities import topic_outline
+ db=Mock();db.execute.return_value.all.return_value=[('group_a','unit'),('group_b','module')]
+ topics=[Row(groupRef='group_a',groupCode='1',groupTitle='Life processes',code='1',title='Cells'),
+         Row(groupRef='group_a',groupCode='1',groupTitle='Life processes',code='2',title='Organisms'),
+         Row(groupRef='group_b',groupCode='2',groupTitle='Physiology',code='3',title='Gas exchange')]
+ text=topic_outline(db,topics)
+ assert text.count('**Unit 1 · Life processes**')==1
+ assert '**Module 2 · Physiology**' in text
+ assert '- Topic 1 · Cells' in text and '- Topic 2 · Organisms' in text
+ assert text.index('Cells')<text.index('Gas exchange')

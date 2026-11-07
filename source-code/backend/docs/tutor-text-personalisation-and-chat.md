@@ -37,3 +37,7 @@ Routine regression uses deterministic providers and disposable database schemas.
 Use the standard reviewed-release script (backup, contract/build checks, migration verification and service health). Advance compatible pilot prompt/evidence pins with `deploy/ubuntu/update-tutor-chat-release.py`; preserve student audience, topic/content grants, model, expiry and security gates. See committed evaluation evidence for counts. Existing general-release evaluation records require explicit re-evaluation for the new prompt versions.
 
 Rollback the code to the previous reviewed release and restore its protected environment backup together; keep profile versions, transcripts and database data. Never disable release/access gates to accommodate an older prompt. No new schema means there is no downgrade migration for this change.
+
+## Overview-help follow-up — 7 November 2026
+
+Teaching-intent policy `teaching-intent-v1.1` recognises bounded overview paraphrases such as “Can you tell me what can you teach me on this subject?”, “What can I learn in Biology?” and polite tell-me wrappers. Named factual requests (“teach me about viruses”) and mixed factual/help requests remain on grounded teaching paths. Capability reply version 1.1.0 lists accessible published topics grouped under their saved textbook Unit/Module headings in Subject chat; explicit overview requests also work in Topic chat with the scope limitation explained. This is an authoritative catalogue response, with no model call, no inferred mastery and no new schema.

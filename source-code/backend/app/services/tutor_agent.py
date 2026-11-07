@@ -234,11 +234,11 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
         content, choices, capabilities = tutor_chat_capabilities.help_response(db, settings, principal, session, help_kind)
         operation_id = uuid.uuid4()
         stored = TutorAgentTurnResponse(operationRef=f"tutor_operation_{operation_id.hex}", turnRef="pending",
-            content=content, teachingMode=mode, followUpChoices=choices, provider="akuru", model="capability-help-v1",
-            promptName="tutor-capability-help", promptVersion="1.0.0",
+            content=content, teachingMode=mode, followUpChoices=choices, provider="akuru", model="capability-help-v1.1",
+            promptName="tutor-capability-help", promptVersion="1.1.0",
             retrievalProvenance={"routingPolicy": tutor_intent.VERSION, "route": "capability_help", "capabilities": capabilities}).model_dump(mode="json")
         turn = repository.save_exchange(db, session, payload.message.strip(), payload.requestKey, stored, [], operation_id,
-            "akuru", "capability-help-v1", "tutor-capability-help", "1.0.0")
+            "akuru", "capability-help-v1.1", "tutor-capability-help", "1.1.0")
         _record_safety(db, session, turn)
         return _response(turn, stored)
     from app.services import tutor_topic_discovery
