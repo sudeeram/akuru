@@ -104,8 +104,12 @@ def select_visuals(db,settings,principal,session,query,previous_asset_ids=()):
             score=100
         else:
             if not concept_match(query,description):continue
+            # A generic nucleus/cell question does not ask for specialised fungi.
+            taxon=r'\b(?:yeast|fung\w*|mould|mold|hypha\w*|mucor|bacter\w*|leaf|leaves|palisade|mesophyll|stoma\w*|guard cells?)\b'
+            if re.search(r'\b(?:cells?|nucleus|nuclei)\b',focus,re.I) and re.search(taxon,description,re.I) and not re.search(taxon,focus,re.I):continue
             # No generic prose-page or unrelated newest-asset fallback.
             score=len(overlap-{'figure','diagram','image','picture','labelled','labels','graph'})
+            if re.search(r'\btypical (?:animal|human|plant)\b',description,re.I):score+=20
             if re.search(r'\b(?:cells?|nucleus|nuclei)\b',query,re.I):
                 if re.search(r'\b(?:structure|organelles?|typical|electron micrograph)\b',description,re.I):score+=20
                 if re.search(r'\b(?:nucleus|nuclei)\b',query,re.I) and re.search(r'\b(?:nucleus|nuclei)\b',description,re.I):score+=10
@@ -116,7 +120,7 @@ def select_visuals(db,settings,principal,session,query,previous_asset_ids=()):
         return [],'ambiguous_figure'
     explicit=bool(re.search(r'\b(?:show|image|diagram|figure|picture|graph)\b',query,re.I))
     visuals=[];seen=set()
-    for _,topic,version,book,entry,asset in sorted(ranked,key=lambda r:(-r[0],str(r[5].id))):
+    for _,topic,version,book,entry,asset in sorted(ranked,key=lambda r:(-r[0],str(r[5].id)))[:2]:
         if asset.id in seen or (str(asset.id) in previous_asset_ids and not explicit):continue
         seen.add(asset.id)
         label=entry.get('printedPageLabel') or f"PDF {entry['pageNumber']}"
@@ -144,7 +148,7 @@ def select_visuals(db,settings,principal,session,query,previous_asset_ids=()):
                 provenance={'origin':'reviewed_generation' if row.provider!='akuru' else 'reviewed_stored_diagram','reviewState':'published',
                     'assetId':str(row.id),'generator':row.provider,'model':row.model,'checksum':row.checksum},sourceRefs=[source.citationRef]))
             break
-    return visuals,('available' if visuals else 'no_approved_match')
+    return visuals,('available' if visuals else 'already_shown' if ranked and previous_asset_ids and not explicit else 'no_approved_match')
 
 
 def open_visual(db,settings,principal,storage,session_ref,asset_id):
