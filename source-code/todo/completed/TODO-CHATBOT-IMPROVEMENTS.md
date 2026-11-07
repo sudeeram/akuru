@@ -1,9 +1,9 @@
 # Chatbot improvements
 
-Status: In progress.
+Status: Completed.
 Created: 7 November 2026.
 Started: 7 November 2026.
-Completed: Not completed.
+Completed: 7 November 2026.
 
 ## Purpose
 
@@ -342,4 +342,8 @@ placeholder as an implementation task.
 - 406 backend tests passed (1 skipped), 120 frontend tests passed; typecheck, lint and production build passed. API contracts regenerated. No schema migration required.
 - The authorised live Evaluation sample used the existing cumulative US$0.75 ledger. Results are qualitative, not measured general accuracy. Visual mismatches found during evaluation were corrected and regression tested.
 - Depth/paragraph targets are soft instruction preferences and versioned module defaults, not hard truncation or new environment settings. Official paper wording and deterministic safety/help replies remain unchanged.
-- Production deployment and normal Student acceptance are pending; retain this plan in ongoing until those checks finish.
+- Production deployment completed: main release `b0d1c9d`, followed by tested backend corrections `407e027` and `50bd5b5`. Encrypted database/document backup preceded deployment; migration remains `0019_tutor_chat_scope`, with no new upgrade operations. Existing pilot audience, content grants, model, expiry and security gates were preserved.
+- Final production acceptance passed HTTPS, headers, routed entry points, fallback boundaries, services, timers and loopback binding. The normal Student session verified useful free capability help, automatic approach UI, concise teaching, no image generation, approved Figures 1.2/1.3 with labels and enlargement, and a nucleus follow-up with a matching textbook source. Cross-topic leaf/fungal distractors exposed during acceptance were corrected and covered by regression tests.
+- Contrasting generated personalities were evaluated in isolated saved-profile sessions; production profile controls/previews were checked without saving changes to the child's real profile. Both-scope access, switching and replay regressions passed. No claim is made that every style/scope combination was manually exercised on production.
+- Final policy is `text-personality-v1.1`; 406 backend regressions passed (1 skipped), plus the focused 26-test visual/chat suite. Frontend remained at 120 passing tests with typecheck, lint and build passing.
+- Production runtime evidence: `/data/akuru/release-evidence/deployed-b0d1c9dc60a53ee01b3194b2e0ed02183845bdc2-20261107T141938Z.txt`; corrective preflight `preflight-50bd5b5e2a11ecec9eb67d3214a5dc0de6ed80bd-20261107T150753Z.txt`. Protected environment backups remain outside Git.
