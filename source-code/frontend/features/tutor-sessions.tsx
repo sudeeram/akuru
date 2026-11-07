@@ -297,11 +297,11 @@ export function TutorSessions({
               );
             }}
           >
-            <fieldset className="stack">
+            <fieldset className="tutor-choice stack">
               <legend>Chat scope</legend>
               <div className="button-row">
                 {(['topic', 'subject'] as const).map((scope) => (
-                  <label key={scope} className="button-row">
+                  <label key={scope} data-selected={chatScope === scope}>
                     <input
                       type="radio"
                       name="chat-scope"
@@ -309,7 +309,7 @@ export function TutorSessions({
                       checked={chatScope === scope}
                       onChange={() => setChatScope(scope)}
                     />
-                    {scope === 'topic' ? 'Topic chat' : 'Subject chat'}
+                    <span>{scope === 'topic' ? 'Topic chat' : 'Subject chat'}</span>
                   </label>
                 ))}
               </div>
