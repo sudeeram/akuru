@@ -31,14 +31,14 @@ def select_approach(message, subject, history=()):
 
 
 def help_kind(message):
-    v=re.sub(r'\s+',' ',message.strip().lower()).rstrip('?.! ')
+    v=re.sub(r'\s+',' ',message.strip().lower().strip('\"“”‘’')).rstrip('?.! ')
     v=re.sub(r'^please\s+','',v)
     v=re.sub(r'^tell me (?=(?:what|which|how)\b)','',v)
     v=re.sub(r'\s*,?\s+please$','',v)
     # Strip polite wrappers only around an actual capability/topic question.
     # A request such as 'tell me about cells' must retain factual grounding.
     v=re.sub(r'^(?:can|could|would) you (?:please )?(?:tell me|explain|show me) (?=(?:what|which|how)\b)','',v)
-    subject=r'(?:this (?:subject|topic|course)|biology|chemistry|physics|maths|mathematics|french|ict|english|human biology)'
+    subject=r'(?:this (?:subject|topic|course)|(?:the )?(?:biology|chemistry|physics|maths|mathematics|french|ict|english|human biology)(?: (?:subject|course))?)'
     if re.fullmatch(r'(?:what (?:(?:can|could|will) you|you (?:can|could|will)) teach(?: me)?|what (?:(?:can|could|will) i|i (?:can|could|will)) (?:learn|study)|what (?:(?:will|do|can) we|we (?:will|can)) (?:learn|study|cover)|(?:what|which) (?:topics|units|chapters)(?: and (?:topics|units|chapters))? can you (?:teach|cover)(?: me)?)(?: (?:on|in|about|for) '+subject+r'| here)?',v):
         return 'overview'
     # Anchored to capability questions; mixed/factual questions are not swallowed.

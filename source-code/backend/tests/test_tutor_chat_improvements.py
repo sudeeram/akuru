@@ -32,6 +32,7 @@ def test_intent_continuations_and_capability_requests_are_not_factual_routing():
  for msg in ['How can you help me with this subject?','How do I use this tutor?','What can I do here?']:
   assert intent.help_kind(msg)=='capabilities'
  assert intent.help_kind('Which topics can we study?')=='topics'
+ assert intent.help_kind('"How can you help me with this subject?"')=='capabilities'
  for msg in ['How can you help me understand cells?','Explain cells and what can you do here?','Which topics cover viruses?']:
   assert intent.help_kind(msg) is None
 
@@ -190,6 +191,8 @@ def test_general_cells_prefer_structure_and_preserve_explicit_repeat(monkeypatch
 @pytest.mark.parametrize('message',[
  'Can you tell me what can you teach me on this subject?',
  'What can you teach me?',
+ 'Can you tell me what can you teach me on Biology subject?',
+ '"What can you teach me on this subject?"',
  'What can you teach me about Biology?',
  'Could you please tell me what I can learn in this subject?',
  'Please tell me what can you teach me on this subject?',

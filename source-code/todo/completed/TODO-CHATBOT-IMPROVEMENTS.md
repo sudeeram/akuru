@@ -347,3 +347,10 @@ placeholder as an implementation task.
 - Contrasting generated personalities were evaluated in isolated saved-profile sessions; production profile controls/previews were checked without saving changes to the child's real profile. Both-scope access, switching and replay regressions passed. No claim is made that every style/scope combination was manually exercised on production.
 - Final policy is `text-personality-v1.1`; 406 backend regressions passed (1 skipped), plus the focused 26-test visual/chat suite. Frontend remained at 120 passing tests with typecheck, lint and build passing.
 - Production runtime evidence: `/data/akuru/release-evidence/deployed-b0d1c9dc60a53ee01b3194b2e0ed02183845bdc2-20261107T141938Z.txt`; corrective preflight `preflight-50bd5b5e2a11ecec9eb67d3214a5dc0de6ed80bd-20261107T150753Z.txt`. Protected environment backups remain outside Git.
+
+## Follow-up correction — teaching overview wording (7 November 2026)
+
+- [x] Recognise “Can you tell me what can you teach me on this subject?”, polite/declarative variants, “Biology subject”, and surrounding quotation marks. Named factual and mixed questions still require grounded teaching.
+- [x] Group only the student's authorised published topics under saved Unit/Module headings, including their titles. Subject chat capability help includes this outline; explicit overview requests work in either scope.
+- [x] Version deterministic help/routing, preserve transcript replay and make no provider call or learner-performance change. No schema or frontend change.
+- [x] 422 backend tests passed, 1 skipped. Production Student verification returned six Biology units and 22 accessible topics for the exact reported question; normal HTTPS/service acceptance passed.
