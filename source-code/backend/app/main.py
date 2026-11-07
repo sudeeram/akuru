@@ -58,6 +58,8 @@ def _request_body_limit(path: str) -> int:
 async def request_security(request: Request, call_next):
     allowed, remaining, limit = rate_limiter.check(request)
     if not allowed:
+        from app.ai.diagnostics import api_error
+        api_error("rate_limited", "Too many requests. Try again shortly.", 429)
         return rate_limiter.rejection()
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         origin = request.headers.get("origin")
@@ -97,3 +99,22 @@ def ready(
 ) -> dict[str, str]:
     db.execute(text("SELECT 1"))
     return {"status": "ready", "database": "connected"}
+
+
+@app.middleware("http")
+async def model_diagnostic_context(request: Request, call_next):
+    if not settings.ai_diagnostics_enabled or not request.url.path.startswith('/api/v1/') or request.url.path.startswith('/api/v1/auth/'):
+        return await call_next(request)
+    from app.ai.diagnostics import request_context, record
+    import time
+    with request_context(settings, request.url.path) as trace_id:
+        started = time.monotonic()
+        record('http.request', method=request.method)
+        try:
+            response = await call_next(request)
+        except Exception as error:
+            record('http.error', exceptionType=type(error).__name__)
+            raise
+        record('http.response', status=response.status_code, latencyMs=round((time.monotonic()-started)*1000))
+        response.headers['X-AKURU-Trace-ID'] = trace_id
+        return response

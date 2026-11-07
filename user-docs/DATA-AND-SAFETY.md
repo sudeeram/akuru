@@ -32,3 +32,7 @@ role-based access, encrypted backups and audited retention operations. Report an
 incorrect family link, unexpected document access or safety concern to the Admin
 immediately. Admins should use the Operations page and the procedures in the
 developer handbook when investigating incidents or processing deletion requests.
+
+## Optional troubleshooting diagnostics
+
+For an authorised investigation, server operators can temporarily enable private logging of AI prompts, supplied textbook context, generated replies and validation errors. These records contain student data. They are stored outside the application in a restricted server directory, with bounded rotation and seven-day cleanup on subsequent writes. They are not public files and do not change transcript retention or student performance records. Credentials, authentication headers and raw image/audio data are excluded; secret redaction of arbitrary free text is best effort. Operators should turn content capture off when the investigation is complete.

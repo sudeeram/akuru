@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from app.ai.diagnostics import api_error
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ def error_content(code: str, message: str, details: list[dict[str, Any]] | None 
 def install_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(DomainError)
     async def domain_error_handler(_request: Request, exc: DomainError) -> JSONResponse:
+        api_error(exc.code, exc.message, exc.status_code)
         return JSONResponse(
             status_code=exc.status_code,
             content=error_content(exc.code, exc.message, exc.details),
@@ -45,6 +47,7 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(_request: Request, exc: RequestValidationError) -> JSONResponse:
+        api_error("validation_error", "Check the highlighted information.", 422)
         details = [
             {
                 "location": [str(part) for part in issue["loc"]],
@@ -70,6 +73,7 @@ def install_error_handlers(app: FastAPI) -> None:
             429: "rate_limited",
         }
         message = exc.detail if isinstance(exc.detail, str) else "The request could not be completed."
+        api_error(code_by_status.get(exc.status_code, "request_failed"), message, exc.status_code)
         return JSONResponse(
             status_code=exc.status_code,
             content=error_content(code_by_status.get(exc.status_code, "request_failed"), message),
@@ -78,6 +82,7 @@ def install_error_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(Exception)
     async def unexpected_error_handler(request: Request, exc: Exception) -> JSONResponse:
+        api_error("processing_error", "The server could not complete the request.", 500)
         logger.exception("Unhandled API error for %s %s", request.method, request.url.path, exc_info=exc)
         return JSONResponse(
             status_code=500,

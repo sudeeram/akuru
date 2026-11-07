@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 from openai import APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, OpenAI, RateLimitError
 from app.ai.base import AIProviderError
+from app.ai.diagnostics import model_call
 
 @dataclass(frozen=True)
 class ImageResult:
@@ -22,8 +23,9 @@ class OpenAIImageProvider:
     def generate(self, prompt: str) -> ImageResult:
         started = time.monotonic()
         try:
-            response = self.client.images.generate(model=self.model, prompt=prompt, size=self.size,
-                quality="low", output_format="png", n=1)
+            response = model_call('images', self.model, {'prompt': prompt, 'size': self.size},
+                lambda: self.client.images.generate(model=self.model, prompt=prompt, size=self.size,
+                quality="low", output_format="png", n=1))
             encoded = response.data[0].b64_json
             if not encoded: raise AIProviderError("invalid_image_output", "The image provider returned no image.")
             return ImageResult(base64.b64decode(encoded, validate=True), "image/png", "openai", self.model,

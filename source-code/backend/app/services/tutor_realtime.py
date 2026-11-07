@@ -10,6 +10,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.config import Settings
+from app.ai.diagnostics import model_call
 from app.errors import DomainError
 from app.models import (
     AIProviderAccount,
@@ -33,10 +34,11 @@ SPEED_MAP = {"low": 0.85, "medium": 1.0, "high": 1.15}
 
 
 def _provider_secret(api_key: str, configuration: dict, lifetime: int) -> dict:
-    response = OpenAI(api_key=api_key, max_retries=0).realtime.client_secrets.create(
+    response = model_call('realtime-session', configuration.get('model'), {'configuration': configuration, 'lifetimeSeconds': lifetime},
+        lambda: OpenAI(api_key=api_key, max_retries=0).realtime.client_secrets.create(
         expires_after={"anchor": "created_at", "seconds": lifetime},
         session=configuration,
-    )
+    ))
     return {
         "value": response.value,
         "expiresAt": response.expires_at,

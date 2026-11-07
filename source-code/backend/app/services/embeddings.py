@@ -4,6 +4,7 @@ import re
 
 from openai import OpenAI
 from app.config import Settings
+from app.ai.diagnostics import model_call
 
 
 TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -23,7 +24,8 @@ def embed_texts(settings: Settings, texts: list[str]) -> list[list[float]]:
     if settings.embedding_provider == "local":
         return [_local_embedding(text, settings.embedding_dimensions) for text in texts]
     client = OpenAI(api_key=settings.openai_api_key.get_secret_value(), timeout=settings.ai_timeout_seconds)
-    response = client.embeddings.create(
+    response = model_call('embeddings', settings.embedding_model, {'texts': texts, 'dimensions': settings.embedding_dimensions},
+        lambda: client.embeddings.create(
         model=settings.embedding_model, input=texts, dimensions=settings.embedding_dimensions,
-    )
+    ), settings=settings)
     return [row.embedding for row in sorted(response.data, key=lambda row: row.index)]

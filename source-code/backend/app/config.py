@@ -84,6 +84,12 @@ class Settings(BaseSettings):
     document_render_dpi: int = Field(default=240, ge=96, le=300)
     document_ocr_min_characters: int = Field(default=40, ge=0, le=1000)
     tesseract_command: str = "tesseract"
+    ai_diagnostics_enabled: bool = False
+    ai_diagnostics_capture_content: bool = False
+    ai_diagnostics_directory: str = "/data/akuru/diagnostics/ai"
+    ai_diagnostics_retention_days: int = Field(default=7, ge=1, le=30)
+    ai_diagnostics_max_content_characters: int = Field(default=200000, ge=1000, le=500000)
+    ai_diagnostics_max_file_bytes: int = Field(default=10*1024*1024, ge=1024*1024, le=50*1024*1024)
     ai_provider: str = "disabled"
     openai_api_key: SecretStr | None = Field(default=None, repr=False)
     openai_model: str | None = None

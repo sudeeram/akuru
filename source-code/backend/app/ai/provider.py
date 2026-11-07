@@ -6,6 +6,7 @@ from typing import Any
 from openai import APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, OpenAI, RateLimitError
 from pydantic import ValidationError
 
+from app.ai.diagnostics import model_call
 from app.ai.base import AIProviderError, AIRequest, AIResult, AIUsage, AI_PURPOSES
 
 
@@ -48,7 +49,15 @@ class OpenAIProvider:
         with self._semaphore:
             for attempts in range(1, self.max_retries + 2):
                 try:
-                    response = self._client.responses.parse(
+                    response = model_call('responses', self.model, {
+                        'purpose': request.purpose, 'promptName': request.prompt_name,
+                        'promptVersion': request.prompt_version, 'instructions': request.instructions,
+                        'task': request.task, 'metadata': request.metadata,
+                        'outputSchema': request.output_type.__name__,
+                        'pages': [{'pageNumber': p.page_number, 'text': p.text,
+                                   'hasImage': bool(p.image_data_url)} for p in request.pages],
+                        'maxOutputTokens': self.max_output_tokens,
+                    }, lambda: self._client.responses.parse(
                         model=self.model,
                         instructions=request.instructions,
                         input=[{"role": "user", "content": content}],
@@ -61,7 +70,7 @@ class OpenAIProvider:
                             "prompt_version": request.prompt_version,
                         },
                         store=False,
-                    )
+                    ))
                     output = getattr(response, "output_parsed", None)
                     if output is None:
                         raise AIProviderError("invalid_ai_output", "The AI response did not contain valid structured output.")

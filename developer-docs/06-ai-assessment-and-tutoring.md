@@ -101,3 +101,7 @@ See [implementation and operations](../source-code/backend/docs/tutor-past-paper
 ## Supplementary text teaching
 
 The opt-in `tutor_teaching` policy and prompt 2.0.0 separate textbook-supported content from explicitly labelled additional explanation. Source/assessment authorization is unchanged; supplementary knowledge cannot become official marking evidence. Existing TutorTurn JSON retains sections, answer basis and retrieval provenance, avoiding a new migration. A durable existing chat-request registry protects paid-call retries. See [implementation, validation and rollout](../source-code/backend/docs/tutor-supplementary-teaching.md). Live evaluation passed and production was activated on 2026-11-02 for the existing one-Student Topic 1 pilot; normal signed-in Student acceptance passed with source links, labelled mixed replies, follow-ups and recorded usage.
+
+## Model and tutor diagnostics
+
+The opt-in `app/ai/diagnostics.py` records existing OpenAI Responses, images, remote embeddings and Realtime credential SDK operations with protected request/output capture, safe exception metadata and trace IDs. API middleware and controlled-error handlers correlate quota/rate failures and post-provider validation rejections. This closes the gap where an AI invocation was marked completed although the final student request returned 502. No extra model call or database migration is needed. See [private AI diagnostics](../source-code/backend/docs/ai-diagnostics.md) for configuration, retention, redaction limitations and the local inspection command.
