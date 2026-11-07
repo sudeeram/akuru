@@ -74,6 +74,9 @@ def concept_match(query, description):
         anchor=re.search(r'Earlier question: ([^\n]+)',query)
         context=anchor.group(1) if anchor else query
         selected=[pattern for trigger,pattern in concepts if re.search(trigger,context,re.I)]
+    focus=latest if any(re.search(trigger,latest,re.I) for trigger,_ in concepts) else (re.search(r'Earlier question: ([^\n]+)',query).group(1) if re.search(r'Earlier question: ([^\n]+)',query) else query)
+    if re.search(r'\b(?:nucleus|nuclei)\b',focus,re.I):
+        return bool(re.search(r'\b(?:nucleus|nuclei)\b',description,re.I))
     if selected:return any(re.search(pattern,description,re.I) for pattern in selected)
     if re.search(r'\b(?:changes? of state|states? of matter)\b',query,re.I):
         return bool(re.search(r'arrangement|change of state|melt|freez|sublim|boil|evaporat',description,re.I))
@@ -85,11 +88,15 @@ def select_visuals(db,settings,principal,session,query,previous_asset_ids=()):
     available=candidates(db,settings,principal,session)
     terms=tutor_sources._terms(query)-{'human','approved','generate','new','cellular','faster','help','please'}
     figures=set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b',query,re.I))
+    anchor=re.search(r'Earlier question: ([^\n]+)',query)
+    focus=anchor.group(1) if anchor else query
+    latest=query.split('Current follow-up:')[-1]
+    if re.search(r'\b(?:human|animal|plant)\s+cells?\b',latest,re.I):focus=latest
     ranked=[]
     for topic,version,book,entry,asset in available:
         description=entry['caption']+' '+entry['altText']
-        if re.search(r'\b(?:human|animal)\s+cells?\b',query,re.I) and not re.search(r'\bplant\b',query,re.I):
-            if re.search(r'\b(?:plant|chloroplast|cell wall)\b',description,re.I) and not re.search(r'\b(?:human|animal)\b',description,re.I):continue
+        if re.search(r'\b(?:human|animal)\s+cells?\b',focus,re.I) and not re.search(r'\bplant\b',focus,re.I):
+            if re.search(r'\b(?:plants?|chloroplasts?|cell walls?|leaves|leaf|palisade|mesophyll|stomata|guard cells?)\b',description,re.I) and not re.search(r'\b(?:human|animal)\b',description,re.I):continue
         ids=set(re.findall(r'\bfig(?:ure)?\.?\s*(\d+(?:\.\d+)+)\b',description,re.I))
         overlap=terms & tutor_sources._terms(description)
         if figures:

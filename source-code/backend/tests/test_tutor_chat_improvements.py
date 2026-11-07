@@ -169,7 +169,7 @@ def test_general_cells_prefer_structure_and_preserve_explicit_repeat(monkeypatch
   return (Row(id=uuid.UUID(int=1),public_ref='topic_cells',title='Cells'),Row(version_number=1),Row(title='Biology'),
    {'caption':caption,'altText':alt,'kind':'diagram','printedPageLabel':'4'},Row(id=uuid.uuid4(),sha256='a'*64))
  structure=row('Figure 1.2 Structure of a typical animal and plant cell','Nucleus, cytoplasm, cell membrane and chloroplast labels')
- records=[row('Figure 1.15 Animals and plants grow by cell division','Zygote to embryo by division'),row('Kidney tubule cell','Nucleus and mitochondria'),structure]
+ records=[row('Figure 1.15 Animals and plants grow by cell division','Zygote to embryo by division'),row('Kidney tubule cell','Nucleus and mitochondria'),row('Figure 10.6 Leaf and internal structure','Chloroplasts, palisade, guard cells and stoma'),structure]
  monkeypatch.setattr(visuals,'candidates',lambda *args:records)
  session=Row(public_ref='session_cells')
  result,_=visuals.select_visuals(Mock(),None,None,session,'Explain human cells')
