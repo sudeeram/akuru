@@ -37,7 +37,7 @@ def fingerprint(question, workspace):
 def _live(db, release):
     q = db.get(OfficialPaperReviewQuestion, release.question_id)
     w = db.get(OfficialPaperReviewWorkspace, q.workspace_id) if q else None
-    if not release.enabled or not q or q.status != 'approved' or not w or fingerprint(q, w) != release.fingerprint:
+    if not release.enabled or not q or not w or not official_paper_reviews.official_question_approved(db, w, q) or fingerprint(q, w) != release.fingerprint:
         return False
     try:
         official_paper_reviews._validate_bound_versions(db, w)
@@ -73,7 +73,7 @@ def release_part(db, principal, paper_id, number, payload):
         return {'enabled': False, 'partLabel': payload.partLabel}
     data = ReviewQuestionData.model_validate(q.review_data)
     part = next((p for p in data.parts if p.label == payload.partLabel), None)
-    if q.status != 'approved' or not part or part.status != 'approved' or part.coverage != 'supported':
+    if not official_paper_reviews.official_question_approved(db, w, q) or not part or part.status not in {'approved', 'ai_approved'} or part.coverage != 'supported':
         raise DomainError('practice_review_required', 'Approve the question and supported subpart before releasing practice.', 409)
     if not payload.confirmSelfContained or re.search(r'using (?:your|the) (?:answer|result)|(?:answer|result) (?:to|from) (?:part|\()', part.prompt, re.I):
         raise DomainError('practice_dependency_review', 'Release only self-contained subparts with all required information.', 409)

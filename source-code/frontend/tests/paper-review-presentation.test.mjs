@@ -13,6 +13,7 @@ const { outputText } = ts.transpileModule(source, {
   },
 });
 const {
+  reviewDecisionStatuses,
   reviewAccuracyRows,
   reviewAttentionCount,
   reviewQuestionList,
@@ -27,6 +28,105 @@ const {
 } = await import(
   `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`
 );
+
+test('manual and AI decisions stay distinct from scores, edits and extraction methods', () => {
+  const analysis = {
+    stage: 'accuracy',
+    isCurrent: true,
+    question: { percent: 90 },
+    parts: [
+      { label: 'a', percent: 90 },
+      { label: 'b', percent: 70 },
+    ],
+    provenance: [{ role: 'paper', method: 'codex_assisted' }],
+  };
+  const snapshot = structuredClone(analysis);
+  const pending = reviewDecisionStatuses('unreviewed', analysis, 'a');
+  assert.equal(pending.manual.status, 'unreviewed');
+  assert.equal(pending.ai.label, 'Assessed — not approved');
+  assert.equal(pending.ai.tone, 'info');
+  assert.equal(
+    reviewDecisionStatuses('approved', analysis, 'a').manual.status,
+    'approved',
+  );
+  assert.equal(
+    reviewDecisionStatuses('approved', analysis, 'a').ai.status,
+    'assessed',
+  );
+  for (const status of ['needs_correction', 'ready_for_approval', 'excluded']) {
+    assert.equal(
+      reviewDecisionStatuses(status, analysis).manual.status,
+      status,
+    );
+  }
+  assert.equal(reviewDecisionStatuses('unreviewed').ai.label, 'Not assessed');
+  assert.equal(
+    reviewDecisionStatuses('unreviewed', {
+      ...analysis,
+      provenance: [{ role: 'paper', method: 'native_pdf' }],
+    }).ai.label,
+    'Not assessed',
+  );
+  assert.equal(
+    reviewDecisionStatuses('unreviewed', analysis, 'missing').ai.label,
+    'Not assessed',
+  );
+  assert.equal(
+    reviewDecisionStatuses('unreviewed', { ...analysis, isCurrent: false }, 'a')
+      .ai.label,
+    'Reassessment required',
+  );
+  const approved = reviewDecisionStatuses('ai_approved', analysis, 'a');
+  assert.equal(approved.manual.label, 'Not manually approved');
+  assert.equal(approved.ai.label, 'AI approved');
+  assert.equal(approved.ai.tone, 'success');
+  // A strong subpart cannot turn the whole question green when another is weak.
+  assert.equal(
+    reviewDecisionStatuses('ai_approved', analysis).ai.label,
+    'Reassessment required',
+  );
+  for (const changed of [
+    null,
+    { ...analysis, isCurrent: false },
+    { ...analysis, stage: 'extraction' },
+  ]) {
+    assert.equal(
+      reviewDecisionStatuses('ai_approved', changed, 'a').ai.label,
+      'Reassessment required',
+    );
+  }
+  assert.equal(
+    reviewDecisionStatuses(
+      'ai_approved',
+      {
+        ...analysis,
+        parts: [{ label: 'a', percent: 75 }],
+      },
+      'a',
+    ).ai.label,
+    'Reassessment required',
+  );
+  // A part-level provenance override may identify AI interpretation separately.
+  assert.equal(
+    reviewDecisionStatuses(
+      'unreviewed',
+      {
+        ...analysis,
+        provenance: [{ role: 'paper', method: 'manual' }],
+        parts: [
+          {
+            label: 'a',
+            percent: 90,
+            provenance: [{ role: 'paper', method: 'openai_api' }],
+          },
+        ],
+      },
+      'a',
+    ).ai.label,
+    'Assessed — not approved',
+  );
+  assert.deepEqual(analysis, snapshot);
+});
 const questions = [
   { number: '1', status: 'approved' },
   { number: '2', status: 'needs_correction' },
@@ -306,4 +406,17 @@ test('dedicated accuracy inventory covers every part, filters and hides stale sc
     ['a', 'b', 'a'],
   );
   assert.deepEqual(rows, snapshot);
+});
+
+test('AI approvals are separately filterable and not pending human review', () => {
+  const rows = [...questions, { number: '11', status: 'ai_approved' }];
+  assert.equal(reviewAttentionCount(rows), 3);
+  assert.deepEqual(
+    reviewQuestionList(rows, 'ai_approved', '').map((q) => q.number),
+    ['11'],
+  );
+  assert.deepEqual(
+    reviewQuestionList(rows, 'approved', '').map((q) => q.number),
+    ['1'],
+  );
 });

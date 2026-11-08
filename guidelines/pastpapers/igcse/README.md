@@ -2,17 +2,17 @@
 
 Guideline ID: `akuru-igcse-pastpapers`
 
-Version: `1.3.0`
+Version: `1.4.0`
 
 Created: 2026-10-21
 
-Last updated: 2026-11-01
+Last updated: 2026-11-04
 
 Status: documented standard; automated enforcement is incomplete.
 
 ## Scope and required reading
 
-Apply this standard when preparing questions here, in AKURU, or through another processing agent. The initial reference set is Pearson Edexcel International GCSE Chemistry, June 2025, standard 1C/2C. Regional papers remain distinct sources even when their syllabus is shared.
+Apply this standard when preparing questions here, in AKURU, or through another processing agent. The initial reference set is Pearson Edexcel International GCSE Chemistry, June 2025, standard 1C/2C. The reference corpus also includes June 2025 standard Biology 1B/2B. Regional papers remain distinct sources even when their syllabus is shared.
 
 1. [Question-paper analysis](question-paper-analysis.md)
 2. [Marking-scheme analysis](marking-scheme-analysis.md)
@@ -23,6 +23,7 @@ Apply this standard when preparing questions here, in AKURU, or through another 
 7. [Reviewed reference examples](reviewed-examples.md)
 8. [Per-batch extraction checklist](extraction-checklist.md) — record executed checks, exact issues and review decisions.
 9. [Accuracy confidence and extraction provenance](accuracy-confidence-and-provenance.md) — source-specific model identity, dated estimates and reassessment history independent of approvals.
+10. [Source comparison and confidence reassessment](source-comparison-and-confidence-reassessment.md) — required procedure when reassessing imported content; compare sources, correct defects, then record a new evidence-backed assessment.
 
 ## Processing sequence
 
@@ -52,6 +53,8 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 
 ## Change history
 
+- 2026-11-04 — 1.4.0: reusable source-comparison/reassessment procedure based on Chemistry and Biology pilots; explicit baseline/revision protection, decimal and gap-fill checks, grouped-crop verification, subpart report continuations, source-conflict handling and independent acceptance evidence. Historical batch provenance remains unchanged.
+
 - 2026-11-01 — 1.3.0: source-specific extraction/model provenance, independent accuracy estimates and append-only reassessment history. Existing review approvals stay unchanged when metadata is added. Unknown historical model identities must not be guessed.
 
 - 2026-10-21 — 1.0.0: initial standard based on 1C Q1 visual review and Q2 boundary, scheme and report findings. No code deployment or content approval is implied.
@@ -66,3 +69,13 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 - [Reviewed examples](reviewed-examples.md) — includes later Q3, Q5(c)(ii) and Q7 visual corrections and their regression expectations.
 
 - [2026-10-31 1C remaining questions and complete 2C source audit](reviews/2026-10-31-june-2025-1c-2c-guideline-audit.md) — authenticated production corrections; preserved Admin decisions and release gates.
+
+- [2026-11-04 June 2025 Biology 1B/2B source comparison](reviews/2026-11-04-june-2025-biology-source-comparison.md) — source corrections, append-only reassessments and unresolved official-source conflicts.
+
+- [2026-11-04 June 2024 Biology 1B/2B source comparison](reviews/2026-11-04-june-2024-biology-source-comparison.md) — 16 questions/77 subparts, five complete replacement crops and source-specific reassessments.
+
+- [2026-11-04 June 2025 Biology regional 1BR/2BR source comparison](reviews/2026-11-04-june-2025-regional-biology-source-comparison.md) — 16 questions/80 subparts, complete crop inspection and honest source-conflict confidence limits.
+
+- [2026-11-04 November 2024 Biology 1B/2B source comparison](reviews/2026-11-04-november-2024-biology-source-comparison.md) — 16 questions/74 subparts, two complete replacement crops, narrative report associations and source-specific confidence.
+
+- [2026-11-08 June 2024 Biology regional 1BR/2BR source comparison](reviews/2026-11-08-june-2024-regional-biology-source-comparison.md) — 16 questions/77 subparts, eight complete replacement visuals, exact report associations and three explicitly retained publisher-source conflicts.

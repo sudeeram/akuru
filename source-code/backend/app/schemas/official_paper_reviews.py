@@ -8,7 +8,7 @@ from app.schemas.answer_visuals import AnswerVisual
 from app.schemas.paper_analysis import AnalysisProvenance, QuestionAnalysisResponse
 
 
-ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "excluded"]
+ReviewStatus = Literal["unreviewed", "needs_correction", "ready_for_approval", "approved", "ai_approved", "excluded"]
 CoverageStatus = Literal["unreviewed", "supported", "partial_or_uncertain", "outside_current_coverage"]
 
 
@@ -174,3 +174,16 @@ class PaperReviewResponse(BaseModel):
     assessmentBlockers: list[str] = Field(default_factory=list)
     blockers: list[str]
     questions: list[ReviewQuestionResponse]
+
+
+class AutoApprovalResult(BaseModel):
+    number: str
+    status: ReviewStatus
+    changed: bool
+    reason: str
+
+
+class PaperAutoApprovalResponse(BaseModel):
+    policy: str
+    thresholdExclusive: int
+    results: list[AutoApprovalResult]

@@ -1,10 +1,10 @@
 # Per-batch past-paper extraction checklist
 
-Standard: `akuru-igcse-pastpapers` 1.3.0
+Standard: `akuru-igcse-pastpapers` 1.4.0
 
 Created: 2026-10-31
 
-Last updated: 2026-11-01
+Last updated: 2026-11-04
 
 Status: required review record; not all checks are automatically enforced by AKURU.
 
@@ -46,3 +46,7 @@ Record batch ID, awarding body/qualification/subject/specification, year/session
 Record failed/not-run checks with the exact question/subpart, source page/region, reason, proposed action and resolution/reviewer. Apply [import/review gates](akuru-import-validation.md); an incomplete checklist is not a declaration that the batch is release-ready. An optional missing report and an essential missing scoring rule do not have the same impact.
 
 Compare with [reviewed examples](reviewed-examples.md): Q2 boundaries/options and grouped credit, Q3 external labels, Q5(c)(ii) private displayed-formula answers, and Q7 graph axes/scales. Add new layout/subject failures as independently checked cases. Keep written reference cases separate from executable tests and record which tests were actually run.
+
+## Reassessment batches
+
+Also follow [source comparison and confidence reassessment](source-comparison-and-confidence-reassessment.md). Record the frozen baseline, source-specific inspection scope, intended corrections, saved revisions/content hashes, append-only assessment versions and final threshold counts. Keep source conflicts and any untranscribed handwritten material explicit. Existing extraction triage and approvals must not be overwritten to meet a confidence target.

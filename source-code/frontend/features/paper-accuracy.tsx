@@ -1,6 +1,11 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { getPaperReview, type PaperReview, type Doc } from '@/api';
+import {
+  getPaperReview,
+  applyPaperAutoApproval,
+  type PaperReview,
+  type Doc,
+} from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,6 +15,7 @@ import {
 import { StatusBadge } from '@/components/portal/badges';
 import {
   reviewAccuracyRows,
+  reviewDecisionStatuses,
   reviewProvenance,
 } from '@/lib/paper-review-presentation';
 import { QuestionAnalysisPanel } from './question-analysis';
@@ -25,6 +31,8 @@ export function PaperAccuracyPage({
 }) {
   const [review, setReview] = useState<PaperReview | null>(null);
   const [error, setError] = useState('');
+  const [applying, setApplying] = useState(false);
+  const [approvalResult, setApprovalResult] = useState('');
   const [search, setSearch] = useState('');
   const [model, setModel] = useState('');
   const [scope, setScope] = useState('all');
@@ -89,10 +97,49 @@ export function PaperAccuracyPage({
         }
       />
       <p>
-        Question and subpart confidence estimates are separate from approval.
-        Overall question confidence follows the weakest subpart. Open details to
-        see source checks, reasons, models and history.
+        Current accuracy confidence above 75% can assign AI approved status when
+        all review requirements pass. Human approvals are preserved. Overall
+        question confidence follows the weakest subpart. Open details to see
+        source checks, reasons, models and history.
       </p>
+      <p className="small">
+        Manual review and AI review show current decisions, not historical
+        review activity. An AI assessment or confidence score alone is not
+        approval. Outdated AI assessments require reassessment; AI approval does
+        not imply manual approval.
+      </p>
+      <Button
+        disabled={!review || applying}
+        onClick={async () => {
+          setApplying(true);
+          setError('');
+          try {
+            const result = await applyPaperAutoApproval(paperId);
+            setReview(await getPaperReview(paperId));
+            setApprovalResult(
+              result.results
+                .map(
+                  (item) =>
+                    `Q${item.number}: ${item.status.replaceAll('_', ' ')} — ${item.reason}`,
+                )
+                .join('\n'),
+            );
+          } catch (cause) {
+            setError(
+              cause instanceof Error
+                ? cause.message
+                : 'Unable to apply AI approval.',
+            );
+          } finally {
+            setApplying(false);
+          }
+        }}
+      >
+        {applying ? 'Checking confidence…' : 'Apply AI approval above 75%'}
+      </Button>
+      {approvalResult && (
+        <output style={{ whiteSpace: 'pre-line' }}>{approvalResult}</output>
+      )}
       {error && <p role="alert">{error}</p>}
       {!review && !error && <output>Loading accuracy assessments…</output>}
       {review && (
@@ -149,7 +196,7 @@ export function PaperAccuracyPage({
             >
               <table
                 className="admin-table"
-                style={{ minWidth: 980, width: '100%' }}
+                style={{ minWidth: 1180, width: '100%' }}
               >
                 <caption>
                   Accuracy confidence for each question and subpart
@@ -158,7 +205,8 @@ export function PaperAccuracyPage({
                   <tr>
                     <th scope="col">Question / part</th>
                     <th scope="col">Marks</th>
-                    <th scope="col">Review status</th>
+                    <th scope="col">Manual review</th>
+                    <th scope="col">AI review</th>
                     <th scope="col">Confidence</th>
                     <th scope="col">Paper</th>
                     <th scope="col">Scheme</th>
@@ -170,6 +218,11 @@ export function PaperAccuracyPage({
                 </thead>
                 <tbody>
                   {rows.map((row) => {
+                    const decisions = reviewDecisionStatuses(
+                      row.status,
+                      row.analysis,
+                      row.label,
+                    );
                     const provenance = row.analysis
                       ? reviewProvenance(row.analysis, row.label)
                       : [];
@@ -196,8 +249,16 @@ export function PaperAccuracyPage({
                         <td>{row.marks}</td>
                         <td>
                           <StatusBadge
-                            status={row.status}
-                            label={row.status.replaceAll('_', ' ')}
+                            status={decisions.manual.status}
+                            label={decisions.manual.label}
+                            size="xs"
+                          />
+                        </td>
+                        <td>
+                          <StatusBadge
+                            status={decisions.ai.status}
+                            label={decisions.ai.label}
+                            tone={decisions.ai.tone}
                             size="xs"
                           />
                         </td>

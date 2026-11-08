@@ -1,7 +1,66 @@
 import type { PaperReview } from '@/api';
 import type { QuestionAnalysis } from '@/api/assessments/official-paper-review.api';
+import type { BadgeTone } from '@/lib/badges';
 
 type Question = PaperReview['questions'][number];
+
+/** Current decisions only: confidence and human edit timestamps are not approvals. */
+export function reviewDecisionStatuses(
+  status: string,
+  analysis?: QuestionAnalysis | null,
+  partLabel?: string,
+) {
+  const manual = {
+    status: status === 'ai_approved' ? 'not_manually_approved' : status,
+    label:
+      status === 'ai_approved'
+        ? 'Not manually approved'
+        : status.replaceAll('_', ' '),
+  };
+  const estimate =
+    partLabel === undefined
+      ? analysis?.question
+      : analysis?.parts.find((part) => part.label === partLabel);
+  const hasAI =
+    !!analysis &&
+    !!estimate &&
+    reviewProvenance(analysis, partLabel).some((source) =>
+      ['codex_assisted', 'openai_api'].includes(source.method),
+    );
+  let ai: { status: string; label: string; tone: BadgeTone } = {
+    status: 'not_assessed',
+    label: 'Not assessed',
+    tone: 'neutral',
+  };
+  if (status === 'ai_approved') {
+    const current =
+      analysis?.stage === 'accuracy' &&
+      analysis.isCurrent &&
+      (estimate?.percent ?? 0) > 75 &&
+      (partLabel !== undefined ||
+        analysis.parts.every((part) => part.percent > 75));
+    ai = current
+      ? { status: 'ai_approved', label: 'AI approved', tone: 'success' }
+      : {
+          status: 'review_required',
+          label: 'Reassessment required',
+          tone: 'warning',
+        };
+  } else if (hasAI) {
+    ai = analysis?.isCurrent
+      ? {
+          status: 'assessed',
+          label: 'Assessed — not approved',
+          tone: 'info',
+        }
+      : {
+          status: 'review_required',
+          label: 'Reassessment required',
+          tone: 'warning',
+        };
+  }
+  return { manual, ai };
+}
 
 export function reviewProvenance(
   analysis: QuestionAnalysis,
@@ -32,7 +91,8 @@ export function reviewAccuracy(question: Question) {
 /** Excluded questions remain visible in the inventory without being pending work. */
 export function reviewAttentionCount(questions: Question[]) {
   return questions.filter(
-    (question) => !['approved', 'excluded'].includes(question.status),
+    (question) =>
+      !['approved', 'ai_approved', 'excluded'].includes(question.status),
   ).length;
 }
 
@@ -49,7 +109,7 @@ export function reviewQuestionList(
     (question) =>
       (filter === 'all' ||
         (filter === 'attention'
-          ? !['approved', 'excluded'].includes(question.status)
+          ? !['approved', 'ai_approved', 'excluded'].includes(question.status)
           : question.status === filter)) &&
       (!term || `question ${question.number}`.toLowerCase().includes(term)) &&
       (!modelTerm ||

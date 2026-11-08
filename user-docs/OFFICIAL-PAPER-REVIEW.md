@@ -73,3 +73,41 @@ A Codex-prepared answer may also appear in this panel as **Awaiting review** whi
 ### Qualitative AI-generated answer diagrams
 
 Some questions have marking criteria without an official drawn model. AKURU can hold separately prepared AI-generated curve, energy-profile and ion-diagram drafts in **AI-generated worked answers**. Expand the matching **Part … — preview worked answer**, compare its explanation and confidence with the source, then choose **Approve worked answer** or **Reject**. Approval attaches it to that subpart automatically. The AI label remains visible to students when answer-reveal rules allow access. A draft alone does not satisfy the required-answer gate or approve the question, and it does not enable automatic marking of student drawings.
+
+
+## AI approval from accuracy confidence
+
+A question or subpart can show **AI approved**, distinct from human **Approved**.
+The current accuracy confidence must be **above 75%**, and existing evidence,
+coverage and visual-review checks must pass. Exactly 75% does not qualify.
+
+New accuracy analyses and review saves apply this automatically. For existing
+analyses, open the paper’s **Accuracy confidence** page and click **Apply AI
+approval above 75%**. Per-question results explain any remaining requirements.
+This uses recorded analyses; it does not make paid AI calls. Human approvals,
+exclusions and questions marked Needs correction are preserved.
+
+Content changes make an old analysis stale and stop its AI approval counting
+towards release. A new lower-confidence analysis can also withdraw AI approval.
+Explicit student release, curriculum access and marking readiness are still
+required. You can continue to review and approve content manually.
+
+### Reading processing and review status
+
+The document list's **Extraction progress** percentage shows how far PDF
+processing has progressed. A value of 100% does not mean the content is accurate,
+reviewed, approved or released.
+
+On **Accuracy confidence**, each question and subpart has separate columns:
+
+- **Manual review** shows the current human decision. AI-approved items show
+  **Not manually approved** here; a human edit timestamp alone is not approval.
+- **AI review** shows **Not assessed**, **Assessed — not approved**,
+  **AI approved**, or **Reassessment required**, using grey, blue, green and
+  amber respectively. Only recorded AI-assisted interpretation counts as an AI
+  assessment; native extraction or a manually recorded score alone does not.
+- **Confidence** shows the current accuracy estimate independently of approval.
+
+These columns show current decisions rather than the complete historical review
+activity. Use **Details** for assessment provenance and history. If source content
+changes, reassess it before relying on an old AI decision.

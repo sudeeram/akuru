@@ -17,6 +17,29 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 from app.schemas.paper_analysis import RecordQuestionAnalysis  # noqa: E402
 
 
+
+def verify_policy_only_change(previous, following):
+    """Permit audited AI status transitions, never wording or human decisions."""
+    import copy
+    for field in ("reviewedBy", "reviewedAt", "analysisContentHash"):
+        if previous[field] != following[field]:
+            return False
+    if following["revision"] not in {previous["revision"], previous["revision"] + 1}:
+        return False
+    def transition(before, after):
+        return before == after or (before in {"unreviewed", "ready_for_approval", "ai_approved"}
+            and after in {"ai_approved", "unreviewed"})
+    if not transition(previous["status"], following["status"]):
+        return False
+    before, after = copy.deepcopy(previous["data"]), copy.deepcopy(following["data"])
+    if len(before["parts"]) != len(after["parts"]):
+        return False
+    for old, new in zip(before["parts"], after["parts"]):
+        if not transition(old.pop("status"), new.pop("status")):
+            return False
+    return before == after
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True)
@@ -89,13 +112,12 @@ def main():
                 after = request("GET", root)
                 for previous in before["questions"]:
                     following = next(q for q in after["questions"] if q["number"] == previous["number"])
-                    for field in ("revision", "status", "data", "reviewedBy", "reviewedAt"):
-                        if previous[field] != following[field]:
-                            raise RuntimeError(f"Q{previous['number']} content or approval changed during the batch. Inspect before continuing.")
+                    if not verify_policy_only_change(previous, following):
+                        raise RuntimeError(f"Q{previous['number']} content or human approval changed during the batch. Inspect before continuing.")
                 if args.evidence:
                     args.evidence.parent.mkdir(parents=True, exist_ok=True)
                     args.evidence.write_text(json.dumps({"before": before, "analyses": results, "after": after}, indent=2))
-                print("Verified every question's content, revision, approval and reviewer metadata stayed unchanged.")
+                print("Verified question content and human decisions stayed unchanged; confidence policy may update AI approval and revision.")
         finally:
             request("POST", "auth/logout")
 

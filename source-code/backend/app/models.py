@@ -1222,7 +1222,7 @@ class OfficialPaperReviewQuestion(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     __table_args__ = (
         CheckConstraint("revision > 0", name="ck_official_review_question_revision"),
-        CheckConstraint("status IN ('unreviewed','needs_correction','ready_for_approval','approved','excluded')", name="ck_official_review_question_status"),
+        CheckConstraint("status IN ('unreviewed','needs_correction','ready_for_approval','approved','ai_approved','excluded')", name="ck_official_review_question_status"),
         UniqueConstraint("workspace_id", "number", name="uq_official_review_question_number"),
     )
 

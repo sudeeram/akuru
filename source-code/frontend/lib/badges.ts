@@ -71,6 +71,7 @@ const groups: Record<BadgeTone, string[]> = {
     'unavailable',
   ],
   info: [
+    'ai approved',
     'active',
     'in progress',
     'processing',
@@ -146,7 +147,7 @@ export function badgeStatus(status: string): {
   return {
     tone,
     label:
-      labels[normalized] ||
+      (normalized === 'ai approved' ? 'AI approved' : labels[normalized]) ||
       (normalized
         ? normalized[0].toUpperCase() + normalized.slice(1)
         : 'Not specified'),

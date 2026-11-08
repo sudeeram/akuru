@@ -70,6 +70,7 @@ const reviewStatuses: ReviewStatus[] = [
   'needs_correction',
   'ready_for_approval',
   'approved',
+  'ai_approved',
   'excluded',
 ];
 const coverageStatuses: CoverageStatus[] = [
@@ -78,7 +79,8 @@ const coverageStatuses: CoverageStatus[] = [
   'partial_or_uncertain',
   'outside_current_coverage',
 ];
-const label = (value: string) => value.replaceAll('_', ' ');
+const label = (value: string) =>
+  value === 'ai_approved' ? 'AI approved' : value.replaceAll('_', ' ');
 
 function emptyPart(): ReviewPart {
   return {
@@ -1550,7 +1552,11 @@ export function OfficialPaperReview({
                         }
                       >
                         {reviewStatuses.map((item) => (
-                          <option key={item} value={item}>
+                          <option
+                            key={item}
+                            value={item}
+                            disabled={item === 'ai_approved'}
+                          >
                             {label(item)}
                           </option>
                         ))}
@@ -1592,7 +1598,9 @@ export function OfficialPaperReview({
                             aria-pressed={activePart === index}
                             onClick={() => selectPart(index)}
                           >
-                            {savedState.displayStatus === 'approved' ? (
+                            {['approved', 'ai_approved'].includes(
+                              savedState.displayStatus,
+                            ) ? (
                               <CheckCircle2 size={14} aria-hidden="true" />
                             ) : (
                               <TriangleAlert size={14} aria-hidden="true" />
@@ -2424,7 +2432,11 @@ export function OfficialPaperReview({
                             {reviewStatuses
                               .filter((item) => item !== 'excluded')
                               .map((value) => (
-                                <option value={value} key={value}>
+                                <option
+                                  value={value}
+                                  key={value}
+                                  disabled={value === 'ai_approved'}
+                                >
                                   {label(value)}
                                 </option>
                               ))}

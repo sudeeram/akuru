@@ -87,14 +87,24 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
     ).order_by(OfficialPaperReviewQuestion.number)).all()
     from . import official_question_analyses
     analysis = official_question_analyses.summaries(db, workspace, rows)
-    questions = [ReviewQuestionResponse(
-        number=row.number, revision=row.revision, status=row.status,
-        data=ReviewQuestionData.model_validate(row.review_data),
-        reviewedBy=str(row.reviewed_by) if row.reviewed_by else None,
-        reviewedAt=row.reviewed_at.isoformat() if row.reviewed_at else None,
-        **analysis[row.id],
-    ) for row in rows]
-    approved = sum(row.status == "approved" for row in rows)
+    from .question_auto_approval import is_approved
+    questions = []
+    approved = 0
+    for row in rows:
+        accepted = is_approved(db, workspace, row)
+        approved += int(accepted)
+        data = ReviewQuestionData.model_validate(row.review_data)
+        accuracy = analysis[row.id]["accuracyAnalysis"]
+        scores = {p.label: p.percent for p in accuracy.parts} if accuracy and accuracy.isCurrent else {}
+        for part in data.parts:
+            if part.status == "ai_approved" and scores.get(part.label, 0) <= 75:
+                part.status = "unreviewed"
+        questions.append(ReviewQuestionResponse(
+            number=row.number, revision=row.revision,
+            status="unreviewed" if row.status == "ai_approved" and not accepted else row.status,
+            data=data, reviewedBy=str(row.reviewed_by) if row.reviewed_by else None,
+            reviewedAt=row.reviewed_at.isoformat() if row.reviewed_at else None,
+            **analysis[row.id]))
     blockers = []
     if not workspace.scheme_document_id:
         blockers.append("Attach the exact marking scheme.")
@@ -455,7 +465,7 @@ def _auto_link_exact_paper_blocks(db: Session, workspace: OfficialPaperReviewWor
     """Fill a missing exact paper citation only when one reviewed subpart block matches."""
     added = 0
     for part in data.parts:
-        if part.status not in {"ready_for_approval", "approved"} or any(source.blockId for source in part.paperSources):
+        if part.status not in {"ready_for_approval", "approved", "ai_approved"} or any(source.blockId for source in part.paperSources):
             continue
         page_numbers = {source.page for source in (part.paperSources or data.paperSources)}
         if not page_numbers:
@@ -494,7 +504,7 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
         validate_textbook_evidence(db, _paper(db, workspace.paper_document_id), part, previous_part.get("textbookEvidence", []))
         from app.services.answer_visuals import validate_visuals
         validate_visuals(db, workspace.scheme_version_id, part.answerVisuals, {p.code for p in part.markingPoints}, part.label, question_number)
-        if part.status in {"ready_for_approval", "approved"} and (part.answerVisualRequired or part.responseType == "drawing"):
+        if part.status in {"ready_for_approval", "approved", "ai_approved"} and (part.answerVisualRequired or part.responseType == "drawing"):
             if not any(v.status == "approved" for v in part.answerVisuals) or any(v.status == "proposed" for v in part.answerVisuals):
                 raise DomainError("answer_visual_review_required", f"Part {part.label}: approve the model-answer visuals or reject remaining proposals.", 409)
         if part.responseType == "drawing" and part.assessmentReadiness == "automatic":
@@ -518,7 +528,7 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             raise DomainError("topic_required", "A supported part needs a published topic.", 422)
         if part.coverage != "supported" and part.topicRefs:
             raise DomainError("unsupported_topic_mapping", "Only supported parts may have confirmed topic links.", 422)
-        if part.status in {"ready_for_approval", "approved"}:
+        if part.status in {"ready_for_approval", "approved", "ai_approved"}:
             missing = [name for name, valid in (
                 ("wording", part.prompt.strip()), ("paper evidence", part.paperSources),
                 ("scheme evidence", part.schemeSources), ("marking points", part.markingPoints),
@@ -545,15 +555,15 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
     if status == "excluded":
         if not data.exclusionReason.strip():
             raise DomainError("exclusion_reason_required", "Explain why this source question is excluded.", 422)
-    if status in {"ready_for_approval", "approved"}:
+    if status in {"ready_for_approval", "approved", "ai_approved"}:
         if data.candidateVisualAssetIds:
             raise DomainError("unassigned_visual_candidates", "Assign or remove every candidate visual before approving the question.", 409)
         if not workspace.scheme_document_id or not data.paperSources or not data.prompt.strip() or data.marks <= 0:
             raise DomainError("question_incomplete", "Attach the scheme and review the complete question source.", 409)
         if sum(part.marks for part in data.parts) != data.marks:
             raise DomainError("question_marks_mismatch", "Subpart marks must add up to the question marks.", 422)
-        required_part_status = "approved" if status == "approved" else "ready_for_approval"
-        if any(part.status not in {required_part_status, "approved"} for part in data.parts):
+        required_part_status = "approved" if status in {"approved", "ai_approved"} else "ready_for_approval"
+        if any(part.status not in {required_part_status, "approved", "ai_approved"} for part in data.parts):
             raise DomainError("parts_not_approved", "Approve every subpart first.", 409)
         if not any(source.blockId for source in data.paperSources):
             raise DomainError("exact_block_required", "Link an exact paper block before question approval.", 409)
@@ -606,6 +616,16 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         payload.data.extractionConfidence = None
         for part in payload.data.parts:
             part.extractionConfidence = None
+    if payload.status == "ai_approved":
+        if not row or row.status != "ai_approved":
+            raise DomainError("ai_approval_server_only", "AI approval is assigned by the confidence policy, not manually.", 422)
+        payload.status = "unreviewed"
+    for part in payload.data.parts:
+        if part.status == "ai_approved":
+            prior = next((p for p in (row.review_data if row else {}).get("parts", []) if p.get("label") == part.label), {})
+            if prior.get("status") != "ai_approved":
+                raise DomainError("ai_approval_server_only", "AI approval is assigned by the confidence policy, not manually.", 422)
+            part.status = "unreviewed"
     auto_linked = _auto_link_exact_paper_blocks(db, workspace, payload.data)
     changed = bool(row and _content_snapshot(row.review_data) != _content_snapshot(payload.data.model_dump(mode="json")))
     if row and row.status == "approved" and payload.status == "approved" and changed:
@@ -631,6 +651,8 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
                                   "autoLinkedPaperBlocks": auto_linked,
                                   "previousTextbookEvidence": previous_textbook_evidence,
                                   "textbookEvidence": [{"part": part.label, "evidence": [item.model_dump(mode="json") for item in part.textbookEvidence]} for part in payload.data.parts]}))
+    from .question_auto_approval import apply
+    apply(db, principal, workspace, row)
     db.commit()
     return _response(db, workspace)
 
@@ -805,3 +827,8 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
     return {"paperDocumentId": str(paper_id), "paperDraftVersion": paper_draft.versionNumber,
             "schemeDocumentId": str(workspace.scheme_document_id),
             "schemeDraftVersion": scheme_draft.versionNumber, "published": False}
+
+
+def official_question_approved(db, workspace, question):
+    from .question_auto_approval import is_approved
+    return is_approved(db, workspace, question)

@@ -1,4 +1,4 @@
-"""Versioned source comparisons; recording metadata never changes reviewed content."""
+"""Versioned source comparisons with separately audited confidence approval."""
 import hashlib
 import json
 import uuid
@@ -136,6 +136,9 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis):
         event_data={"questionId": str(question.id), "paperId": str(paper_id), "number": number,
                     "questionRevision": question.revision, "analysisVersion": row.version_number,
                     "stage": row.stage, "contentHash": digest}))
+    if row.stage == "accuracy":
+        from .question_auto_approval import apply
+        apply(db, principal, workspace, question)
     db.commit()
     db.refresh(row)
     return response(row, digest)

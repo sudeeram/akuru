@@ -10,6 +10,7 @@ export type ReviewStatus =
   | 'needs_correction'
   | 'ready_for_approval'
   | 'approved'
+  | 'ai_approved'
   | 'excluded';
 export type CoverageStatus =
   | 'unreviewed'
@@ -271,3 +272,13 @@ export const generatePaperReviewVisuals = (paperId: string) =>
     `${base(paperId)}/visual-candidates/generate`,
     { method: 'POST', body: {} },
   );
+
+export const applyPaperAutoApproval = (paperId: string) =>
+  request<{
+    results: {
+      number: string;
+      status: ReviewStatus;
+      changed: boolean;
+      reason: string;
+    }[];
+  }>(`${base(paperId)}/auto-approval`, { method: 'POST', body: {} });

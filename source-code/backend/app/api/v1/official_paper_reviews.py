@@ -9,7 +9,7 @@ from app.errors import DomainError
 from app.database import get_db
 from app.permissions import require_csrf_roles, require_roles
 from app.schemas.official_paper_reviews import (
-    CreateReviewCrop, PaperReviewResponse, ReviewCropResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
+    CreateReviewCrop, PaperAutoApprovalResponse, PaperReviewResponse, ReviewCropResponse, SaveReviewQuestion, SeedPaperReview, StartPaperReview,
 )
 from app.schemas.worked_answers import GenerateWorkedAnswer, ImportWorkedAnswerDraft, ReviewWorkedAnswer, parse_solution, AttachWorkedAnswer
 from app.services.worked_answers import lifecycle as worked_answers
@@ -197,3 +197,11 @@ def release_chat_part(paper_id: uuid.UUID, number: str, payload: ReleasePastPape
     db: Annotated[Session, Depends(get_db)]):
     from app.services import tutor_past_papers
     return tutor_past_papers.release_part(db, principal, paper_id, number, payload)
+
+
+@router.post("/{paper_id}/auto-approval", response_model=PaperAutoApprovalResponse)
+def apply_confidence_approval(paper_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services.question_auto_approval import apply_paper
+    return apply_paper(db, principal, paper_id)

@@ -1585,7 +1585,7 @@ export function AdminWorkspace(p: Props) {
                             )}
                             <th>Subject</th>
                             <th>Status</th>
-                            <th>Progress</th>
+                            <th>Extraction progress</th>
                             <th>Actions</th>
                           </tr>
                         </thead>
@@ -1622,11 +1622,14 @@ export function AdminWorkspace(p: Props) {
                                 <StatusBadge status={document.status} />
                               </td>
                               <td>
-                                <progress
-                                  value={document.processingProgress ?? 0}
-                                  max={100}
-                                  aria-label={`${document.processingProgress ?? 0}% processed`}
-                                />
+                                <span
+                                  aria-label={`Extraction progress: ${document.processingProgress ?? 0}%`}
+                                  title="Document processing only; not review completion or accuracy confidence."
+                                >
+                                  <MetadataBadge>
+                                    {document.processingProgress ?? 0}%
+                                  </MetadataBadge>
+                                </span>
                               </td>
                               <td>
                                 <div className="button-row">

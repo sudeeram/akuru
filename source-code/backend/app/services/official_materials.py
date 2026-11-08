@@ -287,8 +287,9 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             raise DomainError("paper_review_required", "Complete the Admin paper review workspace before publishing.", 409)
         review_rows = db.scalars(select(OfficialPaperReviewQuestion).where(
             OfficialPaperReviewQuestion.workspace_id == workspace.id)).all()
+        from .question_auto_approval import is_approved
         if (not workspace.expected_question_count or len(review_rows) != workspace.expected_question_count
-                or any(row.status != "approved" for row in review_rows)):
+                or any(not is_approved(db, workspace, row) for row in review_rows)):
             raise DomainError("paper_review_incomplete", "Approve every question in the complete paper inventory first.", 409)
         expected_version = workspace.paper_version_id if material.kind == "past_paper" else workspace.scheme_version_id
         if material.source_document_version_id != expected_version:

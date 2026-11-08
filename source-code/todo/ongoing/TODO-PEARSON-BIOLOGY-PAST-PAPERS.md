@@ -144,3 +144,61 @@ Start with **Step 0: authoritative Biology catalogue and exception handling**, t
 - [ ] Admin adjudication: 1B Q4(b)(ii) paper/report three marks versus scheme four; 2B Q6(b)(i) scheme says three points versus two-mark allocation. Both remain manual-only.
 
 Result: 14/16 questions and 74/76 subparts exceed 70%. Source fidelity confidence is separate from approval and executable scoring. See [the dated audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-june-2025-biology-source-comparison.md). Other papers remain preliminary extraction drafts; the remaining roadmap/manual release gates stay open.
+
+
+## June 2024 standard source-comparison acceptance — 2026-11-04
+
+Started/completed this comparison batch: 2026-11-04. Whole roadmap remains ongoing.
+
+- [x] Apply the reusable 1.4.0 source-comparison guideline to standard 1B/2B: 16 questions, 77 subparts, 180 marks; inspect all question/scheme renders, 31 saved crops, typed report commentary and 29 selected report renders.
+- [x] Correct missing gap words, MC answers, notation/arrows, criteria/calculation guidance and subpart report links; replace five incomplete diagrams and assign relevant visuals per subpart through revision-protected Admin APIs.
+- [x] Append and read back source-bound confidence assessments: 16/16 questions and 77/77 subparts above 70% (also above 75%); ranges 80–94% / 85–94% for 1B/2B. These are source-fidelity judgements, not measured correctness rates.
+- [x] Verify six source hashes, five exact crop byte comparisons, current assessment revisions/hashes and unchanged Chemistry 1C/June 2025 Biology workspaces. Focused Biology/Chemistry intake tests: 47 passed.
+- [ ] Admin acceptance remains required, including visual/coverage decisions and manual-only scoring limitations; see report wording issues at 1B Q9(b)(ii), 2B Q6(b)(iii), and original-scale measurement at 1B Q1(b)(i).
+- [ ] At the end of this June 2024 batch, 40 papers remained for source comparison. Continue in verified catalogue session batches; there are no June 2023 sources in the local collection (2023 sources are January/November). Existing preliminary extraction percentages must not be raised without equivalent source checks.
+
+See [the June 2024 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-june-2024-biology-source-comparison.md). This is a production source-data update only; no app deployment, restart, paid AI call, question approval or Student release.
+
+
+## June 2025 regional source-comparison acceptance — 2026-11-04
+
+Started/completed this comparison batch: 2026-11-04. Whole roadmap remains ongoing.
+
+- [x] Source-compare 1BR/2BR separately from their standard counterparts: 16 questions, 80 subparts, 180 marks. Inspect all rendered question/scheme pages, all 30 saved crops, typed examiner commentary and 19 selected report renders.
+- [x] Restore calculation/MC/rubric text, continuation criteria, ranking slots, table geometry/blank cells, relevant subpart visuals and exact report ranges through revision-protected Admin APIs.
+- [x] Append 16 source-bound accuracy assessments. 15/16 questions and 79/80 subparts exceed 70% (also exceed 75%); 1BR range 80–94%, mean 90.6%; 2BR range 70–94%, mean 90.5%. Estimates are not measured accuracy or Admin approval.
+- [x] Local intake regression tests: 47 passed. Production read-back passed: six source hashes, 16 current assessments, 30 unchanged crop byte comparisons and all five protected workspaces. Evidence is recorded in the batch audit.
+- [ ] Admin adjudication/acceptance: 2BR Q6(b)(iii) two-point prose versus three-mark allocation; source wording errors at 1BR Q3(b)(i), Q8(c)(i), and 2BR Q1(b). All parts remain unapproved/manual-only; no Student release or coverage change.
+- [ ] Continue the remaining 38 papers after these six source-compared papers. Do not raise preliminary confidence without equivalent source checks; the roadmap release and manual-review gates remain open.
+
+See [the regional audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-june-2025-regional-biology-source-comparison.md). No application deployment/restart or paid AI calls were needed for this production source-data update.
+
+
+## November 2024 standard source-comparison acceptance — 2026-11-04
+
+Started/completed this comparison batch: 2026-11-04. Whole roadmap remains ongoing.
+
+- [x] Compare 1B/2B paper/scheme renders, all 21 saved crops and all 15 narrative report discussion pages: 16 questions, 74 subparts, 180 marks.
+- [x] Restore lung and cloning gaps, hormone-table criteria, numeric prefixes/decimals, genetic-diagram continuation and practical criteria; reconstruct tables and formulae, and bind report paragraphs to their actual subparts.
+- [x] Replace two sets of partial crops with complete inspected visuals: 1B Q3 dog diagram and 2B Q4 sweating graph with its key. Preserve original assets and assign relevant visuals per subpart.
+- [x] Append and read back 16 source-specific accuracy assessments: 16/16 questions and 74/74 subparts above 70% (also above 75%). Subpart ranges 85–92% / 80–92%; means 90.5% / 90.7% for 1B/2B. Estimates are source-fidelity judgments, not approvals or measured accuracy.
+- [x] Focused Biology/Chemistry intake regressions: 47 passed. Final production verification passed: six source hashes, 16 current assessments, 21 unchanged crops, two exact replacement crops and seven protected workspaces.
+- [ ] Admin acceptance: inspect conditional/scoring rules, especially 2B Q1(c) point-numbering ambiguity and Q2(d)(ii) one-per-grain caps; original-scale measurement at 1B Q7(b)(i), scheme alternative at Q4(c)(ii), and mislabelled report references at Q8(b)(ii)/Q9(c)(iii). All parts remain unapproved/manual-only.
+- [ ] Continue the remaining 36 source-comparison papers; the next most recent batch is June 2024 regional 1BR/2BR, followed by November 2023 standard 1B/2B. Do not treat draft ingestion or confidence as Student release.
+
+See [the November 2024 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-04-november-2024-biology-source-comparison.md). This batch updates production source data only; no application deployment/restart, paid AI calls, question approval or Student release.
+
+
+## June 2024 regional source-comparison acceptance — 2026-11-08
+
+Started/completed this comparison batch: 2026-11-08. Whole roadmap remains ongoing.
+
+- [x] Source-compare existing 1BR/2BR drafts against exact paper/scheme/report PDFs: 16 questions, 77 subparts, 180 marks. Inspect all question/scheme contact sheets, 36 saved crops, typed report commentary and 40 selected report renders.
+- [x] Correct criteria, MC answers, decimal/standard-form calculations, notation, table contexts and exact subpart report ranges through authenticated revision-protected Admin APIs. Replace eight incomplete or uncaptioned diagram/photo groups; assign applicable visuals to subparts.
+- [x] Append and verify all 16 current source-specific assessments. 13/16 questions and 74/77 subparts exceed 70% (also exceed 75%). Subpart estimates range 70–92%; means are 87.8% / 86.6% for 1BR/2BR. Historical extraction metadata is retained; these are source-fidelity estimates, not empirical accuracy or approvals.
+- [x] Verify six source checksums, eight production crop files byte-for-byte, current assessment revisions/hashes and unchanged protected Chemistry workspace. Focused Biology/Chemistry intake/staging tests: 51 passed.
+- [ ] Admin adjudication: 1BR Q7(b)(ii) report's lowest-risk group contradicts its graph/scheme; 2BR Q2(b)(ii) intermediate decimal/report multiplier errors; 2BR Q3(b) scheme says no age information despite the table's mean ages. These three subparts remain at 70%; all 77 parts remain manual-only and unapproved.
+- [ ] Complete Admin content/visual/coverage acceptance and separate scoring/Student-release gates. Source comparison does not grant release or curriculum coverage.
+- [ ] Continue the remaining 34 of 44 source-comparison papers. November 2023 standard 1B/2B is the next proposed chronological batch.
+
+See [the June 2024 regional audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-june-2024-regional-biology-source-comparison.md). This batch changes production source data only; no app deployment, restart or paid API calls were needed. Unrelated locally developed application features were not deployed.

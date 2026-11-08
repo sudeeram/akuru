@@ -1456,6 +1456,42 @@
         "title": "AttachWorkedAnswer",
         "type": "object"
       },
+      "AutoApprovalResult": {
+        "properties": {
+          "changed": {
+            "title": "Changed",
+            "type": "boolean"
+          },
+          "number": {
+            "title": "Number",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "unreviewed",
+              "needs_correction",
+              "ready_for_approval",
+              "approved",
+              "ai_approved",
+              "excluded"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "number",
+          "status",
+          "changed",
+          "reason"
+        ],
+        "title": "AutoApprovalResult",
+        "type": "object"
+      },
       "Axis": {
         "additionalProperties": false,
         "properties": {
@@ -6861,6 +6897,32 @@
         "title": "OfficialQuestionReview",
         "type": "object"
       },
+      "PaperAutoApprovalResponse": {
+        "properties": {
+          "policy": {
+            "title": "Policy",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/AutoApprovalResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "thresholdExclusive": {
+            "title": "Thresholdexclusive",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "policy",
+          "thresholdExclusive",
+          "results"
+        ],
+        "title": "PaperAutoApprovalResponse",
+        "type": "object"
+      },
       "PaperReviewResponse": {
         "properties": {
           "approvedCount": {
@@ -9375,6 +9437,7 @@
               "needs_correction",
               "ready_for_approval",
               "approved",
+              "ai_approved",
               "excluded"
             ],
             "title": "Status",
@@ -9569,6 +9632,7 @@
               "needs_correction",
               "ready_for_approval",
               "approved",
+              "ai_approved",
               "excluded"
             ],
             "title": "Status",
@@ -9809,6 +9873,7 @@
               "needs_correction",
               "ready_for_approval",
               "approved",
+              "ai_approved",
               "excluded"
             ],
             "title": "Status",
@@ -15635,6 +15700,101 @@
           }
         },
         "summary": "Get Review",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/auto-approval": {
+      "post": {
+        "operationId": "apply_confidence_approval_api_v1_admin_official_paper_reviews__paper_id__auto_approval_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperAutoApprovalResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Apply Confidence Approval",
         "tags": [
           "official-paper-reviews"
         ]
