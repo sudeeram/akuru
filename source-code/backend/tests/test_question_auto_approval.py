@@ -191,3 +191,27 @@ def test_high_confidence_part_can_qualify_while_lower_part_remains_pending(auth_
     after = client.get(root).json()['questions'][0]
     assert after['status'] == 'unreviewed'
     assert [p['status'] for p in after['data']['parts']] == ['ai_approved', 'unreviewed']
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('prompt,expected', [
+    ('Suggest a suitable explanation.', 'ai_approved'),
+    ('Describe a notable change.', 'ai_approved'),
+    ('Use the table to explain the result.', 'unreviewed'),
+    ('Compare the graphs.', 'unreviewed'),
+])
+def test_visual_requirement_matches_words_not_fragments(auth_client, prompt, expected):
+    client, headers, db, root, q, payload = pending(auth_client)
+    row = db.scalar(select(OfficialPaperReviewQuestion))
+    data = copy.deepcopy(row.review_data)
+    data['visualAssetIds'] = []
+    data['candidateVisualAssetIds'] = []
+    data['parts'][0]['visualAssetIds'] = []
+    data['parts'][0]['prompt'] = prompt
+    row.review_data = data
+    db.commit()
+    current = client.get(root).json()['questions'][0]
+    payload['expectedContentHash'] = current['analysisContentHash']
+    result = client.post(root + '/questions/1/analyses', headers=headers, json=payload)
+    assert result.status_code == 201, result.text
+    assert client.get(root).json()['questions'][0]['status'] == expected

@@ -577,7 +577,7 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             visible = set(data.visualAssetIds) | set(part.visualAssetIds)
             for keyword, kind in (("diagram", "diagram"), ("figure", "diagram"),
                                   ("graph", "diagram"), ("chromatogram", "diagram"), ("table", "table")):
-                if keyword in part.prompt.casefold() and not any(
+                if re.search(r"\b" + re.escape(keyword) + r"s?\b", part.prompt, re.IGNORECASE) and not any(
                     asset_by_id[asset_id].asset_metadata.get("kind") == kind
                     and asset_by_id[asset_id].asset_metadata.get("reviewCrop") for asset_id in visible
                 ):
