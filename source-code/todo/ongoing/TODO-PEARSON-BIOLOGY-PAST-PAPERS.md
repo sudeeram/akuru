@@ -219,3 +219,21 @@ Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
 - [ ] Continue the remaining **32 of 44** source-comparison papers. This completes the November 2023 standard batch, not the entire historical collection.
 
 See [the November 2023 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-november-2023-biology-source-comparison.md). No paid API calls; unrelated local frontend work is excluded from the release.
+
+
+## January 2023 standard source comparison and AI review — 2026-11-08
+
+Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
+
+- [x] Source-compare existing January 2023 standard 1B/2B workspaces: **16 questions, 78 subparts, 180 marks**. Verify six production source checksums and optimistic revisions; inspect all question/scheme sheets, 31 old crops and 11 narrative report pages.
+- [x] Correct structured tables, answer blanks, notation, exact scheme associations, report summaries and source-bound same-subject topic mappings. Manually resolve parser omissions/cross-question contamination caused by multiline scheme labels; preserve original source anomalies and historical extraction metadata.
+- [x] Save 27 reviewed question visuals and one private official septum-answer crop; scope images to relevant parts. Verify all 28 production crop files byte-for-byte against source renders.
+- [x] Append 16 current source-specific accuracy/provenance assessments: **13/16 questions and 75/78 subparts above 75%**, mean subpart estimate 88.6%. Keep three publisher-source conflicts at 70%; estimates are not empirical accuracy or human approval.
+- [x] Run guarded production AI policy: **11/16 questions and 73/78 subparts AI-approved** (1B 6/10 and 43/47; 2B 5/6 and 30/31). Verify current content hashes, full assessment read-back, historical extraction metadata and seven protected workspaces.
+- [x] Pass 73 focused local intake/review/accuracy/AI-policy tests. No paid model calls, app deployment, restart or migration; source corrections use authenticated Admin APIs.
+- [ ] Admin adjudication: 1B Q3(a)(i) saturated-versus-total-fat scheme conflict, Q6(c)(i) sucrose/osmosis report conflict and Q7(c) prey-versus-predator report conflict.
+- [ ] Approved worked-answer illustrations for 1B Q4(b)(i) plotting and 2B Q3(b)(ii) genetic cross. Keep manual-only scoring and independent Student-release gates.
+- [ ] Harden the generic scheme parser for multiline question labels with January 2023 regression fixtures; current source-data corrections do not fix the parser itself.
+- [ ] Continue the remaining **30 of 44** source-comparison papers; next chronological batch: January 2023 regional 1BR/2BR.
+
+See [the January 2023 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-january-2023-biology-source-comparison.md). Unrelated local application changes were preserved and not deployed.
