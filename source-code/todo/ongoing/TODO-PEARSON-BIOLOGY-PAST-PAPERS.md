@@ -202,3 +202,20 @@ Started/completed this comparison batch: 2026-11-08. Whole roadmap remains ongoi
 - [ ] Continue the remaining 34 of 44 source-comparison papers. November 2023 standard 1B/2B is the next proposed chronological batch.
 
 See [the June 2024 regional audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-june-2024-regional-biology-source-comparison.md). This batch changes production source data only; no app deployment, restart or paid API calls were needed. Unrelated locally developed application features were not deployed.
+
+## November 2023 standard source comparison and AI review — 2026-11-08
+
+Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
+
+- [x] Source-compare existing 1B/2B workspaces: 16 questions, 77 subparts, 180 marks; verify all six production PDF checksums, all question/scheme source sheets and all 11 narrative report pages.
+- [x] Correct tables, eight bacteria blanks, chemical/standard-form notation, exact scheme-block links, calculation alternatives and subpart-specific report summaries. Preserve source-conflict notes and historical extraction/provenance records.
+- [x] Inspect and save 19 reviewed question crops plus one private official model-answer diagram. Verify all 20 production files byte-for-byte and scope question images to relevant subparts.
+- [x] Check published Biology evidence: 74 supported subpart mappings; three sterilisation subparts remain partial/uncertain rather than asserting complete textbook support. Do not invent stable textbook page references.
+- [x] Append 16 current source-specific accuracy assessments: 15/16 questions and 76/77 subparts above 75%; one publisher-source contradiction deliberately stays at 70%. These estimates are not empirical accuracy or human approval.
+- [x] Run guarded AI review and retain the three genuine subpart blockers: 1B Q4(a) report contradiction, Q3(b)(ii) missing approved worked graph, Q5(b)(i) missing approved worked genetic-cross illustration. Scoring remains manual-only; Student release stays separate.
+- [x] Fix false table-image requirements caused by “suitable”/“notable”; retain true diagram/table gates and add four regression cases. Focused tests: 74 passed.
+- [x] Deploy fix `b3357ab` after encrypted backup and pass production acceptance. Re-run AI policy/read-back checks: **13/16 questions and 74/77 subparts AI-approved** (1B 7/10 and 42/45; 2B 6/6 and 32/32). Twenty crop bytes, current accuracy hashes and five protected workspaces verified; unauthenticated protected APIs return 401. Adjacent review/answer-visual tests add 21 passes, **95 relevant tests** total.
+- [ ] Admin adjudication of 1B Q4(a), approved worked illustrations for Q3(b)(ii) and Q5(b)(i), plus any remaining coverage acceptance/scoring/Student-release gates.
+- [ ] Continue the remaining **32 of 44** source-comparison papers. This completes the November 2023 standard batch, not the entire historical collection.
+
+See [the November 2023 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-november-2023-biology-source-comparison.md). No paid API calls; unrelated local frontend work is excluded from the release.

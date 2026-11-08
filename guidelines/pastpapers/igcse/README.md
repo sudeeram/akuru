@@ -79,3 +79,5 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 - [2026-11-04 November 2024 Biology 1B/2B source comparison](reviews/2026-11-04-november-2024-biology-source-comparison.md) — 16 questions/74 subparts, two complete replacement crops, narrative report associations and source-specific confidence.
 
 - [2026-11-08 June 2024 Biology regional 1BR/2BR source comparison](reviews/2026-11-08-june-2024-regional-biology-source-comparison.md) — 16 questions/77 subparts, eight complete replacement visuals, exact report associations and three explicitly retained publisher-source conflicts.
+
+- [2026-11-08 November 2023 Biology standard 1B/2B source comparison and AI review](reviews/2026-11-08-november-2023-biology-source-comparison.md) — 16 questions/77 subparts, 20 verified crops, published-topic mappings and explicitly retained drawing/source-conflict approval gates.
