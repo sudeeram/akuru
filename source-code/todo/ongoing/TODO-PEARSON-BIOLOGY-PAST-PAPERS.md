@@ -237,3 +237,22 @@ Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
 - [ ] Continue the remaining **30 of 44** source-comparison papers; next chronological batch: January 2023 regional 1BR/2BR.
 
 See [the January 2023 audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-january-2023-biology-source-comparison.md). Unrelated local application changes were preserved and not deployed.
+
+
+## January 2023 regional source comparison and AI review — 2026-11-08
+
+Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
+
+- [x] Source-compare existing January 2023 regional 1BR/2BR workspaces: **18 questions, 72 subparts, 180 marks**. Verify six production PDF checksums and current revisions; inspect all question/scheme sheets, 30 old crops and nine question-specific narrative report pages.
+- [x] Reconstruct structured tables, seven chemical-coordination blanks, six micropropagation blanks and the photosynthesis equation slots. Preserve intended answer spaces and source units; correct exact scheme links, continuation criteria, calculation ranges and report associations.
+- [x] Save 28 reviewed, source-only question crops with complete labels, scales, keys, arrows and captions; scope them to relevant parts. Keep original-scale PDF access as the measurement requirement, blank grids blank, and model answers separate.
+- [x] Check mappings against 22 current published Biology topic evidence sets, including Topic 12 for plant chemical coordination. No invented permanent textbook-page references.
+- [x] Append 18 current accuracy/provenance assessments: **16/18 questions and 70/72 subparts above 75%**, mean estimate **88.5%**. Two official-source conflicts stay at 70%; historical extraction metadata preserved. These are estimates, not empirical accuracy or human approval.
+- [x] Apply guarded AI policy: **14/18 questions and 67/72 subparts AI-approved** (1BR 8/11 and 41/45; 2BR 6/7 and 26/27). Verify full read-back, current accuracy hashes, all 28 crop files byte-for-byte and nine unchanged protected workspaces.
+- [x] Pass 73 focused local tests; verify both protected APIs return 401 without authentication and both accuracy frontend routes return 200 over verified HTTPS. No paid model calls, deployment, restart or migration needed for these Admin API data updates.
+- [ ] Admin adjudication: 1BR Q3(b)(iii) scheme/report egestion-versus-excretion exception; 2BR Q3(b) report's least-variable species contradicts its source table.
+- [ ] Approved worked-answer illustrations: 1BR Q3(b)(i) pyramid, Q5(b) graph and Q8(b)(iii) genetic cross. Maintain separate manual scoring and Student-release gates.
+- [ ] Include regional Q7(c)(ii)'s multiline scheme label and Q2(b)(ii)'s continuation criterion in future generic-parser regression work; source-data corrections alone do not harden the parser.
+- [ ] Continue the remaining **28 of 44** source-comparison papers. Next supplied chronological batch: June 2022 standard 1B/2B, then regional 1BR/2BR.
+
+See [the January 2023 regional audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-january-2023-regional-biology-source-comparison.md). Unrelated local application work was not deployed.
