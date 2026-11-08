@@ -54,3 +54,9 @@ sudo -u akuru .venv/bin/python scripts/inspect_ai_diagnostics.py --trace TRACE_I
 Default output contains metadata only. Use content inspection only when needed. For a failed send, find `api.error` / `http.response`, then inspect the same trace's `model.request`, `model.response` or `model.error`. Absence of a model event means the request was blocked or handled before OpenAI. A process interruption may leave a start event without a completion event; the corresponding systemd journal and deployed release identify the interruption.
 
 Existing failures cannot be reconstructed retrospectively because their raw responses and detailed validation errors were not retained. Reproduce once after enabling this logging. No student allowance increase, safety bypass or relaxed output validation is part of this change.
+
+## Deployment verification — 8 November 2026
+
+Release `2e30ec9` was pushed and deployed with private content capture enabled. All 431 backend regressions passed (one skipped), including nine diagnostic tests; standard production HTTPS, routing, service and binding acceptance passed. A normal unauthenticated request remained 401 and produced correlated error/completion events; directory/file permissions were verified as 0700/0600.
+
+The authorised Student reproduction of “Let's study Life Processes” produced `student_ai_text_quota_exhausted` (429) before any model call. No provider request was made for that trace. The existing tutor reservation algorithm uses instruction/task character length plus the maximum output token budget as a conservative token reservation; therefore it can reject a request while the displayed remaining token balance is positive. Changing that estimator or the quota-exhaustion wording is separate from this diagnostic release. No quotas, usage records, access grants, validation rules or student profiles were changed. Older unlogged 502 responses remain unreconstructable.
