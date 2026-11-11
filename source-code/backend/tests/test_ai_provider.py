@@ -106,11 +106,13 @@ def test_transient_retries_are_bounded(monkeypatch):
 
 
 def test_openai_secret_is_hidden_and_required_only_when_enabled(monkeypatch):
-    disabled = Settings(database_password="database-secret")
+    monkeypatch.delenv("AKURU_OPENAI_API_KEY", raising=False)
+    disabled = Settings(_env_file=None, database_password="database-secret")
     assert "database-secret" not in repr(disabled)
     with pytest.raises(ValueError, match="AKURU_OPENAI_API_KEY"):
-        Settings(database_password="x", ai_provider="openai", openai_model="test-model")
+        Settings(_env_file=None, database_password="x", ai_provider="openai", openai_model="test-model")
     enabled = Settings(
+        _env_file=None,
         database_password="x", ai_provider="openai", openai_model="test-model",
         openai_api_key="provider-secret",
     )
@@ -118,7 +120,7 @@ def test_openai_secret_is_hidden_and_required_only_when_enabled(monkeypatch):
     monkeypatch.setenv(
         "AKURU_OPENAI_ACCOUNT_KEYS", '{"HOME":"home-secret","BACKUP":"backup-secret"}'
     )
-    pooled = Settings(database_password="x")
+    pooled = Settings(_env_file=None, database_password="x")
     assert pooled.openai_account_key("home") == "home-secret"
     assert "home-secret" not in repr(pooled)
 

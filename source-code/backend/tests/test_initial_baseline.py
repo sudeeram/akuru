@@ -24,12 +24,14 @@ def test_baseline_matches_topic_only_metadata_inventory():
     assert 'CREATE EXTENSION IF NOT EXISTS vector' in text
     assert "pgvector.sqlalchemy" in text
     assert "group_label IN ('unit','module')" in text
-    later_tables = {"tutor_paper_chat_requests", "tutor_paper_releases", "official_question_analyses", "generated_worked_answers", "topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
+    later_tables = {"evidence_link_jobs", "tutor_paper_chat_requests", "tutor_paper_releases", "official_question_analyses", "generated_worked_answers", "topic_retrieval_preflights", "flashcard_decks", "flashcard_versions",
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
                         "textbook_topic_visual_assets", "flashcard_reports",
                             "password_reset_receipts", "official_paper_review_workspaces",
                             "official_paper_review_questions", "community_profiles", "community_follows",
                             "community_blocks", "community_notifications", "community_reports"}
+    assert "op.create_table('evidence_link_jobs'" in (MIGRATIONS / 'versions' / '0021_exact_evidence_jobs.py').read_text()
+    assert "'job_kind'" in (MIGRATIONS / 'versions' / '0022_accuracy_reassessment_jobs.py').read_text()
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 
