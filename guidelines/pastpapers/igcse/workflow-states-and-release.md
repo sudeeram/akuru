@@ -4,9 +4,9 @@ Standard: `akuru-igcse-pastpapers` 1.5.0
 
 Last updated: 2026-11-12
 
-Status: implemented in production release `2c28ad7`. Individual papers still require their recorded source/image/curriculum/scoring gates; deployment does not mark a paper complete. See the implementation plan and acceptance evidence for outstanding operator actions. This document does not itself authorise model spending or production data changes.
+Status: implemented in production release `314d3e4`. Individual papers still require their recorded source/image/curriculum/scoring gates; deployment does not mark a paper complete. See the implementation plan and acceptance evidence for pilot results and remaining per-paper content work. This document does not itself authorise model spending or production data changes.
 
-Implementation plan: [past-paper workflow and automatic Tutor release](../../../source-code/todo/ongoing/TODO-PAST-PAPER-WORKFLOW-AND-AUTO-TUTOR-RELEASE.md).
+Implementation plan: [past-paper workflow and automatic Tutor release](../../../source-code/todo/completed/TODO-PAST-PAPER-WORKFLOW-AND-AUTO-TUTOR-RELEASE.md).
 
 ## Past-paper milestones
 

@@ -56,7 +56,7 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 
 ## Change history
 
-- 2026-11-12 — 1.5.0 rollout evidence: deployed workflow/source summaries and guarded release; read-only production status/security checks and a bounded source/curriculum pilot recorded. Specific manual scoring activation and positive Student pilot remain operator-approved actions, not an extraction side effect.
+- 2026-11-12 — 1.5.0 rollout evidence: deployed workflow/source summaries and guarded release; read-only production status/security checks and a bounded source/curriculum pilot recorded. Q2(b) scoring activation was separately approved by the operator, followed by a successful Student Tutor pilot; it was not an extraction side effect.
 
 
 - 2026-11-11 — 1.5.0: agreed four-step paper workflow and independent companion-source milestones; manual image review, final curriculum-aware reassessment, guarded AI approval and planned automatic Tutor release. Added initial states, transition/invalidation rules and batch evidence requirements. Extraction fidelity rules and historical batch provenance remain unchanged; documentation does not deploy automation.

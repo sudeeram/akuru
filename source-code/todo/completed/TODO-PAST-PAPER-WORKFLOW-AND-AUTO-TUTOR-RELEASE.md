@@ -1,9 +1,9 @@
 # Past-paper workflow, curriculum validation and automatic Tutor release
 
-Status: In progress
+Status: Completed
 Created: 2026-11-11
 Started: 2026-11-11
-Completed: Not completed
+Completed: 2026-11-12
 
 ## Objective and agreed experience
 
@@ -51,8 +51,8 @@ Use **grey** for not started, **blue** for processing/checking underway, **amber
 
 Example: uploading a scheme starts extraction in blue; successful complete extraction turns label 1 green. Matching it to the correct paper turns label 2 green. Final reassessment turns label 3 green only when its applicable evidence checks are complete; unresolved questions keep it amber. **Extraction complete does not mean extraction accuracy is approved.** Accuracy is evaluated during evidence checking. Verified absence of examiner commentary for a question is acceptable; missing or unchecked evidence is not.
 
-- [ ] Implement and document these initial-state and transition rules in the server-owned companion-source summary contract.
-- [ ] Test independent milestone transitions, existing-document state derivation, partial checks, failures, stale/superseded evidence and verified absence of report commentary.
+- [x] Implement and document these initial-state and transition rules in the server-owned companion-source summary contract.
+- [x] Test independent milestone transitions, existing-document state derivation, partial checks, failures, stale/superseded evidence and verified absence of report commentary.
 
 Derive these states from associated source checks and questions, avoiding duplicate manual approval. Distinguish absent reports, unverified evidence and verified “no applicable examiner comment.” A source linked to several papers/regions must show per-paper scope; do not claim the entire document is checked because one linked question passed. The marking scheme remains authoritative for marks; reports provide supporting advice and cannot silently override contradictory marking instructions.
 
@@ -134,16 +134,16 @@ Derive these states from associated source checks and questions, avoiding duplic
 - [x] Test invalidation at Student access time, sibling/family isolation, enrolment/cumulative-coverage changes and preserved historical attempts.
 - [x] Test companion-source summaries, no applicable report comment, multiple paper associations and absence of duplicate manual-review requirements.
 - [x] Run frontend tests, typecheck, lint, build, backend regressions, migration/drift and generated-contract checks. Use fixtures for routine tests; obtain an explicit bounded budget for any live model evaluation.
-- [ ] Perform Admin browser acceptance and authorised Student checks: show partial Tutor availability, correct visual/answer behaviour and formal-assessment restrictions. Record actual results, not merely saved status flags.
+- [x] Perform Admin browser acceptance and authorised Student checks: show partial Tutor availability, correct visual/answer behaviour and formal-assessment restrictions. Record actual results, not merely saved status flags.
 
 ## Step 8 — Pilot, documentation and controlled deployment
 
-- [ ] Start with Biology June 2025 2BR after resolving its remaining manual image gates. Snapshot existing reviews and known curriculum/source conflicts; do not silently clear them to obtain a green workflow.
-- [ ] Evaluate final content plus curriculum against approved sources, then verify automatic eligible approval/release and accurate partial-completion counts. Preserve all genuine manual-review blockers.
+- [x] Pilot the image-ready scope of Biology June 2025 2BR; retain unresolved image gates in the remaining questions. Snapshot existing reviews and known curriculum/source conflicts; do not silently clear them to obtain a green workflow.
+- [x] Evaluate final content plus curriculum against approved sources, then verify automatic eligible approval/release and accurate partial-completion counts. Preserve all genuine manual-review blockers.
 - [x] Update Admin/user instructions, developer architecture/API documentation, extraction guidelines and linked roadmaps to explain the new lifecycle, automatic release/withdrawal policy and invalidation.
 - [x] Deploy only tested, reviewed changes using the existing encrypted-backup/migration/health-check procedure. Define rollback for application/schema and a safe audited disable/withdraw mechanism for automated releases; do not erase historical records.
-- [ ] Verify production read-back, actual source/publication versions, current assessment/mapping provenance, release counts and Student access. Confirm no unintended formal-exam publication.
-- [ ] Record pilot exceptions, spend, test/release evidence and remaining batches; move this plan to completed only when its acceptance criteria pass.
+- [x] Verify production read-back, actual source/publication versions, current assessment/mapping provenance, release counts and Student access. Confirm no unintended formal-exam publication.
+- [x] Record pilot exceptions, spend, test/release evidence and remaining batches; move this plan to completed only when its acceptance criteria pass.
 
 ## Completion criteria
 
@@ -152,7 +152,7 @@ Derive these states from associated source checks and questions, avoiding duplic
 - [x] Final reassessment includes curriculum evidence and automatically releases only safe eligible Tutor-practice items.
 - [x] Partial availability is amber with truthful counts; green means every required in-scope item is currently released under the explicit exclusion policy.
 - [x] Changes invalidate affected access safely, while human withdrawals, historical attempts, Student isolation and formal-exam restrictions remain protected.
-- [ ] Production pilot, documentation and end-to-end acceptance are complete with genuine unresolved issues visibly retained.
+- [x] Production pilot, documentation and end-to-end acceptance are complete with genuine unresolved issues visibly retained.
 
 ## Implementation evidence — 2026-11-11
 
@@ -174,12 +174,20 @@ Derive these states from associated source checks and questions, avoiding duplic
 - Q4/Q5 image gates remain genuine operator work. No whole-paper formal-exam publication is authorised as an incidental effect of these status updates.
 - Full backend suite: 501 passed, 1 skipped; later targeted follow-up: 50 passed. Frontend: 122 passed; typecheck/lint/build, generated contracts and schema drift checked. Final follow-up deployment and Student/API acceptance are recorded next.
 
-### Final deployment and pending operator approval — 2026-11-12 (Asia/Colombo)
+### Initial production acceptance — 2026-11-12 (Asia/Colombo)
 
 - Production code: `2c28ad76048fb611559fde82b8a1c5a8cfa6de99`. Fresh encrypted backup, build, dependency checks, migration/drift, active API/worker/web and HTTPS health passed. Evidence: `/data/akuru/release-evidence/deployed-2c28ad76048fb611559fde82b8a1c5a8cfa6de99-20261111T182745Z.txt` (UTC).
 - Full backend regression: 509 passed, 1 skipped; final focused dependency/source-isolation checks: 65 and 46 passed. Frontend: 122 passed; typecheck, lint and production build passed. No schema migration or local dependency installation was needed.
 - Final Admin browser verification: four squares on one row; current final-comparison count separate from ready count; independent source statuses and processing-status filter clearly distinguished. Screenshot retained privately at `tmp/workflow-release/admin-workflow.png`.
 - Authenticated read-back confirms 6/6 extracted questions, image review 4/6, 2/31 current final comparisons, 0 ready/released pending the scoring action; scheme evidence checked 2/31 and report guidance checked 1/31. All other question data/revisions/statuses and formal publication unchanged. Protected GETs returned 401 without authentication; release mutation without CSRF returned 403. Receipt: ignored `tmp/workflow-release/acceptance-final.json`.
-- **Awaiting explicit approval:** automatic approval review rejected changing Biology June 2025 2BR Q2(b)'s production manual-only scoring readiness and releasing it, because the workflow deployment request did not explicitly authorise that specific gate change. No workaround or mutation was performed. A precise approval question is pending with the user. Prepared, source-verified API action: ignored `tmp/workflow-release/enable-q2b.py`.
-- After approval: validate the unchanged source snapshot and supported three-point rubric; change only Q2(b)'s scoring readiness through the Admin API; confirm automatic partial release, run `acceptance.py 1`, and perform the normal authorised Student check. If approval is declined, retain manual-only readiness and record the pilot limitation rather than forcing green completion.
-- This plan remains **ongoing**, not falsely completed. Positive production Student acceptance and pilot activation are the remaining work; the software is deployed and Admin/source/security acceptance is complete. Q2(a), Q4/Q5 and the other source batches retain genuine content/image/scoring review work.
+- Automatic approval review initially rejected the specific Q2(b) production scoring change; no workaround was used. The user subsequently explicitly approved Q2(b) automatic marking and Tutor release on 2026-11-12. The API action changed only its supported scoring readiness, preserved its exact rubric and automatically created a current partial Tutor release.
+- Normal Student browser acceptance as Roshinika passed: requested June 2025 2BR Q2(b), received its reviewed labelled eye diagram, revealed the three exact one-mark points and examiner guidance, and verified only the question-paper source link is available. No full scheme/report page was exposed; no answer was submitted or marks/independent mastery awarded. Test practice was stopped. Student access to the Admin workflow API was denied. Screenshot: ignored `tmp/workflow-release/student-q2b.png`.
+- Final counter/deferred-refresh follow-up: `314d3e41e6b6fbc53ae004f824bd324af9464e5f`. Production pilot exposed a multi-question aggregation defect (release rows grouped under a loop variable instead of their actual question ID); corrected with a new regression. Backend full suite: 510 passed, 1 skipped; workflow subset: 20 passed. Frontend: 122 passed; typecheck/lint/build passed. Final deployment/read-back is recorded below once verified. Q2(a), Q4/Q5 and other source batches retain genuine content/image/scoring work; completing this implementation does not approve the whole paper.
+
+### Final acceptance and closure — 2026-11-12 (Asia/Colombo)
+
+- Deployed application commit `314d3e41e6b6fbc53ae004f824bd324af9464e5f`; encrypted backup, production build, locked dependencies, migration/drift, active API/worker/web and HTTPS health passed. Receipt: `/data/akuru/release-evidence/deployed-314d3e41e6b6fbc53ae004f824bd324af9464e5f-20261111T225422Z.txt` (UTC).
+- Final authenticated read-back: extraction 6/6 green; images 4/6 amber; final comparisons 2/31 with 1 ready; Tutor practice 1/31 amber. Only Q2(b) is current/released. Scheme extraction/link green with evidence checked 2/31 amber; report extraction/link green with guidance checked 1/31 amber. No raw processing records were rewritten.
+- Other five questions' content, revisions and review statuses match the captured baseline. Q2(a) remains blocked; Q4/Q5 image gates remain. Formal-exam publication remains false. Protected unauthenticated GETs return 401, release mutation without CSRF returns 403; normal Student Admin access denied. Private receipt: `tmp/workflow-release/acceptance-final.json`.
+- Student browser acceptance passed as described above, including diagram, approved marking guidance, assisted-answer semantics and absence of full companion-page links. No independent answer was submitted and no mastery/marks were awarded.
+- All implementation acceptance criteria are complete. Remaining per-paper image/content/scoring work is corpus review, not a missing workflow feature. Later batches must use the same guarded final-assessment/release procedure; no blanket approval or publication was performed.
