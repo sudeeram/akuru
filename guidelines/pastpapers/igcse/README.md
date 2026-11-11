@@ -85,3 +85,9 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 - [2026-11-08 January 2023 Biology standard 1B/2B source comparison and AI review](reviews/2026-11-08-january-2023-biology-source-comparison.md) — 16 questions/78 subparts, 28 verified source crops, corrected multiline-label scheme associations and five explicitly retained content gates.
 
 - [2026-11-08 January 2023 Biology regional 1BR/2BR source comparison and AI review](reviews/2026-11-08-january-2023-regional-biology-source-comparison.md) — 18 questions/72 subparts, restored gap-fill slots, 28 verified source crops and five retained content gates.
+
+- [2026-11-09 June 2025 Biology curriculum mapping](reviews/2026-11-09-june-2025-biology-curriculum-mapping.md) — all four standard/regional papers; 155 supported subparts and one uncertain mapping, unchanged confidence assessments and explicit remaining evidence-block approval gates.
+
+- [2026-11-11 Biology model attribution correction](reviews/2026-11-11-biology-model-attribution.md) — operator-confirmed GPT-6.1 Sol / Light recorded in 136 existing AI-assisted analyses across 17 papers; native-only records, confidence and approval states preserved.
+
+- [2026-11-11 June 2025 Biology exact-evidence linking](reviews/2026-11-11-june-2025-exact-evidence-linking.md) — 554 source-region associations across all 156 subparts; current confidence, guarded AI approval and retained visual/source-conflict gates.

@@ -108,3 +108,59 @@ def test_parent_cannot_read_or_mutate_exact_evidence(auth_client):
   assert c.get(root+path).status_code==403
   assert c.post(root+path,headers=h,json=proposal(q)).status_code==403
  assert c.post(root+'/evidence-link-job-batch',headers=h,json={'questions':[proposal(q)]}).status_code==403
+
+@pytest.mark.integration
+def test_exact_match_requires_identity_and_unique_reviewed_block(auth_client):
+ c,h,db,root,q,*_=setup(auth_client)
+ row=db.scalar(select(OfficialPaperReviewQuestion));data=copy.deepcopy(row.review_data)
+ text='Explain the chromatogram spots and identify the solvent front'
+ data['parts'][0]['prompt']=text;row.review_data=data
+ workspace=db.scalar(select(OfficialPaperReviewWorkspace))
+ block=db.scalar(select(DocumentBlock).where(DocumentBlock.document_version_id==workspace.paper_version_id,DocumentBlock.block_kind=='question'))
+ block.text=text;block.needs_review=False;block.block_metadata={'number':'99','part':'a','role':'paper'};db.commit()
+ q=c.get(root).json()['questions'][0]
+ run=c.post(root+'/evidence-links',headers=h,json=proposal(q)).json()
+ paper=next(p for p in run['proposals']if p['role']=='paper')
+ assert paper['confidence']==100 and not paper['autoEligible']
+ block.block_metadata={'number':q['number'],'part':'a','role':'paper'};db.commit()
+ run=c.post(root+'/evidence-links',headers=h,json=proposal(q)).json()
+ assert next(p for p in run['proposals']if p['role']=='paper')['autoEligible']
+ duplicate=DocumentBlock(document_version_id=block.document_version_id,page_id=block.page_id,sequence_number=90,block_kind='subpart',text=text,bounding_box=block.bounding_box,extraction_method='native',confidence=1,needs_review=False,block_metadata={'number':'99','part':'a','role':'paper'})
+ db.add(duplicate);db.commit()
+ run=c.post(root+'/evidence-links',headers=h,json=proposal(q)).json()
+ assert not next(p for p in run['proposals']if p['role']=='paper')['autoEligible']
+
+@pytest.mark.integration
+def test_changed_original_and_blank_native_regions_fail_closed(auth_client):
+ c,h,db,root,q,a,storage=setup(auth_client)
+ payload=imported(q);payload['selections'][0]['bounds']={'x0':0,'y0':.8,'x1':1,'y1':1}
+ run=c.post(root+'/evidence-links',headers=h,json=payload).json()
+ assert next(p for p in run['proposals']if p['role']=='paper')['status']=='missing'
+ assert c.post(root+'/evidence-links/'+run['id']+'/review',headers=h,json=decision(q,run)).status_code==409
+ workspace=db.scalar(select(OfficialPaperReviewWorkspace));version=db.get(DocumentVersion,workspace.paper_version_id)
+ storage.put(version.object_key,b'changed source','application/pdf')
+ assert c.post(root+'/evidence-links',headers=h,json=imported(q)).status_code==409
+
+@pytest.mark.integration
+def test_cross_role_block_and_human_subpart_are_protected(auth_client):
+ c,h,db,root,q,*_=setup(auth_client)
+ workspace=db.scalar(select(OfficialPaperReviewWorkspace));scheme=db.scalar(select(DocumentBlock).where(DocumentBlock.document_version_id==workspace.scheme_version_id))
+ payload=imported(q);payload['selections'][0].pop('bounds');payload['selections'][0]['blockId']=str(scheme.id)
+ assert c.post(root+'/evidence-links',headers=h,json=payload).status_code==422
+ run=c.post(root+'/evidence-links',headers=h,json=imported(q)).json()
+ row=db.scalar(select(OfficialPaperReviewQuestion));data=copy.deepcopy(row.review_data);data['parts'][0]['status']='approved';row.review_data=data;db.commit()
+ current=c.get(root).json()['questions'][0]
+ response=c.post(root+'/evidence-links/'+run['id']+'/review',headers=h,json=decision(current,run))
+ assert response.status_code==409
+ assert c.get(root).json()['questions'][0]['data']['parts'][0]['status']=='approved'
+
+@pytest.mark.integration
+def test_rejected_proposal_remains_in_history_and_cannot_be_applied(auth_client):
+ c,h,db,root,q,*_=setup(auth_client);run=c.post(root+'/evidence-links',headers=h,json=imported(q)).json()
+ endpoint=root+'/evidence-links/'+run['id']+'/review';body=decision(q,run);body['decision']='reject'
+ result=c.post(endpoint,headers=h,json=body);assert result.status_code==200
+ assert all(p['status']=='rejected'for p in result.json()['run']['proposals'])
+ assert c.get(root).json()['questions'][0]==q
+ assert c.post(endpoint,headers=h,json=body).json()['alreadyApplied']
+ assert c.post(endpoint,headers=h,json=decision(q,run)).status_code==409
+ assert c.get(root+'/evidence-links').json()[0]['id']==run['id']

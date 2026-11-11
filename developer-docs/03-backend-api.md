@@ -98,3 +98,11 @@ PostgreSQL is authoritative for job state. Redis loss must not turn queued work 
 ## Adding an endpoint
 
 Add or update the schema, service, route and tests. Include the router if it is a new domain. Regenerate the contract, update the matching `frontend/api/<domain>` operation and type files, and build the corresponding role UI. Run the full verification gate before committing.
+
+## Exact past-paper evidence linking
+
+Admin source-link proposals are separate from question approval. `app/services/evidence_links.py` stores immutable proposal/decision receipts in audit events, validates original PDF checksums and derives bounded source blocks without changing the original extraction. It reuses existing source regions and promotes linked question-paper references to the parent question as well as its subpart. All mutations require Admin authentication, CSRF and current revision/content hashes. An incorrect association is unlinked through the review workflow and superseded by another audited proposal.
+
+`EvidenceLinkJob` (migration `0021_exact_evidence_jobs`) is consumed by the document worker. One-question and whole-paper queue APIs use the existing account router; jobs propose regions and never approve questions. The worker verifies the requesting Admin before and after paid generation, checks sources and snapshots again, records actual model/response provenance, and fails interrupted or invalid responses without automatic paid retries. `AKURU_EVIDENCE_AI_MAX_OUTPUT_TOKENS` bounds this purpose independently of tutor output limits.
+
+Free matching only offers automatic application for unique, reviewed, near-exact text with matching question/part/source-role identity. Matching confidence does not establish overall extraction accuracy. Material links invalidate the prior accuracy assessment and AI status; fresh source comparison, the strict greater-than-75% policy, independent visual/scoring checks and Student release still apply. See [the service/API contract](../source-code/backend/docs/step-exact-evidence-linking.md) and [Admin instructions](../user-docs/EXACT-PAST-PAPER-EVIDENCE.md).

@@ -256,3 +256,27 @@ Started/completed this batch: 2026-11-08. The overall roadmap remains ongoing.
 - [ ] Continue the remaining **28 of 44** source-comparison papers. Next supplied chronological batch: June 2022 standard 1B/2B, then regional 1BR/2BR.
 
 See [the January 2023 regional audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-08-january-2023-regional-biology-source-comparison.md). Unrelated local application work was not deployed.
+
+## June 2025 curriculum-mapping follow-up — 2026-11-09
+
+Started: 2026-11-08. Completed mapping pass: 2026-11-09. Approval/release follow-up remains open.
+
+- [x] Compare all four June 2025 Biology papers against 22 currently published topics: **32 questions, 156 subparts**. Save **155 Supported** mappings with specific reasons through authenticated Admin APIs.
+- [x] Retain **2BR Q1(c)(ii)** as Partial or uncertain: animal-mediated seed dispersal is related to Topic 13 but not explicitly established by its published content. Do not force a confirmed link or invent textbook pages.
+- [x] Verify 12 source checksums, 32 optimistic revisions, unchanged question/scoring/source content and all 32 unchanged current accuracy assessments. Protect Chemistry 1C and the four January 2023 Biology workspaces.
+- [x] Rerun the guarded AI policy. **0/32 questions and 0/156 subparts AI-approved**: existing page associations lack exact question/scheme block links. Mapping alone is not full content approval. All scoring and Student-release restrictions remain intact.
+- [x] Pass 41 focused local review/AI-policy/analysis/confidence tests. No paid API call, migration, deployment or restart.
+- [ ] Add/verify exact paper and marking-scheme block associations before rerunning AI approval; review proposed/unassigned visuals independently. Preserve earlier source-conflict warnings and any human decisions.
+- [ ] Resolve the seed-dispersal evidence gap and complete independent Admin/scoring/Student-release gates. Do not treat supported curriculum coverage as automatic-marking readiness.
+
+See [the curriculum-mapping audit](../../../guidelines/pastpapers/igcse/reviews/2026-11-09-june-2025-biology-curriculum-mapping.md). This follow-up does not change the collection count: **16/44 source-compared, 28 remaining**.
+
+## June 2025 exact-evidence follow-up — 2026-11-11
+
+- [x] Deploy audited Admin proposals, original-PDF region previews, durable AI jobs and revision-protected application.
+- [x] Source-check and link all June 2025 2BR, 1BR, 1B and 2B subparts: 32 questions, 156 subparts, 554 region associations. Preserve the uncertain 2BR seed-dispersal mapping and all unrelated content/scoring/report decisions.
+- [x] Append current source-comparison assessments and rerun guarded AI approval: 150/156 subparts and 3/32 parent questions AI approved. Six subparts retain explicit source-conflict/answer-visual gates; parent visual gates remain independent.
+- [x] Verify authenticated production read-back, private previews, unauthenticated 401, normal Admin browser display, encrypted-backup deployment and 57 focused backend regressions. No Student release or automatic scoring was enabled.
+- [ ] Complete independent Admin visual adjudication and publisher-conflict handling before release. Remaining 28 preliminary papers still require source comparison in explicit batches.
+
+See [acceptance evidence](../../../guidelines/pastpapers/igcse/reviews/2026-11-11-june-2025-exact-evidence-linking.md) and [completed implementation plan](../completed/TODO-AI-EXACT-EVIDENCE-LINKING.md).

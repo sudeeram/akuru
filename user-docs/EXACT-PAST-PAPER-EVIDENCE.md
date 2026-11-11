@@ -13,3 +13,5 @@ Sign in as Admin and open **Exam Documents → Past papers → Review questions*
 Question content approval, visual approval, scoring readiness and Student release are separate. A successfully linked region does not publish a paper. Human-approved questions/subparts must be reopened before changing their evidence. Keep genuine ambiguities and publisher conflicts flagged rather than forcing approval.
 
 If a source or question changes while you work, AKURU asks you to analyse again. Applied links and rejected proposals remain recorded. A repeated completed apply request does not create duplicate links. An interrupted AI job fails rather than silently retrying and charging again; check its status before explicitly starting another.
+
+A completed run may show **superseded source snapshot** after links were applied or AI status changed, because the question revision advanced. Its **linked** rows remain an audit receipt; this label alone does not mean the saved links were removed. Check the current question's source evidence and current accuracy assessment. Only undecided proposals against a current snapshot may be applied.
