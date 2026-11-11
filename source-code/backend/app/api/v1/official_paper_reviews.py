@@ -23,6 +23,60 @@ from app.services import official_question_analyses
 
 router = APIRouter(prefix="/admin/official-paper-reviews", tags=["official-paper-reviews"])
 
+from app.schemas.evidence_links import ProposeEvidenceLinks, ReviewEvidenceLinks, EvidenceBatch
+from app.services import evidence_links
+from app.services import evidence_link_jobs
+
+
+@router.get('/{paper_id}/evidence-link-jobs')
+def evidence_jobs(paper_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    return evidence_link_jobs.listing(db, paper_id)
+
+
+@router.post('/{paper_id}/evidence-link-jobs', status_code=202)
+def create_evidence_job(paper_id: uuid.UUID, payload: ProposeEvidenceLinks,
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    return evidence_link_jobs.create(db, principal, paper_id, payload)
+
+
+@router.post('/{paper_id}/evidence-link-job-batch', status_code=202)
+def create_evidence_job_batch(paper_id: uuid.UUID, payload: EvidenceBatch,
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    return evidence_link_jobs.create_batch(db, principal, paper_id, payload)
+
+
+@router.get('/{paper_id}/evidence-links/{run_id}/{proposal_id}/preview')
+def evidence_link_preview(paper_id: uuid.UUID, run_id: uuid.UUID, proposal_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return Response(evidence_links.preview(db, storage, paper_id, run_id, proposal_id), media_type='image/png',
+        headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+
+@router.get('/{paper_id}/evidence-links')
+def evidence_link_runs(paper_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    return evidence_links.listing(db, paper_id)
+
+
+@router.post('/{paper_id}/evidence-links')
+def propose_evidence_links(paper_id: uuid.UUID, payload: ProposeEvidenceLinks,
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return evidence_links.propose(db, storage, principal, paper_id, payload)
+
+
+@router.post('/{paper_id}/evidence-links/{run_id}/review')
+def review_evidence_links(paper_id: uuid.UUID, run_id: uuid.UUID, payload: ReviewEvidenceLinks,
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return evidence_links.decide(db, storage, principal, paper_id, run_id, payload)
+
 
 @router.get("/{paper_id}", response_model=PaperReviewResponse)
 def get_review(paper_id: uuid.UUID,

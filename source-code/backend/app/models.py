@@ -1900,3 +1900,18 @@ class GeneratedWorkedAnswer(TimestampMixin, Base):
         CheckConstraint("status IN ('queued','processing','awaiting_review','approved','rejected','stale','failed','superseded')", name="ck_worked_answer_status"),
         CheckConstraint("revision > 0", name="ck_worked_answer_revision"),
     )
+
+
+class EvidenceLinkJob(Base):
+    __tablename__ = 'evidence_link_jobs'
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
+    paper_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('documents.id', ondelete='CASCADE'), index=True)
+    created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='RESTRICT'))
+    status: Mapped[str] = mapped_column(String(20), default='queued', index=True)
+    request_data: Mapped[dict] = mapped_column(JSON)
+    result_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    error_code: Mapped[str | None] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    __table_args__ = (CheckConstraint("status IN ('queued','processing','completed','failed')",name='ck_evidence_job_status'),)

@@ -536,8 +536,11 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                 ("coverage decision", part.coverage != "unreviewed"), ("coverage reason", part.coverage == "outside_current_coverage" or part.coverageReason.strip())) if not valid]
             if missing:
                 raise DomainError("part_incomplete", f"Part {part.label}: complete {', '.join(missing)} before content approval.", 409)
-            if not any(source.blockId for source in part.paperSources) or not any(source.blockId for source in part.schemeSources):
-                raise DomainError("exact_block_required", "Link an exact question and scheme block before approval.", 409)
+            missing_roles = [name for name, sources in (("question paper", part.paperSources), ("marking scheme", part.schemeSources))
+                             if not any(source.blockId for source in sources)]
+            if missing_roles:
+                raise DomainError("exact_block_required", f"Part {part.label or '(whole question)'}: link exact {' and '.join(missing_roles)} evidence before approval.", 409,
+                                  [{"part": part.label, "missingRoles": missing_roles}])
             if len({point.code for point in part.markingPoints}) != len(part.markingPoints):
                 raise DomainError("duplicate_marking_code", "Marking-point codes must be unique per part.", 422)
             if any(not point.code.strip() or not point.text.strip() for point in part.markingPoints):

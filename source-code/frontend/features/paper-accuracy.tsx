@@ -19,6 +19,8 @@ import {
   reviewProvenance,
 } from '@/lib/paper-review-presentation';
 import { QuestionAnalysisPanel } from './question-analysis';
+import { ExactEvidenceLinks } from './exact-evidence-links';
+import { Toaster } from '@/components/ui/toast';
 
 export function PaperAccuracyPage({
   paperId,
@@ -86,6 +88,7 @@ export function PaperAccuracyPage({
   };
   return (
     <div className="stack">
+      <Toaster />
       <PageHeader
         title="Paper accuracy confidence"
         eyebrow="EXAM DOCUMENTS"
@@ -141,6 +144,13 @@ export function PaperAccuracyPage({
         <output style={{ whiteSpace: 'pre-line' }}>{approvalResult}</output>
       )}
       {error && <p role="alert">{error}</p>}
+      {review && (
+        <ExactEvidenceLinks
+          paperId={paperId}
+          review={review}
+          onUpdated={setReview}
+        />
+      )}
       {!review && !error && <output>Loading accuracy assessments…</output>}
       {review && (
         <DashboardCard

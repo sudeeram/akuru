@@ -67,13 +67,13 @@ def apply(db, principal, workspace, question):
             _validate_question(db, workspace, "unreviewed", data, question.review_data, question.number)
         except DomainError as exc:
             part.status = previous
-            blockers.append(str(exc))
+            blockers.append(exc.message if exc.message.startswith('Part ') else f"Part {part.label or '(whole question)'}: {exc.message}")
     if qualifies(analysis, [p.label for p in data.parts]) and all(p.status in APPROVED for p in data.parts):
         try:
             _validate_question(db, workspace, "ai_approved", data, question.review_data, question.number)
             question.status = "ai_approved"
         except DomainError as exc:
-            blockers.append(str(exc))
+            blockers.append(exc.message)
     question.review_data = data.model_dump(mode="json")
     changed = before != (question.status, question.review_data)
     if changed:
@@ -88,7 +88,9 @@ def apply(db, principal, workspace, question):
                 "parts": [{"label": p.label, "status": p.status} for p in data.parts],
                 "blockers": blockers}))
     return {"number": question.number, "status": question.status, "changed": changed,
-        "reason": "; ".join(blockers) or ("Current confidence must exceed 75% for the question and every subpart."
+        "reason": "; ".join(dict.fromkeys(blockers)) or (
+            "No current accuracy assessment. Reassess the saved source evidence before AI approval." if not analysis else
+            "Current confidence must exceed 75% for the question and every subpart."
             if not qualifies(analysis, [p.label for p in data.parts]) else "Confidence and review requirements passed.")}
 
 

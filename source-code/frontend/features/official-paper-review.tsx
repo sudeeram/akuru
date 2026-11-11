@@ -6,6 +6,7 @@ import {
 } from '@/api/assessments/official-paper-review.api';
 import { TutorPastPaperReleases } from './tutor-past-paper-releases';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
+import { ExactEvidenceLinks } from './exact-evidence-links';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
@@ -1033,6 +1034,18 @@ export function OfficialPaperReview({
       )}
       {review && (
         <>
+          <ExactEvidenceLinks
+            paperId={paperId}
+            review={review}
+            number={selected || undefined}
+            disabled={busy || dirty || workedDirty}
+            onUpdated={(value) => {
+              const label = data.parts[activePart]?.label;
+              setReview(value);
+              const row = value.questions.find((q) => q.number === selected);
+              if (row) chooseQuestion(row, label);
+            }}
+          />
           <div className="ak-metrics pr-metrics">
             <MetricCard
               label="Expected questions"
