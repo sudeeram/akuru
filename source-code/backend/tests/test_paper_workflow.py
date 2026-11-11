@@ -263,3 +263,20 @@ def test_legacy_assessment_request_never_silently_enables_automatic_release(auth
     run(c,h,db,root,req,out,storage)
     assert db.scalar(select(func.count()).select_from(TutorPaperRelease))==0
     assert c.get(root).json()['questions'][0]['accuracyAnalysis']['isCurrent']
+
+
+@pytest.mark.integration
+def test_release_progress_groups_by_release_question_in_multi_question_paper(auth_client):
+    c,h,db,root,q,req,out,storage,chunk,pub=prepared(auth_client)
+    run(c,h,db,root,req,out,storage)
+    first=db.scalar(select(OfficialPaperReviewQuestion))
+    other=OfficialPaperReviewQuestion(workspace_id=first.workspace_id,number='2',
+        revision=1,status='unreviewed',review_data=copy.deepcopy(first.review_data))
+    db.add(other)
+    workspace=db.get(OfficialPaperReviewWorkspace,first.workspace_id)
+    workspace.expected_question_count=2
+    db.commit()
+    workflow=paper_workflow.summaries(db,[workspace.paper_document_id])['documents'][0]['scopes'][0]
+    assert workflow['steps'][3]['completed']==1
+    assert workflow['steps'][3]['total']==2
+    assert workflow['steps'][3]['state']=='attention'

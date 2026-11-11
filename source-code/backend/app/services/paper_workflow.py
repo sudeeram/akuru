@@ -34,7 +34,7 @@ def summaries(db, document_ids):
     active = {j.paper_id for j in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.paper_id.in_(all_ids), EvidenceLinkJob.status.in_(['queued', 'processing'])))}
     releases = defaultdict(list)
     for r in db.scalars(select(TutorPaperRelease).where(TutorPaperRelease.question_id.in_([q.id for q in questions]))):
-        releases[q.id].append(r)
+        releases[r.question_id].append(r)
     block_ids = set()
     asset_ids = set()
     chunk_ids = set()

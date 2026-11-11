@@ -6,7 +6,7 @@ Version: `1.5.0`
 
 Created: 2026-10-21
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 Status: documented standard; automated enforcement is incomplete.
 
@@ -30,7 +30,7 @@ Apply this standard when preparing questions here, in AKURU, or through another 
 
 Identify sources and versions → extract text/layout and reconcile inventories → assemble questions, rubric rules and exact source associations → validate and import unapproved proposals → Admin reviews required images → final AI reassessment of saved content and curriculum → guarded AI approval strictly above 75% → automatic release of eligible Tutor-practice items. Formal-exam publication remains a separate explicit Admin action.
 
-This is the agreed target workflow, not a statement that every stage is deployed. Until implemented and verified, retain the existing supported review/release actions. See [workflow states and transition rules](workflow-states-and-release.md).
+The four-step workflow, independent source summaries and guarded release are implemented. Individual papers may still need current reassessment or operator review; existing job history is not rewritten to make labels green. See [workflow states and transition rules](workflow-states-and-release.md) and the linked implementation/acceptance record. Other extraction-format capabilities listed below remain separate planned work.
 
 MUST means required. SHOULD means the default; record a reason for an exception. Do not invent missing wording, source references, marking rules or examiner advice. Question wording and student-facing assets must not contain correct-answer information from the scheme or report.
 
@@ -55,6 +55,9 @@ Read the source-specific rules, choose the appropriate layout profile, and compl
 These Markdown rules do not automatically configure OCR or enforce every gate in the current application. Record which checks were actually executed, flag missing automation, and retain unresolved issues for Admin review. Add regression cases for new failures; do not claim a new year/variant is covered merely because an earlier one passed.
 
 ## Change history
+
+- 2026-11-12 — 1.5.0 rollout evidence: deployed workflow/source summaries and guarded release; read-only production status/security checks and a bounded source/curriculum pilot recorded. Specific manual scoring activation and positive Student pilot remain operator-approved actions, not an extraction side effect.
+
 
 - 2026-11-11 — 1.5.0: agreed four-step paper workflow and independent companion-source milestones; manual image review, final curriculum-aware reassessment, guarded AI approval and planned automatic Tutor release. Added initial states, transition/invalidation rules and batch evidence requirements. Extraction fidelity rules and historical batch provenance remain unchanged; documentation does not deploy automation.
 

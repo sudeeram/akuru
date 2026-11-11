@@ -39,7 +39,7 @@ export function AccuracyReassessment({
   review: PaperReview;
   number?: string;
   disabled?: boolean;
-  onUpdated: (value: PaperReview) => void;
+  onUpdated: (value: PaperReview) => boolean | void;
 }) {
   const [ready, setReady] = useState<AccuracyReadiness | null>(null);
   const [jobs, setJobs] = useState<AccuracyJob[]>([]);
@@ -48,10 +48,14 @@ export function AccuracyReassessment({
   const [confirm, setConfirm] = useState(false);
   const [tick, setTick] = useState(0);
   const hadPending = useRef(false);
+  const pendingIds = useRef(new Set<string>());
+  const editorBlocked = useRef(disabled);
+  const [refreshDeferred, setRefreshDeferred] = useState(false);
   const updated = useRef(onUpdated);
   useEffect(() => {
     updated.current = onUpdated;
-  }, [onUpdated]);
+    editorBlocked.current = disabled;
+  }, [onUpdated, disabled]);
   useEffect(() => {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -65,18 +69,35 @@ export function AccuracyReassessment({
         );
         if (pending) {
           hadPending.current = true;
+          work
+            .filter((j) => ['queued', 'processing'].includes(j.status))
+            .forEach((j) => pendingIds.current.add(j.id));
           timer = setTimeout(() => setTick((v) => v + 1), 4000);
         } else if (hadPending.current) {
-          hadPending.current = false;
-          const current = await getPaperReview(paperId);
-          if (active) {
-            updated.current(current);
-            toast.add({
-              title:
-                'Reassessment finished. Check results and remaining review gates.',
-              type: 'success',
-            });
+          if (editorBlocked.current) {
+            setRefreshDeferred(true);
+            timer = setTimeout(() => setTick((v) => v + 1), 4000);
+            return;
           }
+          const current = await getPaperReview(paperId);
+          if (!active) return;
+          if (editorBlocked.current || updated.current(current) === false) {
+            setRefreshDeferred(true);
+            timer = setTimeout(() => setTick((v) => v + 1), 4000);
+            return;
+          }
+          const failed = work.filter(
+            (j) => pendingIds.current.has(j.id) && j.status === 'failed',
+          ).length;
+          pendingIds.current.clear();
+          hadPending.current = false;
+          setRefreshDeferred(false);
+          toast.add({
+            title: failed
+              ? `${failed} reassessment job(s) failed. Check job history and remaining gates.`
+              : 'Reassessment finished. Check results and remaining review gates.',
+            type: failed ? 'error' : 'success',
+          });
         }
       })
       .catch((cause) => {
@@ -158,6 +179,12 @@ export function AccuracyReassessment({
         {items.filter((q) => q.reassessmentRequired).length} questions need a
         fresh assessment · {eligible.length} ready after image review.
       </output>
+      {refreshDeferred && (
+        <output>
+          AI work has finished. Your unsaved edits are preserved; finish or
+          reconcile them before loading the updated review.
+        </output>
+      )}
       {disabled && (
         <p>
           Save or discard your current question edits before queueing
@@ -237,7 +264,9 @@ export function AccuracyReassessment({
                       expectedAnalysisVersion: q.analysisVersion || 0,
                     };
                   });
-                  setJobs(await queueAccuracyJobs(paperId, questions));
+                  const queued = await queueAccuracyJobs(paperId, questions);
+                  queued.forEach((job) => pendingIds.current.add(job.id));
+                  setJobs(queued);
                   hadPending.current = true;
                   setConfirm(false);
                   setTick((v) => v + 1);

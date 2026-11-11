@@ -126,32 +126,32 @@ Derive these states from associated source checks and questions, avoiding duplic
 
 ## Step 7 — Regression, security and acceptance tests
 
-- [ ] Test complete/incomplete inventories; zero-image automatic completion; partial/all image reviews; failed jobs; excluded items and source replacements against the badge state rules.
-- [ ] Test mapping generation/verification across multiple same-subject topics, missing/unpublished evidence, cross-subject rejection, uncertain/outside coverage, manual decision preservation and publication-version changes.
-- [ ] Test exactly 75%, above 75%, stale/missing assessments, conflicting marking instructions, incomplete exact evidence and unresolved visuals. High confidence alone must never grant release.
-- [ ] Test self-contained subpart release while a sibling is blocked, and rejection when shared context or a required visual is unresolved.
-- [ ] Test automatic release, duplicate-free retries, interrupted work, atomic persistence and explicit withdrawal protection without repeating paid calls.
-- [ ] Test invalidation at Student access time, sibling/family isolation, enrolment/cumulative-coverage changes and preserved historical attempts.
-- [ ] Test companion-source summaries, no applicable report comment, multiple paper associations and absence of duplicate manual-review requirements.
-- [ ] Run frontend tests, typecheck, lint, build, backend regressions, migration/drift and generated-contract checks. Use fixtures for routine tests; obtain an explicit bounded budget for any live model evaluation.
+- [x] Test complete/incomplete inventories; zero-image automatic completion; partial/all image reviews; failed jobs; excluded items and source replacements against the badge state rules.
+- [x] Test mapping generation/verification across multiple same-subject topics, missing/unpublished evidence, cross-subject rejection, uncertain/outside coverage, manual decision preservation and publication-version changes.
+- [x] Test exactly 75%, above 75%, stale/missing assessments, conflicting marking instructions, incomplete exact evidence and unresolved visuals. High confidence alone must never grant release.
+- [x] Test self-contained subpart release while a sibling is blocked, and rejection when shared context or a required visual is unresolved.
+- [x] Test automatic release, duplicate-free retries, interrupted work, atomic persistence and explicit withdrawal protection without repeating paid calls.
+- [x] Test invalidation at Student access time, sibling/family isolation, enrolment/cumulative-coverage changes and preserved historical attempts.
+- [x] Test companion-source summaries, no applicable report comment, multiple paper associations and absence of duplicate manual-review requirements.
+- [x] Run frontend tests, typecheck, lint, build, backend regressions, migration/drift and generated-contract checks. Use fixtures for routine tests; obtain an explicit bounded budget for any live model evaluation.
 - [ ] Perform Admin browser acceptance and authorised Student checks: show partial Tutor availability, correct visual/answer behaviour and formal-assessment restrictions. Record actual results, not merely saved status flags.
 
 ## Step 8 — Pilot, documentation and controlled deployment
 
 - [ ] Start with Biology June 2025 2BR after resolving its remaining manual image gates. Snapshot existing reviews and known curriculum/source conflicts; do not silently clear them to obtain a green workflow.
 - [ ] Evaluate final content plus curriculum against approved sources, then verify automatic eligible approval/release and accurate partial-completion counts. Preserve all genuine manual-review blockers.
-- [ ] Update Admin/user instructions, developer architecture/API documentation, extraction guidelines and linked roadmaps to explain the new lifecycle, automatic release/withdrawal policy and invalidation.
-- [ ] Deploy only tested, reviewed changes using the existing encrypted-backup/migration/health-check procedure. Define rollback for application/schema and a safe audited disable/withdraw mechanism for automated releases; do not erase historical records.
+- [x] Update Admin/user instructions, developer architecture/API documentation, extraction guidelines and linked roadmaps to explain the new lifecycle, automatic release/withdrawal policy and invalidation.
+- [x] Deploy only tested, reviewed changes using the existing encrypted-backup/migration/health-check procedure. Define rollback for application/schema and a safe audited disable/withdraw mechanism for automated releases; do not erase historical records.
 - [ ] Verify production read-back, actual source/publication versions, current assessment/mapping provenance, release counts and Student access. Confirm no unintended formal-exam publication.
 - [ ] Record pilot exceptions, spend, test/release evidence and remaining batches; move this plan to completed only when its acceptance criteria pass.
 
 ## Completion criteria
 
-- [ ] Past-paper rows accurately show all four steps, and companion rows show their relevant source-check lifecycle.
-- [ ] Admins review images and low-confidence/explicitly blocked content without repeating obvious source links or individual approval of eligible high-confidence content.
-- [ ] Final reassessment includes curriculum evidence and automatically releases only safe eligible Tutor-practice items.
-- [ ] Partial availability is amber with truthful counts; green means every required in-scope item is currently released under the explicit exclusion policy.
-- [ ] Changes invalidate affected access safely, while human withdrawals, historical attempts, Student isolation and formal-exam restrictions remain protected.
+- [x] Past-paper rows accurately show all four steps, and companion rows show their relevant source-check lifecycle.
+- [x] Admins review images and low-confidence/explicitly blocked content without repeating obvious source links or individual approval of eligible high-confidence content.
+- [x] Final reassessment includes curriculum evidence and automatically releases only safe eligible Tutor-practice items.
+- [x] Partial availability is amber with truthful counts; green means every required in-scope item is currently released under the explicit exclusion policy.
+- [x] Changes invalidate affected access safely, while human withdrawals, historical attempts, Student isolation and formal-exam restrictions remain protected.
 - [ ] Production pilot, documentation and end-to-end acceptance are complete with genuine unresolved issues visibly retained.
 
 ## Implementation evidence — 2026-11-11
@@ -173,3 +173,13 @@ Derive these states from associated source checks and questions, avoiding duplic
 - Q2(b): 98% accuracy, 99% curriculum support, independent-answerability confirmed. Original scheme PDF page 6 visually checked: three independent one-mark points fit the existing unit-credit engine. Its imported manual-only readiness is the remaining supported-scoring pilot action; do not promote other parts or override Q2(a)'s findings.
 - Q4/Q5 image gates remain genuine operator work. No whole-paper formal-exam publication is authorised as an incidental effect of these status updates.
 - Full backend suite: 501 passed, 1 skipped; later targeted follow-up: 50 passed. Frontend: 122 passed; typecheck/lint/build, generated contracts and schema drift checked. Final follow-up deployment and Student/API acceptance are recorded next.
+
+### Final deployment and pending operator approval — 2026-11-12 (Asia/Colombo)
+
+- Production code: `2c28ad76048fb611559fde82b8a1c5a8cfa6de99`. Fresh encrypted backup, build, dependency checks, migration/drift, active API/worker/web and HTTPS health passed. Evidence: `/data/akuru/release-evidence/deployed-2c28ad76048fb611559fde82b8a1c5a8cfa6de99-20261111T182745Z.txt` (UTC).
+- Full backend regression: 509 passed, 1 skipped; final focused dependency/source-isolation checks: 65 and 46 passed. Frontend: 122 passed; typecheck, lint and production build passed. No schema migration or local dependency installation was needed.
+- Final Admin browser verification: four squares on one row; current final-comparison count separate from ready count; independent source statuses and processing-status filter clearly distinguished. Screenshot retained privately at `tmp/workflow-release/admin-workflow.png`.
+- Authenticated read-back confirms 6/6 extracted questions, image review 4/6, 2/31 current final comparisons, 0 ready/released pending the scoring action; scheme evidence checked 2/31 and report guidance checked 1/31. All other question data/revisions/statuses and formal publication unchanged. Protected GETs returned 401 without authentication; release mutation without CSRF returned 403. Receipt: ignored `tmp/workflow-release/acceptance-final.json`.
+- **Awaiting explicit approval:** automatic approval review rejected changing Biology June 2025 2BR Q2(b)'s production manual-only scoring readiness and releasing it, because the workflow deployment request did not explicitly authorise that specific gate change. No workaround or mutation was performed. A precise approval question is pending with the user. Prepared, source-verified API action: ignored `tmp/workflow-release/enable-q2b.py`.
+- After approval: validate the unchanged source snapshot and supported three-point rubric; change only Q2(b)'s scoring readiness through the Admin API; confirm automatic partial release, run `acceptance.py 1`, and perform the normal authorised Student check. If approval is declined, retain manual-only readiness and record the pilot limitation rather than forcing green completion.
+- This plan remains **ongoing**, not falsely completed. Positive production Student acceptance and pilot activation are the remaining work; the software is deployed and Admin/source/security acceptance is complete. Q2(a), Q4/Q5 and the other source batches retain genuine content/image/scoring review work.

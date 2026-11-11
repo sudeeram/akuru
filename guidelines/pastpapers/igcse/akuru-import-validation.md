@@ -2,7 +2,7 @@
 
 Standard: `akuru-igcse-pastpapers` 1.5.0
 
-Last updated: 2026-11-11
+Last updated: 2026-11-12
 
 Status: required checks; see the implementation plan for enforcement progress.
 
@@ -34,11 +34,11 @@ Allow incomplete but structurally valid proposals to enter the review workspace 
 
 For future draft-bank imports, preserve AKURU's versioned question and subpart extraction-confidence estimate and its reasons. Review low estimates first, but still inspect every essential visual, answer diagram, marking rule and uncertain report annotation against the source. The percentage is a conservative review-priority estimate, not a measured correctness probability or a sufficient publication gate. Under the agreed target policy, strictly above 75% is one eligibility condition for guarded AI approval; it cannot override other blockers. Older or manually created questions may be unscored.
 
-Warnings must identify the part and source region, not only display “review required”. Draft saves remain available even when approval is blocked. Human approval must record an explicit reviewer decision; AI approval must record an audited policy decision bound to the current assessment and content/source versions. The agreed target permits AI approval strictly above 75% only after independent evidence, visual, curriculum and scoring checks; unresolved blockers still require manual action. See [workflow policy](workflow-states-and-release.md) for planned versus deployed boundaries. Linking existing exact evidence should not demand duplicate manual work, but ambiguous links must not be guessed.
+Warnings must identify the part and source region, not only display “review required”. Draft saves remain available even when approval is blocked. Human approval must record an explicit reviewer decision; AI approval must record an audited policy decision bound to the current assessment and content/source versions. The implemented workflow permits AI approval strictly above 75% only after independent evidence, visual, curriculum and scoring checks; unresolved blockers still require manual action. See [workflow policy](workflow-states-and-release.md) for planned versus deployed boundaries. Linking existing exact evidence should not demand duplicate manual work, but ambiguous links must not be guessed.
 
 ## Gate C: Student release
 
-Retain AKURU's separate paper/scheme completeness, publication, cumulative topic coverage and per-student access gates. A reviewed question does not automatically publish a formal exam or enter formal mocks. The agreed target separately permits automatic Tutor-practice release of eligible approved items; this remains planned until implemented and verified. Preserve the supported explicit release action meanwhile. Safe partial release requires complete shared context and must not silently bypass parent-question dependencies. Never expose private marking rules or examiner examples through question payloads during a formal assessment.
+Retain AKURU's separate paper/scheme completeness, publication, cumulative topic coverage and per-student access gates. A reviewed question does not automatically publish a formal exam or enter formal mocks. The implemented workflow separately permits automatic Tutor-practice release of eligible approved items. Explicit manual release and withdrawal remain supported; current publication/source dependencies are checked in both paths. Safe partial release requires complete shared context and must not silently bypass parent-question dependencies. Never expose private marking rules or examiner examples through question payloads during a formal assessment.
 
 ## Re-analysis and reporting
 

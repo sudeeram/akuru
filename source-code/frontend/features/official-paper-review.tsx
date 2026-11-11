@@ -1041,6 +1041,7 @@ export function OfficialPaperReview({
             number={selected || undefined}
             disabled={busy || dirty || workedDirty}
             onUpdated={(value) => {
+              if (busy || dirty || workedDirty) return false;
               const label = data.parts[activePart]?.label;
               setReview(value);
               const row = value.questions.find((q) => q.number === selected);
@@ -1053,6 +1054,7 @@ export function OfficialPaperReview({
             number={selected || undefined}
             disabled={busy || dirty || workedDirty}
             onUpdated={(value) => {
+              if (busy || dirty || workedDirty) return false;
               const label = data.parts[activePart]?.label;
               setReview(value);
               const row = value.questions.find((q) => q.number === selected);
