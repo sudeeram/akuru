@@ -74,15 +74,21 @@ export function ExamDocumentWorkflow({
       </span>
     );
   return (
-    <div className="stack" style={{ minWidth: 230 }}>
+    <div className="stack" style={{ minWidth: 300 }}>
       {workflow.scopes.map((scope) => (
         <div key={scope.paperId || 'unlinked'}>
           {workflow.scopes.length > 1 && <small>{scope.paperTitle}</small>}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${scope.steps.length}, minmax(0, 1fr))`,
+              gap: 8,
+            }}
+          >
             {scope.steps.map((step) => (
               <details key={step.number}>
                 <summary
-                  aria-label={`${step.number}. ${step.label}: ${labels[step.state]}. ${step.completed}/${step.total}`}
+                  aria-label={`${step.number}. ${step.label}: ${labels[step.state]}. ${step.checked != null ? `${step.checked}/${step.total} checked, ${step.completed} ready` : `${step.completed}/${step.total} complete`}`}
                   style={{ cursor: 'pointer', listStyle: 'none' }}
                 >
                   <span
@@ -107,8 +113,12 @@ export function ExamDocumentWorkflow({
                     {step.label}
                   </span>
                   <span style={{ display: 'block', fontSize: 11 }}>
-                    {step.completed}/{step.total}
+                    {step.checked ?? step.completed}/{step.total}
+                    {step.checked != null ? ' checked' : ''}
                   </span>
+                  {step.checked != null && (
+                    <small>{step.completed} ready</small>
+                  )}
                 </summary>
                 <div style={{ maxWidth: 280 }}>
                   <strong>

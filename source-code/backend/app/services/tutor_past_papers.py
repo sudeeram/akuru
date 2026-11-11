@@ -20,7 +20,7 @@ from app.errors import DomainError
 from app.models import (Assessment, AssessmentInteraction, AssessmentQuestion, AuditEvent,
     Document, DocumentAsset, DocumentPage, DocumentVersion, OfficialPaperReviewQuestion,
     OfficialPaperReviewWorkspace, StudentSubject, TextbookTopic, TextbookTopicContentVersion,
-    TutorPaperRelease, TutorPaperChatRequest, TutorPractice)
+    TutorPaperRelease, TutorPaperChatRequest, TutorPractice, Textbook)
 from app.schemas.official_paper_reviews import ReviewQuestionData
 from app.schemas.tutor_past_papers import PastPaperChatState
 from app.services import assessments, curriculum_plans, official_paper_reviews, tutor_practice
@@ -34,14 +34,34 @@ def fingerprint(question, workspace):
         sort_keys=True).encode()).hexdigest()
 
 
+def release_fingerprint(question, workspace, publications, evidence_hash):
+    return hashlib.sha256(json.dumps({'source': fingerprint(question, workspace),
+        'publications': publications, 'evidence': evidence_hash}, sort_keys=True).encode()).hexdigest()
+
+
+def topic_publications(db, workspace, part):
+    paper = db.get(Document, workspace.paper_document_id)
+    rows = db.execute(select(TextbookTopic, TextbookTopicContentVersion).join(
+        Textbook, Textbook.id == TextbookTopic.textbook_id).join(
+        TextbookTopicContentVersion, TextbookTopicContentVersion.topic_id == TextbookTopic.id).where(
+        TextbookTopic.public_ref.in_(part.topicRefs), TextbookTopic.status == 'published',
+        Textbook.status == 'published', TextbookTopicContentVersion.status == 'published',
+        TextbookTopic.course_id == paper.course_id, TextbookTopic.subject_id == paper.subject_id)).all()
+    if not part.topicRefs or len(rows) != len(set(part.topicRefs)) or len({t.public_ref for t,v in rows}) != len(rows):
+        raise DomainError('practice_publication_required', 'Every mapped topic needs one current published textbook/content version.', 409)
+    return sorted([dict(topicRef=t.public_ref, publicationId=str(v.id)) for t,v in rows], key=lambda v:v['topicRef'])
+
+
 def _live(db, release):
     q = db.get(OfficialPaperReviewQuestion, release.question_id)
     w = db.get(OfficialPaperReviewWorkspace, q.workspace_id) if q else None
-    if not release.enabled or not q or not w or fingerprint(q, w) != release.fingerprint:
+    if not release.enabled or not q or not w:
         return False
     try:
-        validate_release(db, w, q, release.part_label,
+        _data, _part, publications, evidence_hash = validate_release(db, w, q, release.part_label,
             require_curriculum=release.snapshot.get('releasePolicy') == 'auto-tutor-release-v1')
+        if release_fingerprint(q, w, publications, evidence_hash) != release.fingerprint:
+            return False
     except DomainError:
         return False
     try:
@@ -61,6 +81,18 @@ def _live(db, release):
     return True
 
 
+def manually_adjudicated(db, question, part, analysis):
+    if not analysis or part.status != 'approved':
+        return False
+    return bool(db.scalar(select(AuditEvent.id).where(
+        AuditEvent.action == 'official_review.part_manually_approved',
+        AuditEvent.target_id == str(question.id),
+        AuditEvent.event_data['part'].as_string() == part.label,
+        AuditEvent.event_data['contentHash'].as_string() == analysis.content_hash,
+        AuditEvent.event_data['analysisId'].as_string() == str(analysis.id),
+        AuditEvent.created_at >= analysis.created_at).limit(1)))
+
+
 def validate_release(db, workspace, question, label, *, require_curriculum=False):
     """Shared manual/automatic/access validator; isolate a self-contained part safely."""
     from .question_auto_approval import current_accuracy
@@ -73,8 +105,8 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     analysis = current_accuracy(db, workspace, question)
     assessed = next((p for p in analysis.analysis_data['parts'] if p['label'] == label), None) if analysis else None
     if part.status == 'ai_approved' or require_curriculum or question.status not in {'approved', 'ai_approved'}:
-        if not assessed or assessed['percent'] <= 75:
-            raise DomainError('practice_accuracy_required', 'A current subpart assessment above 75% is required.', 409)
+        if not assessed or (assessed['percent'] <= 75 and not manually_adjudicated(db, question, part, analysis)):
+            raise DomainError('practice_accuracy_required', 'A current subpart assessment above 75%, or an explicit subsequent human adjudication, is required.', 409)
     if require_curriculum and not assessed.get('selfContained'):
         raise DomainError('practice_dependency_review', 'The final assessment must confirm independent answerability.', 409)
     if require_curriculum:
@@ -96,7 +128,8 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     scoped.marks = part.marks
     scoped.parts[0].status = 'approved'
     official_paper_reviews._validate_question(db, workspace, 'approved', scoped, question.review_data, question.number)
-    return data, part
+    from .official_question_analyses import content_hash, source_manifest
+    return data, part, topic_publications(db, workspace, part), content_hash(db, question, source_manifest(db, workspace))
 
 
 def release_part(db, principal, paper_id, number, payload, *, automatic=False, commit=True):
@@ -116,15 +149,16 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
         return {'enabled': False, 'partLabel': payload.partLabel}
     if not payload.confirmSelfContained:
         raise DomainError('practice_dependency_review', 'Confirm this part is self-contained.', 409)
-    data, part = validate_release(db, w, q, payload.partLabel, require_curriculum=automatic)
+    data, part, publications, evidence_hash = validate_release(db, w, q, payload.partLabel, require_curriculum=automatic)
     last_decision = db.scalar(select(AuditEvent).where(
         AuditEvent.target_id == str(q.id), AuditEvent.action.in_(['tutor_paper.withdrawn', 'tutor_paper.released']),
         AuditEvent.event_data['part'].as_string() == part.label).order_by(AuditEvent.created_at.desc()).limit(1))
-    if automatic and last_decision and last_decision.action == 'tutor_paper.withdrawn':
+    withdrawn_current = db.scalar(select(TutorPaperRelease.id).where(TutorPaperRelease.question_id == q.id, TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == release_fingerprint(q, w, publications, evidence_hash), TutorPaperRelease.enabled.is_(False)))
+    if automatic and (withdrawn_current or (last_decision and last_decision.action == 'tutor_paper.withdrawn')):
         raise DomainError('practice_explicit_withdrawal', 'An Admin withdrew this part. Explicitly re-enable it first.', 409)
     from .question_auto_approval import current_accuracy
     paper = db.get(Document, w.paper_document_id)
-    source_hash = fingerprint(q, w)
+    source_hash = release_fingerprint(q, w, publications, evidence_hash)
     row = db.scalar(select(TutorPaperRelease).where(TutorPaperRelease.question_id == q.id,
         TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == source_hash))
     if not row:
@@ -139,6 +173,7 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
                 'number': q.number, 'sharedStem': data.sharedStem,
                 'sharedVisuals': [str(v) for v in data.visualAssetIds],
                 'part': part.model_dump(mode='json'), 'selfContainedConfirmed': True,
+                'sourceFingerprint': fingerprint(q, w), 'topicPublications': publications, 'evidenceContentHash': evidence_hash,
                 'releasePolicy': 'auto-tutor-release-v1' if automatic else 'manual',
                 'curriculum': next((p.get('curriculum') for p in current_accuracy(db, w, q).analysis_data['parts'] if p['label'] == part.label), None) if automatic else None})
         db.add(row)
@@ -220,7 +255,7 @@ def eligible(db, student_id, subject_id):
     published = set(db.scalars(select(TextbookTopic.public_ref).join(TextbookTopicContentVersion,
         TextbookTopicContentVersion.topic_id == TextbookTopic.id).where(TextbookTopic.status == 'published',
         TextbookTopic.subject_id == subject_id, TextbookTopicContentVersion.status == 'published')).all())
-    return [r for r in db.scalars(select(TutorPaperRelease).where(TutorPaperRelease.enabled.is_(True))).all()
+    return [r for r in db.scalars(select(TutorPaperRelease).join(OfficialPaperReviewQuestion, OfficialPaperReviewQuestion.id==TutorPaperRelease.question_id).where(TutorPaperRelease.enabled.is_(True),TutorPaperRelease.snapshot['subjectId'].as_string()==subject_id,TutorPaperRelease.revision==OfficialPaperReviewQuestion.revision)).all()
         if r.snapshot['subjectId'] == subject_id and set(r.snapshot['part']['topicRefs']).issubset(allowed & published)
         and r.snapshot['part']['topicRefs'] and _live(db, r)]
 
@@ -275,7 +310,7 @@ def state(db, settings, principal, session):
 
 
 def identity(message):
-    component = re.search(r"\b([12]CR?)\b", message, re.I)
+    component = re.search(r"\b([12](?:HB|[BCP])R?)\b", message, re.I)
     year = re.search(r"\b(20\d{2})\b", message)
     month = re.search(r"\b(january|june|november)\b", message, re.I)
     number = re.search(r"\b(?:question|q)\s*(\d{1,2})(?!\d)", message, re.I)
@@ -305,7 +340,7 @@ def select_question(db, settings, principal, session, key, message):
     elif requested['number'] and len(pool) > 1:
         raise DomainError('practice_question_ambiguous', 'Choose a subpart: ' + ', '.join(f"{r.snapshot['component']} Q{r.snapshot['number']}({r.part_label})" for r in pool[:12]), 409)
     if not pool:
-        raise DomainError('practice_question_unavailable', 'No released past-paper question matches within your published, covered topics. Try asking for any available Chemistry question, or ask Admin to release more reviewed items.', 409)
+        raise DomainError('practice_question_unavailable', 'No released past-paper question matches within your published, covered topics. Try asking for any available question in this subject, or ask Admin to release more reviewed items.', 409)
     replay = db.scalar(select(TutorPractice).where(TutorPractice.session_id == session.id, TutorPractice.request_key == key))
     if replay: return state(db, settings, principal, session)
     active = db.scalar(select(Assessment).where(Assessment.student_id == principal.user.id, Assessment.status == 'active'))

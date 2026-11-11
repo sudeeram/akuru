@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pymupdf
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
-from app.models import EvidenceLinkJob, OfficialQuestionAnalysis, DocumentAsset, DocumentVersion, User
+from app.models import EvidenceLinkJob, OfficialQuestionAnalysis, DocumentAsset, DocumentVersion, User, AuditEvent
 from app.schemas.accuracy_jobs import AccuracyJobRequest, ModelAccuracy
 from app.schemas.paper_analysis import RecordQuestionAnalysis
 from app.ai.base import AIRequest, SourcePage, AIProviderError
@@ -39,15 +39,18 @@ def _visuals(db,workspace,row):
         question_ids=set(data.get('visualAssetIds',[]))|{v for p in data['parts']for v in p.get('visualAssetIds',[])}
         if value in question_ids and not asset.asset_metadata.get('reviewApproved'):issues.append('Review the selected question crop, labels and association.')
         if value in question_ids and not (data.get('visualAltText','').strip() or asset.asset_metadata.get('altText','').strip()):issues.append('Describe the selected question visual for accessibility.')
+    issues.extend(links.reviews.visual_requirement_issues(data, {str(a.id):a for a in assets}))
     return assets,list(dict.fromkeys(issues))
 
 def readiness(db,paper_id):
     from . import paper_curriculum
     workspace=links.reviews._workspace(db,paper_id);review=links.reviews._response(db,workspace).model_dump(mode="json");items=[]
+    ids=[q['accuracyAnalysis']['id'] for q in review['questions'] if q.get('accuracyAnalysis')]
+    adjudications=list(db.scalars(select(AuditEvent).where(AuditEvent.action=='official_review.part_manually_approved',AuditEvent.event_data['analysisId'].as_string().in_(ids))))
     for q in review['questions']:
         _,row,_=links._context(db,paper_id,q['number']);_,visuals=_visuals(db,workspace,row);a=q.get('accuracyAnalysis');current=bool(a and a['isCurrent'] and a['methodVersion']==VERSION and all(paper_curriculum.current(db, next(p for p in q['data']['parts'] if p['label']==s['label']), s.get('curriculum')) for s in a['parts']))
-        manual_done={p['label']for p in q['data']['parts']if p['status']in {'approved','excluded'}}
-        low=[p['label']for p in a['parts']if p['percent']<=75 and p['label']not in manual_done] if current and q['status']!='approved' else []
+        manual_done={p['label']for p in q['data']['parts']if p['status']=='excluded' or (p['status']=='approved' and a and any(e.event_data.get('analysisId')==a['id'] and e.event_data.get('part')==p['label'] and e.event_data.get('contentHash')==a['contentHash'] for e in adjudications))}
+        low=[p['label']for p in a['parts']if p['percent']<=75 and p['label']not in manual_done] if a and a['isCurrent'] else []
         if a:
             low=list(dict.fromkeys(low+[p['label'] for p in a['parts'] if p.get('curriculum') and not p['curriculum'].get('accepted')]))
         items.append(dict(number=q['number'],status=q['status'],visualBlockers=visuals,reassessmentRequired=not current,manualContentParts=low,canReassess=not visuals and q['status']!='excluded',analysisVersion=q['analysisVersion']))
@@ -63,7 +66,7 @@ def listing(db,paper_id):
 def create_batch(db,principal,paper_id,payload):
     existing=[db.get(EvidenceLinkJob,v.requestId)for v in payload.questions]
     if any(existing):
-        if not all(j and j.job_kind=='accuracy'and j.paper_id==paper_id and j.request_data==v.model_dump(mode='json')for j,v in zip(existing,payload.questions)):
+        if not all(j and j.job_kind=='accuracy'and j.paper_id==paper_id and AccuracyJobRequest.model_validate(j.request_data).model_dump(mode='json')==v.model_dump(mode='json')for j,v in zip(existing,payload.questions)):
             raise DomainError('accuracy_request_conflict','Request IDs already used. Refresh job status.',409)
         return [response(j)for j in existing]
     rows=[]
@@ -185,6 +188,12 @@ def process_next(db,settings,storage,generator=None):
             raise DomainError('curriculum_publication_changed','Published textbook evidence changed during assessment. Refresh and retry explicitly.',409)
         output=ModelAccuracy.model_validate(result.output.model_dump())
         mapped,checks=paper_curriculum.resolve(db,output,curriculum_sources,row)
+        if payload.workflowPolicy!=VERSION:
+            mapped=row.review_data
+            for label,check in checks.items():
+                saved=next(p for p in row.review_data['parts'] if p['label']==label)
+                check['mappingHash']=paper_curriculum.mapping_hash(saved)
+                if saved['coverage']=='unreviewed':check['accepted']=False
         # The original snapshot is checked above; mappings are saved in the same
         # transaction and assessment is bound to the resulting saved version.
         if mapped!=row.review_data:
@@ -197,7 +206,7 @@ def process_next(db,settings,storage,generator=None):
         from .tutor_past_papers import auto_release
         try:
             with db.begin_nested():
-                releases=auto_release(db,SimpleNamespace(user=actor),workspace,row) if settings.past_paper_auto_release_enabled else [dict(enabled=False,code='automatic_release_paused',reason='Automatic Tutor release is paused by configuration.')]
+                releases=auto_release(db,SimpleNamespace(user=actor),workspace,row) if settings.past_paper_auto_release_enabled and payload.workflowPolicy==VERSION else [dict(enabled=False,code='automatic_release_paused',reason='Automatic Tutor release is paused or this request did not consent to the v2 workflow.')]
         except Exception:
             releases=[dict(enabled=False,code='release_retry_required',reason='Assessment saved. Retry eligible releases without another model call.')]
         job=db.get(EvidenceLinkJob,jid);job.status='completed';job.completed_at=datetime.now(timezone.utc);job.result_data=dict(analysisId=recorded.id,analysisVersion=recorded.version,model=result.model,confidence=recorded.question.percent,inputTokens=result.usage.input_tokens,outputTokens=result.usage.output_tokens,tutorReleases=releases);db.commit()

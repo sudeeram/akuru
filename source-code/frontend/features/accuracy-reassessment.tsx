@@ -229,6 +229,7 @@ export function AccuracyReassessment({
                       (v) => v.number === item.number,
                     )!;
                     return {
+                      workflowPolicy: 'final-source-accuracy-v2',
                       requestId: crypto.randomUUID(),
                       number: q.number,
                       expectedRevision: q.revision,

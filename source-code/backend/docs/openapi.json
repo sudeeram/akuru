@@ -342,6 +342,18 @@
             "format": "uuid",
             "title": "Requestid",
             "type": "string"
+          },
+          "workflowPolicy": {
+            "anyOf": [
+              {
+                "const": "final-source-accuracy-v2",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflowpolicy"
           }
         },
         "required": [
@@ -15172,6 +15184,17 @@
       },
       "WorkflowStep": {
         "properties": {
+          "checked": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked"
+          },
           "completed": {
             "title": "Completed",
             "type": "integer"

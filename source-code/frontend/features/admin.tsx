@@ -1552,7 +1552,9 @@ export function AdminWorkspace(p: Props) {
                           ]}
                         />
                         <Picker
-                          label="Status"
+                          label={
+                            textbookReviewMode ? 'Status' : 'Processing status'
+                          }
                           value={reviewStatus}
                           onChange={setReviewStatus}
                           options={[

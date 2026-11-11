@@ -41,7 +41,7 @@ def prepared(auth_client, sibling=False):
         p.update(selfContained=True,curriculum=dict(coverage='supported',percent=96,
             reason='Published evidence explains chromatography and separated dyes.',chunkIds=[str(chunk.id)]))
     q=c.get(root).json()['questions'][0]
-    req.update(expectedRevision=q['revision'],expectedContentHash=q['analysisContentHash'],expectedAnalysisVersion=q['analysisVersion'])
+    req.update(workflowPolicy='final-source-accuracy-v2',expectedRevision=q['revision'],expectedContentHash=q['analysisContentHash'],expectedAnalysisVersion=q['analysisVersion'])
     return c,h,db,root,q,req,out,storage,chunk,pub
 
 
@@ -183,7 +183,7 @@ def test_no_images_and_incomplete_inventory_never_claim_full_release(auth_client
     c,h,db,root,q,req,out,storage,chunk,pub=prepared(auth_client)
     row=db.scalar(select(OfficialPaperReviewQuestion));w=db.get(OfficialPaperReviewWorkspace,row.workspace_id)
     data=copy.deepcopy(row.review_data);data['visualAssetIds']=[];data['sharedStem']='Consider the sample.'
-    for p in data['parts']:p['visualAssetIds']=[]
+    for p in data['parts']:p.update(visualAssetIds=[],prompt='Describe the separation.')
     row.review_data=data;db.commit()
     result=paper_workflow.summaries(db,[w.paper_document_id])['documents'][0]['scopes'][0]
     assert result['steps'][1]['state']=='complete'
@@ -220,3 +220,46 @@ def test_ai_disagreement_with_manual_outside_coverage_is_saved_as_conflict(auth_
     assert saved['data']['parts'][0]['coverage']=='outside_current_coverage'
     assert saved['accuracyAnalysis']['parts'][0]['curriculum']['conflict']
     assert not c.get(root+'/chat-releases').json()
+
+
+@pytest.mark.integration
+def test_explicit_manual_low_confidence_adjudication_releases_without_extra_click(auth_client):
+    c,h,db,root,q,req,out,storage,chunk,pub=prepared(auth_client)
+    out['parts'][0]['percent']=70
+    run(c,h,db,root,req,out,storage)
+    assert c.get(root+'/chat-releases').json()==[]
+    current=c.get(root).json()['questions'][0]
+    data=current['data'];data['parts'][0]['status']='approved'
+    response=c.post(root+'/questions',headers=h,json=dict(number='1',expectedRevision=current['revision'],status='unreviewed',data=data))
+    assert response.status_code==200,response.text
+    releases=c.get(root+'/chat-releases').json()
+    assert len(releases)==1 and releases[0]['current']
+    # A newer, still-low assessment is not silently adjudicated by the earlier decision.
+    current=c.get(root).json()['questions'][0]
+    req.update(requestId=str(uuid.uuid4()),expectedRevision=current['revision'],expectedContentHash=current['analysisContentHash'],expectedAnalysisVersion=current['analysisVersion'])
+    run(c,h,db,root,req,out,storage)
+    assert not c.get(root+'/chat-releases').json()[0]['current']
+
+
+@pytest.mark.integration
+def test_companion_initial_states_and_upload_association_progress_independently(auth_client):
+    from test_official_paper_review_workspace import _setup
+    c,h,db,paper,scheme,report,topic=_setup(auth_client)
+    scheme[0].source_document_id=None;scheme[1].status='uploaded';db.commit()
+    def states():return [s['state']for s in paper_workflow.summaries(db,[scheme[0].id])['documents'][0]['scopes'][0]['steps']]
+    assert states()==['not_started','not_started','not_started']
+    scheme[1].status='processing';db.commit()
+    assert states()==['processing','not_started','not_started']
+    scheme[1].status='completed';scheme[0].source_document_id=paper[0].id;db.commit()
+    assert states()==['complete','complete','not_started']
+    scheme[0].component='2C';db.commit()
+    assert states()==['complete','attention','not_started']
+
+
+@pytest.mark.integration
+def test_legacy_assessment_request_never_silently_enables_automatic_release(auth_client):
+    c,h,db,root,q,req,out,storage,chunk,pub=prepared(auth_client)
+    req.pop('workflowPolicy')
+    run(c,h,db,root,req,out,storage)
+    assert db.scalar(select(func.count()).select_from(TutorPaperRelease))==0
+    assert c.get(root).json()['questions'][0]['accuracyAnalysis']['isCurrent']

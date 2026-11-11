@@ -126,4 +126,5 @@ def test_human_content_approval_and_image_decisions_are_preserved(auth_client):
  process_next(db,get_settings(),storage,generator=FakeAIProvider(out).generate)
  after=c.get(root).json()['questions'][0]
  assert after['status']=='approved'and after['data']==data
- assert c.get(root+'/accuracy-readiness').json()['questions'][0]['manualContentParts']==[]
+ assert c.get(root+'/accuracy-readiness').json()['questions'][0]['manualContentParts']==['a']
+ # Human status remains preserved, but a newer explicit source concern still needs adjudication.

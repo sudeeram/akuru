@@ -163,3 +163,13 @@ Derive these states from associated source checks and questions, avoiding duplic
 - Production baseline captured read-only in ignored `tmp/workflow-release`. Q4/Q5 still have image gates and imported text parts still have manual-only scoring; these must not be silently changed to obtain green badges.
 - Current corpus specification boundary is the configured Pearson Edexcel iGCSE subject library. Generic cross-awarding-body/specification matching is not introduced by this work.
 - Local full regression and subsequent focused checks passed; final release/pilot/browser evidence is recorded below when executed. Paid live allowance: US$2 from AKURU-Evaluation, newly approved in this conversation.
+
+### Live pilot and first deployment
+
+- Deployed `e6afdd6fee7ba8e0991ef0b7cd070e064fd232e6` with fresh encrypted database/document backup, dependency/build, migration-head/drift and loopback/HTTPS health checks. Release evidence: `/data/akuru/release-evidence/deployed-e6afdd6fee7ba8e0991ef0b7cd070e064fd232e6-20261111T172217Z.txt`.
+- Admin browser verified all four paper labels and three independent source labels, scoped counts, filter compatibility and expandable action details. Existing source checks correctly populate scheme/report summaries without a separate approval action.
+- One AKURU-Evaluation call for Biology June 2025 2BR Q2: 29,475 input and 1,575 output tokens, conservative spend bound US$0.107325 of the approved US$2. Model `gpt-6.1-sol`; current append-only assessment v7 applied via authenticated Admin API. No wording/mapping/image/rubric changes were made by that evaluation.
+- Q2(a): 65% accuracy, 35% curriculum support, flagged generic examiner advice not supported by the report and insufficient exact anatomy-identification textbook evidence. The existing manual topic association remains unchanged. This is not proof the wider textbook lacks coverage.
+- Q2(b): 98% accuracy, 99% curriculum support, independent-answerability confirmed. Original scheme PDF page 6 visually checked: three independent one-mark points fit the existing unit-credit engine. Its imported manual-only readiness is the remaining supported-scoring pilot action; do not promote other parts or override Q2(a)'s findings.
+- Q4/Q5 image gates remain genuine operator work. No whole-paper formal-exam publication is authorised as an incidental effect of these status updates.
+- Full backend suite: 501 passed, 1 skipped; later targeted follow-up: 50 passed. Frontend: 122 passed; typecheck/lint/build, generated contracts and schema drift checked. Final follow-up deployment and Student/API acceptance are recorded next.

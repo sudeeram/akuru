@@ -16,7 +16,9 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'source-code/backend'))
-from dotenv import dotenv_values
+from dotenv import dotenv_values, load_dotenv
+if __name__ == "__main__":
+    load_dotenv(ROOT / "source-code/backend/.env")
 from app.ai.base import AIRequest, SourcePage
 from app.ai.provider import OpenAIProvider
 from app.schemas.accuracy_jobs import AccuracyJobRequest, ModelAccuracy
@@ -39,6 +41,9 @@ class MultimodalBudget:
     Unknown usage retains the full reservation. Never reuse a different budget.
     """
     def __init__(self, key, ledger, ceiling, rate_confirmed):
+        import math
+        if not math.isfinite(ceiling) or ceiling <= 0:
+            raise ValueError('Use a finite positive authorised budget.')
         if not rate_confirmed:
             raise ValueError('Confirm the recorded rates bound this evaluation model.')
         from openai import OpenAI
@@ -97,6 +102,8 @@ def main():
         review=client.call(base);q=next(v for v in review['questions']if v['number']==args.number)
         context=client.call(base+'/questions/'+args.number+'/accuracy-context')
         intake.save_private(args.output/'context.json',context)
+        if args.live and (args.output/'assessment.json').exists():
+            raise ValueError('A saved assessment already exists. Do not repeat the paid call; apply its current payload through the Admin API or use a new explicitly authorised evaluation case.')
         if not args.live:
             print('Context captured; no model call or production mutation.');return
         env=dotenv_values(args.evaluation_env)

@@ -496,6 +496,19 @@ def _auto_link_exact_paper_blocks(db: Session, workspace: OfficialPaperReviewWor
     return added
 
 
+def visual_requirement_issues(data, assets):
+    """Shared source-reference checks for image queues and workflow summaries."""
+    issues = []
+    for part in data['parts']:
+        visible = set(data.get('visualAssetIds', [])) | set(part.get('visualAssetIds', []))
+        for keyword, kind in (('diagram', 'diagram'), ('figure', 'diagram'), ('graph', 'diagram'), ('chromatogram', 'diagram'), ('table', 'table')):
+            if re.search(r'\b' + keyword + r's?\b', part.get('prompt', ''), re.I) and not any(
+                    value in assets and assets[value].asset_metadata.get('kind') == kind
+                    and assets[value].asset_metadata.get('reviewCrop') for value in visible):
+                issues.append(f"Part {part['label']}: attach a reviewed {kind} referenced by the question.")
+    return list(dict.fromkeys(issues))
+
+
 def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                        status: str, data: ReviewQuestionData, previous_data: dict | None = None, question_number: str | None = None):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
@@ -547,14 +560,12 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                 raise DomainError("marking_point_incomplete", "Give every marking point a short code and wording before approval.", 422)
     assigned_ids = set(data.visualAssetIds) | {asset_id for part in data.parts for asset_id in part.visualAssetIds}
     visual_assets = []
-    asset_by_id = {}
     for asset_id in assigned_ids | set(data.candidateVisualAssetIds):
         asset = db.scalar(select(DocumentAsset).where(
             DocumentAsset.id == asset_id, DocumentAsset.document_version_id == workspace.paper_version_id))
         if not asset:
             raise DomainError("invalid_question_asset", "The visual must come from this paper version.", 422)
         visual_assets.append(asset)
-        asset_by_id[asset_id] = asset
     if status == "excluded":
         if not data.exclusionReason.strip():
             raise DomainError("exclusion_reason_required", "Explain why this source question is excluded.", 422)
@@ -576,16 +587,11 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
             not asset.asset_metadata.get("altText", "").strip() for asset in visual_assets
         ):
             raise DomainError("visual_alt_required", "Describe approved visuals for accessibility.", 422)
-        for part in data.parts:
-            visible = set(data.visualAssetIds) | set(part.visualAssetIds)
-            for keyword, kind in (("diagram", "diagram"), ("figure", "diagram"),
-                                  ("graph", "diagram"), ("chromatogram", "diagram"), ("table", "table")):
-                if re.search(r"\b" + re.escape(keyword) + r"s?\b", part.prompt, re.IGNORECASE) and not any(
-                    asset_by_id[asset_id].asset_metadata.get("kind") == kind
-                    and asset_by_id[asset_id].asset_metadata.get("reviewCrop") for asset_id in visible
-                ):
-                    raise DomainError("required_part_visual_missing",
-                        f"Attach a reviewed {kind} to part {part.label} before approving this question.", 409)
+        issues = visual_requirement_issues(data.model_dump(mode='json'),
+            {str(asset.id): asset for asset in visual_assets})
+        if issues:
+            raise DomainError('required_part_visual_missing', issues[0], 409)
+
 
 
 def _content_snapshot(data):
@@ -638,6 +644,7 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
             if part.status == "approved":
                 part.status = "needs_correction"
     _validate_question(db, workspace, payload.status, payload.data, row.review_data if row else None, payload.number)
+    previous_statuses = {p.get('label'): p.get('status') for p in (row.review_data if row else {}).get('parts', [])}
     previous_textbook_evidence = [{"part": part.get("label"), "evidence": part.get("textbookEvidence", [])} for part in (row.review_data if row else {}).get("parts", [])]
     if row is None:
         row = OfficialPaperReviewQuestion(workspace_id=workspace.id, number=payload.number)
@@ -656,6 +663,24 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
                                   "textbookEvidence": [{"part": part.label, "evidence": [item.model_dump(mode="json") for item in part.textbookEvidence]} for part in payload.data.parts]}))
     from .question_auto_approval import apply
     apply(db, principal, workspace, row)
+    from .official_question_analyses import content_hash, source_manifest
+    digest = content_hash(db, row, source_manifest(db, workspace))
+    from .question_auto_approval import current_accuracy
+    reviewed_analysis = current_accuracy(db, workspace, row)
+    for part in payload.data.parts:
+        if part.status == 'approved' and previous_statuses.get(part.label) != 'approved':
+            db.add(AuditEvent(created_at=datetime.now(timezone.utc), actor_id=principal.user.id,
+                action='official_review.part_manually_approved', target_type='official_paper_review_question',
+                target_id=str(row.id), event_data=dict(part=part.label, contentHash=digest, revision=row.revision, analysisId=str(reviewed_analysis.id) if reviewed_analysis else None)))
+    from app.config import get_settings
+    from .tutor_past_papers import auto_release
+    if get_settings().past_paper_auto_release_enabled:
+        try:
+            with db.begin_nested():
+                auto_release(db, principal, workspace, row)
+        except Exception:
+            db.add(AuditEvent(actor_id=principal.user.id, action='tutor_paper.release_retry_required',
+                target_type='official_paper_review_question', target_id=str(row.id), event_data={}))
     db.commit()
     return _response(db, workspace)
 

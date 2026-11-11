@@ -1,10 +1,12 @@
 """Admin final-source reassessment jobs; no Student release controls."""
 import uuid
+from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .paper_analysis import AccuracyEstimate, PartAccuracy
 
 class AccuracyJobRequest(BaseModel):
     model_config=ConfigDict(extra='forbid')
+    workflowPolicy: Literal["final-source-accuracy-v2"] | None = None
     requestId: uuid.UUID
     number: str=Field(min_length=1,max_length=40)
     expectedRevision: int=Field(ge=1)

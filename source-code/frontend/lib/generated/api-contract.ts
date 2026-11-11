@@ -8,7 +8,7 @@ export interface Schemas {
   "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; "publicRef": string; "lastLoginAt"?: string | null; };
   "AccuracyEstimate": { "percent": number; "reasons": Array<string>; "sourceChecks": Array<Schemas["SourceAccuracy"]>; };
   "AccuracyJobBatch": { "questions": Array<Schemas["AccuracyJobRequest"]>; };
-  "AccuracyJobRequest": { "requestId": string; "number": string; "expectedRevision": number; "expectedContentHash": string; "expectedAnalysisVersion": number; };
+  "AccuracyJobRequest": { "workflowPolicy"?: "final-source-accuracy-v2" | null; "requestId": string; "number": string; "expectedRevision": number; "expectedContentHash": string; "expectedAnalysisVersion": number; };
   "AdminPasswordResetRequest": { "requestKey": string; };
   "AdminPasswordResetResponse": { "accountRef": string; "username": string; "temporaryPassword": string; "sessionsRevoked": number; "mustChangePassword"?: true; };
   "AdminQuotaListResponse": { "quotas": Array<Schemas["StudentQuotaResponse"]>; };
@@ -327,7 +327,7 @@ export interface Schemas {
   "WorkedStep": { "partLabel": string; "explanation": string; "showPoints"?: true; "circleIndexes"?: Array<number>; "fits"?: Array<Schemas["Fit"]>; };
   "WorkflowResponse": { "policy"?: string; "documents"?: Array<Schemas["DocumentWorkflow"]>; };
   "WorkflowScope": { "paperId": string | null; "paperTitle": string; "steps": Array<Schemas["WorkflowStep"]>; "excluded"?: number; "formalExamPublished"?: boolean; };
-  "WorkflowStep": { "number": number; "label": string; "state": "not_started" | "processing" | "attention" | "complete"; "completed": number; "total": number; "detail": string; "href": string; };
+  "WorkflowStep": { "number": number; "label": string; "state": "not_started" | "processing" | "attention" | "complete"; "completed": number; "checked"?: number | null; "total": number; "detail": string; "href": string; };
   "WorkingFileResponse": { "id": string; "name": string; "contentType": string; "ocrText": string; "ocrConfidence": number; "needsReview": boolean; };
 }
 

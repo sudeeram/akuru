@@ -7,6 +7,7 @@ class WorkflowStep(BaseModel):
     label: str
     state: Literal['not_started', 'processing', 'attention', 'complete']
     completed: int
+    checked: int | None = None
     total: int
     detail: str
     href: str

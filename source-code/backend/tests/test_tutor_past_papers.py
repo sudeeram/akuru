@@ -242,3 +242,28 @@ def test_released_marking_reuses_two_pass_router_quotas_and_preserves_unaided_at
 def test_exact_question_identity_does_not_confuse_words_with_labels(text,number,part):
     found=service.identity(text)
     assert found['number']==number and found['part']==part
+
+
+@pytest.mark.parametrize('component', ['1B', '2BR', '1C', '2CR'])
+def test_past_paper_identity_preserves_biology_and_chemistry_components(component):
+    identity = service.identity(f'June 2025 {component} question 2(b)')
+    assert identity == dict(component=component, year=2025, session='june', number='2', part='b')
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('change', ['publication', 'visual'])
+def test_manual_release_also_invalidates_on_textbook_or_visual_changes(auth_client, monkeypatch, change):
+    from app.models import Textbook, DocumentAsset
+    import copy
+    client,headers,db,root,child,topic,paper,scheme,settings=_ready(auth_client,monkeypatch)
+    result=client.post(root+'/questions/1/chat-release',headers=headers,json=dict(partLabel='a',revision=1,confirmSelfContained=True))
+    assert result.status_code==200,result.text
+    if change=='publication':
+        book=db.get(Textbook,topic.textbook_id);book.status='archived'
+    else:
+        q=db.scalar(select(OfficialPaperReviewQuestion))
+        asset=db.get(DocumentAsset,uuid.UUID(q.review_data['visualAssetIds'][0]))
+        metadata=copy.deepcopy(asset.asset_metadata);metadata['altText']='Materially changed reviewed label.';asset.asset_metadata=metadata
+    db.commit()
+    assert client.get(root+'/chat-releases').json()[0]['current'] is False
+    assert service.eligible(db,child.id,'chemistry')==[]
