@@ -97,6 +97,26 @@ export type QuestionAnalysis = {
   question: AccuracyEstimate;
   parts: (AccuracyEstimate & {
     label: string;
+    selfContained?: boolean | null;
+    curriculum?: {
+      coverage: string;
+      percent: number;
+      reason: string;
+      policy: string;
+      accepted: boolean;
+      conflict: boolean;
+      mappingHash: string;
+      evidence: {
+        chunkId: string;
+        topicRef: string;
+        title: string;
+        publicationId: string;
+        publicationVersion: number;
+        documentVersionId: string;
+        page: number;
+        contentHash: string;
+      }[];
+    } | null;
     provenance?: AnalysisProvenance[];
   })[];
   createdAt: string;

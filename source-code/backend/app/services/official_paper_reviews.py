@@ -152,7 +152,7 @@ def published_topic_evidence(db: Session, paper_id: uuid.UUID, topic_ref: str) -
     ).order_by(RetrievalChunk.page_number, RetrievalChunk.source_ordinal).limit(100)).all()
     return {"topicRef": topic.public_ref, "code": topic.code, "title": topic.title,
             "visualPages": visual_page_options(db, topic),
-            "chunks": [{"pageNumber": row.page_number, "text": row.content} for row in rows]}
+            "chunks": [{"chunkId": str(row.id), "publicationId": str(row.topic_content_version_id), "documentVersionId": str(row.document_version_id), "contentHash": row.content_hash, "pageNumber": row.page_number, "text": row.content} for row in rows]}
 
 
 def visual_page_options(db: Session, topic: TextbookTopic) -> list[dict]:

@@ -2,11 +2,11 @@
 
 Guideline ID: `akuru-igcse-pastpapers`
 
-Version: `1.4.0`
+Version: `1.5.0`
 
 Created: 2026-10-21
 
-Last updated: 2026-11-04
+Last updated: 2026-11-11
 
 Status: documented standard; automated enforcement is incomplete.
 
@@ -23,11 +23,14 @@ Apply this standard when preparing questions here, in AKURU, or through another 
 7. [Reviewed reference examples](reviewed-examples.md)
 8. [Per-batch extraction checklist](extraction-checklist.md) — record executed checks, exact issues and review decisions.
 9. [Accuracy confidence and extraction provenance](accuracy-confidence-and-provenance.md) — source-specific model identity, dated estimates and reassessment history independent of approvals.
+11. [Workflow states and release](workflow-states-and-release.md) — initial states, companion-source transitions and planned approval/release policy.
 10. [Source comparison and confidence reassessment](source-comparison-and-confidence-reassessment.md) — required procedure when reassessing imported content; compare sources, correct defects, then record a new evidence-backed assessment.
 
 ## Processing sequence
 
-Identify sources and versions → extract text and layout → assemble questions and nested parts → propose rubric rules and report associations → validate → import unapproved proposals → Admin review → separate release gates.
+Identify sources and versions → extract text/layout and reconcile inventories → assemble questions, rubric rules and exact source associations → validate and import unapproved proposals → Admin reviews required images → final AI reassessment of saved content and curriculum → guarded AI approval strictly above 75% → automatic release of eligible Tutor-practice items. Formal-exam publication remains a separate explicit Admin action.
+
+This is the agreed target workflow, not a statement that every stage is deployed. Until implemented and verified, retain the existing supported review/release actions. See [workflow states and transition rules](workflow-states-and-release.md).
 
 MUST means required. SHOULD means the default; record a reason for an exception. Do not invent missing wording, source references, marking rules or examiner advice. Question wording and student-facing assets must not contain correct-answer information from the scheme or report.
 
@@ -52,6 +55,9 @@ Read the source-specific rules, choose the appropriate layout profile, and compl
 These Markdown rules do not automatically configure OCR or enforce every gate in the current application. Record which checks were actually executed, flag missing automation, and retain unresolved issues for Admin review. Add regression cases for new failures; do not claim a new year/variant is covered merely because an earlier one passed.
 
 ## Change history
+
+- 2026-11-11 — 1.5.0: agreed four-step paper workflow and independent companion-source milestones; manual image review, final curriculum-aware reassessment, guarded AI approval and planned automatic Tutor release. Added initial states, transition/invalidation rules and batch evidence requirements. Extraction fidelity rules and historical batch provenance remain unchanged; documentation does not deploy automation.
+
 
 - 2026-11-04 — 1.4.0: reusable source-comparison/reassessment procedure based on Chemistry and Biology pilots; explicit baseline/revision protection, decimal and gap-fill checks, grouped-crop verification, subpart report continuations, source-conflict handling and independent acceptance evidence. Historical batch provenance remains unchanged.
 

@@ -28,3 +28,15 @@ Open the paper's **Accuracy confidence** page (or one question's review page) an
 6. Complete the separate scoring/readiness and Student-release steps. Reassessment never releases a paper.
 
 AI compares the current saved wording, marking points, original source pages and reviewed images. It records new accuracy/provenance history, without rewriting your question or undoing your image approvals. Changes made while it is processing cause a safe failure and require a new snapshot. If an assessment fails, the previous history remains; no partial new assessment is saved.
+
+## Document workflow and automatic Tutor practice
+
+The Exam Documents table shows four numbered progress labels for question papers: **Extracted**, **Images reviewed**, **Assessed**, **Tutor practice released**. Expand a label for counts, explanations and a link to its action. Grey means not started; blue means active work; amber means partial or needing attention; green means complete. The extraction percentage remains processing progress, not review completion or accuracy.
+
+Mark schemes show **Extracted**, **Linked to paper**, **Evidence checked**. Reports show **Extracted**, **Linked to paper**, **Guidance checked**. These are independent milestones, scoped to each associated paper. You do not need to approve the same companion document again. A verified absence of commentary is different from an unchecked or unavailable report.
+
+Review required image crops, labels and associations first. Then use **Reassess reviewed content** on the accuracy/review page. Read the paid-call confirmation: the final check covers wording, exact marking/report evidence, reviewed images and published textbook mappings. AI approval requires current confidence strictly above 75% and all applicable gates; exactly 75% remains for manual review. Existing human decisions are preserved. Open a subpart's accuracy details for separate curriculum confidence and referenced topic publication versions. Resolve mapping uncertainty/conflicts without forcing a topic association.
+
+Eligible, independently answerable subparts become available for Tutor practice automatically. Amber release progress means some items remain unavailable; green requires all required items to be currently released. Unsupported scoring, missing evidence, unresolved images or curriculum uncertainty can still block release at high confidence. Nothing automatically publishes a complete exam. Student enrolment, enabled access and cumulative topic coverage still apply.
+
+If an assessment saved but a release write failed, use **Retry eligible Tutor releases · no AI call**. This checks saved assessments and does not charge another model request. Explicitly withdrawn items remain withdrawn; only an intentional manual re-enable can restore them. Changing content/evidence or a referenced textbook publication can require reassessment. Historical attempts remain preserved.

@@ -18,6 +18,15 @@ export function TutorPastPaperReleases({
   review: PaperReview;
 }) {
   const [releases, setReleases] = useState<Release[]>([]);
+  const [readiness, setReadiness] = useState<
+    {
+      number: string;
+      partLabel: string;
+      ready: boolean;
+      blocker: string | null;
+    }[]
+  >([]);
+  const [loadedPaperId, setLoadedPaperId] = useState('');
   const [busy, setBusy] = useState(false),
     [notice, setNotice] = useState('');
   const load = () =>
@@ -25,11 +34,28 @@ export function TutorPastPaperReleases({
       `admin/official-paper-reviews/${paperId}/chat-releases`,
     ).then(setReleases);
   useEffect(() => {
-    void request<Release[]>(
-      `admin/official-paper-reviews/${paperId}/chat-releases`,
-    )
-      .then(setReleases)
-      .catch((cause) => setNotice(errorMessage(cause)));
+    let active = true;
+    void Promise.all([
+      request<typeof readiness>(
+        `admin/official-paper-reviews/${paperId}/chat-release-readiness`,
+      ),
+      request<Release[]>(
+        `admin/official-paper-reviews/${paperId}/chat-releases`,
+      ),
+    ])
+      .then(([gates, rows]) => {
+        if (active) {
+          setLoadedPaperId(paperId);
+          setReadiness(gates);
+          setReleases(rows);
+        }
+      })
+      .catch((cause) => {
+        if (active) setNotice(errorMessage(cause));
+      });
+    return () => {
+      active = false;
+    };
   }, [paperId, review]);
   return (
     <details className="panel">
@@ -37,28 +63,31 @@ export function TutorPastPaperReleases({
       <div className="stack">
         <p>
           This releases individual self-contained practice items, not a complete
-          paper. Both question and subpart must be approved, mapped to published
-          topics and have confirmed marking readiness. Changing the reviewed
-          source invalidates its release.
+          paper. A subpart must be human approved or AI approved, mapped to
+          published topics and have confirmed marking readiness. Independent
+          subparts can pass while siblings remain blocked; shared context must
+          still be complete. Changing the reviewed source invalidates its
+          release.
         </p>
         {notice && <output>{notice}</output>}
         {review.questions.flatMap((question) =>
           question.data.parts
             .filter((part) => part.coverage === 'supported')
             .map((part) => {
-              const released = releases.some(
+              const released =
+                loadedPaperId === paperId &&
+                releases.some(
+                  (r) =>
+                    r.number === question.number &&
+                    r.partLabel === part.label &&
+                    r.enabled &&
+                    r.current,
+                );
+              const gate = readiness.find(
                 (r) =>
-                  r.number === question.number &&
-                  r.partLabel === part.label &&
-                  r.enabled &&
-                  r.current,
+                  r.number === question.number && r.partLabel === part.label,
               );
-              const ready =
-                question.status === 'approved' &&
-                part.status === 'approved' &&
-                (part.assessmentReadiness === 'automatic' ||
-                  (part.assessmentReadiness === 'manual_only' &&
-                    part.responseType === 'drawing'));
+              const ready = loadedPaperId === paperId && gate?.ready === true;
               return (
                 <div
                   className="panel row"
@@ -70,6 +99,7 @@ export function TutorPastPaperReleases({
                       Q{question.number}({part.label})
                     </strong>{' '}
                     ·{' '}
+                    {!ready && gate?.blocker && <small>{gate.blocker} </small>}
                     {released
                       ? 'Released for practice'
                       : ready

@@ -60,6 +60,8 @@ export interface Schemas {
   "CoverageDiagnosticResponse": { "status": string; "message": string; "planVersion"?: number | null; "currentGrade"?: number | null; "currentTerm"?: number | null; "coveredTopics"?: Array<Schemas["PlanTopicResponse"]>; "missingPeriods"?: Array<string>; };
   "CreateAccountRequest": { "username": string; "name": string; "password": string; "role": "parent" | "student"; "parentId"?: string | null; "level"?: "iGCSE" | null; "grade"?: "Grade 10" | "Grade 11" | null; "term"?: "Term1" | "Term2" | "Term3" | null; "progression"?: Array<string>; "subjects"?: Array<string>; };
   "CreateReviewCrop": { "source"?: "paper" | "scheme"; "page": number; "kind": "diagram" | "table"; "x0": number; "y0": number; "x1": number; "y1": number; "altText": string; };
+  "CurriculumAssessment": { "coverage": "supported" | "partial_or_uncertain" | "outside_current_coverage"; "percent": number; "reason": string; "policy": string; "evidence"?: Array<Schemas["CurriculumEvidence"]>; "accepted": boolean; "conflict": boolean; "mappingHash": string; };
+  "CurriculumEvidence": { "chunkId": string; "topicRef": string; "title": string; "publicationId": string; "publicationVersion": number; "documentVersionId": string; "page": number; "contentHash": string; };
   "CurriculumPlanResponse": { "versionNumber": number; "status": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "groupLabel"?: string; "groups"?: Array<Schemas["PlanTopicGroupResponse"]>; "periods": Array<Schemas["PlanPeriod"]>; "publishedPeriods"?: Array<Schemas["PlanPeriod"]>; "changes"?: Array<Schemas["PlanChangeResponse"]>; "requiresPublishedChangeConfirmation"?: boolean; "basedOnVersion"?: number | null; "createdAt"?: string | null; "publishedAt"?: string | null; };
   "DeterministicMediaCreate": { "kind": "circuit_svg" | "forces_svg" | "geometry_svg" | "plot_svg"; "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "parameters"?: { [key: string]: unknown; }; };
   "DiagramInput": { "schemaVersion": "science-diagram-v1"; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "partLabels": Array<string>; "verificationNote": string; };
@@ -71,6 +73,7 @@ export interface Schemas {
   "DocumentResponse": { "id": string; "kind": Schemas["DocumentType"]; "courseId": string; "subjectId": string; "title": string; "originalFilename": string; "contentType": string; "sizeBytes": number; "checksum": string; "status": string; "edition"?: string | null; "year"?: number | null; "session"?: string | null; "component"?: string | null; "variant"?: string | null; "sourceDocumentId"?: string | null; "sourceMetadata"?: { [key: string]: unknown; }; "versionId": string; "versionNumber": number; "createdAt": string; "removedAt"?: string | null; };
   "DocumentType": "textbook" | "reference" | "past_paper" | "mark_scheme" | "examiner_report";
   "DocumentUploadResponse": { "document": Schemas["DocumentResponse"]; "job": Schemas["DocumentJobResponse"]; };
+  "DocumentWorkflow": { "documentId": string; "scopes": Array<Schemas["WorkflowScope"]>; };
   "EnergyFacts": { "kind": "exothermic_profile"; "reactants": string; "products": string; };
   "ErrorItem": { "code": string; "message": string; "details"?: Array<{ [key: string]: unknown; }>; };
   "ErrorResponse": { "error": Schemas["ErrorItem"]; };
@@ -146,7 +149,7 @@ export interface Schemas {
   "PaperAutoApprovalResponse": { "policy": string; "thresholdExclusive": number; "results": Array<Schemas["AutoApprovalResult"]>; };
   "PaperReviewResponse": { "paperDocumentId": string; "paperVersionId": string; "schemeDocumentId": string | null; "reportDocumentId": string | null; "expectedQuestionCount": number; "questionCount": number; "approvedCount": number; "wholePaperReady": boolean; "assessmentReleaseReady"?: boolean; "automaticAssessmentReady"?: boolean; "assessmentBlockers"?: Array<string>; "blockers": Array<string>; "questions": Array<Schemas["ReviewQuestionResponse"]>; };
   "ParagraphOperationRequest": { "action": "join_previous" | "split" | "restore_extracted"; "splitOffset"?: number | null; };
-  "PartAccuracy": { "percent": number; "reasons": Array<string>; "sourceChecks": Array<Schemas["SourceAccuracy"]>; "label": string; "provenance"?: Array<Schemas["AnalysisProvenance"]>; };
+  "PartAccuracy": { "percent": number; "reasons": Array<string>; "sourceChecks": Array<Schemas["SourceAccuracy"]>; "label": string; "selfContained"?: boolean | null; "curriculum"?: Schemas["CurriculumAssessment"] | null; "provenance"?: Array<Schemas["AnalysisProvenance"]>; };
   "PastPaperChatState": { "practice": Schemas["TutorPracticeResponse"]; "paperTitle": string; "questionLabel": string; "answerRevealed"?: boolean; "markingGuidance"?: Array<{ [key: string]: unknown; }>; "alternatives"?: Array<string>; "examinerAdvice"?: Array<string>; "sources"?: Array<{ [key: string]: unknown; }>; "state": "awaiting_answer" | "answered" | "revealed" | "expired"; "message"?: string; };
   "PlanChangeResponse": { "topicRef": string; "code": string; "title": string; "change": string; "fromPeriod"?: string | null; "toPeriod"?: string | null; };
   "PlanGenerateRequest": { "studentId"?: string | null; };
@@ -322,6 +325,9 @@ export interface Schemas {
   "UserResponse": { "id": string; "username": string; "name": string; "role": "admin" | "parent" | "student"; "mustChangePassword": boolean; };
   "VolumeTimeFacts": { "kind": "volume_time"; "xLabel": string; "yLabel": string; };
   "WorkedStep": { "partLabel": string; "explanation": string; "showPoints"?: true; "circleIndexes"?: Array<number>; "fits"?: Array<Schemas["Fit"]>; };
+  "WorkflowResponse": { "policy"?: string; "documents"?: Array<Schemas["DocumentWorkflow"]>; };
+  "WorkflowScope": { "paperId": string | null; "paperTitle": string; "steps": Array<Schemas["WorkflowStep"]>; "excluded"?: number; "formalExamPublished"?: boolean; };
+  "WorkflowStep": { "number": number; "label": string; "state": "not_started" | "processing" | "attention" | "complete"; "completed": number; "total": number; "detail": string; "href": string; };
   "WorkingFileResponse": { "id": string; "name": string; "contentType": string; "ocrText": string; "ocrConfidence": number; "needsReview": boolean; };
 }
 
@@ -336,11 +342,14 @@ export interface ApiOperations {
   "POST /api/v1/admin/curriculum-plans/{subject_id}": { request: Schemas["SavePlanRequest"]; response: Schemas["CurriculumPlanResponse"] };
   "POST /api/v1/admin/curriculum-plans/{subject_id}/draft": { request: unknown; response: Schemas["CurriculumPlanResponse"] };
   "POST /api/v1/admin/curriculum-plans/{subject_id}/publish": { request: Schemas["PublishPlanRequest"]; response: Schemas["CurriculumPlanResponse"] };
+  "GET /api/v1/admin/official-paper-reviews/workflow": { request: unknown; response: Schemas["WorkflowResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}": { request: unknown; response: Schemas["PaperReviewResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-jobs": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-jobs": { request: Schemas["AccuracyJobBatch"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-readiness": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/auto-approval": { request: unknown; response: Schemas["PaperAutoApprovalResponse"] };
+  "POST /api/v1/admin/official-paper-reviews/{paper_id}/auto-tutor-release": { request: unknown; response: unknown };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-release-readiness": { request: unknown; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-releases": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-job-batch": { request: Schemas["EvidenceBatch"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-jobs": { request: unknown; response: unknown };
@@ -351,6 +360,7 @@ export interface ApiOperations {
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/evidence-links/{run_id}/{proposal_id}/preview": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/prepare-official-drafts": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions": { request: Schemas["SaveReviewQuestion"]; response: Schemas["PaperReviewResponse"] };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/accuracy-context": { request: unknown; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: unknown; response: Array<Schemas["QuestionAnalysisResponse"]> };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: Schemas["RecordQuestionAnalysis"]; response: Schemas["QuestionAnalysisResponse"] };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": { request: Schemas["ReleasePastPaperPart"]; response: unknown };

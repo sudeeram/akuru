@@ -1,4 +1,8 @@
 'use client';
+import {
+  ExamDocumentWorkflow,
+  useExamWorkflows,
+} from './exam-document-workflow';
 import { StudentAvatar } from '@/components/portal/student-avatar';
 import { subjectAccent } from '@/lib/subject-accent';
 import {
@@ -234,6 +238,14 @@ function Checks({
   );
 }
 export function AdminWorkspace(p: Props) {
+  const examWorkflows = useExamWorkflows(
+    (p.pathname.startsWith('/admin/exam-documents') ? p.data.documents : [])
+      .filter((d) =>
+        ['Past paper', 'Marking scheme', 'Examiner report'].includes(d.kind),
+      )
+      .map((d) => d.id),
+    p.data.documents,
+  );
   const [filters, setFilters] = useWorkspaceSearch({
     q: '',
     subject: 'all',
@@ -1584,7 +1596,9 @@ export function AdminWorkspace(p: Props) {
                               </>
                             )}
                             <th>Subject</th>
-                            <th>Status</th>
+                            <th>
+                              {textbookReviewMode ? 'Status' : 'Workflow'}
+                            </th>
                             <th>Extraction progress</th>
                             <th>Actions</th>
                           </tr>
@@ -1619,7 +1633,20 @@ export function AdminWorkspace(p: Props) {
                               )}
                               <td>{document.subject}</td>
                               <td>
-                                <StatusBadge status={document.status} />
+                                {!textbookReviewMode &&
+                                [
+                                  'Past paper',
+                                  'Marking scheme',
+                                  'Examiner report',
+                                ].includes(document.kind) ? (
+                                  <ExamDocumentWorkflow
+                                    workflow={examWorkflows.data[document.id]}
+                                    error={examWorkflows.error}
+                                    navigate={p.navigate}
+                                  />
+                                ) : (
+                                  <StatusBadge status={document.status} />
+                                )}
                               </td>
                               <td>
                                 <span

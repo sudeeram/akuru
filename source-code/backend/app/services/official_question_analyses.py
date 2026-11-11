@@ -29,7 +29,7 @@ def source_manifest(db, workspace):
     return result
 
 
-def content_hash(db, question, manifest):
+def content_hash(db, question, manifest, *, block_rows=None, asset_rows=None):
     data = json.loads(json.dumps(question.review_data))
     data.pop("extractionConfidence", None)
     for part in data.get("parts", []):
@@ -47,12 +47,12 @@ def content_hash(db, question, manifest):
                 if source.get("assetId"): asset_ids.add(source["assetId"])
     blocks = [{"id": str(block.id), "text": block.text, "latex": block.latex,
                "kind": block.block_kind, "bounds": block.bounding_box}
-              for block in db.scalars(select(DocumentBlock).where(DocumentBlock.id.in_(
-                  [uuid.UUID(value) for value in block_ids])).order_by(DocumentBlock.id))] if block_ids else []
+              for block in (block_rows if block_rows is not None else db.scalars(select(DocumentBlock).where(DocumentBlock.id.in_(
+                  [uuid.UUID(value) for value in block_ids])).order_by(DocumentBlock.id))) if str(block.id) in block_ids] if block_ids else []
     assets = [{"id": str(asset.id), "sha256": asset.sha256, "bounds": asset.bounding_box,
                "metadata": asset.asset_metadata}
-              for asset in db.scalars(select(DocumentAsset).where(DocumentAsset.id.in_(
-                  [uuid.UUID(value) for value in asset_ids])).order_by(DocumentAsset.id))] if asset_ids else []
+              for asset in (asset_rows if asset_rows is not None else db.scalars(select(DocumentAsset).where(DocumentAsset.id.in_(
+                  [uuid.UUID(value) for value in asset_ids])).order_by(DocumentAsset.id))) if str(asset.id) in asset_ids] if asset_ids else []
     return hashlib.sha256(json.dumps({"question": data, "sources": manifest,
         "blocks": blocks, "assets": assets}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
@@ -124,6 +124,12 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, 
                 raise DomainError("analysis_source_mismatch", "Record unavailable status only for an absent source.", 422)
             if not set(check.pages) <= pages[check.role]:
                 raise DomainError("analysis_page_mismatch", "An inspected page does not belong to the bound source version.", 422)
+    from .paper_curriculum import current as current_curriculum
+    for assessed in payload.parts:
+        if assessed.curriculum is not None:
+            saved = next(p for p in question.review_data['parts'] if p['label'] == assessed.label)
+            if not current_curriculum(db, saved, assessed.curriculum.model_dump(mode='json')):
+                raise DomainError('curriculum_publication_changed', 'Curriculum evidence or mapping changed before recording the assessment.', 409)
     result = payload.model_dump(mode="json", exclude={"expectedQuestionRevision", "expectedAnalysisVersion", "expectedContentHash", "stage"})
     result["question"]["percent"] = min(payload.question.percent, *(part.percent for part in payload.parts))
     row = OfficialQuestionAnalysis(question_id=question.id, version_number=latest + 1, stage=payload.stage,

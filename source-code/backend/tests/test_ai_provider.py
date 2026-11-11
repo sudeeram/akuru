@@ -211,3 +211,13 @@ def test_account_router_uses_unique_priority_and_restarts_complete_request_on_fa
         session.close()
         transaction.rollback()
         connection.close()
+
+
+def test_provenance_records_actual_response_model_when_available():
+    class CanonicalResponses(FakeResponses):
+        def parse(self, **kwargs):
+            response = super().parse(**kwargs)
+            response.model = 'provider-canonical-model-version'
+            return response
+    result = provider(CanonicalResponses({'title': 'Cells', 'source_pages': [3]})).generate(request())
+    assert result.model == 'provider-canonical-model-version'

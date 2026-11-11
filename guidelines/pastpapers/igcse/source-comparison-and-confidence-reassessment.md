@@ -2,13 +2,13 @@
 
 Guideline ID: `akuru-igcse-source-comparison`
 
-Version: `1.0.0`
+Version: `1.1.0`
 
-Parent standard: `akuru-igcse-pastpapers` 1.4.0
+Parent standard: `akuru-igcse-pastpapers` 1.5.0
 
 Created: 2026-11-04
 
-Last updated: 2026-11-04
+Last updated: 2026-11-11
 
 Status: reusable review procedure; not a fully automated extraction or approval service.
 
@@ -116,3 +116,7 @@ Update the dated audit and applicable TODO. Do not mark an entire collection or 
 The 2026-11-04 Biology pilot recorded **14/16 questions and 74/76 subparts above 70%**, after correcting real extraction/association defects. Two source-instruction discrepancies remained at 65% and 70%. Those figures are historical pilot results, **not** target scores or defaults for future papers. The questions remained unreviewed and manual-only; confidence recording did not publish them.
 
 Detailed findings and executed test evidence: [June 2025 Biology source-comparison audit](reviews/2026-11-04-june-2025-biology-source-comparison.md).
+
+## Final-content workflow integration — 2026-11-11
+
+Follow [workflow states and release](workflow-states-and-release.md), standard 1.5.0, for the agreed target workflow. This adds policy requirements without changing historical batch evidence. Curriculum review may be included only when explicitly in scope; final workflow reassessment must verify current mappings and exact published textbook evidence, recording mapping confidence separately. Image review precedes final assessment. Eligible content strictly above 75% may receive audited AI approval, then automatic Tutor release once implemented and verified. Neither a high score nor a metadata-only reassessment authorises release. Preserve assessment-only behaviour unless the guarded approval/release workflow is explicitly selected and authorised. Record any approval/release changes separately from source corrections and confidence history, including unresolved blockers, partial release counts and invalidated checks.

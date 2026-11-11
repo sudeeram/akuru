@@ -1,7 +1,7 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Query
 from sqlalchemy.orm import Session
 
 from app.config import Settings, get_settings
@@ -30,6 +30,36 @@ from app.services import evidence_link_jobs
 
 from app.schemas.accuracy_jobs import AccuracyJobBatch
 from app.services import accuracy_jobs
+
+from app.schemas.paper_workflow import WorkflowResponse
+from app.services import paper_workflow
+
+@router.get('/workflow', response_model=WorkflowResponse)
+def workflows(
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)],
+    document_ids: Annotated[list[uuid.UUID], Query(alias='documentId', min_length=1, max_length=100)],
+):
+    return paper_workflow.summaries(db, document_ids)
+
+
+@router.post('/{paper_id}/auto-tutor-release')
+def retry_tutor_release(paper_id: uuid.UUID,
+    settings: Annotated[Settings, Depends(get_settings)],
+    principal: Annotated[Principal, Depends(require_csrf_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services.tutor_past_papers import retry_auto_releases
+    if not settings.past_paper_auto_release_enabled:
+        raise DomainError('automatic_release_paused', 'Automatic Tutor release is paused by configuration.', 409)
+    return retry_auto_releases(db, principal, paper_id)
+
+
+@router.get('/{paper_id}/questions/{number}/accuracy-context')
+def final_accuracy_context(paper_id: uuid.UUID, number: str,
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)], storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    return accuracy_jobs.context(db,storage,paper_id,number)
+
 
 @router.get('/{paper_id}/accuracy-readiness')
 def accuracy_readiness(paper_id: uuid.UUID, principal: Annotated[Principal, Depends(require_roles('admin'))], db: Annotated[Session, Depends(get_db)]):
@@ -248,6 +278,14 @@ def worked_answer_capabilities(paper_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)], settings: Annotated[Settings, Depends(get_settings)]):
     official_paper_reviews._workspace(db,paper_id)
     return worked_answers.capabilities(db,settings)
+
+
+@router.get('/{paper_id}/chat-release-readiness')
+def tutor_release_readiness(paper_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles('admin'))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services.tutor_past_papers import release_readiness
+    return release_readiness(db, paper_id)
 
 
 @router.get("/{paper_id}/chat-releases")

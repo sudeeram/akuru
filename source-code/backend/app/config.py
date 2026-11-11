@@ -106,6 +106,7 @@ class Settings(BaseSettings):
     evidence_ai_max_output_tokens: int = Field(default=8_000, ge=1_000, le=16_000)
     tutor_text_pilot: TutorTextPilot | None = None
     tutor_supplementary_enabled: bool = False
+    past_paper_auto_release_enabled: bool = True
     tutor_past_paper_chat_enabled: bool = False
     tutor_past_paper_chat_student_ids: list[UUID] = Field(default_factory=list)
     tutor_text_enabled: bool = False

@@ -37,7 +37,12 @@ def fingerprint(question, workspace):
 def _live(db, release):
     q = db.get(OfficialPaperReviewQuestion, release.question_id)
     w = db.get(OfficialPaperReviewWorkspace, q.workspace_id) if q else None
-    if not release.enabled or not q or not w or not official_paper_reviews.official_question_approved(db, w, q) or fingerprint(q, w) != release.fingerprint:
+    if not release.enabled or not q or not w or fingerprint(q, w) != release.fingerprint:
+        return False
+    try:
+        validate_release(db, w, q, release.part_label,
+            require_curriculum=release.snapshot.get('releasePolicy') == 'auto-tutor-release-v1')
+    except DomainError:
         return False
     try:
         official_paper_reviews._validate_bound_versions(db, w)
@@ -56,7 +61,45 @@ def _live(db, release):
     return True
 
 
-def release_part(db, principal, paper_id, number, payload):
+def validate_release(db, workspace, question, label, *, require_curriculum=False):
+    """Shared manual/automatic/access validator; isolate a self-contained part safely."""
+    from .question_auto_approval import current_accuracy
+    from . import paper_curriculum
+    official_paper_reviews._validate_bound_versions(db, workspace)
+    data = ReviewQuestionData.model_validate(question.review_data)
+    part = next((p for p in data.parts if p.label == label), None)
+    if question.status in {'excluded', 'needs_correction'} or not part or part.status not in {'approved', 'ai_approved'} or part.coverage != 'supported':
+        raise DomainError('practice_review_required', 'Approve the supported subpart and resolve explicit question blockers.', 409)
+    analysis = current_accuracy(db, workspace, question)
+    assessed = next((p for p in analysis.analysis_data['parts'] if p['label'] == label), None) if analysis else None
+    if part.status == 'ai_approved' or require_curriculum or question.status not in {'approved', 'ai_approved'}:
+        if not assessed or assessed['percent'] <= 75:
+            raise DomainError('practice_accuracy_required', 'A current subpart assessment above 75% is required.', 409)
+    if require_curriculum and not assessed.get('selfContained'):
+        raise DomainError('practice_dependency_review', 'The final assessment must confirm independent answerability.', 409)
+    if require_curriculum:
+        check = assessed.get('curriculum') if assessed else None
+        if not check or not check.get('accepted') or not paper_curriculum.current(db, part.model_dump(mode='json'), check):
+            raise DomainError('practice_curriculum_required', 'Reassess current published textbook evidence and resolve mapping uncertainty.', 409)
+    if re.search(r'using (?:your|the) (?:answer|result)|(?:answer|result) (?:to|from) (?:part|\()', part.prompt, re.I):
+        raise DomainError('practice_dependency_review', 'Release only self-contained subparts with all required information.', 409)
+    if part.assessmentReadiness not in {'automatic', 'manual_only'} or (part.assessmentReadiness == 'manual_only' and part.responseType != 'drawing'):
+        raise DomainError('practice_marking_not_ready', 'Confirm automatic marking or supported manual drawing review first.', 409)
+    if not part.topicRefs or not part.markingPoints or not any(v.blockId for v in part.schemeSources):
+        raise DomainError('practice_evidence_required', 'Exact scheme evidence and published topic mappings are required.', 409)
+    if sum(p.marks for p in data.parts) != data.marks or data.candidateVisualAssetIds:
+        raise DomainError('practice_shared_context_required', 'Resolve question totals and unassigned visuals before release.', 409)
+    # Validate the actual shared context plus this part against all normal approval
+    # gates. Unrelated siblings cannot block independent parts, nor hide shared defects.
+    scoped = data.model_copy(deep=True)
+    scoped.parts = [part.model_copy(deep=True)]
+    scoped.marks = part.marks
+    scoped.parts[0].status = 'approved'
+    official_paper_reviews._validate_question(db, workspace, 'approved', scoped, question.review_data, question.number)
+    return data, part
+
+
+def release_part(db, principal, paper_id, number, payload, *, automatic=False, commit=True):
     w = official_paper_reviews._workspace(db, paper_id)
     official_paper_reviews._validate_bound_versions(db, w)
     q = db.scalar(select(OfficialPaperReviewQuestion).where(
@@ -67,22 +110,19 @@ def release_part(db, principal, paper_id, number, payload):
         rows = db.scalars(select(TutorPaperRelease).where(TutorPaperRelease.question_id == q.id,
             TutorPaperRelease.part_label == payload.partLabel)).all()
         for row in rows: row.enabled = False
-        db.add(AuditEvent(actor_id=principal.user.id, action='tutor_paper.withdrawn', target_type='question',
+        db.add(AuditEvent(created_at=datetime.now(timezone.utc), actor_id=principal.user.id, action='tutor_paper.withdrawn', target_type='question',
             target_id=str(q.id), event_data={'part': payload.partLabel}))
-        db.commit()
+        if commit: db.commit()
         return {'enabled': False, 'partLabel': payload.partLabel}
-    data = ReviewQuestionData.model_validate(q.review_data)
-    part = next((p for p in data.parts if p.label == payload.partLabel), None)
-    if not official_paper_reviews.official_question_approved(db, w, q) or not part or part.status not in {'approved', 'ai_approved'} or part.coverage != 'supported':
-        raise DomainError('practice_review_required', 'Approve the question and supported subpart before releasing practice.', 409)
-    if not payload.confirmSelfContained or re.search(r'using (?:your|the) (?:answer|result)|(?:answer|result) (?:to|from) (?:part|\()', part.prompt, re.I):
-        raise DomainError('practice_dependency_review', 'Release only self-contained subparts with all required information.', 409)
-    if part.assessmentReadiness not in {'automatic', 'manual_only'} or (part.assessmentReadiness == 'manual_only' and part.responseType != 'drawing'):
-        raise DomainError('practice_marking_not_ready', 'Confirm automatic marking or supported manual drawing review first.', 409)
-    # Revalidate the full approved review, including exact sources and approved visuals.
-    official_paper_reviews._validate_question(db, w, q.status, data, q.review_data, q.number)
-    if not part.topicRefs or not part.markingPoints or not any(s.blockId for s in part.schemeSources):
-        raise DomainError('practice_evidence_required', 'Exact scheme evidence and published topic mappings are required.', 409)
+    if not payload.confirmSelfContained:
+        raise DomainError('practice_dependency_review', 'Confirm this part is self-contained.', 409)
+    data, part = validate_release(db, w, q, payload.partLabel, require_curriculum=automatic)
+    last_decision = db.scalar(select(AuditEvent).where(
+        AuditEvent.target_id == str(q.id), AuditEvent.action.in_(['tutor_paper.withdrawn', 'tutor_paper.released']),
+        AuditEvent.event_data['part'].as_string() == part.label).order_by(AuditEvent.created_at.desc()).limit(1))
+    if automatic and last_decision and last_decision.action == 'tutor_paper.withdrawn':
+        raise DomainError('practice_explicit_withdrawal', 'An Admin withdrew this part. Explicitly re-enable it first.', 409)
+    from .question_auto_approval import current_accuracy
     paper = db.get(Document, w.paper_document_id)
     source_hash = fingerprint(q, w)
     row = db.scalar(select(TutorPaperRelease).where(TutorPaperRelease.question_id == q.id,
@@ -98,14 +138,58 @@ def release_part(db, principal, paper_id, number, payload):
                 'component': paper.component, 'year': paper.publication_year, 'session': paper.exam_session,
                 'number': q.number, 'sharedStem': data.sharedStem,
                 'sharedVisuals': [str(v) for v in data.visualAssetIds],
-                'part': part.model_dump(mode='json'), 'selfContainedConfirmed': True})
+                'part': part.model_dump(mode='json'), 'selfContainedConfirmed': True,
+                'releasePolicy': 'auto-tutor-release-v1' if automatic else 'manual',
+                'curriculum': next((p.get('curriculum') for p in current_accuracy(db, w, q).analysis_data['parts'] if p['label'] == part.label), None) if automatic else None})
         db.add(row)
+    if row.enabled and row.id is not None:
+        return {'releaseId': str(row.id), 'partLabel': part.label, 'enabled': True}
     row.enabled = True
     db.flush()
-    db.add(AuditEvent(actor_id=principal.user.id, action='tutor_paper.released', target_type='question',
-        target_id=str(q.id), event_data={'part': part.label, 'releaseId': str(row.id), 'sourceHash': source_hash}))
-    db.commit()
+    db.add(AuditEvent(created_at=datetime.now(timezone.utc), actor_id=principal.user.id, action='tutor_paper.released', target_type='question',
+        target_id=str(q.id), event_data={'part': part.label, 'releaseId': str(row.id), 'sourceHash': source_hash, 'origin': 'automatic' if automatic else 'manual',
+            'policy': 'auto-tutor-release-v1' if automatic else 'manual'}))
+    if commit: db.commit()
     return {'releaseId': str(row.id), 'partLabel': part.label, 'enabled': True}
+
+
+def auto_release(db, principal, workspace, question):
+    """Same transaction as the final assessment; no model calls or implicit retries."""
+    from app.schemas.tutor_past_papers import ReleasePastPaperPart
+    results = []
+    for part in question.review_data['parts']:
+        try:
+            value = release_part(db, principal, workspace.paper_document_id, question.number,
+                ReleasePastPaperPart(partLabel=part['label'], revision=question.revision,
+                    confirmSelfContained=True), automatic=True, commit=False)
+            results.append(dict(part=part['label'], **value))
+        except DomainError as exc:
+            results.append(dict(part=part['label'], enabled=False, code=exc.code, reason=exc.message))
+    return results
+
+
+def retry_auto_releases(db, principal, paper_id):
+    """Recover release writes using saved current assessments; never call a model."""
+    workspace = official_paper_reviews._workspace(db, paper_id)
+    questions = db.scalars(select(OfficialPaperReviewQuestion).where(
+        OfficialPaperReviewQuestion.workspace_id == workspace.id).with_for_update()).all()
+    results = [dict(number=q.number, parts=auto_release(db, principal, workspace, q)) for q in questions]
+    db.commit()
+    return {'policy': 'auto-tutor-release-v1', 'results': results}
+
+
+def release_readiness(db, paper_id):
+    workspace = official_paper_reviews._workspace(db, paper_id)
+    result = []
+    for question in db.scalars(select(OfficialPaperReviewQuestion).where(
+            OfficialPaperReviewQuestion.workspace_id == workspace.id)):
+        for part in question.review_data['parts']:
+            try:
+                validate_release(db, workspace, question, part['label'])
+                result.append(dict(number=question.number, partLabel=part['label'], ready=True, blocker=None))
+            except DomainError as exc:
+                result.append(dict(number=question.number, partLabel=part['label'], ready=False, blocker=exc.message))
+    return result
 
 
 def admin_releases(db, paper_id):

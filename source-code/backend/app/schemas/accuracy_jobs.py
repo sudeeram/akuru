@@ -26,7 +26,16 @@ class ReviewDimensions(BaseModel):
     markingPoints: int=Field(ge=0,le=100)
     visuals: int | None=Field(default=None,ge=0,le=100)
 
+class CurriculumProposal(BaseModel):
+    model_config=ConfigDict(extra="forbid")
+    coverage: str=Field(pattern=r"^(supported|partial_or_uncertain|outside_current_coverage)$")
+    percent: int=Field(ge=0,le=100)
+    reason: str=Field(min_length=1,max_length=2000)
+    chunkIds: list[str]=Field(default_factory=list,max_length=12)
+
 class AssessedPart(PartAccuracy):
+    selfContained: bool = False
+    curriculum: CurriculumProposal | None = None
     dimensions: ReviewDimensions
     manualReviewReasons: list[str]=Field(default_factory=list,max_length=12)
 

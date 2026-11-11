@@ -2898,6 +2898,127 @@
         "title": "CreateReviewCrop",
         "type": "object"
       },
+      "CurriculumAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "conflict": {
+            "title": "Conflict",
+            "type": "boolean"
+          },
+          "coverage": {
+            "enum": [
+              "supported",
+              "partial_or_uncertain",
+              "outside_current_coverage"
+            ],
+            "title": "Coverage",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/CurriculumEvidence"
+            },
+            "maxItems": 12,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "mappingHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Mappinghash",
+            "type": "string"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "policy": {
+            "maxLength": 80,
+            "title": "Policy",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "coverage",
+          "percent",
+          "reason",
+          "policy",
+          "accepted",
+          "conflict",
+          "mappingHash"
+        ],
+        "title": "CurriculumAssessment",
+        "type": "object"
+      },
+      "CurriculumEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "chunkId": {
+            "pattern": "^[a-f0-9-]{36}$",
+            "title": "Chunkid",
+            "type": "string"
+          },
+          "contentHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "documentVersionId": {
+            "pattern": "^[a-f0-9-]{36}$",
+            "title": "Documentversionid",
+            "type": "string"
+          },
+          "page": {
+            "exclusiveMinimum": 0.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "publicationId": {
+            "pattern": "^[a-f0-9-]{36}$",
+            "title": "Publicationid",
+            "type": "string"
+          },
+          "publicationVersion": {
+            "exclusiveMinimum": 0.0,
+            "title": "Publicationversion",
+            "type": "integer"
+          },
+          "title": {
+            "maxLength": 240,
+            "title": "Title",
+            "type": "string"
+          },
+          "topicRef": {
+            "maxLength": 56,
+            "minLength": 1,
+            "title": "Topicref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chunkId",
+          "topicRef",
+          "title",
+          "publicationId",
+          "publicationVersion",
+          "documentVersionId",
+          "page",
+          "contentHash"
+        ],
+        "title": "CurriculumEvidence",
+        "type": "object"
+      },
       "CurriculumPlanResponse": {
         "properties": {
           "basedOnVersion": {
@@ -3538,6 +3659,27 @@
           "job"
         ],
         "title": "DocumentUploadResponse",
+        "type": "object"
+      },
+      "DocumentWorkflow": {
+        "properties": {
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "scopes": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowScope"
+            },
+            "title": "Scopes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documentId",
+          "scopes"
+        ],
+        "title": "DocumentWorkflow",
         "type": "object"
       },
       "EnergyFacts": {
@@ -7201,6 +7343,16 @@
       "PartAccuracy": {
         "additionalProperties": false,
         "properties": {
+          "curriculum": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CurriculumAssessment"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "label": {
             "maxLength": 40,
             "title": "Label",
@@ -7228,6 +7380,17 @@
             "minItems": 1,
             "title": "Reasons",
             "type": "array"
+          },
+          "selfContained": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selfcontained"
           },
           "sourceChecks": {
             "items": {
@@ -14946,6 +15109,116 @@
         "title": "WorkedStep",
         "type": "object"
       },
+      "WorkflowResponse": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentWorkflow"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "policy": {
+            "default": "past-paper-workflow-v1",
+            "title": "Policy",
+            "type": "string"
+          }
+        },
+        "title": "WorkflowResponse",
+        "type": "object"
+      },
+      "WorkflowScope": {
+        "properties": {
+          "excluded": {
+            "default": 0,
+            "title": "Excluded",
+            "type": "integer"
+          },
+          "formalExamPublished": {
+            "default": false,
+            "title": "Formalexampublished",
+            "type": "boolean"
+          },
+          "paperId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paperid"
+          },
+          "paperTitle": {
+            "title": "Papertitle",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "paperId",
+          "paperTitle",
+          "steps"
+        ],
+        "title": "WorkflowScope",
+        "type": "object"
+      },
+      "WorkflowStep": {
+        "properties": {
+          "completed": {
+            "title": "Completed",
+            "type": "integer"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "href": {
+            "title": "Href",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "number": {
+            "title": "Number",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "not_started",
+              "processing",
+              "attention",
+              "complete"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "number",
+          "label",
+          "state",
+          "completed",
+          "total",
+          "detail",
+          "href"
+        ],
+        "title": "WorkflowStep",
+        "type": "object"
+      },
       "WorkingFileResponse": {
         "properties": {
           "contentType": {
@@ -15913,6 +16186,90 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/workflow": {
+      "get": {
+        "operationId": "workflows_api_v1_admin_official_paper_reviews_workflow_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "documentId",
+            "required": true,
+            "schema": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "maxItems": 100,
+              "minItems": 1,
+              "title": "Documentid",
+              "type": "array"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Workflows",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}": {
       "get": {
         "operationId": "get_review_api_v1_admin_official_paper_reviews__paper_id__get",
@@ -16337,6 +16694,176 @@
           }
         },
         "summary": "Apply Confidence Approval",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/auto-tutor-release": {
+      "post": {
+        "operationId": "retry_tutor_release_api_v1_admin_official_paper_reviews__paper_id__auto_tutor_release_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Retry Tutor Release",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/chat-release-readiness": {
+      "get": {
+        "operationId": "tutor_release_readiness_api_v1_admin_official_paper_reviews__paper_id__chat_release_readiness_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Tutor Release Readiness",
         "tags": [
           "official-paper-reviews"
         ]
@@ -17281,6 +17808,92 @@
           }
         },
         "summary": "Save Question",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/accuracy-context": {
+      "get": {
+        "operationId": "final_accuracy_context_api_v1_admin_official_paper_reviews__paper_id__questions__number__accuracy_context_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Final Accuracy Context",
         "tags": [
           "official-paper-reviews"
         ]

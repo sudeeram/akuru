@@ -27,6 +27,10 @@ function AnalysisDetails({
     partLabel == null
       ? analysis.question
       : analysis.parts.find((part) => part.label === partLabel);
+  const curriculum =
+    partLabel == null
+      ? null
+      : analysis.parts.find((part) => part.label === partLabel)?.curriculum;
   const provenanceRecords = reviewProvenance(analysis, partLabel);
   return (
     <div className="stack">
@@ -44,8 +48,9 @@ function AnalysisDetails({
         {!analysis.isCurrent && ' · Earlier content — reassessment needed'}
       </p>
       <p className="small">
-        This estimate helps prioritise source review. It does not change
-        question or subpart approval.
+        This estimate helps prioritise source review. Eligible content above 75%
+        may receive audited AI approval; other evidence, curriculum, visual and
+        scoring gates still apply.
       </p>
       <p className="small">Assessment method: {analysis.methodVersion}.</p>
       <ul>
@@ -53,6 +58,33 @@ function AnalysisDetails({
           <li key={index}>{reason}</li>
         ))}
       </ul>
+      {curriculum && (
+        <section className="panel stack" aria-label="Curriculum assessment">
+          <strong>
+            Curriculum · {curriculum.coverage.replaceAll('_', ' ')} ·{' '}
+            {curriculum.percent}%
+          </strong>
+          <p>{curriculum.reason}</p>
+          <p>
+            {curriculum.accepted
+              ? 'Evidence accepted for the saved mapping.'
+              : 'Manual mapping review required; existing decision preserved.'}
+          </p>
+          <ul>
+            {curriculum.evidence.map((e) => (
+              <li key={e.chunkId}>
+                {e.title} · topic publication v{e.publicationVersion} · source
+                PDF page {e.page}. Reference: {e.topicRef}.
+              </li>
+            ))}
+          </ul>
+          <small>
+            Source PDF pages identify this evidence version; they are not
+            permanent printed textbook page labels. Use reviewed
+            visual-reference evidence for printed-page citations.
+          </small>
+        </section>
+      )}
       <details>
         <summary>Source checks and extraction provenance</summary>
         <div className="stack">

@@ -1,10 +1,10 @@
 # Per-batch past-paper extraction checklist
 
-Standard: `akuru-igcse-pastpapers` 1.4.0
+Standard: `akuru-igcse-pastpapers` 1.5.0
 
 Created: 2026-10-31
 
-Last updated: 2026-11-04
+Last updated: 2026-11-11
 
 Status: required review record; not all checks are automatically enforced by AKURU.
 
@@ -40,6 +40,20 @@ Record batch ID, awarding body/qualification/subject/specification, year/session
 | I01 | Proposed import is authorized, stable and reviewable | Use supported contracts/authenticated APIs, idempotent references and expected revisions. No direct database bypass. |
 | I02 | Corrections preserve unrelated reviewed work and snapshots | Compare proposed/saved changes; replace all affected crop links, retain old snapshot assets and remove only resolved warnings. |
 | I03 | Draft, approval, scoring readiness and publication remain distinct | Record unresolved blockers; protect private answers until the relevant server-authorized reveal. |
+
+## Workflow evidence
+
+Apply [workflow states and release](workflow-states-and-release.md). Record these checks separately from extraction fidelity:
+
+| ID | Check | Evidence / handling |
+| --- | --- | --- |
+| W01 | Extraction completeness and associations | Expected versus extracted inventory; source identity/version and per-paper companion associations. Completion is not accuracy approval. |
+| W02 | Manual image decisions complete | Required crops, labels and associations resolved; record explicit Not applicable where appropriate. |
+| W03 | Final assessment is current | Latest saved content/source/visual fingerprints, exact evidence, source-specific confidence and model provenance; independently checked published-topic mappings and evidence. |
+| W04 | Approval and release decisions are auditable | Human/AI approvals distinguished; AI threshold strictly above 75% plus independent gates. Required/released/excluded counts, unresolved blockers and explicit withdrawals retained. Formal-exam release separate. |
+| W05 | Companion summaries are scoped and current | Independent extraction/link/check milestones per paper; missing, unchecked and verified no-comment report outcomes distinguished. Recompute affected states after material changes. |
+
+Record unavailable automation as not run; do not simulate approvals/releases to complete the checklist.
 
 ## Release decision and regression evidence
 

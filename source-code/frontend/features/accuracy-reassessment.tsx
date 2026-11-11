@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/components/ui/toast';
 import { getPaperReview, type PaperReview } from '@/api';
+import { request } from '@/api/core/client';
 import {
   getAccuracyJobs,
   getAccuracyReadiness,
@@ -105,9 +106,11 @@ export function AccuracyReassessment({
       <h2>Final content reassessment</h2>
       <p>
         Review image crops, labels and associations first. AI then checks the
-        final saved wording, marking points and sources. You only need to
-        inspect content at 75% or lower, or with an explicit unresolved blocker.
-        Human approvals and Student release settings are preserved.
+        final saved wording, marking points, sources and published curriculum
+        evidence. You only need to inspect content at 75% or lower, or with an
+        explicit unresolved blocker. Human decisions and explicit withdrawals
+        are preserved. Eligible subparts are automatically released for Tutor
+        practice; formal-exam publication stays separate.
       </p>
       <div className="form-grid">
         <div>
@@ -167,6 +170,36 @@ export function AccuracyReassessment({
       >
         Reassess reviewed content{number ? ` · Q${number}` : ''}
       </Button>
+      <Button
+        variant="outline"
+        disabled={disabled || busy || pending}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await request(
+              `admin/official-paper-reviews/${paperId}/auto-tutor-release`,
+              { method: 'POST', body: {} },
+            );
+            updated.current(await getPaperReview(paperId));
+            setTick((v) => v + 1);
+            toast.add({
+              title:
+                'Eligible Tutor releases checked. No AI call was made; unresolved gates and withdrawals remain protected.',
+              type: 'success',
+            });
+          } catch (cause) {
+            setError(
+              cause instanceof Error
+                ? cause.message
+                : 'Unable to check Tutor releases.',
+            );
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Retry eligible Tutor releases · no AI call
+      </Button>
       {confirm && (
         <fieldset className="stack">
           <legend>Confirm paid reassessment</legend>
@@ -174,7 +207,8 @@ export function AccuracyReassessment({
             Queue {eligible.length} question assessments using the configured
             AKURU backend AI account? Model usage can incur charges. Results are
             checked against the current saved source version. Eligible content
-            can become AI approved, but no paper is released to students.
+            can become AI approved and automatically available for Tutor
+            practice. This does not publish a formal exam.
           </p>
           <div className="form-grid">
             <Button

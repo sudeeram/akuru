@@ -82,7 +82,7 @@ class OpenAIProvider:
                         ) from exc
                     usage = getattr(response, "usage", None)
                     return AIResult(
-                        output=output, provider=self.name, model=self.model,
+                        output=output, provider=self.name, model=getattr(response, "model", None) or self.model,
                         response_id=getattr(response, "id", None),
                         usage=AIUsage(
                             input_tokens=getattr(usage, "input_tokens", None),
