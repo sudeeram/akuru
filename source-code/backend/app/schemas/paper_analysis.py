@@ -78,8 +78,32 @@ class AccuracyEstimate(AnalysisModel):
         return self
 
 
+class CurriculumEvidence(AnalysisModel):
+    chunkId: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    topicRef: str = Field(min_length=1, max_length=56)
+    title: str = Field(max_length=240)
+    publicationId: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    publicationVersion: int = Field(gt=0)
+    documentVersionId: str = Field(pattern=r"^[a-f0-9-]{36}$")
+    page: int = Field(gt=0)
+    contentHash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class CurriculumAssessment(AnalysisModel):
+    coverage: Literal['supported', 'partial_or_uncertain', 'outside_current_coverage']
+    percent: int = Field(ge=0, le=100)
+    reason: str = Field(min_length=1, max_length=2000)
+    policy: str = Field(max_length=80)
+    evidence: list[CurriculumEvidence] = Field(default_factory=list, max_length=12)
+    accepted: bool
+    conflict: bool
+    mappingHash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
 class PartAccuracy(AccuracyEstimate):
     label: str = Field(max_length=40)
+    selfContained: bool | None = None
+    curriculum: CurriculumAssessment | None = None
     provenance: list[AnalysisProvenance] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
