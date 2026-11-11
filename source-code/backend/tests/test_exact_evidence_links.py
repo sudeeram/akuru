@@ -38,6 +38,7 @@ def test_region_apply_retry_and_stale_accuracy(auth_client):
  endpoint=root+'/evidence-links/'+run['id']+'/review';r=c.post(endpoint,headers=h,json=decision(q,run));assert r.status_code==200,r.text
  new=r.json()['review']['questions'][0];assert not new['accuracyAnalysis']['isCurrent'];assert new['data']['parts'][0]['topicRefs']==q['data']['parts'][0]['topicRefs']
  assert len([s for s in new['data']['parts'][0]['paperSources']if s['blockId']])==1
+ assert all(any(s.get('blockId')==part_source['blockId']for s in new['data']['paperSources'])for part_source in new['data']['parts'][0]['paperSources']if part_source.get('blockId'))
  count=db.scalar(select(func.count()).select_from(DocumentBlock));assert c.post(endpoint,headers=h,json=decision(q,run)).json()['alreadyApplied'];assert db.scalar(select(func.count()).select_from(DocumentBlock))==count
  assert not r.json()['review']['assessmentReleaseReady']
  assert db.scalar(select(DocumentBlock).where(DocumentBlock.block_kind=='question')).text=='Question 1'

@@ -174,6 +174,8 @@ def decide(db,storage,principal,paper_id,run_id,payload):
         ref=dict(page=page.page_number,blockId=str(block.id),assetId=str(page.render_asset_id)if page.render_asset_id else None)
         refs=parts[proposal['part']][proposal['role']+'Sources']
         if not any(s.get('blockId')==ref['blockId']for s in refs):refs.append(ref)
+        if proposal['role']=='paper' and not any(s.get('blockId')==ref['blockId']for s in data['paperSources']):
+            data['paperSources'].append(ref)
     for part in data['parts']:
         if part['status']=='ai_approved':part['status']='unreviewed'
     if row.status=='ai_approved':row.status='unreviewed'
