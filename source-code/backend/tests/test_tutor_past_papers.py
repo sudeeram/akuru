@@ -118,6 +118,8 @@ def test_chat_select_hint_reveal_next_and_private_sources_without_model_calls(au
     assert db.scalar(select(func.count()).select_from(AssessmentInteraction).where(AssessmentInteraction.assessment_id==uuid.UUID(aid),AssessmentInteraction.kind=='worked_answer'))==0
     revealed=send('Show approved answer')['pastPaper']
     assert revealed['state']=='revealed' and len(revealed['markingGuidance'])==2
+    assert [s['label'] for s in revealed['sources']]==['Paper · Page 1']
+    assert client.get(scheme_url).status_code==404  # no adjacent unreleased answers after reveal
     assert db.scalar(select(func.count()).select_from(AssessmentAnswer).where(AssessmentAnswer.assessment_id==uuid.UUID(aid)))==0
     assert db.scalar(select(func.count()).select_from(AssessmentResult).where(AssessmentResult.assessment_id==uuid.UUID(aid)))==0
     assert db.scalar(select(AssessmentInteraction).where(AssessmentInteraction.assessment_id==uuid.UUID(aid),AssessmentInteraction.kind=='worked_answer'))

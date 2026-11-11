@@ -292,7 +292,9 @@ def state(db, settings, principal, session):
     snap = release.snapshot
     for kind, version_key, source_key in [('Paper','paperVersionId','paperSources'),
         ('Marking scheme','schemeVersionId','schemeSources'), ('Examiner report','reportVersionId','reportSources')]:
-        if kind != 'Paper' and not visible: continue
+        # Whole scheme/report pages can expose answers for unreleased siblings.
+        # Scoped approved marking/guidance and answer visuals are revealed below.
+        if kind != 'Paper': continue
         version_id = snap.get(version_key)
         for page_number in sorted({s['page'] for s in snap['part'].get(source_key, [])}):
             page = db.scalar(select(DocumentPage).where(DocumentPage.document_version_id == uuid.UUID(version_id),
