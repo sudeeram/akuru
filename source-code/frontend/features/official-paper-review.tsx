@@ -6,6 +6,7 @@ import {
 } from '@/api/assessments/official-paper-review.api';
 import { TutorPastPaperReleases } from './tutor-past-paper-releases';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
+import { AccuracyReassessment } from './accuracy-reassessment';
 import { ExactEvidenceLinks } from './exact-evidence-links';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
@@ -1034,6 +1035,18 @@ export function OfficialPaperReview({
       )}
       {review && (
         <>
+          <AccuracyReassessment
+            paperId={paperId}
+            review={review}
+            number={selected || undefined}
+            disabled={busy || dirty || workedDirty}
+            onUpdated={(value) => {
+              const label = data.parts[activePart]?.label;
+              setReview(value);
+              const row = value.questions.find((q) => q.number === selected);
+              if (row) chooseQuestion(row, label);
+            }}
+          />
           <ExactEvidenceLinks
             paperId={paperId}
             review={review}

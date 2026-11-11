@@ -40,6 +40,9 @@ def main() -> None:
             from app.storage import get_storage
             with SessionLocal() as evidence_db:
                 process_evidence(evidence_db, get_settings(), get_storage())
+            from app.services.accuracy_jobs import process_next as process_accuracy
+            with SessionLocal() as accuracy_db:
+                process_accuracy(accuracy_db, get_settings(), get_storage())
             job_id = queue.dequeue(timeout_seconds=5)
             if job_id:
                 logger.info("Document job %s finished with state %s", job_id, process_job(job_id))

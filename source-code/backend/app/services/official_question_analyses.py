@@ -103,7 +103,7 @@ def history(db, paper_id, number):
         OfficialQuestionAnalysis.question_id == question.id).order_by(OfficialQuestionAnalysis.version_number.desc()))]
 
 
-def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis):
+def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, commit=True):
     workspace, question = _context(db, paper_id, number, lock=True)
     manifest = source_manifest(db, workspace)
     digest = content_hash(db, question, manifest)
@@ -139,8 +139,11 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis):
     if row.stage == "accuracy":
         from .question_auto_approval import apply
         apply(db, principal, workspace, question)
-    db.commit()
-    db.refresh(row)
+    if commit:
+        db.commit()
+        db.refresh(row)
+    else:
+        db.flush()
     return response(row, digest)
 
 

@@ -7,6 +7,8 @@ export interface Schemas {
   "AccountSecurityEventResponse": { "action": string; "actorName": string; "targetRef": string; "occurredAt": string; "details": { [key: string]: unknown; }; };
   "AccountSummaryResponse": { "id": string; "username": string; "name": string; "role": "parent" | "student"; "publicRef": string; "lastLoginAt"?: string | null; };
   "AccuracyEstimate": { "percent": number; "reasons": Array<string>; "sourceChecks": Array<Schemas["SourceAccuracy"]>; };
+  "AccuracyJobBatch": { "questions": Array<Schemas["AccuracyJobRequest"]>; };
+  "AccuracyJobRequest": { "requestId": string; "number": string; "expectedRevision": number; "expectedContentHash": string; "expectedAnalysisVersion": number; };
   "AdminPasswordResetRequest": { "requestKey": string; };
   "AdminPasswordResetResponse": { "accountRef": string; "username": string; "temporaryPassword": string; "sessionsRevoked": number; "mustChangePassword"?: true; };
   "AdminQuotaListResponse": { "quotas": Array<Schemas["StudentQuotaResponse"]>; };
@@ -335,6 +337,9 @@ export interface ApiOperations {
   "POST /api/v1/admin/curriculum-plans/{subject_id}/draft": { request: unknown; response: Schemas["CurriculumPlanResponse"] };
   "POST /api/v1/admin/curriculum-plans/{subject_id}/publish": { request: Schemas["PublishPlanRequest"]; response: Schemas["CurriculumPlanResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}": { request: unknown; response: Schemas["PaperReviewResponse"] };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-jobs": { request: unknown; response: unknown };
+  "POST /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-jobs": { request: Schemas["AccuracyJobBatch"]; response: unknown };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/accuracy-readiness": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/auto-approval": { request: unknown; response: Schemas["PaperAutoApprovalResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-releases": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-job-batch": { request: Schemas["EvidenceBatch"]; response: unknown };

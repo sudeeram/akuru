@@ -42,14 +42,14 @@ def create(db,principal,paper_id,payload,*,commit=True,allow_pending=False):
 
 def listing(db,paper_id):
     links.reviews._workspace(db,paper_id)
-    return [response(j)for j in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.paper_id==paper_id).order_by(EvidenceLinkJob.created_at.desc()).limit(30))]
+    return [response(j)for j in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.paper_id==paper_id,EvidenceLinkJob.job_kind=='evidence').order_by(EvidenceLinkJob.created_at.desc()).limit(30))]
 
 
 def process_next(db,settings,storage,generator=None):
     now=datetime.now(timezone.utc)
-    for stale in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.status=='processing',EvidenceLinkJob.started_at<now-timedelta(minutes=15)).with_for_update(skip_locked=True)):
+    for stale in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.job_kind=='evidence',EvidenceLinkJob.status=='processing',EvidenceLinkJob.started_at<now-timedelta(minutes=15)).with_for_update(skip_locked=True)):
         stale.status='failed';stale.error_code='evidence_job_interrupted';stale.completed_at=now
-    job=db.scalar(select(EvidenceLinkJob).where(EvidenceLinkJob.status=='queued').order_by(EvidenceLinkJob.created_at).with_for_update(skip_locked=True).limit(1))
+    job=db.scalar(select(EvidenceLinkJob).where(EvidenceLinkJob.job_kind=='evidence',EvidenceLinkJob.status=='queued').order_by(EvidenceLinkJob.created_at).with_for_update(skip_locked=True).limit(1))
     if not job:db.commit();return None
     job.status='processing';job.started_at=now;job_id=job.id;db.commit()
     try:

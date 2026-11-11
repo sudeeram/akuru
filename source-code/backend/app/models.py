@@ -1907,6 +1907,7 @@ class EvidenceLinkJob(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
     paper_id: Mapped[uuid.UUID] = mapped_column(ForeignKey('documents.id', ondelete='CASCADE'), index=True)
     created_by: Mapped[uuid.UUID] = mapped_column(ForeignKey('users.id', ondelete='RESTRICT'))
+    job_kind: Mapped[str] = mapped_column(String(20), default='evidence', server_default='evidence', index=True)
     status: Mapped[str] = mapped_column(String(20), default='queued', index=True)
     request_data: Mapped[dict] = mapped_column(JSON)
     result_data: Mapped[dict] = mapped_column(JSON, default=dict)

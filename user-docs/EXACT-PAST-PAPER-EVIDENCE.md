@@ -15,3 +15,16 @@ Question content approval, visual approval, scoring readiness and Student releas
 If a source or question changes while you work, AKURU asks you to analyse again. Applied links and rejected proposals remain recorded. A repeated completed apply request does not create duplicate links. An interrupted AI job fails rather than silently retrying and charging again; check its status before explicitly starting another.
 
 A completed run may show **superseded source snapshot** after links were applied or AI status changed, because the question revision advanced. Its **linked** rows remain an audit receipt; this label alone does not mean the saved links were removed. Check the current question's source evidence and current accuracy assessment. Only undecided proposals against a current snapshot may be applied.
+
+## Final reassessment after image review
+
+Open the paper's **Accuracy confidence** page (or one question's review page) and find **Final content reassessment**.
+
+1. Complete **Images needing review**: crops, diagram labels, image associations and any proposed answer visuals.
+2. Save your changes. The old assessment may now say **Reassessment required**; your reviews have not been lost.
+3. Select **Reassess reviewed content**, read the model-usage confirmation and select **Queue reassessment**. The accuracy page queues outdated, image-ready questions; a question's review page focuses on that question. This uses the configured backend AI account and may incur charges.
+4. You can leave and return. **Reassessment jobs** shows pending, completed and failed work. Do not blindly retry after an interruption: check job/assessment history first.
+5. Inspect **Content needing manual review** and any remaining gates. Eligible high-confidence content uses AI approval without requiring you to manually approve every part. Exactly 75% does not qualify. Earlier checked publisher/source concerns remain for Admin adjudication, even if a new model suggests a higher score.
+6. Complete the separate scoring/readiness and Student-release steps. Reassessment never releases a paper.
+
+AI compares the current saved wording, marking points, original source pages and reviewed images. It records new accuracy/provenance history, without rewriting your question or undoing your image approvals. Changes made while it is processing cause a safe failure and require a new snapshot. If an assessment fails, the previous history remains; no partial new assessment is saved.

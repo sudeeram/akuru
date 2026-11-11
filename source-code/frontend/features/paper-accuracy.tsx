@@ -19,6 +19,7 @@ import {
   reviewProvenance,
 } from '@/lib/paper-review-presentation';
 import { QuestionAnalysisPanel } from './question-analysis';
+import { AccuracyReassessment } from './accuracy-reassessment';
 import { ExactEvidenceLinks } from './exact-evidence-links';
 import { Toaster } from '@/components/ui/toast';
 
@@ -144,6 +145,13 @@ export function PaperAccuracyPage({
         <output style={{ whiteSpace: 'pre-line' }}>{approvalResult}</output>
       )}
       {error && <p role="alert">{error}</p>}
+      {review && (
+        <AccuracyReassessment
+          paperId={paperId}
+          review={review}
+          onUpdated={setReview}
+        />
+      )}
       {review && (
         <ExactEvidenceLinks
           paperId={paperId}

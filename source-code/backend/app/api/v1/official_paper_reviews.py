@@ -28,6 +28,22 @@ from app.services import evidence_links
 from app.services import evidence_link_jobs
 
 
+from app.schemas.accuracy_jobs import AccuracyJobBatch
+from app.services import accuracy_jobs
+
+@router.get('/{paper_id}/accuracy-readiness')
+def accuracy_readiness(paper_id: uuid.UUID, principal: Annotated[Principal, Depends(require_roles('admin'))], db: Annotated[Session, Depends(get_db)]):
+    return accuracy_jobs.readiness(db,paper_id)
+
+@router.get('/{paper_id}/accuracy-jobs')
+def accuracy_job_status(paper_id: uuid.UUID, principal: Annotated[Principal, Depends(require_roles('admin'))], db: Annotated[Session, Depends(get_db)]):
+    return accuracy_jobs.listing(db,paper_id)
+
+@router.post('/{paper_id}/accuracy-jobs',status_code=202)
+def queue_accuracy_jobs(paper_id: uuid.UUID, payload: AccuracyJobBatch, principal: Annotated[Principal, Depends(require_csrf_roles('admin'))], db: Annotated[Session, Depends(get_db)]):
+    return accuracy_jobs.create_batch(db,principal,paper_id,payload)
+
+
 @router.get('/{paper_id}/evidence-link-jobs')
 def evidence_jobs(paper_id: uuid.UUID,
     principal: Annotated[Principal, Depends(require_roles('admin'))],
