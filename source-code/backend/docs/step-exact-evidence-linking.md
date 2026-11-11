@@ -24,3 +24,5 @@ Changes to exact evidence invalidate prior accuracy hashes and revoke AI approva
 The UI retains the current question/subpart on refresh after applying, provides original-region previews, explicit confirmation and toast feedback, and shows ambiguous/missing matches as review work. Text matching and model matching confidence are distinct from overall source accuracy. Analysis errors use safe, part-specific messages rather than raw exception tuples.
 
 Tests: `tests/test_exact_evidence_links.py`, plus existing source-review, analysis-history and AI-approval suites. Live evaluation uses the separately authorised Evaluation project and a private cumulative spend ledger; no keys or source files belong in Git.
+
+Evidence jobs have a dedicated bounded output allowance: `AKURU_EVIDENCE_AI_MAX_OUTPUT_TOKENS` defaults to 8000 (range 1000–16000). Multi-part questions can exceed the general provider's 4000-token allowance. This setting only affects evidence jobs; it does not change tutor or assessment output limits. A truncated/invalid response fails without applying links or automatically retrying.

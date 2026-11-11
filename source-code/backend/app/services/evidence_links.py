@@ -107,7 +107,8 @@ def propose(db,storage,principal,paper_id,payload):
                 candidates.sort(key=lambda x:(-x[0],str(x[1].id)))
                 if candidates:
                     score,block,page=candidates[0]
-                    unambiguous=score>=98 and (len(candidates)==1 or score-candidates[1][0]>=10)and not block.needs_review and len(_words(target))>=6
+                    identity=block.block_metadata or {}
+                    unambiguous=score>=98 and (len(candidates)==1 or score-candidates[1][0]>=10)and not block.needs_review and len(_words(target))>=6 and identity.get('number')==row.number and identity.get('part')==part['label'] and identity.get('role')==role
                     proposals.append(dict(id=str(uuid.uuid4()),part=part['label'],role=role,documentVersionId=str(version_id),**_snapshot(page,block),confidence=score,
                         status='matched'if unambiguous else'ambiguous',autoEligible=unambiguous,reason='Exact reviewed text match.'if unambiguous else'Candidate text match; verify the complete subpart and rubric before linking.',sourceVerified=unambiguous))
                 else:
