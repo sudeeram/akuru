@@ -280,3 +280,26 @@ def test_release_progress_groups_by_release_question_in_multi_question_paper(aut
     assert workflow['steps'][3]['completed']==1
     assert workflow['steps'][3]['total']==2
     assert workflow['steps'][3]['state']=='attention'
+
+
+@pytest.mark.integration
+def test_candidates_keep_current_prior_evidence_and_rank_mapped_parts_first(auth_client):
+    c,h,db,root,q,req,out,storage,chunk,pub=prepared(auth_client)
+    run(c,h,db,root,req,out,storage)
+    row=db.scalar(select(OfficialPaperReviewQuestion))
+    workspace=db.get(OfficialPaperReviewWorkspace,row.workspace_id)
+    previous=db.scalar(select(OfficialQuestionAnalysis).where(
+        OfficialQuestionAnalysis.question_id==row.id,
+        OfficialQuestionAnalysis.stage=='accuracy').order_by(OfficialQuestionAnalysis.version_number.desc()))
+    rejected=copy.deepcopy(previous.analysis_data)
+    rejected['parts'][0]['curriculum']['accepted']=False
+    db.add(OfficialQuestionAnalysis(question_id=row.id,stage='accuracy',
+        version_number=previous.version_number+1,question_revision=row.revision,
+        content_hash=previous.content_hash,source_manifest=previous.source_manifest,
+        analysis_data=rejected,created_by=previous.created_by))
+    db.flush()
+    candidates=paper_curriculum.candidates(db,workspace,row)
+    assert candidates[0]['chunkId']==str(chunk.id)
+    pub.status='superseded'
+    db.flush()
+    assert not paper_curriculum.candidates(db,workspace,row)
