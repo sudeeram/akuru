@@ -605,7 +605,7 @@ def _content_snapshot(data):
 
 
 def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
-                  payload: SaveReviewQuestion) -> PaperReviewResponse:
+                  payload: SaveReviewQuestion, *, commit: bool = True) -> PaperReviewResponse:
     workspace = _workspace(db, paper_id)
     _validate_bound_versions(db, workspace)
     row = db.scalar(select(OfficialPaperReviewQuestion).where(
@@ -625,6 +625,17 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         payload.data.extractionConfidence = None
         for part in payload.data.parts:
             part.extractionConfidence = None
+    if row:
+        from .paper_scoring_validation import PASS_PREFIX, rubric_hash
+        original = ReviewQuestionData.model_validate(row.review_data)
+        previous = {part.label: part for part in original.parts}
+        for part in payload.data.parts:
+            prior = previous.get(part.label)
+            if (prior and prior.assessmentReadinessReason.startswith(PASS_PREFIX)
+                    and part.assessmentReadiness == 'automatic'
+                    and rubric_hash(original, prior) != rubric_hash(payload.data, part)):
+                part.assessmentReadiness = 'unreviewed'
+                part.assessmentReadinessReason = 'Saved rubric changed; validate scoring again.'
     if payload.status == "ai_approved":
         if not row or row.status != "ai_approved":
             raise DomainError("ai_approval_server_only", "AI approval is assigned by the confidence policy, not manually.", 422)
@@ -681,7 +692,10 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         except Exception:
             db.add(AuditEvent(actor_id=principal.user.id, action='tutor_paper.release_retry_required',
                 target_type='official_paper_review_question', target_id=str(row.id), event_data={}))
-    db.commit()
+    if commit:
+        db.commit()
+    else:
+        db.flush()
     return _response(db, workspace)
 
 

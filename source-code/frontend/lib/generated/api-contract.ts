@@ -216,6 +216,7 @@ export interface Schemas {
   "SafetyEventListResponse": { "events": Array<Schemas["SafetyEventResponse"]>; };
   "SafetyEventResponse": { "eventRef": string; "studentName": string; "category": string; "severity": "low" | "medium" | "high" | "critical"; "action": string; "notificationStatus": string; "reviewStatus": string; "createdAt": string; };
   "SafetyReviewRequest": { "status": "reviewed" | "resolved"; "note": string; };
+  "Sample": { "answer": string; "expectedPoints": Array<string>; };
   "SaveOfficialMaterialReview": { "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "SavePlanRequest": { "periods": Array<Schemas["PlanPeriod"]>; };
   "SaveReviewQuestion": { "expectedRevision": number; "number": string; "status"?: "unreviewed" | "needs_correction" | "ready_for_approval" | "approved" | "ai_approved" | "excluded"; "data": Schemas["ReviewQuestionData"]; };
@@ -323,6 +324,7 @@ export interface Schemas {
   "UiFeaturesUserResponse": { "name": string; "role": "admin"; };
   "UpdateStudentRequest": { "id": string; "name": string; "parentId": string; "level": "iGCSE"; "grade": "Grade 10" | "Grade 11"; "term": "Term1" | "Term2" | "Term3"; "progression": Array<string>; "subjects": Array<string>; };
   "UserResponse": { "id": string; "username": string; "name": string; "role": "admin" | "parent" | "student"; "mustChangePassword": boolean; };
+  "ValidateScoring": { "requestId": string; "partLabel": string; "expectedRevision": number; "confirmReviewed": boolean; "samples": Array<Schemas["Sample"]>; };
   "VolumeTimeFacts": { "kind": "volume_time"; "xLabel": string; "yLabel": string; };
   "WorkedStep": { "partLabel": string; "explanation": string; "showPoints"?: true; "circleIndexes"?: Array<number>; "fits"?: Array<Schemas["Fit"]>; };
   "WorkflowResponse": { "policy"?: string; "documents"?: Array<Schemas["DocumentWorkflow"]>; };
@@ -364,12 +366,14 @@ export interface ApiOperations {
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: unknown; response: Array<Schemas["QuestionAnalysisResponse"]> };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: Schemas["RecordQuestionAnalysis"]; response: Schemas["QuestionAnalysisResponse"] };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": { request: Schemas["ReleasePastPaperPart"]; response: unknown };
+  "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/validate-scoring": { request: Schemas["ValidateScoring"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: Schemas["GenerateWorkedAnswer"]; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/import-draft": { request: Schemas["ImportWorkedAnswerDraft"]; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/attach": { request: Schemas["AttachWorkedAnswer"]; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/review": { request: Schemas["ReviewWorkedAnswer"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers/{answer_id}/steps/{step}/image": { request: unknown; response: unknown };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/scoring-validation/{job_id}": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/seed": { request: Schemas["SeedPaperReview"]; response: Schemas["PaperReviewResponse"] };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/start": { request: Schemas["StartPaperReview"]; response: Schemas["PaperReviewResponse"] };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/topics": { request: unknown; response: unknown };

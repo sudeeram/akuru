@@ -164,6 +164,33 @@ def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, Ass
     return result
 
 
+def mark_text_answer(db, settings, question, answer, points, sources, selected_policy,
+                     deterministic, handwriting, answer_text, metadata, generate):
+    """Run the same two marking passes and deterministic allocation for any text answer."""
+    prompt = get_prompt("assessment")
+    try:
+        instructions = f"For structured rubrics, return evidence matches for every point before caps. Quote exact student wording for each awarded match. Distinct points may share evidence; synonyms for one point never create extra points. Backend code applies all caps. Do not describe unused alternatives as errors once sufficient marks are earned; do not claim a numerical total in generated feedback. {prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
+        first = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
+            prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting),
+            output_type=AssessmentPassOne, metadata=metadata))
+        _validate(first.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
+        second = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
+            prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting, first.output.model_dump()),
+            output_type=AssessmentPassTwo, metadata=metadata))
+    except AIProviderError as exc:
+        raise DomainError(exc.code, str(exc), 503) from exc
+    awarded = _validate(second.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
+    if [(d.pointId, d.awarded, d.marksAwarded) for d in first.output.decisions] != [(d.pointId, d.awarded, d.marksAwarded) for d in second.output.decisions]:
+        raise DomainError("assessment_reconciliation_failed", "The two marking passes disagreed; this answer requires a new assessment.", 422)
+    final_decisions = second.output.decisions
+    if question.rubric.get("scoringRules") is not None:
+        awarded, final_decisions, allocation = marking_rules.score(second.output.decisions, points, question.marks, question.rubric["scoringRules"], answer_text)
+        deterministic["rubricScoring"] = allocation
+    confidence = min(first.output.overallConfidence, second.output.confidence, *(d.confidence for d in second.output.decisions))
+    review = list(dict.fromkeys(first.output.reviewReasons + second.output.reviewReasons))
+    return first, second, awarded, final_decisions, confidence, review
+
+
 def evaluate(db: Session, settings: Settings, assessment: Assessment, request_key: str, *, generator=None) -> None:
     generate = generator or _generate
     assessment = db.scalar(select(Assessment).where(Assessment.id == assessment.id).with_for_update())
@@ -242,27 +269,10 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             "question": question.prompt, "rubric": question.rubric, "sources": sources}, sort_keys=True)
         input_hash = hashlib.sha256(material.encode()).hexdigest()
         metadata = {"learner_ref": usage_limits.pseudonymous_student_id(settings, assessment.student_id), "subject_id": assessment.subject_id}
-        try:
-            instructions = f"For structured rubrics, return evidence matches for every point before caps. Quote exact student wording for each awarded match. Distinct points may share evidence; synonyms for one point never create extra points. Backend code applies all caps. Do not describe unused alternatives as errors once sufficient marks are earned; do not claim a numerical total in generated feedback. {prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
-            first = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-decisions",
-                prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting),
-                output_type=AssessmentPassOne, metadata=metadata))
-            _validate(first.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
-            second = generate(db, settings, AIRequest(purpose=prompt.purpose, prompt_name=f"{prompt.name}-{selected_policy.name}-feedback",
-                prompt_version=prompt.version, instructions=instructions, task=_task(question, answer, points, sources, selected_policy, deterministic, handwriting, first.output.model_dump()),
-                output_type=AssessmentPassTwo, metadata=metadata))
-            used_tokens += (first.usage.total_tokens or 0) + (second.usage.total_tokens or 0)
-        except AIProviderError as exc:
-            raise DomainError(exc.code, str(exc), 503) from exc
-        awarded = _validate(second.output.decisions, points, question.marks, question.rubric.get("scoringRules"), answer_text)
-        if [(d.pointId, d.awarded, d.marksAwarded) for d in first.output.decisions] != [(d.pointId, d.awarded, d.marksAwarded) for d in second.output.decisions]:
-            raise DomainError("assessment_reconciliation_failed", "The two marking passes disagreed; this answer requires a new assessment.", 422)
-        final_decisions = second.output.decisions
-        if question.rubric.get("scoringRules") is not None:
-            awarded, final_decisions, allocation = marking_rules.score(second.output.decisions, points, question.marks, question.rubric["scoringRules"], answer_text)
-            deterministic["rubricScoring"] = allocation
-        confidence = min(first.output.overallConfidence, second.output.confidence, *(d.confidence for d in second.output.decisions))
-        review = list(dict.fromkeys(first.output.reviewReasons + second.output.reviewReasons))
+        first, second, awarded, final_decisions, confidence, review = mark_text_answer(
+            db, settings, question, answer, points, sources, selected_policy, deterministic,
+            handwriting, answer_text, metadata, generate)
+        used_tokens += (first.usage.total_tokens or 0) + (second.usage.total_tokens or 0)
         if working and working.ocr_confidence < settings.assessment_ocr_review_threshold:
             review.append(f"Handwriting OCR confidence {working.ocr_confidence:.2f} is below the {settings.assessment_ocr_review_threshold:.2f} review threshold; inspect the original image.")
         if confidence < settings.assessment_confidence_threshold:

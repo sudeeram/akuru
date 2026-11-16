@@ -8,6 +8,7 @@ import { TutorPastPaperReleases } from './tutor-past-paper-releases';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
 import { AccuracyReassessment } from './accuracy-reassessment';
 import { ExactEvidenceLinks } from './exact-evidence-links';
+import { ScoringValidation } from './scoring-validation';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
 /* Form labels wrap design-system inputs; the accessibility rule does not resolve their rendered controls. */
@@ -2126,6 +2127,21 @@ export function OfficialPaperReview({
                           part={part}
                           onChange={updatePart}
                         />
+                        {part.responseType === 'text' && revision > 0 && (
+                          <ScoringValidation
+                            key={`${selected}:${part.label}`}
+                            paperId={paperId}
+                            number={selected}
+                            part={part.label}
+                            revision={revision}
+                            disabled={
+                              busy ||
+                              dirty ||
+                              workedDirty ||
+                              !['approved', 'ai_approved'].includes(part.status)
+                            }
+                          />
+                        )}
                         <label>
                           Accepted alternatives · one per line{' '}
                           <Textarea

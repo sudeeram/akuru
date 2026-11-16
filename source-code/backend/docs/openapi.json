@@ -10250,6 +10250,33 @@
         "title": "SafetyReviewRequest",
         "type": "object"
       },
+      "Sample": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Answer",
+            "type": "string"
+          },
+          "expectedPoints": {
+            "items": {
+              "maxLength": 30,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Expectedpoints",
+            "type": "array"
+          }
+        },
+        "required": [
+          "answer",
+          "expectedPoints"
+        ],
+        "title": "Sample",
+        "type": "object"
+      },
       "SaveOfficialMaterialReview": {
         "properties": {
           "completenessConfirmed": {
@@ -15047,6 +15074,49 @@
         "title": "UserResponse",
         "type": "object"
       },
+      "ValidateScoring": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmReviewed": {
+            "title": "Confirmreviewed",
+            "type": "boolean"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "partLabel": {
+            "maxLength": 30,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/Sample"
+            },
+            "maxItems": 8,
+            "minItems": 2,
+            "title": "Samples",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requestId",
+          "partLabel",
+          "expectedRevision",
+          "confirmReviewed",
+          "samples"
+        ],
+        "title": "ValidateScoring",
+        "type": "object"
+      },
       "VolumeTimeFacts": {
         "additionalProperties": false,
         "properties": {
@@ -18238,6 +18308,118 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/validate-scoring": {
+      "post": {
+        "operationId": "validate_scoring_api_v1_admin_official_paper_reviews__paper_id__questions__number__validate_scoring_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidateScoring"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Validate Scoring",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": {
       "get": {
         "operationId": "list_worked_answers_api_v1_admin_official_paper_reviews__paper_id__questions__number__worked_answers_get",
@@ -18890,6 +19072,93 @@
           }
         },
         "summary": "Preview Worked Answer",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/scoring-validation/{job_id}": {
+      "get": {
+        "operationId": "scoring_validation_status_api_v1_admin_official_paper_reviews__paper_id__scoring_validation__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Scoring Validation Status",
         "tags": [
           "official-paper-reviews"
         ]

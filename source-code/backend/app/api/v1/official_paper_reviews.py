@@ -166,6 +166,24 @@ def start_review(paper_id: uuid.UUID, payload: StartPaperReview,
     return official_paper_reviews.start(db, principal, paper_id, payload)
 
 
+from app.services import paper_scoring_validation
+
+
+@router.post("/{paper_id}/questions/{number}/validate-scoring", status_code=202)
+def validate_scoring(paper_id: uuid.UUID, number: str,
+                     payload: paper_scoring_validation.ValidateScoring,
+                     principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                     db: Annotated[Session, Depends(get_db)]):
+    return paper_scoring_validation.enqueue(db, principal, paper_id, number, payload)
+
+
+@router.get("/{paper_id}/scoring-validation/{job_id}")
+def scoring_validation_status(paper_id: uuid.UUID, job_id: uuid.UUID,
+                              principal: Annotated[Principal, Depends(require_roles("admin"))],
+                              db: Annotated[Session, Depends(get_db)]):
+    return paper_scoring_validation.get_job(db, paper_id, job_id)
+
+
 @router.post("/{paper_id}/questions", response_model=PaperReviewResponse)
 def save_question(paper_id: uuid.UUID, payload: SaveReviewQuestion,
                   principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
