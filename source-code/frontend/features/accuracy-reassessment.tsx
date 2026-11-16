@@ -232,10 +232,11 @@ export function AccuracyReassessment({
           <legend>Confirm paid reassessment</legend>
           <p>
             Queue {eligible.length} question assessments using the configured
-            AKURU backend AI account? Model usage can incur charges. Results are
-            checked against the current saved source version. Eligible content
-            can become AI approved and automatically available for Tutor
-            practice. This does not publish a formal exam.
+            AKURU backend AI account? Large questions can require multiple model
+            calls. Model usage can incur charges. Results are checked against
+            the current saved source version. Eligible content can become AI
+            approved and automatically available for Tutor practice. This does
+            not publish a formal exam.
           </p>
           <div className="form-grid">
             <Button

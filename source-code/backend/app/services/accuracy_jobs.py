@@ -1,5 +1,6 @@
 """Final-source comparisons, separate from human image review and Student release."""
 import base64, hashlib, json, uuid
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pymupdf
@@ -8,12 +9,14 @@ from sqlalchemy.orm import Session
 from app.models import EvidenceLinkJob, OfficialQuestionAnalysis, DocumentAsset, DocumentVersion, User, AuditEvent
 from app.schemas.accuracy_jobs import AccuracyJobRequest, ModelAccuracy
 from app.schemas.paper_analysis import RecordQuestionAnalysis
-from app.ai.base import AIRequest, SourcePage, AIProviderError
+from app.ai.base import AIRequest, AIUsage, SourcePage, AIProviderError
 from app.ai.router import AIAccountRouter
 from app.errors import DomainError
 from . import evidence_links as links, official_question_analyses as analyses
 
 VERSION='final-source-accuracy-v2'
+SPLITTABLE_LIMITS = {'accuracy_page_limit', 'accuracy_required_input_limit', 'accuracy_image_limit'}
+MAX_ASSESSMENT_BATCHES = 8
 
 def _latest(db,row):
     return db.scalar(select(OfficialQuestionAnalysis).where(OfficialQuestionAnalysis.question_id==row.id,OfficialQuestionAnalysis.stage=='accuracy').order_by(OfficialQuestionAnalysis.version_number.desc()).limit(1))
@@ -91,7 +94,7 @@ def _sources(db,storage,workspace,row,previous):
         vid=getattr(workspace,role+'_version_id');allowed[role]=[]
         if not vid:continue
         nums={s['page']for p in data['parts']for s in p[role+'Sources']}
-        if role=='paper':nums.update(s['page']for s in data['paperSources'])
+        nums.update(s['page'] for s in data.get(role+'Sources', []))
         if role=='report'and previous:
             nums.update(n for p in previous.analysis_data['parts']for check in p['sourceChecks']if check['role']=='report'for n in check['pages'])
         allowed[role]=sorted(nums);v=db.get(DocumentVersion,vid);source=storage.get(v.object_key,v.mime_type)
@@ -162,6 +165,93 @@ def budgeted_request(row, previous, pages, allowed, candidates, max_characters):
     return request, included
 
 
+def assessment_batches(db, storage, workspace, row, previous, candidates, settings):
+    """Split on subpart boundaries; never omit a linked original or reviewed crop."""
+    def prepare(scoped, prior):
+        pages, allowed = _sources(db, storage, workspace, scoped, prior)
+        request, supplied = budgeted_request(
+            scoped, prior, pages, allowed, candidates, settings.ai_max_input_characters)
+        image_bytes = sum(len(base64.b64decode(page.image_data_url.split(',', 1)[1]))
+                          for page in request.pages if page.image_data_url)
+        if image_bytes > settings.ai_max_image_bytes:
+            raise DomainError('accuracy_image_limit', 'Required images exceed the request limit.', 409)
+        return request, allowed, supplied
+
+    parts = row.review_data['parts']
+    try:
+        return [prepare(row, previous)]
+    except DomainError as error:
+        if error.code not in SPLITTABLE_LIMITS or len(parts) < 2:
+            raise
+    batches = []
+
+    def split(group):
+        labels = {part['label'] for part in group}
+        scoped = SimpleNamespace(number=row.number, review_data={
+            **row.review_data, 'parts': group, 'siblingPromptsForDependencyCheck': [
+                dict(label=p['label'], prompt=p['prompt']) for p in parts if p['label'] not in labels]})
+        prior = SimpleNamespace(analysis_data={
+            'parts': [p for p in previous.analysis_data['parts'] if p['label'] in labels]
+        }) if previous else None
+        try:
+            request, allowed, supplied = prepare(scoped, prior)
+        except DomainError as error:
+            if error.code not in SPLITTABLE_LIMITS or len(group) < 2:
+                raise
+            mid = len(group) // 2
+            split(group[:mid])
+            split(group[mid:])
+            return
+        request = replace(request, instructions=request.instructions +
+            ' This is one scope of a larger question. Assess only finalSavedContent.parts. '
+            'Question marks refer to the entire question. Sibling prompts are only for detecting dependencies.')
+        if len(batches) == MAX_ASSESSMENT_BATCHES:
+            raise DomainError('accuracy_batch_limit', 'This question needs more than eight evidence batches.', 409)
+        batches.append((request, allowed, supplied))
+
+    mid = len(parts) // 2
+    split(parts[:mid])
+    split(parts[mid:])
+    return batches
+
+
+def combine_batches(batches, results):
+    if len(batches) == 1:
+        return results[0], batches[0][1], batches[0][2]
+    allowed = {role: set() for role in ('paper', 'scheme', 'report')}
+    supplied, parts, questions = {}, [], []
+    for (request, pages, evidence), result in zip(batches, results, strict=True):
+        output = ModelAccuracy.model_validate(result.output.model_dump())
+        labels = {p['label'] for p in json.loads(request.task)['finalSavedContent']['parts']}
+        if len(output.parts) != len(labels) or {p.label for p in output.parts} != labels:
+            raise DomainError('accuracy_parts_mismatch', 'A batch returned parts outside its assigned scope.', 409)
+        ids = {e['chunkId'] for e in evidence}
+        for scope in [output.question, *output.parts]:
+            if any(not set(check.pages) <= set(pages[check.role]) for check in scope.sourceChecks):
+                raise DomainError('accuracy_unseen_page', 'A batch cited an unprovided source page.', 409)
+        if any(p.curriculum and not set(p.curriculum.chunkIds) <= ids for p in output.parts):
+            raise DomainError('curriculum_unseen_evidence', 'A batch cited an unprovided textbook passage.', 409)
+        parts.extend(output.parts)
+        questions.append(output.question)
+        supplied.update({e['chunkId']: e for e in evidence})
+        for role, numbers in pages.items():
+            allowed[role].update(numbers)
+    first = results[0]
+    if any((r.provider, r.model) != (first.provider, first.model) for r in results):
+        raise DomainError('accuracy_batch_model_changed', 'Model identity changed across assessment batches.', 409)
+    weakest = min(questions, key=lambda q: q.percent)
+    weakest = weakest.model_copy(update={'reasons': [
+        f'Question assessed in {len(batches)} evidence batches; summary shows the lowest-confidence batch.',
+        *weakest.reasons[:11]]})
+    def total(field):
+        values = [getattr(r.usage, field) for r in results]
+        return sum(values) if all(v is not None for v in values) else None
+    merged = replace(first, response_id=None, output=ModelAccuracy(question=weakest, parts=parts),
+        usage=AIUsage(**{key: total(key) for key in ('input_tokens', 'output_tokens', 'total_tokens')}),
+        latency_ms=sum(r.latency_ms for r in results), attempt_count=sum(r.attempt_count for r in results))
+    return merged, allowed, list(supplied.values())
+
+
 def context(db,storage,paper_id,number):
     from dataclasses import asdict
     from . import paper_curriculum
@@ -188,17 +278,27 @@ def process_next(db,settings,storage,generator=None):
         if not actor or not actor.is_active or actor.role!='admin':raise DomainError('permission_denied','Requesting Admin is inactive.',403)
         payload=AccuracyJobRequest.model_validate(job.request_data);workspace,row,digest=links._context(db,job.paper_id,payload.number);links._fresh(row,digest,payload.expectedRevision,payload.expectedContentHash)
         if _version(db,row)!=payload.expectedAnalysisVersion:raise DomainError('analysis_conflict','The accuracy history changed.',409)
-        previous=_latest(db,row);pages,allowed=_sources(db,storage,workspace,row,previous)
+        previous=_latest(db,row)
         from . import paper_curriculum
         candidates=paper_curriculum.candidates(db,workspace,row)
-        request,curriculum_sources=budgeted_request(row,previous,pages,allowed,candidates,settings.ai_max_input_characters)
+        batches=assessment_batches(db,storage,workspace,row,previous,candidates,settings)
         db.rollback() # no question/workspace lock or long transaction during a paid model call
-        if generator:result=generator(request)
-        else:
-            with Session(bind=db.get_bind())as provider_db:
-                bounded=settings.model_copy(update={'ai_max_output_tokens':settings.evidence_ai_max_output_tokens,'ai_max_pages_per_request':24})
-                result=AIAccountRouter(provider_db,bounded).generate(request,operation_id=jid)
-        db.expire_all();job=db.get(EvidenceLinkJob,jid);actor=db.get(User,job.created_by)
+        results=[]
+        for index,(request,_,_) in enumerate(batches):
+            if generator:
+                results.append(generator(request))
+            else:
+                with Session(bind=db.get_bind()) as provider_db:
+                    bounded=settings.model_copy(update={
+                        'ai_max_output_tokens':settings.evidence_ai_max_output_tokens,'ai_max_pages_per_request':24})
+                    operation=jid if index==0 else uuid.uuid5(jid,str(index))
+                    results.append(AIAccountRouter(provider_db,bounded).generate(request,operation_id=operation))
+        result,allowed,curriculum_sources=combine_batches(batches,results)
+        db.expire_all();job=db.get(EvidenceLinkJob,jid,with_for_update=True)
+        if not job or job.status != 'processing':
+            db.rollback()
+            return jid
+        actor=db.get(User,job.created_by)
         if not actor or not actor.is_active or actor.role!='admin':raise DomainError('permission_denied','Requesting Admin is inactive.',403)
         workspace,row,digest=links._context(db,job.paper_id,payload.number,lock=True);links._fresh(row,digest,payload.expectedRevision,payload.expectedContentHash)
         if paper_curriculum.candidates(db,workspace,row)!=candidates:
@@ -226,7 +326,7 @@ def process_next(db,settings,storage,generator=None):
                 releases=auto_release(db,SimpleNamespace(user=actor),workspace,row) if settings.past_paper_auto_release_enabled and payload.workflowPolicy==VERSION else [dict(enabled=False,code='automatic_release_paused',reason='Automatic Tutor release is paused or this request did not consent to the v2 workflow.')]
         except Exception:
             releases=[dict(enabled=False,code='release_retry_required',reason='Assessment saved. Retry eligible releases without another model call.')]
-        job=db.get(EvidenceLinkJob,jid);job.status='completed';job.completed_at=datetime.now(timezone.utc);job.result_data=dict(analysisId=recorded.id,analysisVersion=recorded.version,model=result.model,confidence=recorded.question.percent,inputTokens=result.usage.input_tokens,outputTokens=result.usage.output_tokens,tutorReleases=releases);db.commit()
+        job=db.get(EvidenceLinkJob,jid);job.status='completed';job.completed_at=datetime.now(timezone.utc);job.result_data=dict(analysisId=recorded.id,analysisVersion=recorded.version,batchCount=len(batches),responseIds=[r.response_id for r in results if r.response_id],model=result.model,confidence=recorded.question.percent,inputTokens=result.usage.input_tokens,outputTokens=result.usage.output_tokens,tutorReleases=releases);db.commit()
     except Exception as exc:
         db.rollback();job=db.get(EvidenceLinkJob,jid)
         if job is None:return jid

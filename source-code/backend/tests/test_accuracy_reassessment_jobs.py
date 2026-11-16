@@ -128,3 +128,49 @@ def test_human_content_approval_and_image_decisions_are_preserved(auth_client):
  assert after['status']=='approved'and after['data']==data
  assert c.get(root+'/accuracy-readiness').json()['questions'][0]['manualContentParts']==['a']
  # Human status remains preserved, but a newer explicit source concern still needs adjudication.
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize('mode', ['complete', 'wrong_part', 'cross_batch_page', 'provider_failure'])
+def test_split_worker_saves_only_complete_valid_assessments(auth_client, monkeypatch, mode):
+ import json
+ from app.ai.base import AIProviderError
+ from app.errors import DomainError
+ from app.services import accuracy_jobs
+ c,h,db,root,q,req,out,storage=setup(auth_client)
+ row=db.scalar(select(OfficialPaperReviewQuestion))
+ data=copy.deepcopy(row.review_data)
+ sibling=copy.deepcopy(data['parts'][0]);sibling['label']='b'
+ data['parts'].append(sibling);data['marks']+=sibling['marks'];row.review_data=data;db.commit()
+ q=c.get(root).json()['questions'][0]
+ req.update(expectedRevision=q['revision'],expectedContentHash=q['analysisContentHash'])
+ assert c.post(root+'/accuracy-jobs',headers=h,json={'questions':[req]}).status_code==202
+ real_sources=accuracy_jobs._sources
+ def limited(db,storage,workspace,scope,prior):
+  if len(scope.review_data['parts'])>1:
+   raise DomainError('accuracy_page_limit','Fixture forces a split.',409)
+  return real_sources(db,storage,workspace,scope,prior)
+ monkeypatch.setattr(accuracy_jobs,'_sources',limited)
+ calls=[]
+ def generate(request):
+  task=json.loads(request.task);data=task['finalSavedContent']
+  label=data['parts'][0]['label'];calls.append(label)
+  assert len(data['parts'])==1 and len(data['siblingPromptsForDependencyCheck'])==1
+  assert all(task['allowedPages'][role] for role in ('paper','scheme','report'))
+  part=copy.deepcopy(out['parts'][0]);part['label']=label
+  if label=='b':
+   if mode=='provider_failure':raise AIProviderError('fixture_failure','Second call failed.')
+   if mode=='wrong_part':part['label']='a'
+   if mode=='cross_batch_page':part['sourceChecks'][0]['pages']=[99]
+  return FakeAIProvider(dict(question=out['question'],parts=[part])).generate(request)
+ process_next(db,get_settings(),storage,generator=generate)
+ assert calls==['a','b']
+ job=c.get(root+'/accuracy-jobs').json()[0]
+ current=c.get(root).json()['questions'][0]
+ if mode=='complete':
+  assert job['status']=='completed',job
+  assert job['result']['batchCount']==2
+  assert [p['label'] for p in current['accuracyAnalysis']['parts']]==['a','b']
+ else:
+  assert job['status']=='failed',job
+  assert current['analysisVersion']==q['analysisVersion']
