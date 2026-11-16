@@ -221,3 +221,27 @@ def test_provenance_records_actual_response_model_when_available():
             return response
     result = provider(CanonicalResponses({'title': 'Cells', 'source_pages': [3]})).generate(request())
     assert result.model == 'provider-canonical-model-version'
+
+
+def test_sdk_validation_error_is_classified_without_retrying():
+    from dataclasses import replace
+    from pydantic import ValidationError
+
+    class InvalidSourceCheck:
+        calls = 0
+
+        def parse(self, **kwargs):
+            self.calls += 1
+            raise ValidationError.from_exception_data("Final assessment", [{
+                "type": "missing",
+                "loc": ("parts", 0, "sourceChecks", 2, "percent"),
+                "input": {"private": "not safe to display"},
+            }])
+
+    responses = InvalidSourceCheck()
+    with pytest.raises(AIProviderError) as error:
+        provider(responses, max_retries=2).generate(
+            replace(request(), prompt_name="final-source-accuracy"))
+    assert error.value.code == "accuracy_invalid_source_check"
+    assert "private" not in str(error.value)
+    assert responses.calls == 1

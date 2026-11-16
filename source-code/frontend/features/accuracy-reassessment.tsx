@@ -22,6 +22,10 @@ const errors: Record<string, string> = {
     'Processing was interrupted. Check history before explicitly retrying; no automatic paid retry was made.',
   accuracy_page_limit:
     'Too many source pages/crops for one model request. Assisted source review is required.',
+  accuracy_invalid_source_check:
+    'The model returned an invalid paper, marking scheme or report check. Checked sources must include a confidence score and inspected PDF pages. No assessment was saved.',
+  invalid_ai_output:
+    'The model response did not match the required format. No assessment was saved.',
   accuracy_invalid_output:
     'The model response could not be validated. No assessment was saved.',
   accuracy_unseen_page:

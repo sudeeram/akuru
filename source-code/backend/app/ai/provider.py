@@ -94,6 +94,17 @@ class OpenAIProvider:
                     )
                 except AIProviderError:
                     raise
+                except ValidationError as exc:
+                    # responses.parse validates output before returning a response.
+                    # Classify only known field locations, never include model output.
+                    source_check = request.prompt_name == "final-source-accuracy" and any(
+                        "sourceChecks" in issue["loc"] for issue in exc.errors(include_input=False)
+                    )
+                    raise AIProviderError(
+                        "accuracy_invalid_source_check" if source_check else "invalid_ai_output",
+                        "A source check did not meet the reassessment rules." if source_check
+                        else "The AI response did not match the required schema.",
+                    ) from exc
                 except AuthenticationError as exc:
                     raise AIProviderError(
                         "invalid_credential", "The provider credential is invalid.",

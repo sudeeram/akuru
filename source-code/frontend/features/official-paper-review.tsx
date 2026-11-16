@@ -1035,6 +1035,136 @@ export function OfficialPaperReview({
       )}
       {review && (
         <>
+          <div className="pr-actionbar" aria-label="Question review actions">
+            <div>
+              <strong>
+                {number ? `Question ${number}` : 'Select or add a question'}
+              </strong>
+              <output aria-live="polite">
+                {busy
+                  ? 'Working…'
+                  : dirty
+                    ? 'Unsaved review changes.'
+                    : revision
+                      ? 'Saved review state.'
+                      : 'New draft.'}
+              </output>
+            </div>
+            <div className="button-row">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !neighbours.previous}
+                onClick={() =>
+                  neighbours.previous && openQuestion(neighbours.previous)
+                }
+              >
+                <ArrowLeft size={14} /> Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || !neighbours.next}
+                onClick={() => neighbours.next && openQuestion(neighbours.next)}
+              >
+                Next <ArrowRight size={14} />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || activePart <= 0}
+                onClick={() => selectPart(activePart - 1)}
+              >
+                <ArrowLeft size={14} /> Previous subpart
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy || activePart >= data.parts.length - 1}
+                onClick={() => selectPart(activePart + 1)}
+              >
+                Next subpart <ArrowRight size={14} />
+              </Button>
+              <Button
+                disabled={busy || !number.trim() || !dirty}
+                onClick={saveQuestion}
+              >
+                <Save size={15} /> Save question review
+              </Button>
+            </div>
+          </div>
+          <section className="pr-question-nav" aria-label="Questions">
+            <DashboardCard
+              title="Questions"
+              description={`${review.questions.length} saved in this paper`}
+            >
+              <div className="stack">
+                <Input
+                  aria-label="Find question"
+                  placeholder="Find question…"
+                  value={questionSearch}
+                  onChange={(event) => setQuestionSearch(event.target.value)}
+                />
+                <label>
+                  Review status
+                  <select
+                    value={questionFilter}
+                    onChange={(event) => setQuestionFilter(event.target.value)}
+                  >
+                    <option value="all">All questions</option>
+                    <option value="attention">Needs attention</option>
+                    {reviewStatuses.map((item) => (
+                      <option key={item} value={item}>
+                        {label(item)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <nav
+                  aria-label="Question review navigation"
+                  className="pr-question-list"
+                >
+                  {reviewQuestionList(
+                    review.questions,
+                    questionFilter,
+                    questionSearch,
+                  ).map((question) => (
+                    <button
+                      key={question.number}
+                      type="button"
+                      disabled={busy}
+                      aria-current={
+                        selected === question.number ? 'step' : undefined
+                      }
+                      onClick={() => openQuestion(question)}
+                    >
+                      <span>
+                        <strong>Question {question.number}</strong>
+                        <StatusBadge
+                          status={question.status}
+                          label={label(question.status)}
+                          size="xs"
+                        />
+                      </span>
+                      <MetadataBadge size="xs">
+                        {question.data.marks}m
+                      </MetadataBadge>
+                    </button>
+                  ))}
+                  {!reviewQuestionList(
+                    review.questions,
+                    questionFilter,
+                    questionSearch,
+                  ).length && (
+                    <p className="small">No questions match these filters.</p>
+                  )}
+                </nav>
+                <Button variant="outline" disabled={busy} onClick={addQuestion}>
+                  Add question
+                </Button>
+              </div>
+            </DashboardCard>
+          </section>
           <AccuracyReassessment
             paperId={paperId}
             review={review}
@@ -1376,143 +1506,7 @@ export function OfficialPaperReview({
               </div>
             </details>
           )}
-          <div className="pr-actionbar" aria-label="Question review actions">
-            <div>
-              <strong>
-                {number ? `Question ${number}` : 'Select or add a question'}
-              </strong>
-              <output aria-live="polite">
-                {busy
-                  ? 'Working…'
-                  : dirty
-                    ? 'Unsaved review changes.'
-                    : revision
-                      ? 'Saved review state.'
-                      : 'New draft.'}
-              </output>
-            </div>
-            <div className="button-row">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || !neighbours.previous}
-                onClick={() =>
-                  neighbours.previous && openQuestion(neighbours.previous)
-                }
-              >
-                <ArrowLeft size={14} /> Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || !neighbours.next}
-                onClick={() => neighbours.next && openQuestion(neighbours.next)}
-              >
-                Next <ArrowRight size={14} />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || activePart <= 0}
-                onClick={() => selectPart(activePart - 1)}
-              >
-                <ArrowLeft size={14} /> Previous subpart
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={busy || activePart >= data.parts.length - 1}
-                onClick={() => selectPart(activePart + 1)}
-              >
-                Next subpart <ArrowRight size={14} />
-              </Button>
-              <Button
-                disabled={busy || !number.trim() || !dirty}
-                onClick={saveQuestion}
-              >
-                <Save size={15} /> Save question review
-              </Button>
-            </div>
-          </div>
           <div className="pr-workspace" data-comparison={compareSources}>
-            <aside className="pr-question-nav">
-              <DashboardCard
-                title="Questions"
-                description={`${review.questions.length} saved in this paper`}
-              >
-                <div className="stack">
-                  <Input
-                    aria-label="Find question"
-                    placeholder="Find question…"
-                    value={questionSearch}
-                    onChange={(event) => setQuestionSearch(event.target.value)}
-                  />
-                  <label>
-                    Review status
-                    <select
-                      value={questionFilter}
-                      onChange={(event) =>
-                        setQuestionFilter(event.target.value)
-                      }
-                    >
-                      <option value="all">All questions</option>
-                      <option value="attention">Needs attention</option>
-                      {reviewStatuses.map((item) => (
-                        <option key={item} value={item}>
-                          {label(item)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <nav
-                    aria-label="Question review navigation"
-                    className="pr-question-list"
-                  >
-                    {reviewQuestionList(
-                      review.questions,
-                      questionFilter,
-                      questionSearch,
-                    ).map((question) => (
-                      <button
-                        key={question.number}
-                        type="button"
-                        disabled={busy}
-                        aria-current={
-                          selected === question.number ? 'step' : undefined
-                        }
-                        onClick={() => openQuestion(question)}
-                      >
-                        <span>
-                          <strong>Question {question.number}</strong>
-                          <StatusBadge
-                            status={question.status}
-                            label={label(question.status)}
-                            size="xs"
-                          />
-                        </span>
-                        <MetadataBadge size="xs">
-                          {question.data.marks}m
-                        </MetadataBadge>
-                      </button>
-                    ))}
-                    {!reviewQuestionList(
-                      review.questions,
-                      questionFilter,
-                      questionSearch,
-                    ).length && (
-                      <p className="small">No questions match these filters.</p>
-                    )}
-                  </nav>
-                  <Button
-                    variant="outline"
-                    disabled={busy}
-                    onClick={addQuestion}
-                  >
-                    Add question
-                  </Button>
-                </div>
-              </DashboardCard>
-            </aside>
             <div className="pr-editor">
               <fieldset disabled={busy} className="pr-editor-fields stack">
                 <DashboardCard
