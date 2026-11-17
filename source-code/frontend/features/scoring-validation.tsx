@@ -182,8 +182,11 @@ export function ScoringValidation({
         {error && <p role="alert">{error}</p>}
         {job?.status === 'failed' && (
           <p role="alert">
-            Scoring validation failed ({job.errorCode}). Check the saved rubric
-            and sample point codes before retrying.
+            Scoring validation failed (
+            {job.errorCode === 'ai_schema_invalid'
+              ? 'AKURU response schema rejected by the provider; contact your administrator before retrying'
+              : job.errorCode}
+            ). Check the saved rubric and sample point codes before retrying.
           </p>
         )}
         {result && (

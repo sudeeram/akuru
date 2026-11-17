@@ -245,3 +245,41 @@ def test_sdk_validation_error_is_classified_without_retrying():
     assert error.value.code == "accuracy_invalid_source_check"
     assert "private" not in str(error.value)
     assert responses.calls == 1
+
+
+def test_student_marking_output_schema_has_no_freeform_objects():
+    from openai.lib._pydantic import to_strict_json_schema
+    from app.schemas.assessments import AssessmentPassOne, AssessmentPassTwo
+
+    def check(node):
+        if isinstance(node, dict):
+            if node.get("type") == "object":
+                assert node.get("additionalProperties") is False
+                assert set(node.get("required", [])) == set(node.get("properties", {}))
+            for value in node.values():
+                check(value)
+        elif isinstance(node, list):
+            for value in node:
+                check(value)
+
+    for model in (AssessmentPassOne, AssessmentPassTwo):
+        check(to_strict_json_schema(model))
+
+
+def test_invalid_schema_is_not_reported_as_an_answer_or_network_problem():
+    from openai import BadRequestError
+
+    class RejectedSchema:
+        calls = 0
+
+        def parse(self, **kwargs):
+            self.calls += 1
+            raise BadRequestError("Invalid response schema",
+                response=httpx.Response(400, request=httpx.Request("POST", "https://api.openai.com/v1/responses")),
+                body={"code": "invalid_json_schema"})
+
+    responses = RejectedSchema()
+    with pytest.raises(AIProviderError) as error:
+        provider(responses, max_retries=2).generate(request())
+    assert error.value.code == "ai_schema_invalid"
+    assert responses.calls == 1

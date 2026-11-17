@@ -294,7 +294,7 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             marking_decisions=[d.model_dump() | ({"creditState": deterministic["rubricScoring"]["pointOutcomes"][d.pointId]} if "rubricScoring" in deterministic else {}) for d in final_decisions], strengths=second.output.strengths,
             small_mistakes=second.output.smallMistakes, conceptual_mistakes=second.output.conceptualMistakes,
             improved_answer=second.output.improvedAnswer, teaching_explanation=second.output.teachingExplanation,
-            topic_evidence=second.output.topicEvidence, recommendations=second.output.recommendations,
+            topic_evidence=[item.model_dump(mode="json") for item in second.output.topicEvidence], recommendations=second.output.recommendations,
             review_reasons=review, provider=second.provider, model=second.model, prompt_name=prompt.name,
             prompt_version=prompt.version, rubric_snapshot=question.rubric, source_manifest=sources,
             pass_one_output=first.output.model_dump(), pass_two_output=second.output.model_dump(),

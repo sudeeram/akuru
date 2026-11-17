@@ -3,7 +3,7 @@ import time
 from threading import BoundedSemaphore
 from typing import Any
 
-from openai import APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, OpenAI, RateLimitError
+from openai import BadRequestError, APIConnectionError, APITimeoutError, AuthenticationError, InternalServerError, OpenAI, RateLimitError
 from pydantic import ValidationError
 
 from app.ai.diagnostics import model_call
@@ -94,6 +94,12 @@ class OpenAIProvider:
                     )
                 except AIProviderError:
                     raise
+                except BadRequestError as exc:
+                    raise AIProviderError(
+                        "ai_schema_invalid" if exc.code == "invalid_json_schema" else "ai_request_rejected",
+                        "The AI response schema is invalid." if exc.code == "invalid_json_schema"
+                        else "The AI provider rejected this request.",
+                    ) from exc
                 except ValidationError as exc:
                     # responses.parse validates output before returning a response.
                     # Classify only known field locations, never include model output.

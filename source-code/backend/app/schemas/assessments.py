@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from enum import StrEnum
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AssessmentMode(StrEnum):
@@ -73,6 +73,13 @@ class AssessmentPassOne(BaseModel):
     overallConfidence: float = Field(ge=0, le=1)
     reviewReasons: list[str] = Field(default_factory=list, max_length=20)
 
+class MarkingTopicEvidence(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    topicId: str = Field(min_length=1, max_length=120)
+    pointIds: list[str] = Field(max_length=100)
+    explanation: str = Field(min_length=1, max_length=2000)
+
+
 class AssessmentPassTwo(BaseModel):
     decisions: list[MarkingDecision]
     strengths: list[str] = Field(default_factory=list, max_length=30)
@@ -80,7 +87,7 @@ class AssessmentPassTwo(BaseModel):
     conceptualMistakes: list[str] = Field(default_factory=list, max_length=30)
     improvedAnswer: str = Field(min_length=1, max_length=20_000)
     teachingExplanation: str = Field(min_length=1, max_length=30_000)
-    topicEvidence: list[dict] = Field(default_factory=list, max_length=30)
+    topicEvidence: list[MarkingTopicEvidence] = Field(default_factory=list, max_length=30)
     recommendations: list[str] = Field(default_factory=list, max_length=30)
     confidence: float = Field(ge=0, le=1)
     reviewReasons: list[str] = Field(default_factory=list, max_length=20)
