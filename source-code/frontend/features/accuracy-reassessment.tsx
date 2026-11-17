@@ -130,6 +130,11 @@ export function AccuracyReassessment({
     <section className="stack" aria-label="Final content reassessment">
       <h2>Final content reassessment</h2>
       <p>
+        New assessments use extraction-only confidence. Examiner-report
+        fidelity, source discrepancies, curriculum and marking readiness are
+        shown separately. Existing combined-source scores remain in history.
+      </p>
+      <p>
         Review image crops, labels and associations first. AI then checks the
         final saved wording, marking points, sources and published curriculum
         evidence. You only need to inspect content at 75% or lower, or with an

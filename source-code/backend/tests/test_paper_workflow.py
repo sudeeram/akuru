@@ -136,7 +136,7 @@ def test_aggregation_query_count_is_bounded(auth_client):
     event.listen(db.get_bind(),'before_cursor_execute',count)
     try:paper_workflow.summaries(db,[w.paper_document_id,w.scheme_document_id,w.report_document_id])
     finally:event.remove(db.get_bind(),'before_cursor_execute',count)
-    assert len(queries)<=13,len(queries)
+    assert len(queries)<=14,len(queries)
 
 
 @pytest.mark.integration

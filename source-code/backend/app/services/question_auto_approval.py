@@ -61,6 +61,11 @@ def apply(db, principal, workspace, question):
     for part in data.parts:
         if part.status not in {"unreviewed", "ready_for_approval"} or scores.get(part.label, 0) <= THRESHOLD:
             continue
+        from . import paper_source_issues
+        issues = paper_source_issues.blocking(analysis, part.label, paper_source_issues.decisions(db, [question.id]))
+        if any(i['kind'] == 'extraction' for i in issues):
+            blockers.append(f"Part {part.label}: resolve extraction issues before approval.")
+            continue
         previous = part.status
         part.status = "ai_approved"
         try:

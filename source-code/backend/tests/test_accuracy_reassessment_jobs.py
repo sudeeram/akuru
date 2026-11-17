@@ -62,7 +62,7 @@ def test_invalid_or_stale_generation_never_saves_high_confidence(auth_client,mod
   row=db.scalar(select(OfficialPaperReviewQuestion));row.revision+=1;db.commit()
  if mode=='unseen_page':out['parts'][0]['sourceChecks'][0]['pages']=[99]
  if mode=='missing_part':out['parts'][0]['label']='invented'
- if mode=='manual_flag':out['parts'][0]['manualReviewReasons']=['Contradictory source marking instructions.']
+ if mode=='manual_flag':out['parts'][0]['issues']=[dict(kind='extraction',role='scheme',pages=[1],description='Incorrect extracted marking instructions.')]
  process_next(db,get_settings(),storage,generator=fake.generate)
  job=c.get(root+'/accuracy-jobs').json()[0]
  if mode=='manual_flag':
@@ -88,19 +88,20 @@ def test_reassessment_permissions_and_interrupted_jobs(auth_client):
  assert c.get(root+'/accuracy-readiness').status_code==401
 
 @pytest.mark.integration
-def test_checked_source_conflict_is_not_silently_overruled(auth_client):
+def test_legacy_report_confidence_does_not_permanently_cap_new_extraction(auth_client):
  c,h,db,root,q,req,out,storage=setup(auth_client)
  from app.schemas.paper_analysis import RecordQuestionAnalysis
  from app.services import official_question_analyses as analyses
  from types import SimpleNamespace
- estimate=copy.deepcopy(out['question']);estimate['percent']=70;estimate['sourceChecks'][1]['percent']=70;estimate['reasons']=['Publisher scheme contradicts question marks.']
+ estimate=copy.deepcopy(out['question']);estimate['percent']=70;estimate['sourceChecks'][2]['percent']=70;estimate['reasons']=['Publisher scheme contradicts question marks.']
  payload=RecordQuestionAnalysis(expectedQuestionRevision=q['revision'],expectedAnalysisVersion=q['analysisVersion'],expectedContentHash=q['analysisContentHash'],stage='accuracy',methodVersion='source-conflict-test',provenance=[dict(role=r,method='manual')for r in ['paper','scheme','report']],question=estimate,parts=[dict(label=p['label'],**copy.deepcopy(estimate))for p in q['data']['parts']])
  actor=db.scalar(select(User).where(User.username==auth_client[1]));analyses.record(db,SimpleNamespace(user=actor),uuid.UUID(root.split('/')[-1]),q['number'],payload)
  q=c.get(root).json()['questions'][0];req.update(expectedAnalysisVersion=q['analysisVersion'])
  assert c.post(root+'/accuracy-jobs',headers=h,json={'questions':[req]}).status_code==202
  process_next(db,get_settings(),storage,generator=FakeAIProvider(out).generate)
- after=c.get(root).json()['questions'][0];assert after['accuracyAnalysis']['question']['percent']==70
- assert 'Earlier checked source concern' in after['accuracyAnalysis']['parts'][0]['reasons'][-1]
+ after=c.get(root).json()['questions'][0];assert after['accuracyAnalysis']['question']['percent']==95
+ assert after['accuracyAnalysis']['question']['confidencePolicy']=='extraction-v1'
+ assert all('Earlier checked source concern' not in reason for reason in after['accuracyAnalysis']['parts'][0]['reasons'])
 
 @pytest.mark.integration
 def test_content_change_during_generation_invalidates_result_and_workers_are_isolated(auth_client):
@@ -122,7 +123,7 @@ def test_human_content_approval_and_image_decisions_are_preserved(auth_client):
  row=db.scalar(select(OfficialPaperReviewQuestion));data=copy.deepcopy(row.review_data);data['parts'][0]['status']='approved';row.review_data=data;row.status='approved';db.commit()
  q=c.get(root).json()['questions'][0];req.update(expectedContentHash=q['analysisContentHash'])
  assert c.post(root+'/accuracy-jobs',headers=h,json={'questions':[req]}).status_code==202
- out['parts'][0]['manualReviewReasons']=['Source rubric needs adjudication.']
+ out['parts'][0]['issues']=[dict(kind='extraction',role='scheme',pages=[1],description='Source rubric needs adjudication.')]
  process_next(db,get_settings(),storage,generator=FakeAIProvider(out).generate)
  after=c.get(root).json()['questions'][0]
  assert after['status']=='approved'and after['data']==data

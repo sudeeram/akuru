@@ -36,12 +36,17 @@ class CurriculumProposal(BaseModel):
     chunkIds: list[str]=Field(default_factory=list,max_length=12)
 
 class AssessedPart(PartAccuracy):
+    confidencePolicy: Literal["extraction-v1"] = "extraction-v1"
     selfContained: bool = False
     curriculum: CurriculumProposal | None = None
     dimensions: ReviewDimensions
     manualReviewReasons: list[str]=Field(default_factory=list,max_length=12)
 
+class ModelEstimate(AccuracyEstimate):
+    confidencePolicy: Literal["extraction-v1"] = "extraction-v1"
+
+
 class ModelAccuracy(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    question: AccuracyEstimate
+    question: ModelEstimate
     parts: list[AssessedPart]=Field(min_length=1,max_length=100)

@@ -112,6 +112,17 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
         blockers.append("Reconcile the complete question inventory.")
     if approved != len(rows):
         blockers.append(f"Approve {len(rows) - approved} remaining questions.")
+    from types import SimpleNamespace
+    from . import paper_source_issues
+    issue_events = paper_source_issues.decisions(db, [row.id for row in rows])
+    for row in rows:
+        value = analysis[row.id]['accuracyAnalysis']
+        if value and value.isCurrent:
+            estimate = SimpleNamespace(question_id=row.id, content_hash=value.contentHash,
+                                       analysis_data=value.model_dump(mode='json'))
+            if any(paper_source_issues.blocking(estimate, part['label'], issue_events)
+                   for part in row.review_data['parts']):
+                blockers.append(f'Q{row.number}: resolve source discrepancies before complete-paper preparation.')
     assessment_blockers = []
     for question in questions:
         for part in question.data.parts:

@@ -38,7 +38,9 @@ function AnalysisDetails({
         {partLabel != null && <>Part {partLabel}: </>}
         <strong>
           {analysis.stage === 'accuracy'
-            ? 'Accuracy confidence'
+            ? estimate?.confidencePolicy === 'extraction-v1'
+              ? 'Extraction accuracy'
+              : 'Legacy combined confidence'
             : 'Extraction estimate'}
           : {estimate?.percent ?? 'Not assessed'}
           {estimate ? '%' : ''}
@@ -51,6 +53,11 @@ function AnalysisDetails({
         This estimate helps prioritise source review. Eligible content above 75%
         may receive audited AI approval; other evidence, curriculum, visual and
         scoring gates still apply.
+      </p>
+      <p className="small">
+        {estimate?.confidencePolicy === 'extraction-v1'
+          ? 'Examiner-report fidelity does not lower this score. Source discrepancies, curriculum evidence and scoring readiness are separate gates.'
+          : 'This historical score used the earlier combined-source policy. Run a fresh reassessment to use extraction-only confidence.'}
       </p>
       <p className="small">Assessment method: {analysis.methodVersion}.</p>
       <ul>

@@ -104,6 +104,9 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
         raise DomainError('practice_review_required', 'Approve the supported subpart and resolve explicit question blockers.', 409)
     analysis = current_accuracy(db, workspace, question)
     assessed = next((p for p in analysis.analysis_data['parts'] if p['label'] == label), None) if analysis else None
+    from . import paper_source_issues
+    if paper_source_issues.blocking(analysis, label, paper_source_issues.decisions(db, [question.id])):
+        raise DomainError('practice_source_issue', 'Resolve the recorded source discrepancy before release.', 409)
     if part.status == 'ai_approved' or require_curriculum or question.status not in {'approved', 'ai_approved'}:
         if not assessed or (assessed['percent'] <= 75 and not manually_adjudicated(db, question, part, analysis)):
             raise DomainError('practice_accuracy_required', 'A current subpart assessment above 75%, or an explicit subsequent human adjudication, is required.', 409)
@@ -161,6 +164,12 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
     source_hash = release_fingerprint(q, w, publications, evidence_hash)
     row = db.scalar(select(TutorPaperRelease).where(TutorPaperRelease.question_id == q.id,
         TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == source_hash))
+    from . import paper_source_issues
+    checked = current_accuracy(db, w, q)
+    guidance_allowed = paper_source_issues.report_usable(checked, part.label, paper_source_issues.decisions(db, [q.id]))
+    snapshot_part = part.model_dump(mode='json')
+    if not guidance_allowed:
+        snapshot_part['examinerAdvice'] = ''
     if not row:
         row = TutorPaperRelease(question_id=q.id, part_label=part.label, revision=q.revision,
             fingerprint=source_hash, released_by=principal.user.id, snapshot={
@@ -172,7 +181,7 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
                 'component': paper.component, 'year': paper.publication_year, 'session': paper.exam_session,
                 'number': q.number, 'sharedStem': data.sharedStem,
                 'sharedVisuals': [str(v) for v in data.visualAssetIds],
-                'part': part.model_dump(mode='json'), 'selfContainedConfirmed': True,
+                'part': snapshot_part, 'selfContainedConfirmed': True,
                 'sourceFingerprint': fingerprint(q, w), 'topicPublications': publications, 'evidenceContentHash': evidence_hash,
                 'releasePolicy': 'auto-tutor-release-v1' if automatic else 'manual',
                 'curriculum': next((p.get('curriculum') for p in current_accuracy(db, w, q).analysis_data['parts'] if p['label'] == part.label), None) if automatic else None})
@@ -302,11 +311,20 @@ def state(db, settings, principal, session):
             if page and page.render_asset_id:
                 sources.append({'label': f'{kind} · Page {page_number}',
                     'url': f'/api/v1/tutoring/sessions/{session.public_ref}/past-paper/assets/{page.render_asset_id}'})
+    from . import paper_source_issues, question_auto_approval
+    live_question = db.get(OfficialPaperReviewQuestion, release.question_id)
+    live_workspace = db.get(OfficialPaperReviewWorkspace, live_question.workspace_id)
+    live_analysis = question_auto_approval.current_accuracy(db, live_workspace, live_question)
+    guidance_allowed = paper_source_issues.report_usable(live_analysis, release.part_label,
+        paper_source_issues.decisions(db, [live_question.id]))
+    if visible and not guidance_allowed:
+        safe_rubric = {**question.rubric, 'examinerAdvice': []}
+        result.question = result.question.model_copy(update={'rubric': safe_rubric})
     return PastPaperChatState(practice=result, paperTitle=snap['paperTitle'],
         questionLabel=f"{snap['number']}({release.part_label})", answerRevealed=revealed,
         markingGuidance=question.rubric['markingPoints'] if visible else [],
         alternatives=question.rubric.get('alternatives', []) if visible else [],
-        examinerAdvice=question.rubric.get('examinerAdvice', []) if visible else [], sources=sources,
+        examinerAdvice=question.rubric.get('examinerAdvice', []) if visible and guidance_allowed else [], sources=sources,
         state='answered' if assessment.submitted_at and not revealed else 'revealed' if revealed
             else 'expired' if assessment.ends_at <= datetime.now(timezone.utc) else 'awaiting_answer')
 

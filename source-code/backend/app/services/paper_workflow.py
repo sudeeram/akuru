@@ -30,6 +30,8 @@ def summaries(db, document_ids):
     analyses = {}
     for a in db.scalars(select(OfficialQuestionAnalysis).where(OfficialQuestionAnalysis.question_id.in_([q.id for q in questions]), OfficialQuestionAnalysis.stage == 'accuracy').order_by(OfficialQuestionAnalysis.version_number.desc())):
         analyses.setdefault(a.question_id, a)
+    from . import paper_source_issues
+    issue_decisions = paper_source_issues.decisions(db, [q.id for q in questions])
     manual_checks = list(db.scalars(select(AuditEvent).where(AuditEvent.action == 'official_review.part_manually_approved', AuditEvent.target_id.in_([str(q.id) for q in questions]))))
     active = {j.paper_id for j in db.scalars(select(EvidenceLinkJob).where(EvidenceLinkJob.paper_id.in_(all_ids), EvidenceLinkJob.status.in_(['queued', 'processing'])))}
     releases = defaultdict(list)
@@ -116,15 +118,16 @@ def summaries(db, document_ids):
             for part in data['parts']:
                 total += 1
                 check_total += 1
-                compared += int(bool(current and a.analysis_data.get('methodVersion') == 'final-source-accuracy-v2'))
+                compared += int(bool(current and a.analysis_data.get('methodVersion') in {'final-source-accuracy-v2','final-source-accuracy-v3'}))
                 excluded += int(q.status == 'excluded' or part['status'] == 'excluded')
                 score = scores.get(part['label'])
                 mapping_ok = curriculum_current(part, score.get('curriculum')) if score else False
                 approved = part['status'] in {'approved', 'ai_approved'}
                 if score and score['percent'] <= 75:
                     approved = part['status'] == 'approved' and any((e.target_id == str(q.id) and e.event_data.get('part') == part['label'] and (e.event_data.get('analysisId') == str(a.id)) and (e.event_data.get('contentHash') == a.content_hash) for e in manual_checks))
+                source_issues_ok = not paper_source_issues.blocking(a, part['label'], issue_decisions) if current else False
                 marking_ready = part.get('assessmentReadiness') == 'automatic' or (part.get('assessmentReadiness') == 'manual_only' and part.get('responseType') == 'drawing')
-                assessed_done += int(bool(current and mapping_ok and approved and images_ok and marking_ready))
+                assessed_done += int(bool(current and mapping_ok and approved and images_ok and marking_ready and source_issues_ok))
                 for role in ('scheme', 'report'):
                     source = next((s for s in (score or {}).get('sourceChecks', []) if s['role'] == role), None)
                     checked[role] += int(bool(source and source['status'] in {'checked', 'no_comment'} and (source.get('percent', 0) > 75 or (approved and part['status'] == 'approved'))))
@@ -132,7 +135,7 @@ def summaries(db, document_ids):
                 publication_refs = sorted(set(part.get('topicRefs',[])))
                 publications = [dict(topicRef=ref,publicationId=str(published[ref][0][0].id)) for ref in publication_refs if len(published[ref])==1 and published[ref][0][1].course_id==paper.course_id and published[ref][0][1].subject_id==paper.subject_id]
                 publication_bound = bool(publications and len(publications)==len(publication_refs))
-                released += int(bool(bound and publication_bound and images_ok and approved and (part['coverage'] == 'supported') and (q.status not in {'excluded', 'needs_correction'}) and any((r.enabled and r.part_label == part['label'] and (r.fingerprint == release_fingerprint(q, w, publications, evidence_hash)) and (r.snapshot.get('releasePolicy') != 'auto-tutor-release-v1' or mapping_ok) for r in rows))))
+                released += int(bool(bound and publication_bound and images_ok and approved and source_issues_ok and (part['coverage'] == 'supported') and (q.status not in {'excluded', 'needs_correction'}) and any((r.enabled and r.part_label == part['label'] and (r.fingerprint == release_fingerprint(q, w, publications, evidence_hash)) and (r.snapshot.get('releasePolicy') != 'auto-tutor-release-v1' or mapping_ok) for r in rows))))
         inventory = bool(w.expected_question_count and len(qs) == w.expected_question_count and all(q.review_data['parts'] and all(p.get('prompt','').strip() and p.get('marks',0)>0 and p.get('markingPoints') and p.get('paperSources') and p.get('schemeSources') for p in q.review_data['parts']) for q in qs))
         steps = [step(1, 'Extracted', len(qs), w.expected_question_count, href, active=bool(versions.get(w.paper_version_id) and versions[w.paper_version_id].status in {'queued', 'processing'}), valid=inventory and bound, detail=f'{len(qs)}/{w.expected_question_count} expected questions; {total} subparts. Inventory must reconcile.'), step(2, 'Images reviewed', image_done, len(qs), href, valid=inventory and bound, attempted=image_attempted, detail=f'{image_done}/{len(qs)} questions; no relevant images counts as not applicable.'), step(3, 'Assessed', assessed_done, total, accuracy, checked=compared, active=paper.id in active, valid=inventory and bound, attempted=any((q.id in analyses for q in qs)), detail=f'{compared}/{total} current final comparisons; {assessed_done}/{total} subparts complete; current curriculum, content and image checks required.'), step(4, 'Tutor practice released', released, total, href, valid=inventory and bound, detail=f'{released}/{total} released; {excluded} excluded (retained in required total). Formal-exam publication is separate.')]
         result[paper.id].append(dict(paperId=str(paper.id), paperTitle=paper.title, steps=steps, excluded=excluded, formalExamPublished=paper.review_state == 'published'))

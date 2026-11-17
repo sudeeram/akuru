@@ -8,6 +8,7 @@ import { TutorPastPaperReleases } from './tutor-past-paper-releases';
 import { GeneratedWorkedAnswers } from './generated-worked-answers';
 import { AccuracyReassessment } from './accuracy-reassessment';
 import { ExactEvidenceLinks } from './exact-evidence-links';
+import { SourceIssues } from './source-issues';
 import { ScoringValidation } from './scoring-validation';
 import { MarkingRulesEditor } from './marking-rules-editor';
 import { StatusBadge, MetadataBadge } from '@/components/portal/badges';
@@ -2122,6 +2123,13 @@ export function OfficialPaperReview({
                             Add marking point
                           </Button>
                         </fieldset>
+                        <SourceIssues
+                          key={`${selected}:${part.label}:${revision}`}
+                          paperId={paperId}
+                          number={selected}
+                          partLabel={part.label}
+                          disabled={busy || dirty || workedDirty}
+                        />
                         <MarkingRulesEditor
                           key={`${selected}:${part.label}`}
                           part={part}

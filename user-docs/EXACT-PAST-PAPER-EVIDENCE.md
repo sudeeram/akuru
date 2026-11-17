@@ -44,3 +44,9 @@ If an assessment saved but a release write failed, use **Retry eligible Tutor re
 A new low-confidence finding can require review even when an older human approval is preserved. Explicitly approving a reviewed part binds the decision to that exact assessment; it does not approve later changed content or a newer concern. Valid newly approved items use the same automatic release check without another release click. Scoring readiness is separate: an imported manual-only text rubric is not silently converted to automatic marking just because its confidence is high.
 
 For partial Tutor practice, the Student sees the selected part's approved answer/guidance and approved answer visuals. Full marking-scheme/report pages are not exposed through this channel because they may contain unreleased neighbouring answers. The question-paper context remains accessible.
+
+### Extraction confidence and source issues
+
+New assessments label their overall score **Extraction only**. It measures faithful capture of the paper, scheme and relevant visuals. The examiner-report score is separate. Older assessments retain **Legacy combined** scores until you run a new reassessment; deployment does not change their history. High extraction accuracy is not proof that curriculum evidence or scoring readiness passed.
+
+Under Subpart review, the **Source discrepancies** panel shows structured findings from new assessments. For a publisher error, record which official instruction governs marking and why, using the exact source pages. This resolves the discrepancy against the current saved evidence without rewriting the source or assigning a higher percentage. Material question/source edits invalidate the decision. Unreliable report guidance is withheld from students. Resolving an issue does not itself approve or release the question: use the existing release checks, or Retry eligible Tutor releases without another model call.

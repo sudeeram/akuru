@@ -262,6 +262,23 @@
       "AccuracyEstimate": {
         "additionalProperties": false,
         "properties": {
+          "confidencePolicy": {
+            "default": "legacy",
+            "enum": [
+              "legacy",
+              "extraction-v1"
+            ],
+            "title": "Confidencepolicy",
+            "type": "string"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SourceIssue"
+            },
+            "maxItems": 30,
+            "title": "Issues",
+            "type": "array"
+          },
           "percent": {
             "maximum": 100.0,
             "minimum": 0.0,
@@ -7355,6 +7372,15 @@
       "PartAccuracy": {
         "additionalProperties": false,
         "properties": {
+          "confidencePolicy": {
+            "default": "legacy",
+            "enum": [
+              "legacy",
+              "extraction-v1"
+            ],
+            "title": "Confidencepolicy",
+            "type": "string"
+          },
           "curriculum": {
             "anyOf": [
               {
@@ -7364,6 +7390,14 @@
                 "type": "null"
               }
             ]
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SourceIssue"
+            },
+            "maxItems": 30,
+            "title": "Issues",
+            "type": "array"
           },
           "label": {
             "maxLength": 40,
@@ -9513,6 +9547,46 @@
         "title": "ReportDraft",
         "type": "object"
       },
+      "ResolveSourceIssue": {
+        "properties": {
+          "analysisId": {
+            "maxLength": 36,
+            "minLength": 36,
+            "title": "Analysisid",
+            "type": "string"
+          },
+          "issueId": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Issueid",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Note",
+            "type": "string"
+          },
+          "partLabel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partlabel"
+          }
+        },
+        "required": [
+          "analysisId",
+          "issueId",
+          "note"
+        ],
+        "title": "ResolveSourceIssue",
+        "type": "object"
+      },
       "RetrievalRequest": {
         "properties": {
           "limit": {
@@ -10555,6 +10629,58 @@
           "reasons"
         ],
         "title": "SourceAccuracy",
+        "type": "object"
+      },
+      "SourceIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "id": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "extraction",
+              "source_discrepancy",
+              "report_guidance"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "pages": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Pages",
+            "type": "array"
+          },
+          "role": {
+            "enum": [
+              "paper",
+              "scheme",
+              "report"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "role",
+          "pages",
+          "description"
+        ],
+        "title": "SourceIssue",
         "type": "object"
       },
       "SourceLocation": {
@@ -18303,6 +18429,204 @@
           }
         },
         "summary": "Release Chat Part",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/source-issues": {
+      "get": {
+        "operationId": "source_issues_api_v1_admin_official_paper_reviews__paper_id__questions__number__source_issues_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Source Issues",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/source-issues/resolve": {
+      "post": {
+        "operationId": "resolve_source_issue_api_v1_admin_official_paper_reviews__paper_id__questions__number__source_issues_resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveSourceIssue"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Resolve Source Issue",
         "tags": [
           "official-paper-reviews"
         ]

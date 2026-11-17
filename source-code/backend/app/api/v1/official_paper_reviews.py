@@ -61,6 +61,23 @@ def final_accuracy_context(paper_id: uuid.UUID, number: str,
     return accuracy_jobs.context(db,storage,paper_id,number)
 
 
+from app.services import paper_source_issues
+
+
+@router.get("/{paper_id}/questions/{number}/source-issues")
+def source_issues(paper_id: uuid.UUID, number: str,
+                  principal: Annotated[Principal, Depends(require_roles("admin"))],
+                  db: Annotated[Session, Depends(get_db)]):
+    return paper_source_issues.listing(db, paper_id, number)
+
+
+@router.post("/{paper_id}/questions/{number}/source-issues/resolve")
+def resolve_source_issue(paper_id: uuid.UUID, number: str, payload: paper_source_issues.ResolveSourceIssue,
+                         principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+                         db: Annotated[Session, Depends(get_db)]):
+    return paper_source_issues.resolve(db, principal, paper_id, number, payload)
+
+
 @router.get('/{paper_id}/accuracy-readiness')
 def accuracy_readiness(paper_id: uuid.UUID, principal: Annotated[Principal, Depends(require_roles('admin'))], db: Annotated[Session, Depends(get_db)]):
     return accuracy_jobs.readiness(db,paper_id)

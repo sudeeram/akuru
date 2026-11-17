@@ -59,7 +59,17 @@ class SourceAccuracy(AnalysisModel):
         return self
 
 
+class SourceIssue(AnalysisModel):
+    id: str = Field(default="", max_length=64)
+    kind: Literal["extraction", "source_discrepancy", "report_guidance"]
+    role: SourceRole
+    pages: list[int] = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=2000)
+
+
 class AccuracyEstimate(AnalysisModel):
+    confidencePolicy: Literal["legacy", "extraction-v1"] = "legacy"
+    issues: list[SourceIssue] = Field(default_factory=list, max_length=30)
     percent: int = Field(ge=0, le=100)
     reasons: list[str] = Field(min_length=1, max_length=12)
     sourceChecks: list[SourceAccuracy] = Field(min_length=3, max_length=3)
@@ -68,10 +78,11 @@ class AccuracyEstimate(AnalysisModel):
     def conservative(self):
         if {source.role for source in self.sourceChecks} != {"paper", "scheme", "report"}:
             raise ValueError("Record paper, scheme and report coverage separately.")
-        assessed = [source.percent for source in self.sourceChecks if source.percent is not None]
+        sources = self.sourceChecks if self.confidencePolicy == "legacy" else [s for s in self.sourceChecks if s.role in {"paper", "scheme"}]
+        assessed = [source.percent for source in sources if source.percent is not None]
         if assessed and self.percent > min(assessed):
             raise ValueError("Overall confidence cannot exceed the weakest assessed source.")
-        if any(source.status == "not_checked" for source in self.sourceChecks) and self.percent > 70:
+        if any(source.status in {"not_checked", "not_available"} for source in sources) and self.percent > 70:
             raise ValueError("An incomplete comparison cannot claim more than 70% confidence.")
         if any(not reason.strip() or len(reason) > 2000 for reason in self.reasons):
             raise ValueError("Provide bounded, non-empty accuracy reasons.")
@@ -125,6 +136,10 @@ class RecordQuestionAnalysis(AnalysisModel):
 
     @model_validator(mode="after")
     def scopes(self):
+        if any(part.confidencePolicy != self.question.confidencePolicy for part in self.parts):
+            raise ValueError("Use the same confidence policy for question and subparts.")
+        if self.question.confidencePolicy == "extraction-v1" and self.methodVersion != "final-source-accuracy-v3":
+            raise ValueError("Extraction-only confidence requires final-source-accuracy-v3.")
         if len({part.label for part in self.parts}) != len(self.parts):
             raise ValueError("Record each subpart exactly once.")
         if {source.role for source in self.provenance} != {"paper", "scheme", "report"}:

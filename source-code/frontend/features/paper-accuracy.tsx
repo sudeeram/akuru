@@ -103,8 +103,11 @@ export function PaperAccuracyPage({
       <p>
         Current accuracy confidence above 75% can assign AI approved status when
         all review requirements pass. Human approvals are preserved. Overall
-        question confidence follows the weakest subpart. Open details to see
-        source checks, reasons, models and history.
+        question confidence follows the weakest subpart. New extraction-only
+        assessments exclude examiner-report confidence; discrepancies,
+        curriculum and marking readiness are checked separately. Older scores
+        retain their historical policy. Open details to see source checks,
+        reasons, models and history.
       </p>
       <p className="small">
         Manual review and AI review show current decisions, not historical
@@ -288,6 +291,14 @@ export function PaperAccuracyPage({
                                 ? 'Reassess'
                                 : 'Not assessed'}
                           </strong>
+                          {row.analysis && (
+                            <small style={{ display: 'block' }}>
+                              {row.estimate?.confidencePolicy ===
+                              'extraction-v1'
+                                ? 'Extraction only'
+                                : 'Legacy combined'}
+                            </small>
+                          )}
                         </td>
                         {(['paper', 'scheme', 'report'] as const).map(
                           (role) => {

@@ -74,6 +74,14 @@ export type SourceAccuracy = {
   reasons: string[];
 };
 export type AccuracyEstimate = {
+  confidencePolicy?: 'legacy' | 'extraction-v1';
+  issues?: {
+    id: string;
+    kind: string;
+    role: string;
+    pages: number[];
+    description: string;
+  }[];
   percent: number;
   reasons: string[];
   sourceChecks: SourceAccuracy[];
