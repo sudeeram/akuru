@@ -188,6 +188,8 @@ def process_next(db, settings, *, generator=None):
         job=db.get(EvidenceLinkJob,jid)
         job.status='failed'
         job.error_code=exc.code if isinstance(exc,DomainError) else 'scoring_invalid_result'
+        if isinstance(exc, DomainError) and exc.code == 'assessment_output_invalid':
+            job.result_data = {'failureReason': exc.message}
     job.request_data={**job.request_data,'payload':{}}
     job.completed_at=datetime.now(timezone.utc)
     db.commit()

@@ -20,7 +20,7 @@ type Job = {
   id: string;
   status: 'queued' | 'processing' | 'completed' | 'failed';
   errorCode?: string;
-  result?: Result;
+  result?: Result & { failureReason?: string };
 };
 
 export function ScoringValidation({
@@ -186,7 +186,9 @@ export function ScoringValidation({
             {job.errorCode === 'ai_schema_invalid'
               ? 'AKURU response schema rejected by the provider; contact your administrator before retrying'
               : job.errorCode}
-            ). Check the saved rubric and sample point codes before retrying.
+            ).{' '}
+            {job.result?.failureReason ||
+              'No scoring pass was saved. Inspect the job error before retrying.'}
           </p>
         )}
         {result && (

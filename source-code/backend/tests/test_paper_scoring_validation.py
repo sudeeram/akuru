@@ -38,6 +38,8 @@ def test_synthetic_scoring_job_checks_marks_and_records_readiness(auth_client, m
     calls=[]
 
     def generate(_db,_settings,request):
+        assert "criterion and maxMarks EXACTLY" in request.instructions
+        assert "without added quotation marks" in request.instructions
         task=json.loads(request.task)
         calls.append(task)
         awarded_codes = (codes if match and task['studentAnswer'].startswith('A credited') else
