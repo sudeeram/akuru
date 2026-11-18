@@ -162,6 +162,15 @@ def test_real_student_submission_has_no_provider_or_quota_calls(auth_client,monk
  r=c.post(endpoint,headers=sh,json=dict(message='My answer: unclear',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
  pending=r.json()['pastPaper']['practice']['question']['result'];assert pending['status']=='published'and pending['awardedMarks']==0
  assert pending['deterministicChecks']['indicative'] and fallback_calls==['formative-answer-feedback']
+ # The new multi-item channel must persist deterministic feedback across reload,
+ # even when recognition invokes no provider commit/refresh.
+ r=c.post(endpoint,headers=sh,json=dict(message='Give me 1 question from '+topic.title,requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
+ r=c.post(endpoint,headers=sh,json=dict(message='My answer: AB',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
+ assert r.json()['practiceSet']['feedback']['score']==2
+ resumed=c.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()
+ assert resumed['feedback']['score']==2 and resumed['completedCount']==1 and resumed['itemStatus']=='feedback'
+ assert fallback_calls==['formative-answer-feedback']
+
 
 @pytest.mark.integration
 def test_full_question_compilation_preserves_proofs_and_rejects_forgery(auth_client):

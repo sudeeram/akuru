@@ -66,7 +66,10 @@ def test_manual_feedback_resume_replay_and_completion(auth_client,monkeypatch):
     response=send('My answer: One spot; separated dyes.')['practiceSet']
     assert response['feedback']['score']==2 and response['feedback']['indicative']
     assert len(calls)==1
-    assert client.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()['answer']=='One spot; separated dyes.'
+    resumed=client.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()
+    assert resumed['answer']=='One spot; separated dyes.'
+    assert resumed['feedback']['score']==2 and resumed['itemStatus']=='feedback'
+    assert resumed['completedCount']==1
     assert send('Next question')['practiceSet']['status']=='completed'
 
 
@@ -123,6 +126,7 @@ def test_generated_frozen_checked_private(auth_client,monkeypatch):
     assert client.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()['question']==state['question']
     assert len(calls)==2
     assert send('My answer: Particles move randomly.')['practiceSet']['feedback']['score']==1
+    assert client.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()['feedback']['score']==1
     assert db.scalar(select(TutorQuestionSet)).items[0]['provenance']['model']=='fixture-generation'
     assert len(db.scalars(select(OfficialPaperReviewQuestion)).all())==1
     assert client.get('/api/v1/tutoring/sessions/tutor_session_missing/question-set').status_code==404

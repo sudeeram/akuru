@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.ai.base import AIRequest
 from app.errors import DomainError
@@ -420,13 +421,13 @@ def handle(db,settings,principal,session,payload,generator=None):
                     item['answer']=re.sub(r'^(my answer|answer):\s*','',text,flags=re.I).strip()
                     if not item['answer']:raise DomainError('practice_answer_empty','Type an answer before submitting.',422)
                 if item.get('answer') is None:raise DomainError('practice_answer_missing','Submit an answer first.',409)
-                row.items=items;db.commit()  # Preserve response even if inference fails.
+                row.items=items;flag_modified(row,'items');db.commit()  # Preserve response even if inference fails.
                 item['feedback']=_feedback(db,settings,principal,session,row,item,generator)
-            row.items=items
+            row.items=items;flag_modified(row,'items')
         if row.status=='active' and not row.items[row.position].get('prompt'):
             if row.source_kind!='generated':raise DomainError('practice_set_invalid','The selected question is unavailable.',409)
             item=_generate_item(db,settings,principal,session,row,generator)
-            items=copy.deepcopy(row.items);items[row.position]=item;row.items=items
+            items=copy.deepcopy(row.items);items[row.position]=item;row.items=items;flag_modified(row,'items')
         db.commit()
     except (DomainError, ValidationError) as exc:
         if isinstance(exc,ValidationError):
