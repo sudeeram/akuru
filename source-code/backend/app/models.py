@@ -1922,7 +1922,7 @@ class TutorQuestionSet(Base):
     """Private frozen practice items and indicative feedback; never official bank rows."""
     __tablename__ = "tutor_question_sets"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True)
     session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
     student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
     request_key: Mapped[str] = mapped_column(String(100))
@@ -1937,6 +1937,7 @@ class TutorQuestionSet(Base):
     processing_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
+        Index("ix_tutor_question_sets_public_ref", "public_ref"),
         UniqueConstraint("session_id", "request_key", name="uq_tutor_question_set_request"),
         CheckConstraint("status IN ('active','completed','abandoned')", name="ck_tutor_question_set_status"),
         CheckConstraint("source_kind IN ('official','generated')", name="ck_tutor_question_set_kind"),
