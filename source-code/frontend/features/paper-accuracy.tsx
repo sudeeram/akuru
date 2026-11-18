@@ -16,6 +16,7 @@ import { StatusBadge } from '@/components/portal/badges';
 import {
   reviewAccuracyRows,
   reviewDecisionStatuses,
+  reviewAnalysisCurrent,
   reviewProvenance,
 } from '@/lib/paper-review-presentation';
 import { QuestionAnalysisPanel } from './question-analysis';
@@ -287,12 +288,13 @@ export function PaperAccuracyPage({
                           <strong>
                             {row.percent != null
                               ? `${row.percent}%`
-                              : row.analysis && !row.analysis.isCurrent
+                              : row.analysis && !reviewAnalysisCurrent(row.analysis,row.label)
                                 ? 'Reassess'
                                 : 'Not assessed'}
                           </strong>
                           {row.analysis && (
                             <small style={{ display: 'block' }}>
+                              {row.label !== undefined && row.analysis?.reviewOrigins?.[row.label]?.kind === 'carried_forward' && 'Carried forward · '}
                               {row.estimate?.confidencePolicy ===
                               'extraction-v1'
                                 ? 'Extraction only'
@@ -307,7 +309,7 @@ export function PaperAccuracyPage({
                             );
                             return (
                               <td key={role}>
-                                {row.analysis?.isCurrent &&
+                                {reviewAnalysisCurrent(row.analysis,row.label) &&
                                 source?.percent != null
                                   ? `${source.percent}%`
                                   : '—'}

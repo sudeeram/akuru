@@ -51,7 +51,8 @@ def test_invalid_selection_before_writes(auth_client,change):
  if change=='wrong_page':p['selections'][0]['page']=99
  if change=='unknown_part':p['selections'][0]['part']='z'
  if change=='bad_bounds':p['selections'][0]['bounds']['x1']=0
- if change=='missing_model':p['provenance'][0].pop('modelId')
+ if change=='missing_model':
+  p['provenance'][0].pop('modelId');p['provenance'][0]['notes']=''
  if change=='unknown_field':p['selections'][0]['text']='invented answer'
  before=db.scalar(select(func.count()).select_from(DocumentBlock));r=c.post(root+'/evidence-links',headers=h,json=p);assert r.status_code==422,r.text;assert db.scalar(select(func.count()).select_from(DocumentBlock))==before
 
@@ -164,3 +165,16 @@ def test_rejected_proposal_remains_in_history_and_cannot_be_applied(auth_client)
  assert c.post(endpoint,headers=h,json=body).json()['alreadyApplied']
  assert c.post(endpoint,headers=h,json=decision(q,run)).status_code==409
  assert c.get(root+'/evidence-links').json()[0]['id']==run['id']
+
+@pytest.mark.integration
+def test_materialize_regions_without_mutating_live_review(auth_client):
+ c,h,db,root,q,*_=setup(auth_client)
+ run=c.post(root+'/evidence-links',headers=h,json=imported(q)).json()
+ body=decision(q,run);body['decision']='materialize'
+ endpoint=root+'/evidence-links/'+run['id']+'/review'
+ result=c.post(endpoint,headers=h,json=body);assert result.status_code==200,result.text
+ assert all(p['status']=='materialized' and p['materializedRef']['blockId'] for p in result.json()['run']['proposals'])
+ assert c.get(root).json()['questions'][0]==q
+ count=db.scalar(select(func.count()).select_from(DocumentBlock))
+ assert c.post(endpoint,headers=h,json=body).json()['alreadyApplied']
+ assert db.scalar(select(func.count()).select_from(DocumentBlock))==count

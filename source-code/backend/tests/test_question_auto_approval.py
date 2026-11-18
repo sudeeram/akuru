@@ -91,7 +91,9 @@ def test_stale_ai_approval_is_not_counted_or_shown_as_approved(auth_client):
     client, headers, db, root, q, payload = pending(auth_client)
     assert client.post(root + '/questions/1/analyses', headers=headers, json=payload).status_code == 201
     row = db.scalar(select(OfficialPaperReviewQuestion))
-    row.review_data = {**row.review_data, 'prompt': 'Changed source wording'}
+    import copy
+    changed=copy.deepcopy(row.review_data);changed['parts'][0]['prompt']='Changed source wording'
+    row.review_data=changed
     db.commit()
     review = client.get(root).json()
     assert review['approvedCount'] == 0

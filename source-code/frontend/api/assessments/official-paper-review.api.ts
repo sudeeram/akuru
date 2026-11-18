@@ -97,6 +97,8 @@ export type AccuracyEstimate = {
   sourceChecks: SourceAccuracy[];
 };
 export type QuestionAnalysis = {
+  partCurrent?: Record<string,boolean>;
+  reviewOrigins?: Record<string,{kind:string;analysisId?:string}>;
   id: string;
   version: number;
   stage: 'extraction' | 'accuracy';

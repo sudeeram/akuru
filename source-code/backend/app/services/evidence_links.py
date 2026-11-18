@@ -67,12 +67,14 @@ def get_run(db,paper_id,run_id,events=None):
     if not run or run.target_type!='official_evidence_links' or run.target_id!=str(paper_id)or run.action!='official_review.evidence_proposed':
         raise DomainError('evidence_run_not_found','Evidence proposal not found.',404)
     result=deepcopy(run.event_data);result.pop('request',None);result['id']=str(run.id)
-    states={}
+    states={};materialized={}
     for event in events:
         if event.event_data.get('runId')==str(run.id):
             for pid in event.event_data.get('proposalIds',[]):states[pid]=event.event_data.get('decision')
+            materialized.update(event.event_data.get('materialized',{}))
     for proposal in result['proposals']:
-        if proposal['id']in states:proposal['status']='linked'if states[proposal['id']]=='apply'else'rejected'
+        if proposal['id']in states:proposal['status']={'apply':'linked','reject':'rejected','materialize':'materialized'}[states[proposal['id']]]
+        if proposal['id']in materialized:proposal['materializedRef']=materialized[proposal['id']]
     return result
 
 def listing(db,paper_id,number=None):
@@ -92,12 +94,12 @@ def propose(db,storage,principal,paper_id,payload):
     parts={p['label']:p for p in row.review_data['parts']};proposals=[]
     manifest=analyses.source_manifest(db,workspace)
     for part in parts.values():
-        for role in ['paper','scheme']:
+        for role in ['paper','scheme','report']:
             version_id=getattr(workspace,role+'_version_id')
             if not version_id:continue
             inputs=[s for s in payload.selections if s.part==part['label']and s.role==role]
             if not inputs and payload.selections:continue
-            target=part['prompt']if role=='paper'else' '.join(p['text']for p in part['markingPoints'])
+            target=part['prompt']if role=='paper'else part.get('examinerAdvice','')if role=='report'else' '.join(p['text']for p in part['markingPoints'])
             pages={s['page']for s in part[role+'Sources']}
             if not inputs:
                 candidates=[]
@@ -141,20 +143,21 @@ def decide(db,storage,principal,paper_id,run_id,payload):
     workspace,row,digest=_context(db,paper_id,get_run(db,paper_id,run_id)['number'],lock=True)
     run=get_run(db,paper_id,run_id);selected=[p for p in run['proposals']if p['id']in {str(i)for i in payload.proposalIds}]
     if len(selected)!=len(set(payload.proposalIds)):raise DomainError('invalid_evidence_selection','Choose distinct proposals in this run.',422)
-    if all(p['status']==('linked'if payload.decision=='apply'else'rejected')for p in selected):return dict(run=run,review=reviews._response(db,workspace),alreadyApplied=True)
-    if any(p['status']in {'linked','rejected'}for p in selected):raise DomainError('evidence_already_decided','Choose only undecided proposals; prepare a new run to supersede an earlier decision.',409)
+    if all(p['status']=={'apply':'linked','reject':'rejected','materialize':'materialized'}[payload.decision]for p in selected):return dict(run=run,review=reviews._response(db,workspace),alreadyApplied=True)
+    if any(p['status']in {'linked','rejected','materialized'}for p in selected):raise DomainError('evidence_already_decided','Choose only undecided proposals; prepare a new run to supersede an earlier decision.',409)
     _fresh(row,digest,payload.expectedRevision,payload.expectedContentHash)
     _fresh(row,digest,run['revision'],run['contentHash'])
     if run['sourceManifest']!=analyses.source_manifest(db,workspace):raise DomainError('evidence_source_changed','The bound source changed.',409)
     if payload.decision=='reject':
         _audit(db,principal,paper_id,'official_review.evidence_rejected',dict(runId=str(run_id),proposalIds=[p['id']for p in selected],decision='reject'));db.commit()
         return dict(run=get_run(db,paper_id,run_id),review=reviews._response(db,workspace),alreadyApplied=False)
-    if row.status=='approved' or any(p['status']=='approved'for p in row.review_data['parts']):
+    if payload.decision=='apply' and (row.status=='approved' or any(p['status']=='approved'for p in row.review_data['parts'])):
         raise DomainError('reopen_required','Reopen the human-approved question/subparts before changing their exact source evidence.',409)
     if not payload.confirmSourceReview and not payload.autoOnly:
         raise DomainError('evidence_review_required','Confirm you checked the selected source regions before linking.',409)
     if any(p['status']=='missing' or (payload.autoOnly and not p['autoEligible'])for p in selected):
         raise DomainError('evidence_ambiguous','Only exact, unambiguous reviewed matches can be applied automatically.',409)
+    materialized={}
     before=deepcopy(row.review_data);data=deepcopy(before);parts={p['label']:p for p in data['parts']}
     for proposal in selected:
         version_id=uuid.UUID(proposal['documentVersionId']);page=db.scalar(select(DocumentPage).where(DocumentPage.document_version_id==version_id,DocumentPage.page_number==proposal['page']))
@@ -172,10 +175,17 @@ def decide(db,storage,principal,paper_id,run_id,payload):
                 block=DocumentBlock(document_version_id=version_id,page_id=page.id,sequence_number=sequence,block_kind='subpart',text=text,bounding_box=bounds,extraction_method='source_region',confidence=proposal['confidence']/100,needs_review=False,block_metadata=dict(exactEvidenceKey=key,sourceVersionSha256=version.sha256,runId=str(run_id),number=row.number,part=proposal['part'],role=proposal['role'],provenance=run['provenance'],sourceReview='Source association confirmed through Admin workflow; provenance distinguishes AI/manual review. Not human question approval.'))
                 db.add(block);db.flush()
         ref=dict(page=page.page_number,blockId=str(block.id),assetId=str(page.render_asset_id)if page.render_asset_id else None)
+        if payload.decision=='materialize':
+            materialized[proposal['id']]=ref
+            continue
         refs=parts[proposal['part']][proposal['role']+'Sources']
         if not any(s.get('blockId')==ref['blockId']for s in refs):refs.append(ref)
         if proposal['role']=='paper' and not any(s.get('blockId')==ref['blockId']for s in data['paperSources']):
             data['paperSources'].append(ref)
+    if payload.decision=='materialize':
+        _audit(db,principal,paper_id,'official_review.evidence_materialized',dict(runId=str(run_id),proposalIds=[p['id']for p in selected],decision='materialize',materialized=materialized))
+        db.commit()
+        return dict(run=get_run(db,paper_id,run_id),review=reviews._response(db,workspace),alreadyApplied=False)
     for part in data['parts']:
         if part['status']=='ai_approved':part['status']='unreviewed'
     if row.status=='ai_approved':row.status='unreviewed'

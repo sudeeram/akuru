@@ -96,6 +96,11 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
         data = ReviewQuestionData.model_validate(row.review_data)
         accuracy = analysis[row.id]["accuracyAnalysis"]
         scores = {p.label: p.percent for p in accuracy.parts} if accuracy and accuracy.isCurrent else {}
+        if not accuracy or not accuracy.isCurrent:
+            from .review_scopes import current_analysis
+            for scoped_part in data.parts:
+                scoped=current_analysis(db,workspace,row,scoped_part.label)
+                if scoped:scores[scoped_part.label]=next((p['percent']for p in scoped.analysis_data['parts']if p['label']==scoped_part.label),0)
         for part in data.parts:
             if part.status == "ai_approved" and scores.get(part.label, 0) <= 75:
                 part.status = "unreviewed"

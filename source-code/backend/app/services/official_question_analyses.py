@@ -5,6 +5,7 @@ import uuid
 from sqlalchemy import select, func
 from pydantic import ValidationError
 from app.errors import DomainError
+from . import review_scopes
 from app.models import (
     AuditEvent, DocumentAsset, DocumentBlock, DocumentPage, DocumentVersion,
     OfficialPaperReviewQuestion, OfficialQuestionAnalysis,
@@ -60,8 +61,8 @@ def content_hash(db, question, manifest, *, block_rows=None, asset_rows=None):
         "blocks": blocks, "assets": assets}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def response(row, digest):
-    return QuestionAnalysisResponse(id=str(row.id), version=row.version_number, stage=row.stage,
+def response(row, digest, part_current=None):
+    return QuestionAnalysisResponse(reviewOrigins=row.analysis_data.get('_reviewOrigins',{}),partCurrent=part_current or {p['label']:row.content_hash==digest for p in row.analysis_data['parts']},id=str(row.id), version=row.version_number, stage=row.stage,
         questionRevision=row.question_revision, contentHash=row.content_hash,
         sourceManifest=row.source_manifest, createdAt=row.created_at, isCurrent=row.content_hash == digest,
         **row.analysis_data)
@@ -83,7 +84,7 @@ def summaries(db, workspace, questions):
         accuracy = next((row for row in rows if row.stage == "accuracy"), None)
         extraction = next((row for row in rows if row.stage == "extraction"), None)
         result[question.id] = dict(analysisContentHash=digest, analysisVersion=rows[0].version_number if rows else 0,
-            accuracyAnalysis=response(accuracy, digest) if accuracy else None,
+            accuracyAnalysis=response(accuracy, digest, {p['label']:accuracy.content_hash==digest or accuracy.analysis_data.get('_scopeBindings',{}).get(p['label'])==review_scopes.binding(db,workspace,question,p['label']) for p in question.review_data['parts']}) if accuracy else None,
             extractionAnalysis=response(extraction, digest) if extraction else None)
     return result
 
@@ -106,7 +107,7 @@ def history(db, paper_id, number):
         OfficialQuestionAnalysis.question_id == question.id).order_by(OfficialQuestionAnalysis.version_number.desc()))]
 
 
-def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, commit=True):
+def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, commit=True, evaluate_approval=True):
     workspace, question = _context(db, paper_id, number, lock=True)
     manifest = source_manifest(db, workspace)
     digest = content_hash(db, question, manifest)
@@ -135,6 +136,8 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, 
                 raise DomainError('curriculum_publication_changed', 'Curriculum evidence or mapping changed before recording the assessment.', 409)
     result = payload.model_dump(mode="json", exclude={"expectedQuestionRevision", "expectedAnalysisVersion", "expectedContentHash", "stage"})
     result["question"]["percent"] = min(payload.question.percent, *(part.percent for part in payload.parts))
+    from .review_scopes import bindings
+    result["_scopeBindings"] = bindings(db,workspace,question)
     row = OfficialQuestionAnalysis(question_id=question.id, version_number=latest + 1, stage=payload.stage,
         question_revision=question.revision, content_hash=digest, source_manifest=manifest,
         analysis_data=result, created_by=principal.user.id)
@@ -145,7 +148,7 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, 
         event_data={"questionId": str(question.id), "paperId": str(paper_id), "number": number,
                     "questionRevision": question.revision, "analysisVersion": row.version_number,
                     "stage": row.stage, "contentHash": digest}))
-    if row.stage == "accuracy":
+    if row.stage == "accuracy" and evaluate_approval:
         from .question_auto_approval import apply
         apply(db, principal, workspace, question)
     if commit:

@@ -84,6 +84,10 @@ def test_release_permissions_validation_and_source_staleness(auth_client,monkeyp
     assert client.get(root+'/chat-releases').json()[0]['current'] is True
     q=db.scalar(select(OfficialPaperReviewQuestion).where(OfficialPaperReviewQuestion.number=='1',OfficialPaperReviewQuestion.workspace_id.is_not(None)))
     q.revision+=1; db.commit()
+    assert len(service.eligible(db,child.id,'chemistry'))==1  # metadata revision is not scientific content
+    import copy
+    edited=copy.deepcopy(q.review_data);edited['parts'][0]['prompt']+=' Changed actual content.'
+    q.review_data=edited;db.commit()
     assert service.eligible(db,child.id,'chemistry')==[]
     assert client.get(root+'/chat-releases').json()[0]['current'] is False
 

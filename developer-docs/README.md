@@ -49,3 +49,5 @@ The OpenAPI JSON and generated TypeScript contract are generated artifacts. Chan
 - [Model-answer visuals and drawn submissions](12-model-answer-visuals.md)
 
 - [Controlled text Tutor pilot](../source-code/backend/docs/tutor-controlled-text-pilot.md)
+
+- [Prepared past-paper reviews](15-prepared-past-paper-reviews.md): authenticated source correction packages, scoped carry-forward, atomic apply and no-inference CLI.

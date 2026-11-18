@@ -148,6 +148,8 @@ class RecordQuestionAnalysis(AnalysisModel):
 
 
 class QuestionAnalysisResponse(BaseModel):
+    reviewOrigins: dict = Field(default_factory=dict)
+    partCurrent: dict[str,bool] = Field(default_factory=dict)
     id: str
     version: int
     stage: Literal["extraction", "accuracy"]

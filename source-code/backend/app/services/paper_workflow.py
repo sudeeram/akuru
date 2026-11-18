@@ -7,6 +7,8 @@ from .official_question_analyses import content_hash
 from .paper_curriculum import mapping_hash
 from .tutor_past_papers import release_fingerprint
 from .official_paper_reviews import visual_requirement_issues
+from . import review_scopes
+from app.schemas.official_paper_reviews import ReviewPart
 
 def step(number, label, done, total, href, *, active=False, valid=True, attempted=False, checked=None, detail=None):
     state = 'complete' if total > 0 and done == total and valid else 'processing' if active else 'attention' if done or not valid or attempted else 'not_started'
@@ -107,7 +109,7 @@ def summaries(db, document_ids):
             a = analyses.get(q.id)
             evidence_hash = content_hash(db, q, manifest, block_rows=blocks, asset_rows=assets)
             current = bool(bound and a and a.content_hash == evidence_hash)
-            scores = {p['label']: p for p in a.analysis_data['parts']} if current else {}
+            scores = {p['label']: p for p in a.analysis_data['parts']} if a else {}
             ids = set(data.get('visualAssetIds', [])) | {v for p in data['parts'] for v in p.get('visualAssetIds', [])}
             images_ok = not data.get('candidateVisualAssetIds') and all((v in asset_map and asset_map[v].asset_metadata.get('reviewApproved') and (data.get('visualAltText', '').strip() or asset_map[v].asset_metadata.get('altText', '').strip()) for v in ids)) and (not any((v['status'] == 'proposed' for p in data['parts'] for v in p.get('answerVisuals', []))))
             approved_answers = [v for p in data['parts'] for v in p.get('answerVisuals', []) if v['status'] == 'approved']
@@ -116,18 +118,19 @@ def summaries(db, document_ids):
             image_attempted = image_attempted or any((asset_map[v].asset_metadata.get('reviewApproved') for v in ids if v in asset_map)) or bool(approved_answers)
             image_done += int(images_ok)
             for part in data['parts']:
+                part_current = bool(bound and a and (current or a.analysis_data.get('_scopeBindings',{}).get(part['label']) == review_scopes.binding(db,w,q,part['label'])))
                 total += 1
                 check_total += 1
-                compared += int(bool(current and a.analysis_data.get('methodVersion') in {'final-source-accuracy-v2','final-source-accuracy-v3'}))
+                compared += int(bool(part_current and a.analysis_data.get('methodVersion') in {'final-source-accuracy-v2','final-source-accuracy-v3'}))
                 excluded += int(q.status == 'excluded' or part['status'] == 'excluded')
-                score = scores.get(part['label'])
+                score = scores.get(part['label']) if part_current else None
                 mapping_ok = curriculum_current(part, score.get('curriculum')) if score else False
                 approved = part['status'] in {'approved', 'ai_approved'}
                 if score and score['percent'] <= 75:
                     approved = part['status'] == 'approved' and any((e.target_id == str(q.id) and e.event_data.get('part') == part['label'] and (e.event_data.get('analysisId') == str(a.id)) and (e.event_data.get('contentHash') == a.content_hash) for e in manual_checks))
-                source_issues_ok = not paper_source_issues.blocking(a, part['label'], issue_decisions) if current else False
+                source_issues_ok = not paper_source_issues.blocking(a, part['label'], issue_decisions) if part_current else False
                 marking_ready = part.get('assessmentReadiness') == 'automatic' or (part.get('assessmentReadiness') == 'manual_only' and part.get('responseType') == 'drawing')
-                assessed_done += int(bool(current and mapping_ok and approved and images_ok and marking_ready and source_issues_ok))
+                assessed_done += int(bool(part_current and mapping_ok and approved and images_ok and marking_ready and source_issues_ok))
                 for role in ('scheme', 'report'):
                     source = next((s for s in (score or {}).get('sourceChecks', []) if s['role'] == role), None)
                     checked[role] += int(bool(source and source['status'] in {'checked', 'no_comment'} and (source.get('percent', 0) > 75 or (approved and part['status'] == 'approved'))))
@@ -135,7 +138,7 @@ def summaries(db, document_ids):
                 publication_refs = sorted(set(part.get('topicRefs',[])))
                 publications = [dict(topicRef=ref,publicationId=str(published[ref][0][0].id)) for ref in publication_refs if len(published[ref])==1 and published[ref][0][1].course_id==paper.course_id and published[ref][0][1].subject_id==paper.subject_id]
                 publication_bound = bool(publications and len(publications)==len(publication_refs))
-                released += int(bool(bound and publication_bound and images_ok and approved and source_issues_ok and (part['coverage'] == 'supported') and (q.status not in {'excluded', 'needs_correction'}) and any((r.enabled and r.part_label == part['label'] and (r.fingerprint == release_fingerprint(q, w, publications, evidence_hash)) and (r.snapshot.get('releasePolicy') != 'auto-tutor-release-v1' or mapping_ok) for r in rows))))
+                released += int(bool(bound and publication_bound and images_ok and approved and source_issues_ok and (part['coverage'] == 'supported') and (q.status not in {'excluded', 'needs_correction'}) and any((r.enabled and r.part_label == part['label'] and (r.fingerprint == release_fingerprint(q, w, publications, review_scopes.binding(db,w,q,part['label']) if r.snapshot.get('releaseFingerprintVersion')==2 else evidence_hash, part=ReviewPart.model_validate(part) if r.snapshot.get('releaseFingerprintVersion')==2 else None)) and (r.snapshot.get('releasePolicy') != 'auto-tutor-release-v1' or mapping_ok) for r in rows))))
         inventory = bool(w.expected_question_count and len(qs) == w.expected_question_count and all(q.review_data['parts'] and all(p.get('prompt','').strip() and p.get('marks',0)>0 and p.get('markingPoints') and p.get('paperSources') and p.get('schemeSources') for p in q.review_data['parts']) for q in qs))
         steps = [step(1, 'Extracted', len(qs), w.expected_question_count, href, active=bool(versions.get(w.paper_version_id) and versions[w.paper_version_id].status in {'queued', 'processing'}), valid=inventory and bound, detail=f'{len(qs)}/{w.expected_question_count} expected questions; {total} subparts. Inventory must reconcile.'), step(2, 'Images reviewed', image_done, len(qs), href, valid=inventory and bound, attempted=image_attempted, detail=f'{image_done}/{len(qs)} questions; no relevant images counts as not applicable.'), step(3, 'Assessed', assessed_done, total, accuracy, checked=compared, active=paper.id in active, valid=inventory and bound, attempted=any((q.id in analyses for q in qs)), detail=f'{compared}/{total} current final comparisons; {assessed_done}/{total} subparts complete; current curriculum, content and image checks required.'), step(4, 'Tutor practice released', released, total, href, valid=inventory and bound, detail=f'{released}/{total} released; {excluded} excluded (retained in required total). Formal-exam publication is separate.')]
         result[paper.id].append(dict(paperId=str(paper.id), paperTitle=paper.title, steps=steps, excluded=excluded, formalExamPublished=paper.review_state == 'published'))

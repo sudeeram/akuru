@@ -34,7 +34,12 @@ def fingerprint(question, workspace):
         sort_keys=True).encode()).hexdigest()
 
 
-def release_fingerprint(question, workspace, publications, evidence_hash):
+def release_fingerprint(question, workspace, publications, evidence_hash, *, part=None):
+    if part is not None:
+        from .paper_curriculum import mapping_hash
+        config=part.scoringRules.deterministic
+        return hashlib.sha256(json.dumps(dict(scope=evidence_hash,publications=publications,mapping=mapping_hash(part.model_dump(mode='json')),
+            scoringCertificate=config.certificateId if config else None,readiness=part.assessmentReadiness),sort_keys=True).encode()).hexdigest()
     return hashlib.sha256(json.dumps({'source': fingerprint(question, workspace),
         'publications': publications, 'evidence': evidence_hash}, sort_keys=True).encode()).hexdigest()
 
@@ -60,7 +65,10 @@ def _live(db, release):
     try:
         _data, _part, publications, evidence_hash = validate_release(db, w, q, release.part_label,
             require_curriculum=release.snapshot.get('releasePolicy') == 'auto-tutor-release-v1')
-        if release_fingerprint(q, w, publications, evidence_hash) != release.fingerprint:
+        if release.snapshot.get('releaseFingerprintVersion')!=2:
+            from .official_question_analyses import content_hash,source_manifest
+            evidence_hash=content_hash(db,q,source_manifest(db,w))
+        if release_fingerprint(q, w, publications, evidence_hash, part=_part if release.snapshot.get('releaseFingerprintVersion')==2 else None) != release.fingerprint:
             return False
     except DomainError:
         return False
@@ -102,7 +110,8 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     part = next((p for p in data.parts if p.label == label), None)
     if question.status in {'excluded', 'needs_correction'} or not part or part.status not in {'approved', 'ai_approved'} or part.coverage != 'supported':
         raise DomainError('practice_review_required', 'Approve the supported subpart and resolve explicit question blockers.', 409)
-    analysis = current_accuracy(db, workspace, question)
+    from .review_scopes import current_analysis
+    analysis = current_analysis(db, workspace, question, label)
     assessed = next((p for p in analysis.analysis_data['parts'] if p['label'] == label), None) if analysis else None
     from . import paper_source_issues
     if paper_source_issues.blocking(analysis, label, paper_source_issues.decisions(db, [question.id])):
@@ -136,7 +145,8 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     scoped.parts[0].status = 'approved'
     official_paper_reviews._validate_question(db, workspace, 'approved', scoped, question.review_data, question.number)
     from .official_question_analyses import content_hash, source_manifest
-    return data, part, topic_publications(db, workspace, part), content_hash(db, question, source_manifest(db, workspace))
+    from .review_scopes import binding
+    return data, part, topic_publications(db, workspace, part), binding(db, workspace, question, part.label)
 
 
 def release_part(db, principal, paper_id, number, payload, *, automatic=False, commit=True):
@@ -160,16 +170,17 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
     last_decision = db.scalar(select(AuditEvent).where(
         AuditEvent.target_id == str(q.id), AuditEvent.action.in_(['tutor_paper.withdrawn', 'tutor_paper.released']),
         AuditEvent.event_data['part'].as_string() == part.label).order_by(AuditEvent.created_at.desc()).limit(1))
-    withdrawn_current = db.scalar(select(TutorPaperRelease.id).where(TutorPaperRelease.question_id == q.id, TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == release_fingerprint(q, w, publications, evidence_hash), TutorPaperRelease.enabled.is_(False)))
+    withdrawn_current = db.scalar(select(TutorPaperRelease.id).where(TutorPaperRelease.question_id == q.id, TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == release_fingerprint(q, w, publications, evidence_hash, part=part), TutorPaperRelease.enabled.is_(False)))
     if automatic and (withdrawn_current or (last_decision and last_decision.action == 'tutor_paper.withdrawn')):
         raise DomainError('practice_explicit_withdrawal', 'An Admin withdrew this part. Explicitly re-enable it first.', 409)
     from .question_auto_approval import current_accuracy
     paper = db.get(Document, w.paper_document_id)
-    source_hash = release_fingerprint(q, w, publications, evidence_hash)
+    source_hash = release_fingerprint(q, w, publications, evidence_hash, part=part)
     row = db.scalar(select(TutorPaperRelease).where(TutorPaperRelease.question_id == q.id,
         TutorPaperRelease.part_label == part.label, TutorPaperRelease.fingerprint == source_hash))
     from . import paper_source_issues
-    checked = current_accuracy(db, w, q)
+    from .review_scopes import current_analysis
+    checked = current_analysis(db,w,q,part.label)
     guidance_allowed = paper_source_issues.report_usable(checked, part.label, paper_source_issues.decisions(db, [q.id]))
     snapshot_part = part.model_dump(mode='json')
     if not guidance_allowed:
@@ -186,9 +197,9 @@ def release_part(db, principal, paper_id, number, payload, *, automatic=False, c
                 'number': q.number, 'sharedStem': data.sharedStem,
                 'sharedVisuals': [str(v) for v in data.visualAssetIds],
                 'part': snapshot_part, 'selfContainedConfirmed': True,
-                'sourceFingerprint': fingerprint(q, w), 'topicPublications': publications, 'evidenceContentHash': evidence_hash,
+                'releaseFingerprintVersion': 2, 'sourceFingerprint': fingerprint(q, w), 'topicPublications': publications, 'evidenceContentHash': evidence_hash,
                 'releasePolicy': 'auto-tutor-release-v1' if automatic else 'manual',
-                'curriculum': next((p.get('curriculum') for p in current_accuracy(db, w, q).analysis_data['parts'] if p['label'] == part.label), None) if automatic else None})
+                'curriculum': next((p.get('curriculum') for p in checked.analysis_data['parts'] if p['label'] == part.label), None) if automatic else None})
         db.add(row)
     if row.enabled and row.id is not None:
         return {'releaseId': str(row.id), 'partLabel': part.label, 'enabled': True}
@@ -268,7 +279,7 @@ def eligible(db, student_id, subject_id):
     published = set(db.scalars(select(TextbookTopic.public_ref).join(TextbookTopicContentVersion,
         TextbookTopicContentVersion.topic_id == TextbookTopic.id).where(TextbookTopic.status == 'published',
         TextbookTopic.subject_id == subject_id, TextbookTopicContentVersion.status == 'published')).all())
-    return [r for r in db.scalars(select(TutorPaperRelease).join(OfficialPaperReviewQuestion, OfficialPaperReviewQuestion.id==TutorPaperRelease.question_id).where(TutorPaperRelease.enabled.is_(True),TutorPaperRelease.snapshot['subjectId'].as_string()==subject_id,TutorPaperRelease.revision==OfficialPaperReviewQuestion.revision)).all()
+    return [r for r in db.scalars(select(TutorPaperRelease).join(OfficialPaperReviewQuestion, OfficialPaperReviewQuestion.id==TutorPaperRelease.question_id).where(TutorPaperRelease.enabled.is_(True),TutorPaperRelease.snapshot['subjectId'].as_string()==subject_id)).all()
         if r.snapshot['subjectId'] == subject_id and set(r.snapshot['part']['topicRefs']).issubset(allowed & published)
         and r.snapshot['part']['topicRefs'] and _live(db, r)]
 

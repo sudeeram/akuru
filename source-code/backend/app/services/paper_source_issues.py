@@ -35,7 +35,7 @@ def is_resolved(issue, analysis, label, events):
     return any(e.target_id == str(analysis.question_id)
                and e.event_data.get('issueId') == issue['id']
                and e.event_data.get('partLabel') == label
-               and e.event_data.get('contentHash') == analysis.content_hash for e in events)
+               and (e.event_data.get('contentHash') == analysis.content_hash or (label is not None and e.event_data.get('scopeBinding') is not None and e.event_data.get('scopeBinding')==analysis.analysis_data.get('_scopeBindings',{}).get(label))) for e in events)
 
 
 def blocking(analysis, label, events):
@@ -52,6 +52,9 @@ def blocking(analysis, label, events):
 def report_usable(analysis, label, events):
     if not analysis or analysis.analysis_data.get('question', {}).get('confidencePolicy') != 'extraction-v1':
         return True  # Preserve the historical policy for existing releases.
+    if any(e.event_data.get('disposition') == 'report_guidance_excluded' and e.event_data.get('partLabel') in (None, label)
+           and is_resolved({'id': e.event_data.get('issueId')}, analysis, e.event_data.get('partLabel'), [e]) for e in events):
+        return False
     part = next((p for p in analysis.analysis_data['parts'] if p['label'] == label), None)
     if not part:
         return False
@@ -62,7 +65,7 @@ def report_usable(analysis, label, events):
                         for i in scope.get('issues', []) if i['role'] == 'report'))
 
 
-def resolve(db, principal, paper_id, number, payload):
+def resolve(db, principal, paper_id, number, payload, *, commit=True):
     from . import evidence_links, question_auto_approval
     workspace, question, digest = evidence_links._context(db, paper_id, number, lock=True)
     analysis = question_auto_approval.current_accuracy(db, workspace, question)
@@ -78,10 +81,11 @@ def resolve(db, principal, paper_id, number, payload):
             target_type='official_paper_review_question', target_id=str(question.id),
             created_at=datetime.now(timezone.utc), event_data=dict(
                 issueId=issue['id'], partLabel=payload.partLabel, contentHash=digest,
-                analysisId=str(analysis.id), note=payload.note.strip())))
+                analysisId=str(analysis.id), scopeBinding=analysis.analysis_data.get('_scopeBindings',{}).get(payload.partLabel), note=payload.note.strip())))
         db.flush()
     # Resolving an issue is not blanket content approval or a Student-release action.
-    db.commit()
+    if commit:db.commit()
+    else:db.flush()
     return {'resolved': True}
 
 
@@ -97,7 +101,7 @@ def listing(db, paper_id, number):
              resolutionNotes=[e.event_data['note'] for e in events
                 if e.event_data.get('issueId') == issue['id']
                 and e.event_data.get('partLabel') == label
-                and e.event_data.get('contentHash') == analysis.content_hash])
+                and is_resolved(issue, analysis, label, [e])])
         for label, scope in [(None, analysis.analysis_data['question']),
                              *((p['label'], p) for p in analysis.analysis_data['parts'])]
         for issue in scope.get('issues', [])]}

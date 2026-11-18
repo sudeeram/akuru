@@ -19,7 +19,7 @@ class Region(BaseModel):
 class EvidenceSelection(BaseModel):
     model_config = ConfigDict(extra='forbid')
     part: str = Field(max_length=40)
-    role: Literal['paper','scheme']
+    role: Literal['paper','scheme','report']
     page: int = Field(gt=0)
     blockId: uuid.UUID | None = None
     bounds: Region | None = None
@@ -39,18 +39,20 @@ class ProposeEvidenceLinks(BaseModel):
     expectedRevision: int = Field(ge=1)
     expectedContentHash: str = Field(pattern=r'^[a-f0-9]{64}$')
     selections: list[EvidenceSelection] = Field(default_factory=list,max_length=150)
-    provenance: list[AnalysisProvenance] = Field(default_factory=list,max_length=2)
+    provenance: list[AnalysisProvenance] = Field(default_factory=list,max_length=3)
     @model_validator(mode='after')
     def source_identity(self):
-        if len({p.role for p in self.provenance})!=len(self.provenance) or any(p.role=='report' for p in self.provenance):
+        if len({p.role for p in self.provenance})!=len(self.provenance) :
             raise ValueError('Use distinct paper/scheme provenance.')
         if self.selections:
             for role in {s.role for s in self.selections}:
                 p=next((p for p in self.provenance if p.role==role),None)
                 if not p or p.method not in {'manual','codex_assisted','openai_api'}:
                     raise ValueError('Imported selections require source-specific manual or AI provenance.')
-                if p.method in {'codex_assisted','openai_api'} and not p.modelId:
-                    raise ValueError('Record the actual model for AI-assisted selections.')
+                if p.method=='openai_api' and not p.modelId:
+                    raise ValueError('API-assisted selections need the recorded model identity.')
+                if p.method=='codex_assisted' and not p.modelId and not p.notes.strip():
+                    raise ValueError('Explain why the actual Codex model identity is not recorded.')
         return self
 
 class ReviewEvidenceLinks(BaseModel):
@@ -58,7 +60,7 @@ class ReviewEvidenceLinks(BaseModel):
     proposalIds: list[uuid.UUID] = Field(min_length=1,max_length=150)
     expectedRevision: int = Field(ge=1)
     expectedContentHash: str = Field(pattern=r'^[a-f0-9]{64}$')
-    decision: Literal['apply','reject']
+    decision: Literal['apply','reject','materialize']
     confirmSourceReview: bool = False
     autoOnly: bool = False
 

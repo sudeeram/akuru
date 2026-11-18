@@ -28,3 +28,6 @@ api_router.include_router(operations.router)
 api_router.include_router(student_avatar.router)
 
 api_router.include_router(community.router)
+
+from app.api.v1 import developer_reviews
+api_router.include_router(developer_reviews.router)

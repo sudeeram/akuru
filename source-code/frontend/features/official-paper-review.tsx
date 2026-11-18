@@ -1,4 +1,5 @@
 'use client';
+import { DeveloperReviewTools } from './developer-review-tools';
 import { DeterministicValidation } from './deterministic-validation';
 import { Toaster, toast } from '@/components/ui/toast';
 import {
@@ -1168,6 +1169,7 @@ export function OfficialPaperReview({
               </div>
             </DashboardCard>
           </section>
+          {selected && <DeveloperReviewTools key={`${selected}:${revision}`} paperId={paperId} number={selected} disabled={busy||dirty||workedDirty} onSaved={()=>{void act(()=>getPaperReview(paperId),'Source review updated.');}}/>}
           <AccuracyReassessment
             paperId={paperId}
             review={review}

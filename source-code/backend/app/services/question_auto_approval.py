@@ -43,7 +43,7 @@ def is_approved(db, workspace, question):
     return True
 
 
-def apply(db, principal, workspace, question):
+def apply(db, principal, workspace, question, *, labels=None):
     """Apply the latest bound accuracy analysis. Missing review requirements fail closed."""
     from .official_paper_reviews import _validate_question
     if question.status in {"approved", "excluded", "needs_correction"}:
@@ -53,16 +53,21 @@ def apply(db, principal, workspace, question):
     if question.status == "ai_approved":
         question.status = "unreviewed"
     for part in data.parts:
-        if part.status == "ai_approved":
+        if part.status == "ai_approved" and (labels is None or part.label in labels):
             part.status = "unreviewed"
     analysis = current_accuracy(db, workspace, question)
     scores = {p["label"]: p["percent"] for p in analysis.analysis_data["parts"]} if analysis else {}
     blockers = []
     for part in data.parts:
+        if labels is not None and part.label not in labels:continue
+        from .review_scopes import current_analysis
+        scoped_analysis=current_analysis(db,workspace,question,part.label)
+        scoped_estimate=next((p for p in scoped_analysis.analysis_data['parts']if p['label']==part.label),None)if scoped_analysis else None
+        if scoped_estimate:scores[part.label]=scoped_estimate['percent']
         if part.status not in {"unreviewed", "ready_for_approval"} or scores.get(part.label, 0) <= THRESHOLD:
             continue
         from . import paper_source_issues
-        issues = paper_source_issues.blocking(analysis, part.label, paper_source_issues.decisions(db, [question.id]))
+        issues = paper_source_issues.blocking(scoped_analysis, part.label, paper_source_issues.decisions(db, [question.id]))
         if any(i['kind'] == 'extraction' for i in issues):
             blockers.append(f"Part {part.label}: resolve extraction issues before approval.")
             continue

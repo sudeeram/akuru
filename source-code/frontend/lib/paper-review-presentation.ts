@@ -5,6 +5,10 @@ import type { BadgeTone } from '@/lib/badges';
 type Question = PaperReview['questions'][number];
 
 /** Current decisions only: confidence and human edit timestamps are not approvals. */
+export function reviewAnalysisCurrent(analysis?: QuestionAnalysis | null, partLabel?: string) {
+  return partLabel === undefined ? !!analysis?.isCurrent : (analysis?.partCurrent?.[partLabel] ?? !!analysis?.isCurrent);
+}
+
 export function reviewDecisionStatuses(
   status: string,
   analysis?: QuestionAnalysis | null,
@@ -35,7 +39,7 @@ export function reviewDecisionStatuses(
   if (status === 'ai_approved') {
     const current =
       analysis?.stage === 'accuracy' &&
-      analysis.isCurrent &&
+      reviewAnalysisCurrent(analysis, partLabel) &&
       (estimate?.percent ?? 0) > 75 &&
       (partLabel !== undefined ||
         analysis.parts.every((part) => part.percent > 75));
@@ -47,7 +51,7 @@ export function reviewDecisionStatuses(
           tone: 'warning',
         };
   } else if (hasAI) {
-    ai = analysis?.isCurrent
+    ai = reviewAnalysisCurrent(analysis, partLabel)
       ? {
           status: 'assessed',
           label: 'Assessed — not approved',
@@ -230,8 +234,8 @@ export function reviewAccuracyRows(
             label: part.label as string | undefined,
             marks: part.marks,
             status: part.status,
-            percent: analysis?.isCurrent
-              ? analysis.parts.find((item) => item.label === part.label)
+            percent: reviewAnalysisCurrent(analysis, part.label)
+              ? analysis?.parts.find((item) => item.label === part.label)
                   ?.percent
               : !analysis
                 ? part.extractionConfidence?.percent
