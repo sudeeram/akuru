@@ -240,3 +240,13 @@ def test_wording_correction_keeps_aggregate_prompt_consistent(auth_client,monkey
  response=c.post(root+f'/change-sets/{key}/apply',headers=h,json={'requestId':str(uuid.uuid4()),'expectedPreviewHash':preview['previewHash']})
  assert response.status_code==200,response.text
  assert 'Explain the corrected fixture concept.'in c.get(root).json()['questions'][0]['data']['prompt']
+
+@pytest.mark.integration
+def test_incompatible_finding_policy_is_a_safe_atomic_error(auth_client,monkeypatch):
+ c,h,db,root,q,body=package(auth_client,monkeypatch)
+ body['corrections'][0]['sourceFinding']['confidencePolicy']='legacy'if q['accuracyAnalysis']['question']['confidencePolicy']=='extraction-v1'else'extraction-v1'
+ staged=c.post(root+'/change-sets',headers=h,json=body);assert staged.status_code==201,staged.text
+ key=staged.json()['id'];preview=c.get(root+f'/change-sets/{key}/preview').json()
+ result=c.post(root+f'/change-sets/{key}/apply',headers=h,json={'requestId':str(uuid.uuid4()),'expectedPreviewHash':preview['previewHash']})
+ assert result.status_code==422 and result.json()['error']['code']=='review_analysis_invalid'
+ assert c.get(root).json()['questions'][0]['revision']==q['revision']

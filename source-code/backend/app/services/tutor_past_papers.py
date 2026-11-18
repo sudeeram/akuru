@@ -358,9 +358,18 @@ def identity(message):
         'session': month[1].lower() if month else None, 'number': number[1] if number else None, 'part': label}
 
 
+def selection_pool(releases):
+    # Keep historical releases eligible for an existing practice, but never offer
+    # duplicate versions of one part as separate choices or false ambiguity.
+    selected={}
+    for release in sorted(releases,key=lambda r:(r.snapshot.get('releaseFingerprintVersion',1),str(r.released_at or ''),str(r.id)),reverse=True):
+        selected.setdefault((release.question_id,release.part_label),release)
+    return list(selected.values())
+
+
 def select_question(db, settings, principal, session, key, message):
     require_access(db, settings, principal, session)
-    pool = eligible(db, principal.user.id, session.subject_id)
+    pool = selection_pool(eligible(db, principal.user.id, session.subject_id))
     # Only exact identity filters; never silently substitute a different component/session.
     requested = identity(message)
     subject_text = re.sub(r'human[ -]biology', 'human_biology', message, flags=re.I)

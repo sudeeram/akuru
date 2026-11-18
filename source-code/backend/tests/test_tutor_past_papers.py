@@ -273,3 +273,16 @@ def test_manual_release_also_invalidates_on_textbook_or_visual_changes(auth_clie
     db.commit()
     assert client.get(root+'/chat-releases').json()[0]['current'] is False
     assert service.eligible(db,child.id,'chemistry')==[]
+
+
+def test_renewed_release_does_not_duplicate_student_selection_or_remove_history():
+    from types import SimpleNamespace
+    from app.services.tutor_past_papers import selection_pool
+    question_id=uuid.uuid4()
+    old=SimpleNamespace(id=uuid.uuid4(),question_id=question_id,part_label='a',released_at=None,snapshot={})
+    renewed=SimpleNamespace(id=uuid.uuid4(),question_id=question_id,part_label='a',released_at=None,snapshot={'releaseFingerprintVersion':2})
+    other=SimpleNamespace(id=uuid.uuid4(),question_id=question_id,part_label='b',released_at=None,snapshot={'releaseFingerprintVersion':2})
+    source=[old,renewed,other]
+    chosen=selection_pool(source)
+    assert set(r.id for r in chosen)=={renewed.id,other.id}
+    assert source==[old,renewed,other]  # Existing practice still has its historical release.

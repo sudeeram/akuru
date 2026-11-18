@@ -277,8 +277,11 @@ def _apply(db,principal,paper,key,request,*,commit=True):
 def apply(db,principal,paper,key,request,*,commit=True):
     # Roll back the complete correction even when an API/test caller reuses its
     # Session after a handled domain error. Never rely on connection close.
-    with db.begin_nested():
-        result=_apply(db,principal,paper,key,request,commit=False)
+    try:
+        with db.begin_nested():
+            result=_apply(db,principal,paper,key,request,commit=False)
+    except ValidationError as exc:
+        raise DomainError('review_analysis_invalid','Prepared findings must use the baseline assessment policy and valid source contracts.',422) from exc
     if commit:db.commit()
     else:db.flush()
     return result
