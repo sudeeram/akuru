@@ -186,15 +186,16 @@ export function TutorSessions({
       setPastPaper(null);
       setQuestionSet(null);
       if (active) {
+        let currentSet: TutorQuestionSet | null = null;
         if (!(retained?.structured as TutorAgentReply | undefined)?.pastPaper) {
-          await request<TutorQuestionSet | null>(`tutoring/sessions/${active.sessionRef}/question-set`)
-            .then(setQuestionSet).catch(() => setQuestionSet(null));
+          currentSet = await request<TutorQuestionSet | null>(`tutoring/sessions/${active.sessionRef}/question-set`).catch(() => null);
+          setQuestionSet(currentSet);
         }
-        await request<PastPaperChatState | null>(
-          `tutoring/sessions/${active.sessionRef}/past-paper`,
-        )
-          .then(setPastPaper)
-          .catch(() => setPastPaper(null));
+        if (!currentSet) {
+          await request<PastPaperChatState | null>(
+            `tutoring/sessions/${active.sessionRef}/past-paper`,
+          ).then(setPastPaper).catch(() => setPastPaper(null));
+        }
       }
       if (active) {
         const retainedPractice = await getTutorPractice(active.sessionRef);

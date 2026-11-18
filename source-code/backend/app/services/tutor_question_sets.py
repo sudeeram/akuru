@@ -98,9 +98,14 @@ def _check(db, settings, principal, session, row):
     allowed={t.topicRef for t in subject.topics} if subject else set()
     if row.student_id!=principal.user.id or row.session_id!=session.id or not set(row.topic_refs)<=allowed:
         raise DomainError('practice_set_unavailable','This set is no longer available within your covered topics.',409)
-    releases={str(r.id):r for r in papers.eligible(db,principal.user.id,session.subject_id)}
     needed={i['releaseId'] for i in row.items if i.get('releaseId')}
     needed.update(row.provenance.get('exampleReleaseIds',[]))
+    # Validate only this frozen set's sources, not every release in the bank on
+    # each answer/asset/refresh. No cross-request permission cache is introduced.
+    releases={str(r.id):r for r in db.scalars(select(TutorPaperRelease).where(
+        TutorPaperRelease.id.in_([uuid.UUID(value) for value in needed]),TutorPaperRelease.enabled.is_(True))).all()
+        if r.snapshot['subjectId']==session.subject_id and r.snapshot['part']['topicRefs']
+        and set(r.snapshot['part']['topicRefs'])<=set(row.topic_refs) and papers._live(db,r)}
     if not needed<=releases.keys():
         raise DomainError('practice_source_unavailable','A source changed or was withdrawn. Start a new set from currently released content.',409)
     # Generation evidence is pinned to publication versions, not mutable page numbers.
@@ -359,7 +364,7 @@ def handle(db,settings,principal,session,payload,generator=None):
                     raise DomainError('practice_subject_mismatch','Open Subject chat for the requested enrolled subject.',409)
             topics=resolve_topics(db,settings,principal,session,text)
             refs=[t.topicRef for t in topics]
-            pool=papers.selection_pool(papers.eligible(db,principal.user.id,session.subject_id))
+            pool=papers.selection_pool(papers.eligible(db,principal.user.id,session.subject_id,topic_refs=set(refs)))
             identity=papers.identity(text)
             pool=[r for r in pool if set(r.snapshot['part']['topicRefs'])<=set(refs)]
             for key in ['component','year','session','number']:

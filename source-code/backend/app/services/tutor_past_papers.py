@@ -268,7 +268,7 @@ def require_access(db, settings, principal, session):
         raise DomainError('subject_not_enrolled', 'Choose one of your enrolled subjects.', 403)
 
 
-def eligible(db, student_id, subject_id):
+def eligible(db, student_id, subject_id, *, topic_refs=None):
     coverage = curriculum_plans.student_coverage(db, student_id, subject_id)
     if coverage.status != 'ready':
         raise DomainError('assessment_coverage_not_ready', coverage.message, 409)
@@ -278,7 +278,7 @@ def eligible(db, student_id, subject_id):
         TextbookTopic.subject_id == subject_id, TextbookTopicContentVersion.status == 'published')).all())
     return [r for r in db.scalars(select(TutorPaperRelease).join(OfficialPaperReviewQuestion, OfficialPaperReviewQuestion.id==TutorPaperRelease.question_id).where(TutorPaperRelease.enabled.is_(True),TutorPaperRelease.snapshot['subjectId'].as_string()==subject_id)).all()
         if r.snapshot['subjectId'] == subject_id and set(r.snapshot['part']['topicRefs']).issubset(allowed & published)
-        and r.snapshot['part']['topicRefs'] and _live(db, r)]
+        and r.snapshot['part']['topicRefs'] and (topic_refs is None or set(r.snapshot['part']['topicRefs']).issubset(topic_refs)) and _live(db, r)]
 
 
 def _practice(db, session):
