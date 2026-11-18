@@ -1,7 +1,9 @@
 # Prepared source correction and carry-forward
 
-Guideline ID: `pearson-igcse-source-review`  
-Version: `prepared-review-v1`  
+Guideline ID: `pearson-igcse-source-review`
+
+Version: `prepared-review-v1`
+
 Effective: 2026-11-18
 
 Use this procedure when reviewing stored question, scheme and examiner-report extraction through AKURU's prepared developer APIs. It supplements the extraction guidelines; it does not replace source inspection.

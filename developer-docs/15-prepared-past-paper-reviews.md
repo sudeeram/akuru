@@ -8,4 +8,4 @@ Per-part freshness separates real shared dependencies from aggregate question re
 
 A source-confidence estimate above 75% is not a scoring certificate. The deployed deterministic engine must replay its actual test cases before a new deterministic rubric can be certified. Unsupported semantic explanations remain manual-only even when their source content is AI approved. Complete-exam publication remains separate from Tutor practice.
 
-No new database migration is required: existing UUID primary keys and audit/analysis storage provide durable records. The backend guide records the implementation boundaries and the ongoing TODO records production acceptance; neither a CLI receipt nor a green source label should be mistaken for proof of a complete formal exam release.
+No new database migration is required: existing UUID primary keys and audit/analysis storage provide durable records. The backend guide records the implementation boundaries and the completed roadmap records production acceptance; neither a CLI receipt nor a green source label should be mistaken for proof of a complete formal exam release.

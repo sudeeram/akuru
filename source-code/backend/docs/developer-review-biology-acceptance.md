@@ -60,3 +60,7 @@ These changes were staged, previewed and applied through authenticated Admin API
 Q1(d) has a recorded scheme/report discrepancy; the standing scheme-precedence policy must be recorded against its exact issue before release. Q6(b)(iii) retains an internal scheme contradiction requiring explicit adjudication. Unsupported open explanations, drawing interpretation and unsupported scoring pathways remain manual. Existing curriculum uncertainty is retained rather than overwritten to obtain a passing release.
 
 The workflow implementation is reusable. It does not claim that these remaining scientific/semantic decisions have been automatically solved. Formal publication remains a separate explicit operation. Private originals, export packages and detailed receipts stay outside Git under the ignored local pilot directory.
+
+## Final release verification
+
+Runtime release `4e328ce6a02c38c5157830f1255dd7785ec566e4` passed the standard encrypted-backup deployment and production checks. Final API checks verified carried provenance against the original pre-correction records, combined history, no-write formal validation, dry-run rollback, anonymous 401 and missing-CSRF 403. The subsequent read-back retained all outcomes above. Backend suite: 619 passed, 1 skipped; frontend suite: 123 passed; contracts/typecheck/lint/build passed. No additional model inference was used.

@@ -48,7 +48,7 @@ The question review page includes **Prepared developer review** tools. It disabl
 
 ## Acceptance evidence
 
-See [Biology production acceptance](developer-review-biology-acceptance.md) for the three source corrections, all 31 part states, preserved certificates and remaining independent release blockers. The implementation roadmap tracks final deployment acceptance. Route availability and source approval do not imply a whole exam is published.
+See [Biology production acceptance](developer-review-biology-acceptance.md) for the three source corrections, all 31 part states, preserved certificates and remaining independent release blockers. The [completed roadmap](../../todo/completed/TODO-PAST-PAPER-DEVELOPER-REVIEW-APIS.md) records final deployment acceptance. Route availability and source approval do not imply a whole exam is published.
 
 Carried-forward part provenance is resolved through its original analysis ancestry, rather than inheriting the newest question-level model header. New records also save the effective original per-source provenance explicitly. Historical analyses remain immutable. Renewed release versions are deduplicated for new Student question choices while remaining available to existing practice records.
 

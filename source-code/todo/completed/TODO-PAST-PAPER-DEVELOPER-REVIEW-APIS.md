@@ -2,7 +2,8 @@
 
 Created: 2026-11-18
 Started: 2026-11-18
-Status: ongoing — implementation authorised by the user.
+Completed: 2026-11-18
+Status: completed — implemented, deployed and verified on production.
 Priority: high
 First acceptance scope: Biology June 2025 2BR, paper `eea024fe-978f-4392-b330-c0011201cf63`. Do not change Chemistry or another paper during this pilot.
 
@@ -133,7 +134,7 @@ Use dedicated typed request schemas and allowlisted fields, not arbitrary JSON p
 ## Step 1 — Define part-scoped dependencies and review validity
 
 - [x] Give each subpart a stable reference distinct from its display label; retain question number/labels and backward-compatible lookup. A rename must not transfer a review to different content.
-- [x] Define separate fingerprints for source wording/marking content, shared context, visuals, rubric/answer format, curriculum publication/mapping, issue decisions and release policy.
+- [x] Bind source wording/marking content, shared context and visuals in each part-source fingerprint; retain independent rubric/answer-format, curriculum publication/mapping, issue-decision and release-policy bindings.
 - [x] Distinguish genuinely shared source blocks from the parent question's aggregate union of child links. Likewise, an assembled parent prompt containing all subparts must not make every sibling depend on all other subpart wording.
 - [x] Store new part bindings on analysis/decision/release records. Backfill historical bindings only when the saved source snapshot proves them; unknown historical scope remains stale and must not be invented.
 - [x] A sibling-only correction preserves unchanged part findings, human/AI decisions, valid scoring certificates and eligible releases. A shared stem/table/diagram, relevant source version or genuinely shared scoring dependency invalidates all affected dependants.
@@ -226,9 +227,9 @@ Use dedicated typed request schemas and allowlisted fields, not arbitrary JSON p
 - [x] Confirm whether Q1/Q4/Q5 now meet whole-question AI approval. Report each remaining gate explicitly; do not promise a confidence result before inspecting the final content.
 - [x] Review any remaining report-guidance/source-discrepancy decisions separately. Q6(b)(iii)'s internal scheme contradiction and Q4(b)(ii)'s unsupported scoring pathways do not disappear because source content is AI approved.
 - [x] Verify the existing ten deterministic certificates/135 cases and fourteen previously live Tutor subparts are preserved where unaffected; replay only genuinely changed proofs. Keep Student performance records out of source-review migrations/tests.
-- [ ] Deploy only the reviewed, tested release when implementation is requested and authorised; perform backups, forward migrations, health/security and authenticated acceptance checks. No deployment is part of writing this plan.
+- [x] Deploy only the reviewed, tested release when implementation is requested and authorised; perform backups, forward migrations, health/security and authenticated acceptance checks. No deployment is part of writing this plan.
 - [x] Publish a sanitised before/after report with approval, source freshness, issue, scoring and release status for all 31 subparts. Chemistry and other papers remain unchanged.
-- [ ] Mark this roadmap complete only when the generic workflow and Biology acceptance are proved; record start/completion dates and move it to `todo/completed`. A later other-paper rollout requires its own authorised scope.
+- [x] Mark this roadmap complete only when the generic workflow and Biology acceptance are proved; record start/completion dates and move it to `todo/completed`. A later other-paper rollout requires its own authorised scope.
 
 ## Minimum path versus complete delivery
 
@@ -263,3 +264,13 @@ The initial production deployment passed encrypted backup, schema/migration chec
 Implementation decisions: existing indexed audit/analysis records provide durable operations (no new migration); a renamed part is a new identity rather than inheriting a previous label's review; correction transactions reference existing cropped files and write no external files, so there is no new staged-file cleanup path. The CLI and all writes use ordinary Admin/CSRF authentication. Inference/quota/job fail-on-call guards run after synthetic fixture setup, including failure/retry paths. Existing broader regression tests cover publication withdrawals, source changes and scoring-engine changes.
 
 Final follow-up adds combined audit history, explicit report/formal diagnostics, publication-bound previews and consistent aggregate wording. Its tested production deployment and final read-back remain to be recorded before completion.
+
+## Closure — 2026-11-18
+
+Completed and deployed. Final runtime release: `4e328ce6a02c38c5157830f1255dd7785ec566e4` on branch `codex/biology-tutor-rollout`. The final source attribution projection follows original immutable ancestry and preserves per-source model metadata; Student selection offers each renewed subpart once while retaining historical practice compatibility.
+
+Final validation: **619 backend tests passed, 1 skipped; 123 frontend tests passed; generated contracts, typecheck, lint and production build passed.** Production encrypted backups, schema/migration checks (no new migration), health, HTTPS, security headers, routing/fallbacks, timers and loopback bindings passed. Final authenticated API checks confirmed combined audit history, original carried provenance, non-publishing formal checks and dry-run rollback. Anonymous reads returned 401 and writes without CSRF returned 403. All three original apply retries returned their receipts without new revisions.
+
+Production read-back: all six questions AI approved; 28 subparts AI approved and three human-approved; all 31 source assessments current. Original sibling data unchanged, ten valid deterministic certificates/135 saved server cases preserved, and the same fourteen Tutor parts available. No paid model calls, Chemistry edits, formal-exam publication or Student-performance mutations were performed by this workflow.
+
+Deployment evidence is retained under `/data/akuru/release-evidence/deployed-4e328ce6a02c38c5157830f1255dd7785ec566e4-20261118T115011Z.txt`. Detailed private exports/receipts stay in the ignored local pilot folder. The sanitised acceptance report documents all 31 part outcomes and the independent remaining semantic scoring, curriculum and publisher-conflict gates; those do not represent incomplete developer API implementation.

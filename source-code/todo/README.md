@@ -4,8 +4,6 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Past-paper developer review APIs](ongoing/TODO-PAST-PAPER-DEVELOPER-REVIEW-APIS.md) — evaluated existing endpoints plus scoped correction packages, preserved sibling reviews, source findings/decisions, no-inference validation, approval and guarded release; Biology June 2025 2BR first.
-
 - [Deterministic scoring and readiness](ongoing/TODO-DETERMINISTIC-SCORING-AND-READINESS.md) — complete supported question/subpart scoring preparation, actual answer recognition, no-paid server validation and audited readiness through the developer/API workflow; first pilot Q3(b), then all Q1–Q6 parts.
 
 - [Pearson Biology past-paper intake](ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md) — audited 132 PDFs; staged 1B/2B pilot, reviewed source/rubric/visual intake, then standard and regional expansion.
@@ -64,6 +62,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [Past-paper developer review APIs](completed/TODO-PAST-PAPER-DEVELOPER-REVIEW-APIS.md) — authenticated prepared corrections, scoped source/provenance preservation, model-free batches/CLI, approval/release diagnostics and verified Biology 2BR acceptance.
 
 - [Past-paper questions and approved answers in Tutor chat](completed/TODO-TUTOR-PAST-PAPER-CHAT.md) — verified one-student production pilot with explicitly released 1C subparts, private source evidence and approved answers.
 
