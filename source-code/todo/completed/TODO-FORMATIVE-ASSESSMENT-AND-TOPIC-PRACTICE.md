@@ -3,7 +3,7 @@
 Created: 2026-11-18
 Status: completed
 Started: 2026-11-18
-Completed: 2026-11-18
+Completed: 2026-11-19
 Implementation and production rollout completed after tests and targeted Student acceptance.
 Priority: high; complete before resuming analysis of the remaining Biology papers.
 Acceptance paper: Biology June 2025 2BR, `eea024fe-978f-4392-b330-c0011201cf63` (six questions, 31 subparts).
@@ -119,11 +119,13 @@ The implementation reuses authenticated Tutor/account services, shared credit al
 
 ## Final production acceptance
 
+Runtime and Student acceptance completed on 18 November; documentation/release closure completed on 19 November 2026 (Asia/Colombo).
+
 Runtime release: `6be2a8d0ccbeeb9bd61824a432517df4caf454b5`. Production migration `0023_tutor_question_sets`, schema consistency, health, HTTPS/security headers, route boundaries and service bindings passed. Deployment evidence: `/data/akuru/release-evidence/deployed-6be2a8d0ccbeeb9bd61824a432517df4caf454b5-20261118T175328Z.txt`.
 
 All 31 pilot subparts are current and released, and all four paper workflow stages are complete. Source data/approvals/confidence history and ten certificate IDs were preserved. Full final backend suite: 631 passed, 1 skipped. All 123 frontend tests, typecheck, lint, build and contract checks passed. Fifteen focused persistence regressions cover semantic and deterministic feedback through reload and real invocation commits.
 
-Normal production Student UI as Roshinika verified: two available Coordination items from a five-item request, reviewed diagram, hidden answer then assisted reveal, second-item reload/resume, skip and complete; Q3(b)'s 0.057 answer received 2/2, persisted after retry and full reload, and completed with a 2/2 summary. Formerly manual-only Q1(d) was selectable with its approved shared context/visuals; the test set was stopped to leave no active QA set. Original-paper Student checks used no paid production inference. A separately approved US$0.25 AKURU-backend test then generated and checked one new Coordination question, assessed a partial response at 2/5 with correct/missing points, supplied a complete better answer and uncertainty, retained feedback across reload and completed the set. Three calls used 3,581 input and 1,272 output tokens; estimated US$0.019882, conservative recorded-usage bound US$0.026007. Student quotas were unchanged. Separate Evaluation-project testing used six calls, estimated US$0.036932 and conservative bound US$0.047367 of US$1. Both budgets remain separate in private ledgers.
+Normal production Student UI using the authorised pilot Student account verified: two available Coordination items from a five-item request, reviewed diagram, hidden answer then assisted reveal, second-item reload/resume, skip and complete; Q3(b)'s 0.057 answer received 2/2, persisted after retry and full reload, and completed with a 2/2 summary. Formerly manual-only Q1(d) was selectable with its approved shared context/visuals; the test set was stopped to leave no active QA set. Original-paper Student checks used no paid production inference. A separately approved US$0.25 AKURU-backend test then generated and checked one new Coordination question, assessed a partial response at 2/5 with correct/missing points, supplied a complete better answer and uncertainty, retained feedback across reload and completed the set. Three calls used 3,581 input and 1,272 output tokens; estimated US$0.019882, conservative recorded-usage bound US$0.026007. Student quotas were unchanged. Separate Evaluation-project testing used six calls, estimated US$0.036932 and conservative bound US$0.047367 of US$1. Both budgets remain separate in private ledgers.
 
 Only the two expressly approved redundant rollout backup sets were removed to restore backup capacity. The pre-change/latest and earlier backups were retained; the final deployment used a fresh encrypted backup. No backup/security checks were bypassed.
 
