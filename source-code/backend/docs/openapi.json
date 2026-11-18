@@ -886,6 +886,37 @@
         "title": "AnswerVisual",
         "type": "object"
       },
+      "ApplyReview": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluateApproval": {
+            "default": true,
+            "title": "Evaluateapproval",
+            "type": "boolean"
+          },
+          "expectedPreviewHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedpreviewhash",
+            "type": "string"
+          },
+          "releaseTutor": {
+            "default": false,
+            "title": "Releasetutor",
+            "type": "boolean"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "expectedPreviewHash"
+        ],
+        "title": "ApplyReview",
+        "type": "object"
+      },
       "AssessmentAuditListResponse": {
         "properties": {
           "results": {
@@ -4452,7 +4483,8 @@
           "role": {
             "enum": [
               "paper",
-              "scheme"
+              "scheme",
+              "report"
             ],
             "title": "Role",
             "type": "string"
@@ -6431,6 +6463,52 @@
         "title": "IonFacts",
         "type": "object"
       },
+      "IssueDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "disposition": {
+            "enum": [
+              "corrected_and_rechecked",
+              "scheme_precedence",
+              "report_guidance_excluded",
+              "publisher_ambiguity_adjudicated",
+              "still_unresolved"
+            ],
+            "title": "Disposition",
+            "type": "string"
+          },
+          "issueId": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Issueid",
+            "type": "string"
+          },
+          "note": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Note",
+            "type": "string"
+          },
+          "partLabel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partlabel"
+          }
+        },
+        "required": [
+          "issueId",
+          "disposition",
+          "note"
+        ],
+        "title": "IssueDecision",
+        "type": "object"
+      },
       "LearnerContextRequest": {
         "properties": {
           "requestKey": {
@@ -7937,6 +8015,44 @@
         "title": "PartAccuracy",
         "type": "object"
       },
+      "PartCorrection": {
+        "additionalProperties": false,
+        "properties": {
+          "expectedScopeHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedscopehash",
+            "type": "string"
+          },
+          "fields": {
+            "additionalProperties": true,
+            "maxProperties": 20,
+            "title": "Fields",
+            "type": "object"
+          },
+          "partLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "sourceFinding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PartAccuracy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "partLabel",
+          "expectedScopeHash"
+        ],
+        "title": "PartCorrection",
+        "type": "object"
+      },
       "PastPaperChatState": {
         "properties": {
           "alternatives": {
@@ -8601,7 +8717,7 @@
             "items": {
               "$ref": "#/components/schemas/AnalysisProvenance"
             },
-            "maxItems": 2,
+            "maxItems": 3,
             "title": "Provenance",
             "type": "array"
           },
@@ -8908,6 +9024,13 @@
             "title": "Methodversion",
             "type": "string"
           },
+          "partCurrent": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Partcurrent",
+            "type": "object"
+          },
           "parts": {
             "items": {
               "$ref": "#/components/schemas/PartAccuracy"
@@ -8928,6 +9051,11 @@
           "questionRevision": {
             "title": "Questionrevision",
             "type": "integer"
+          },
+          "reviewOrigins": {
+            "additionalProperties": true,
+            "title": "Revieworigins",
+            "type": "object"
           },
           "sourceManifest": {
             "items": {
@@ -9972,6 +10100,33 @@
         "title": "ReleaseUpdate",
         "type": "object"
       },
+      "ReleaseValidation": {
+        "additionalProperties": false,
+        "properties": {
+          "numbers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Numbers",
+            "type": "array"
+          },
+          "target": {
+            "enum": [
+              "tutor_practice",
+              "official_drafts",
+              "formal_exam"
+            ],
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target"
+        ],
+        "title": "ReleaseValidation",
+        "type": "object"
+      },
       "ReorderRequest": {
         "properties": {
           "refs": {
@@ -10126,6 +10281,56 @@
         "title": "RetrievalResponse",
         "type": "object"
       },
+      "ReviewBatch": {
+        "additionalProperties": false,
+        "properties": {
+          "evaluateApproval": {
+            "default": true,
+            "title": "Evaluateapproval",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items",
+            "type": "array"
+          },
+          "previewHashes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 50,
+            "title": "Previewhashes",
+            "type": "object"
+          },
+          "releaseTutor": {
+            "default": false,
+            "title": "Releasetutor",
+            "type": "boolean"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          },
+          "stopOnConflict": {
+            "default": true,
+            "title": "Stoponconflict",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "requestId",
+          "items",
+          "previewHashes"
+        ],
+        "title": "ReviewBatch",
+        "type": "object"
+      },
       "ReviewCropResponse": {
         "properties": {
           "altText": {
@@ -10225,7 +10430,8 @@
           "decision": {
             "enum": [
               "apply",
-              "reject"
+              "reject",
+              "materialize"
             ],
             "title": "Decision",
             "type": "string"
@@ -11016,6 +11222,40 @@
         "title": "ScientificTextMark",
         "type": "object"
       },
+      "ScopedApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "dryRun": {
+            "default": false,
+            "title": "Dryrun",
+            "type": "boolean"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "partLabels": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Partlabels",
+            "type": "array"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "expectedRevision"
+        ],
+        "title": "ScopedApproval",
+        "type": "object"
+      },
       "ScoreBand": {
         "additionalProperties": false,
         "properties": {
@@ -11235,6 +11475,110 @@
           "blockId"
         ],
         "title": "SourceLocation",
+        "type": "object"
+      },
+      "StageReview": {
+        "additionalProperties": false,
+        "properties": {
+          "corrections": {
+            "items": {
+              "$ref": "#/components/schemas/PartCorrection"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Corrections",
+            "type": "array"
+          },
+          "expectedAnalysisVersion": {
+            "minimum": 0.0,
+            "title": "Expectedanalysisversion",
+            "type": "integer"
+          },
+          "expectedContentHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedcontenthash",
+            "type": "string"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "issueDecisions": {
+            "items": {
+              "$ref": "#/components/schemas/IssueDecision"
+            },
+            "maxItems": 100,
+            "title": "Issuedecisions",
+            "type": "array"
+          },
+          "number": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Number",
+            "type": "string"
+          },
+          "provenance": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisProvenance"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "title": "Provenance",
+            "type": "array"
+          },
+          "questionFinding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccuracyEstimate"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Reason",
+            "type": "string"
+          },
+          "reopenApproved": {
+            "default": false,
+            "title": "Reopenapproved",
+            "type": "boolean"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          },
+          "sharedFields": {
+            "additionalProperties": true,
+            "maxProperties": 4,
+            "title": "Sharedfields",
+            "type": "object"
+          },
+          "visualDecisions": {
+            "items": {
+              "$ref": "#/components/schemas/VisualDecision"
+            },
+            "maxItems": 100,
+            "title": "Visualdecisions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "requestId",
+          "number",
+          "expectedRevision",
+          "expectedContentHash",
+          "expectedAnalysisVersion",
+          "provenance",
+          "reason",
+          "corrections"
+        ],
+        "title": "StageReview",
         "type": "object"
       },
       "StartPaperReview": {
@@ -15772,6 +16116,70 @@
         "title": "ValidateScoring",
         "type": "object"
       },
+      "VisualDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "altText": {
+            "maxLength": 2000,
+            "minLength": 10,
+            "title": "Alttext",
+            "type": "string"
+          },
+          "assetId": {
+            "format": "uuid",
+            "title": "Assetid",
+            "type": "string"
+          },
+          "caption": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Caption",
+            "type": "string"
+          },
+          "decision": {
+            "enum": [
+              "approve",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "expectedSha256": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedsha256",
+            "type": "string"
+          },
+          "partLabel": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partlabel"
+          },
+          "sourceRole": {
+            "default": "paper",
+            "enum": [
+              "paper",
+              "scheme"
+            ],
+            "title": "Sourcerole",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assetId",
+          "expectedSha256",
+          "decision",
+          "altText"
+        ],
+        "title": "VisualDecision",
+        "type": "object"
+      },
       "VolumeTimeFacts": {
         "additionalProperties": false,
         "properties": {
@@ -17540,6 +17948,396 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/change-sets": {
+      "post": {
+        "operationId": "stage_api_v1_admin_official_paper_reviews__paper_id__change_sets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StageReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Stage",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/change-sets/{change_set_id}": {
+      "get": {
+        "operationId": "get_api_v1_admin_official_paper_reviews__paper_id__change_sets__change_set_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "change_set_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Get",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/change-sets/{change_set_id}/apply": {
+      "post": {
+        "operationId": "apply_api_v1_admin_official_paper_reviews__paper_id__change_sets__change_set_id__apply_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "change_set_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyReview"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Apply",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/change-sets/{change_set_id}/preview": {
+      "get": {
+        "operationId": "preview_api_v1_admin_official_paper_reviews__paper_id__change_sets__change_set_id__preview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "change_set_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Change Set Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/chat-release-readiness": {
       "get": {
         "operationId": "tutor_release_readiness_api_v1_admin_official_paper_reviews__paper_id__chat_release_readiness_get",
@@ -18928,6 +19726,118 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/auto-approval": {
+      "post": {
+        "operationId": "approve_api_v1_admin_official_paper_reviews__paper_id__questions__number__auto_approval_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScopedApproval"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Approve",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": {
       "post": {
         "operationId": "release_chat_part_api_v1_admin_official_paper_reviews__paper_id__questions__number__chat_release_post",
@@ -20202,6 +21112,709 @@
         "summary": "Preview Worked Answer",
         "tags": [
           "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/readiness": {
+      "get": {
+        "operationId": "readiness_api_v1_admin_official_paper_reviews__paper_id__readiness_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Readiness",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/release-validation": {
+      "post": {
+        "operationId": "release_validation_api_v1_admin_official_paper_reviews__paper_id__release_validation_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseValidation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Release Validation",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/review-batches": {
+      "post": {
+        "operationId": "batch_api_v1_admin_official_paper_reviews__paper_id__review_batches_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Batch",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/review-batches/{batch_id}": {
+      "get": {
+        "operationId": "batch_get_api_v1_admin_official_paper_reviews__paper_id__review_batches__batch_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Batch Get",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/review-batches/{batch_id}/resume": {
+      "post": {
+        "operationId": "resume_api_v1_admin_official_paper_reviews__paper_id__review_batches__batch_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Resume",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/review-history": {
+      "get": {
+        "operationId": "history_api_v1_admin_official_paper_reviews__paper_id__review_history_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "developer-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/review-package": {
+      "get": {
+        "operationId": "package_api_v1_admin_official_paper_reviews__paper_id__review_package_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "number",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 100,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 20,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Package",
+        "tags": [
+          "developer-reviews"
         ]
       }
     },
