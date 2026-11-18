@@ -331,7 +331,7 @@ def handle(db,settings,principal,session,payload,generator=None):
     if not spec and not active and not (row and normal in NEXT|{'retry feedback','retry generation'}):
         return None
     switching=bool(active and not spec and re.match(r'^(?:discuss|ask|give|generate|create)\b',text,re.I) and re.search(r'\bquestions?\b',text,re.I) and normal not in NEXT)
-    action='blocked' if switching else 'start' if spec else 'resume' if normal in {'resume practice','resume set','continue'} else 'next' if normal in NEXT else 'stop' if normal in STOP else 'reveal' if normal in REVEAL else 'skip' if normal in {'skip','skip question'} else 'hint' if 'hint' in normal else 'retry' if normal=='retry feedback' else 'generate' if normal=='retry generation' else 'answer'
+    action='blocked' if switching else 'start' if spec else 'resume' if normal in {'resume practice','resume set','continue'} else 'next' if normal in NEXT else 'stop' if normal in STOP else 'reveal' if normal in REVEAL or papers.intent(text)=='reveal' else 'skip' if normal in {'skip','skip question'} else 'hint' if 'hint' in normal else 'retry' if normal=='retry feedback' else 'generate' if normal=='retry generation' else 'answer'
     # Ordinary questions can temporarily leave practice without abandoning it.
     if active and action=='answer' and re.search(r'\?|^(why|how|what|can|explain|tell)\b',text,re.I) and not re.match(r'^(my answer|answer):',text,re.I):
         return None
@@ -396,7 +396,13 @@ def handle(db,settings,principal,session,payload,generator=None):
             if row.status!='active':raise DomainError('practice_set_completed','This set has ended. Ask for a new topic practice set.',409)
             items=copy.deepcopy(row.items);item=items[row.position]
             if not item.get('prompt'):raise DomainError('practice_generation_pending','Choose Retry generation to prepare this question.',409)
-            if action=='reveal':item['assisted']=True;item['revealed']=True
+            if action=='reveal':
+                requested=papers.identity(text)
+                release=db.get(TutorPaperRelease,uuid.UUID(item['releaseId'])) if item.get('releaseId') else None
+                reference=release.snapshot if release else {'number':str(row.position+1)}
+                if any(requested[k] is not None and str(requested[k]).lower()!=str(reference.get(k,'')).lower() for k in ['number','component','year','session']) or (requested['part'] and (not release or requested['part']!=release.part_label)):
+                    raise DomainError('practice_reference_mismatch','That refers to another question. Finish or stop this set before requesting it.',409)
+                item['assisted']=True;item['revealed']=True
             elif action=='skip':item['skipped']=True
             elif action=='hint':
                 item['assisted']=True

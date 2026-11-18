@@ -86,7 +86,8 @@ def test_retry_hint_reveal_withdrawal(auth_client,monkeypatch):
     assert hint['assisted'] and hint['itemStatus']=='awaiting_answer' and 'markingGuidance' not in hint['question']
     assert send('My answer: One spot.')['practiceSet']['summary']['maximumMarks']==0
     send('Next question');send(message)
-    revealed=send('Show answer')['practiceSet'];assert revealed['itemStatus']=='revealed'
+    assert send('Show the answer for question 9(b)')['practiceSet']['itemStatus']=='awaiting_answer'
+    revealed=send('Please show me the answer')['practiceSet'];assert revealed['itemStatus']=='revealed'
     assert send('My answer: copied')['practiceSet']['feedback'] is None
     send('Next question');send(message)
     release=db.scalar(select(TutorPaperRelease));release.enabled=False;db.commit()
@@ -111,10 +112,14 @@ def test_generated_frozen_checked_private(auth_client,monkeypatch):
             value=request.output_type(scientificallyCorrect=True,solvableFromQuestion=True,rubricConsistent=True,topicGrounded=True,originalWording=True,reason='Supported.')
         else:return feedback(request)
         return AIResult(value,'fixture','fixture-generation',None,AIUsage(10,20,30),1,1)
-    monkeypatch.setattr('app.services.tutor_agent._invoke',invoke)
+    # Exercise real invocation/quota commits between generation, validation
+    # and saving the frozen item, while substituting only the external provider.
+    monkeypatch.setattr('app.ai.router.AIAccountRouter.generate',
+        lambda router,request,**kwargs:invoke(None,None,None,request,None,None))
     state=send('Generate 2 new questions from '+topic.title)['practiceSet']
     assert state['sourceKind']=='generated' and state['availableCount']==2
     assert 'suggestedAnswer' not in state['question']
+    assert state['processing'] is False
     assert client.get(f'/api/v1/tutoring/sessions/{ref}/question-set').json()['question']==state['question']
     assert len(calls)==2
     assert send('My answer: Particles move randomly.')['practiceSet']['feedback']['score']==1
