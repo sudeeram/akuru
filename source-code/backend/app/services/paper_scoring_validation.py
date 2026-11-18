@@ -66,12 +66,13 @@ def run(db, settings, principal, paper_id, number, payload, *, generator=None, e
     points = marker._official_points(question)
     known = {p['pointId'] for p in points}
     expected = [set(s.expectedPoints) for s in payload.samples]
+    expected_totals = [marker.marking_rules.expected_marks(ids, rubric['scoringRules']) for ids in expected]
     if (len({marker.marking_rules.normalize(s.answer) for s in payload.samples}) != len(expected)
-            or any(len(ids) != len(s.expectedPoints) or not ids <= known or len(ids) > part.marks
+            or any(len(ids) != len(s.expectedPoints) or not ids <= known or marker.marking_rules.expected_marks(ids, rubric["scoringRules"]) > part.marks
                    for s, ids in zip(payload.samples, expected))
             or set().union(*expected) != known or not any(not ids for ids in expected)
-            or not any(len(ids) == part.marks for ids in expected)
-            or (part.marks > 1 and not any(0 < len(ids) < part.marks for ids in expected))):
+            or part.marks not in expected_totals
+            or (part.marks > 1 and not any(0 < value < part.marks for value in expected_totals))):
         raise DomainError('scoring_fixture_coverage', 'Use distinct sample answers covering every point, zero and full credit, and partial credit where applicable.', 422)
     policy = subject_marking.policy(subject)
     sources = marker._sources(db, question, settings.assessment_context_chunks)
@@ -79,17 +80,17 @@ def run(db, settings, principal, paper_id, number, payload, *, generator=None, e
     sources.append(dict(type='assessment_prompt',name=prompt.name,version=prompt.version,instructions=prompt.instructions))
     db.rollback()
     cases = []
-    for sample, ids in zip(payload.samples, expected):
+    for sample, ids, expected_total in zip(payload.samples, expected, expected_totals):
         deterministic = subject_marking.analyze(subject, question.prompt, sample.answer, rubric, None)
         first, second, marks, decisions, confidence, review = marker.mark_text_answer(
             db, settings, question, SimpleNamespace(answer_text=sample.answer, file_id=None),
             points, sources, policy, deterministic, None, sample.answer,
             dict(subject_id=subject, scoring_validation='true'), generator or marker._generate)
         actual = {d.pointId for d in decisions if d.awarded}
-        cases.append(dict(expectedMarks=len(ids), actualMarks=marks, expectedPoints=sorted(ids),
+        cases.append(dict(expectedMarks=expected_total, actualMarks=marks, expectedPoints=sorted(ids),
             actualPoints=sorted(actual), model=second.model, confidence=confidence,
             responseIds=[r.response_id for r in (first,second) if r.response_id],
-            passed=marks==len(ids) and actual==ids and not review
+            passed=marks==expected_total and actual==ids and not review
                 and confidence>=max(settings.assessment_confidence_threshold, 0.90 if policy.subjective else 0)))
     db.expire_all()
     workspace, row, latest = evidence_links._context(db, paper_id, number, lock=True)

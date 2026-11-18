@@ -79,3 +79,9 @@ First inspect the original scheme page: a missing AKURU visual association does 
 - Do not silently resolve disagreements between a question's allocation and a scheme's instruction/mark column. Record all source locations and the discrepancy. An examiner report can inform review but must not silently rewrite the scheme.
 
 See [the June 2025 Biology source comparison](reviews/2026-11-04-june-2025-biology-source-comparison.md).
+
+## Calculation score-band extraction (2026-11-18)
+
+When the scheme says calculation steps are not marking points and awards a full-answer score with specified partial-credit alternatives, propose separate full/partial **criteria**, not a single one-mark point containing several score outcomes. Preserve exact rounding, units, equivalent notation, exclusions and continuation-page allowances. Use version-2 `scoreBands` to reference those criteria with their official scores; only the highest matched band may earn marks. No match gives zero. Do not invent partial credit for plausible working that the source does not authorise.
+
+Keep dependencies, follow-through, penalties and unsupported overlapping rules manual-only. Require zero, each partial band, full credit, equivalent notation and common incorrect-answer regression examples before automatic marking. Extraction confidence is independent of executable scoring readiness. Existing combined calculation points must not become automatic merely because their source extraction is highly accurate. See [calculation score-band implementation](../../../source-code/backend/docs/calculation-score-bands.md).

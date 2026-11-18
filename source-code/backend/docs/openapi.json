@@ -6519,9 +6519,17 @@
             "title": "Groups",
             "type": "array"
           },
+          "scoreBands": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreBandGroup"
+            },
+            "maxItems": 100,
+            "title": "Scorebands",
+            "type": "array"
+          },
           "version": {
             "default": 1,
-            "maximum": 1.0,
+            "maximum": 2.0,
             "minimum": 1.0,
             "title": "Version",
             "type": "integer"
@@ -10534,6 +10542,55 @@
           "end"
         ],
         "title": "ScientificTextMark",
+        "type": "object"
+      },
+      "ScoreBand": {
+        "additionalProperties": false,
+        "properties": {
+          "marks": {
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Marks",
+            "type": "integer"
+          },
+          "pointId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Pointid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pointId",
+          "marks"
+        ],
+        "title": "ScoreBand",
+        "type": "object"
+      },
+      "ScoreBandGroup": {
+        "additionalProperties": false,
+        "properties": {
+          "bands": {
+            "items": {
+              "$ref": "#/components/schemas/ScoreBand"
+            },
+            "maxItems": 100,
+            "minItems": 2,
+            "title": "Bands",
+            "type": "array"
+          },
+          "id": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "bands"
+        ],
+        "title": "ScoreBandGroup",
         "type": "object"
       },
       "SeedPaperReview": {

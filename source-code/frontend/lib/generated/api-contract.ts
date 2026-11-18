@@ -131,7 +131,7 @@ export interface Schemas {
   "MarkingDecision": { "pointId": string; "criterion": string; "awarded": boolean; "marksAwarded": number; "maxMarks": number; "studentEvidence": string; "rationale": string; "confidence": number; };
   "MarkingGroup": { "id": string; "pointIds": Array<string>; "maxMarks": number; "requiredForFullCredit"?: Array<string>; };
   "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; "dependsOn"?: string | null; "followThrough"?: boolean; "acceptedAnswers"?: Array<string>; };
-  "MarkingRules": { "version"?: number; "groups"?: Array<Schemas["MarkingGroup"]>; "combinedResponses"?: Array<Schemas["CombinedResponse"]>; };
+  "MarkingRules": { "version"?: number; "groups"?: Array<Schemas["MarkingGroup"]>; "combinedResponses"?: Array<Schemas["CombinedResponse"]>; "scoreBands"?: Array<Schemas["ScoreBandGroup"]>; };
   "MasteryDimensionResponse": { "dimension": string; "score": number; "evidenceWeight": number; };
   "MasteryEventResponse": { "id": string; "previousScore": number | null; "newScore": number; "previousConfidence": string | null; "newConfidence": string; "explanation": string; "createdAt": string; };
   "MasteryResponse": { "studentId": string; "topics"?: Array<Schemas["TopicMasteryResponse"]>; "groups"?: Array<Schemas["GroupMasteryResponse"]>; };
@@ -224,6 +224,8 @@ export interface Schemas {
   "SaveTopicMappingsRequest": { "mappings": Array<Schemas["TopicMapping"]>; };
   "ScientificTextContent": { "version"?: 1; "text": string; "plainText": string; "marks"?: Array<Schemas["ScientificTextMark"]>; };
   "ScientificTextMark": { "type": "subscript" | "superscript" | "bold" | "italic"; "start": number; "end": number; };
+  "ScoreBand": { "pointId": string; "marks": number; };
+  "ScoreBandGroup": { "id": string; "bands": Array<Schemas["ScoreBand"]>; };
   "SeedPaperReview": { "draftBank": { [key: string]: unknown; }; "coverageTriage"?: { [key: string]: unknown; } | null; "provenance"?: Array<Schemas["AnalysisProvenance"]>; };
   "SourceAccuracy": { "role": "paper" | "scheme" | "report"; "status": "checked" | "not_checked" | "not_available" | "no_comment"; "percent"?: number | null; "pages"?: Array<number>; "reasons": Array<string>; };
   "SourceIssue": { "id"?: string; "kind": "extraction" | "source_discrepancy" | "report_guidance"; "role": "paper" | "scheme" | "report"; "pages": Array<number>; "description": string; };

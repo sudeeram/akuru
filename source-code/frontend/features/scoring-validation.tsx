@@ -82,7 +82,7 @@ export function ScoringValidation({
           Use reviewed, synthetic answers only. Enter up to 8 lines in the form{' '}
           <code>P1,P2 | sample answer</code>. Use <code>0 | sample answer</code>{' '}
           for zero credit. Include zero, full and partial credit where
-          applicable, and cover every point.
+          applicable, and cover every point. For score bands, enter only the credited band code (for example FULL or PARTIAL); its configured marks are used, not the number of codes.
         </p>
         <label htmlFor={examplesId}>
           Sample answers and expected point codes

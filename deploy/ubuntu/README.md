@@ -209,18 +209,17 @@ For the textbook-topic release, run the deployment tools only on the OCI host af
 cd /opt/akuru
 sudo ./deploy/ubuntu/release-preflight.sh <reviewed-sha>
 sudo ./deploy/ubuntu/deploy-reviewed-release.sh --execute <reviewed-sha>
-sudo ./deploy/ubuntu/release-acceptance.sh akuru.magicalinternational.com
 ```
 
-The deployment command takes encrypted database and document backups before it
-installs locked dependencies or applies Alembic. It writes non-secret evidence
+The deployment command takes encrypted database and document backups before any runtime-changing deployment
+installs locked dependencies, builds or applies Alembic. It runs release acceptance internally. It writes non-secret evidence
 below `/data/akuru/release-evidence`. The production reset window is closed:
 the deployment tool supports forward migrations only and contains no database
 drop, recreation or Admin-bootstrap mode.
 
 ## Upgrade outline
 
-For each release, take a database and document backup, fetch the reviewed Git revision, install locked frontend/backend dependencies, run the quality gate, build the frontend, apply Alembic migrations, and restart the application services. If a migration fails, stop deployment and restore the tested backup; do not point an older application release at a newer incompatible schema.
+For each release, fetch the reviewed Git revision, pass the pre-release quality gate, preview the deployment plan, then execute it. The component-aware command performs the required backup, dependency verification/installation, builds, forward migrations, restarts and acceptance checks. If a migration fails, stop deployment and restore the tested backup; do not point an older application release at a newer incompatible schema.
 
 ## Node.js security maintenance
 
@@ -229,3 +228,69 @@ The supported runtime floors are Node **22.23.4**, **24.22.1** and **26.12.1** w
 For a Node 22 security update: confirm backups and current running versions; run `sudo apt-get update`, inspect `apt-cache policy nodejs` and simulate the selected package operation, then install only the reviewed Node 22 package. Restart `akuru-web`, allow startup to complete, verify the actual serving process's executable version, and run `sudo deploy/ubuntu/release-acceptance.sh akuru.magicalinternational.com` from the deployed checkout. Test authenticated learning/review workflows. A shell's updated `node --version` alone does not prove an existing process was restarted. No database migration is needed for a runtime patch.
 
 OpenClaw's Node runtime belongs to its Docker image and must be patched separately; follow `openclaw/deploy/upgrade-gateway.sh` and the OpenClaw recovery guide. Local NVM updates require the user's approval. Until local Node is patched, the frontend wrapper intentionally refuses affected runtimes; it never installs software automatically.
+
+## Faster component-aware deployments
+
+The reviewed deployment command now plans against
+`/data/akuru/release-evidence/last-successful-release.json`, written atomically
+only after service health and `release-acceptance.sh` pass. It never infers the
+running version from the current Git checkout or an arbitrary log filename.
+The first deployment without this accepted baseline is deliberately full.
+
+Preview on the server after fetching/checking out the reviewed revision:
+
+```bash
+sudo ./deploy/ubuntu/deploy-reviewed-release.sh --plan <reviewed-sha>
+sudo ./deploy/ubuntu/deploy-reviewed-release.sh --execute <reviewed-sha>
+# Recovery/conservative override: run all components and reinstall dependencies.
+sudo ./deploy/ubuntu/deploy-reviewed-release.sh --execute <reviewed-sha> --full
+```
+
+Selection rules:
+
+- Frontend source/assets/configuration: verify/reuse frontend dependencies,
+  build and restart `akuru-web`. Do not restart API/worker or run migrations.
+- Backend runtime code: verify/reuse Python dependencies, check schema and
+  restart API/worker. Do not rebuild the frontend.
+- Migration files/Alembic configuration: also run forward migrations.
+- `app/seed_catalog.py`: also seed the catalog.
+- Shared scripts, operational files and unclassified paths: full deployment.
+- Documentation, tests, guidelines, CI and independent OpenClaw files: no AKURU
+  runtime rebuild/restart unless another changed path requires one.
+- Changed protected environment, missing/unaccepted/non-ancestor baseline:
+  full deployment. Changed or unverifiable Node/Python version selects its
+  component. Missing frontend build output selects a rebuild.
+
+Every runtime-changing deployment still takes and validates the existing fresh
+**database and document backup before installation, build or schema changes**.
+Documentation-only deployments skip that backup because they change no runtime
+or schema; preflight, health and acceptance still run. Full document backup is
+unchanged and can still dominate elapsed time as the document library grows.
+Deployment uses an exclusive `flock`; concurrent invocations fail rather than
+race. Do not manually edit the accepted baseline to make a deployment faster.
+
+Dependency receipts are root-owned in `release-evidence/dependency-cache`.
+Reuse requires matching input-file hashes, runtime and installed inventory.
+Frontend checks `package.json`, `package-lock.json`, Node/npm versions and
+`npm ls --all --json`; backend checks the production lockfile, Python/platform,
+`pip check` and `pip freeze --all`. Receipts store hashes, not credentials or
+raw package inventory. Missing/corrupt receipts or failed checks trigger the
+existing locked installation. A successful install is verified before its
+receipt is atomically replaced. This detects drift; pip installation retains
+its normal behaviour and is not a clean-room environment rebuild. Use a fresh
+virtual environment when removing undesired extra Python packages is required.
+
+Each invocation writes `plan-<sha>-<time>.json`,
+`timings-<sha>-<time>.tsv` and, on success, `deployed-<sha>-<time>.txt`.
+The timing table records stage name, elapsed seconds and passed/failed status;
+the console shows start/completion and total elapsed time. Failed deployment
+never advances the accepted baseline; the next attempt compares against the
+last successful release, including any previously attempted changes. Dependency
+receipts can survive a later build failure because they certify installation,
+not application release success.
+
+Release-specific authenticated checks and normal pre-release CI remain required.
+This is still an in-place deployment; it does not implement CI-built artifacts,
+atomic application-directory switching or incremental document backups. Those
+are separate infrastructure changes. Ubuntu already provides the Python standard
+library and `flock` used here; no new Python/npm dependencies are added.

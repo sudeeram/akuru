@@ -18,7 +18,7 @@ export type CoverageStatus =
   | 'partial_or_uncertain'
   | 'outside_current_coverage';
 export type MarkingRules = {
-  version: 1;
+  version: 1 | 2;
   groups: {
     id: string;
     pointIds: string[];
@@ -26,6 +26,7 @@ export type MarkingRules = {
     requiredForFullCredit: string[];
   }[];
   combinedResponses: { phrase: string; pointIds: string[] }[];
+  scoreBands?: { id: string; bands: { pointId: string; marks: number }[] }[];
 };
 export type TextbookPageEvidence = {
   topicRef: string;

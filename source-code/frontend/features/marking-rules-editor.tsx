@@ -58,7 +58,8 @@ export function MarkingRulesEditor({
       </p>
       <p>
         Use point codes from above, separated by commas. Groups may be nested or
-        separate. Conditional zero-score rules and alternative scoring paths
+        separate. Score bands award only the highest matched alternative. Dependencies,
+        follow-through and conditional zero-score rules combined with bands
         still require manual marking.
       </p>
       {rules.groups.map((group, i) => (
@@ -218,6 +219,70 @@ export function MarkingRulesEditor({
       >
         Add combined response
       </Button>
+      <fieldset>
+        <legend>Calculation score bands</legend>
+        <p>
+          Create a separate marking point for each score outcome (for example,
+          FULL for the correct result and PARTIAL for scheme-approved working or
+          rounding errors). Reference those codes below. No matching band earns
+          zero; matching both awards only the higher score. Equivalent notation
+          belongs in the same criterion, not a separate additive point.
+        </p>
+        {(rules.scoreBands ?? []).map((group, i) => (
+          <fieldset key={i}>
+            <legend>Score-band group {i + 1}</legend>
+            <label>
+              Score-band group name
+              <Input value={group.id} onChange={(e) => update({ ...rules,
+                scoreBands: rules.scoreBands?.map((g, j) => j === i ? { ...g, id: e.target.value } : g),
+              })} />
+            </label>
+            {group.bands.map((band, k) => (
+              <div key={k}>
+                <label>
+                  Criterion point code
+                  <select value={band.pointId} onChange={(e) => update({ ...rules,
+                    scoreBands: rules.scoreBands?.map((g, j) => j === i ? { ...g,
+                      bands: g.bands.map((b, n) => n === k ? { ...b, pointId: e.target.value } : b),
+                    } : g),
+                  })}>
+                    <option value="">Choose a marking point</option>
+                    {part.markingPoints.map((point) => <option key={point.code} value={point.code}>{point.code} — {point.text}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Marks for this band
+                  <Input type="number" min={1} max={part.marks} value={band.marks}
+                    onChange={(e) => update({ ...rules,
+                      scoreBands: rules.scoreBands?.map((g, j) => j === i ? { ...g,
+                        bands: g.bands.map((b, n) => n === k ? { ...b, marks: Number(e.target.value) } : b),
+                      } : g),
+                    })} />
+                </label>
+                <Button variant="outline" onClick={() => update({ ...rules,
+                  scoreBands: rules.scoreBands?.map((g, j) => j === i ? { ...g,
+                    bands: g.bands.filter((_, n) => n !== k),
+                  } : g),
+                })}>Remove band</Button>
+              </div>
+            ))}
+            <Button variant="outline" onClick={() => update({ ...rules,
+              scoreBands: rules.scoreBands?.map((g, j) => j === i ? { ...g,
+                bands: [...g.bands, { pointId: '', marks: 1 }],
+              } : g),
+            })}>Add band</Button>
+            <Button variant="outline" onClick={() => update({ ...rules,
+              scoreBands: rules.scoreBands?.filter((_, j) => j !== i),
+            })}>Remove score-band group</Button>
+          </fieldset>
+        ))}
+        <Button variant="outline" disabled={part.marks < 2} onClick={() => update({ ...rules, version: 2,
+          scoreBands: [...(rules.scoreBands ?? []), {
+            id: `calculation-${(rules.scoreBands?.length ?? 0) + 1}`,
+            bands: [{ pointId: '', marks: part.marks }, { pointId: '', marks: 1 }],
+          }],
+        })}>Add calculation score bands</Button>
+      </fieldset>
       <label>
         Automatic-marking readiness
         <select
