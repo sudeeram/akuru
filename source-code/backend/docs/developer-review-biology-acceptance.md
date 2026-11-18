@@ -1,5 +1,7 @@
 # Biology June 2025 2BR prepared-review acceptance
 
+Historical checkpoint. See [the later final source-readiness report](biology-2025-2br-final-source-readiness.md): its curriculum/guidance discrepancies are now resolved; manual scoring limitations remain separate.
+
 Date: 2026-11-18
 Paper: `eea024fe-978f-4392-b330-c0011201cf63`. Scope was limited to this Biology paper. No Chemistry data changes, paid inference calls or Student-performance mutations were made.
 

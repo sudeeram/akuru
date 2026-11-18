@@ -63,6 +63,8 @@ The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build ar
 
 ## Completed
 
+- [Biology June 2025 2BR source readiness](completed/TODO-BIOLOGY-2025-2BR-FINAL-READINESS.md) — complete source/curriculum/guidance assessment and mixed-engine assembly support; 17 independent manual-scoring gates remain.
+
 - [Past-paper developer review APIs](completed/TODO-PAST-PAPER-DEVELOPER-REVIEW-APIS.md) — authenticated prepared corrections, scoped source/provenance preservation, model-free batches/CLI, approval/release diagnostics and verified Biology 2BR acceptance.
 
 - [Past-paper questions and approved answers in Tutor chat](completed/TODO-TUTOR-PAST-PAPER-CHAT.md) — verified one-student production pilot with explicitly released 1C subparts, private source evidence and approved answers.
