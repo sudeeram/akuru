@@ -7,7 +7,7 @@ Implementation started: 18 November 2026. Scope: authenticated, model-free revie
 1. Export `GET /api/v1/admin/official-paper-reviews/{paper}/review-package`. Use `number`, `offset` and `limit` (maximum 20 questions). Private original-document links, source versions, question revision, analysis version, scope hashes and source issues accompany the question data.
 2. Inspect the original sources. Prepare a `StageReview` JSON using the exported revision/content/analysis hashes, explicit per-part corrections and attributed `sourceFinding` records. Never replace an expected hash merely to force an old correction through.
 3. POST `/{paper}/change-sets`. This creates an immutable prepared audit record; it does not change the live question. An identical request ID/payload returns the existing record. A reused ID with a different payload conflicts.
-4. GET `/{paper}/change-sets/{id}/preview`. Inspect before/after content, selected parts, unchanged siblings, source versions and any visual operations. Previewing visual metadata runs inside a rolled-back savepoint.
+4. GET `/{paper}/change-sets/{id}/preview`. Inspect before/after content, selected parts, unchanged siblings, source versions and any visual operations. Previewing visual metadata runs inside a rolled-back savepoint. Preview hashes also bind current topic publications and mappings, so a publication change requires another preview. A wording/shared-stem correction rebuilds the aggregate prompt; absent shared context must be explicitly confirmed rather than silently discarded.
 5. POST `/{paper}/change-sets/{id}/apply` with a new request ID and the exact preview hash. Correction, attributed analysis, issue decisions and optional approval/release share a database transaction. Failures roll back the entire item. The receipt distinguishes newly compared findings from findings carried forward with their original analysis ID.
 6. Inspect `/{paper}/readiness`. Source confidence, content approval, curriculum and executable scoring are separate gates. Open explanations stay manual unless their supported scoring implementation is independently validated. Confidence strictly above 75% is necessary but not sufficient for AI approval.
 
@@ -34,7 +34,7 @@ Existing reviewed crop assets can be approved/rejected with `visualDecisions`; n
 In addition to export, readiness and change-set stage/get/preview/apply:
 
 - `POST /{paper}/questions/{number}/auto-approval`: scoped policy evaluation, optionally dry-run, with idempotent receipts.
-- `POST /{paper}/release-validation`: diagnostics for Tutor practice, official drafts or formal exams. This never publishes an exam. Formal publication still requires the official-material draft validation/publication workflow.
+- `POST /{paper}/release-validation`: diagnostics for Tutor practice, official drafts or formal exams. This never publishes an exam. Formal validation invokes the same official-material publication checks with publication disabled inside a rolled-back savepoint. It checks the current drafts, source identity and inventory without publishing them. Actual publication still uses the separate explicit workflow.
 - `POST /{paper}/review-batches`, `GET /{paper}/review-batches/{id}`, `POST /{paper}/review-batches/{id}/resume`: maximum 50 distinct prepared items, each with its own exact preview hash and transaction. Earlier successful items remain committed if a later item conflicts. Resume skips current completed receipts, reports stale ones and never fabricates new findings.
 - `GET /{paper}/review-history?offset=0&limit=50`: bounded audit history, including batch attempts and approval operations.
 
@@ -46,6 +46,6 @@ Prepared records, batches and receipts use existing indexed `AuditEvent` rows; a
 
 The question review page includes **Prepared developer review** tools. It disables applying external packages while the page has unsaved edits, shows the source-bound diff and requires explicit confirmation before applying. Saving refreshes the review while preserving the selected question/subpart. Accuracy views show per-part freshness and carried-forward origin.
 
-## Remaining acceptance evidence
+## Acceptance evidence
 
-The ongoing TODO is authoritative for outstanding acceptance, including the Biology-only production comparison and the complete security/regression matrix. Do not interpret the presence of these routes as completion of every roadmap item or approval of a whole exam.
+See [Biology production acceptance](developer-review-biology-acceptance.md) for the three source corrections, all 31 part states, preserved certificates and remaining independent release blockers. The implementation roadmap tracks final deployment acceptance. Route availability and source approval do not imply a whole exam is published.

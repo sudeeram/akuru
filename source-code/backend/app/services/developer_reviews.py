@@ -8,7 +8,7 @@ import hashlib
 import json
 import uuid
 from datetime import datetime,timezone
-from sqlalchemy import select
+from sqlalchemy import select,or_,and_
 from pydantic import ValidationError
 from app.errors import DomainError
 from app.models import AuditEvent,OfficialPaperReviewQuestion,OfficialQuestionAnalysis,DocumentAsset
@@ -116,6 +116,11 @@ def _target(db,w,q,payload,base_scopes=None):
         if existing:
             fields=[key for key in type(part).model_fields if key not in {'status','assessmentReadiness','assessmentReadinessReason'}and existing['before'].get(key)!=part.model_dump(mode='json').get(key)]
             existing.update(after=part.model_dump(mode='json'),fields=fields or (['visualMetadata']if affected else []))
+    if before.sharedStem!=data.sharedStem or any('prompt'in change['fields']for change in changes):
+        if not data.sharedStem and 'sharedStem'not in payload.sharedFields:
+            raise DomainError('review_shared_context_required','Confirm the shared stem explicitly before rebuilding aggregate question wording.',409)
+        data.prompt='\n\n'.join(value for value in [data.sharedStem,*[f'({part.label}) {part.prompt}'for part in data.parts]]if value)
+        data=ReviewQuestionData.model_validate(data.model_dump(mode='json'))
     return before,data,changes
 
 
@@ -153,14 +158,21 @@ def change_set(db,paper,key):
 def _preview(db,paper,key,base_scopes=None):
     row=staged(db,paper,key);payload=StageReview.model_validate(row.event_data['payload'])
     w,q,_=context(db,paper,payload.number)
-    _,data,changes=target(db,w,q,payload,base_scopes)
+    before,data,changes=target(db,w,q,payload,base_scopes)
     # Validate reference ownership and all normal content contracts before writing.
     reviews._validate_question(db,w,'unreviewed',data,q.review_data,q.number)
     selected={c.partLabel for c in payload.corrections}
+    from .tutor_past_papers import topic_publications
+    from .paper_curriculum import mapping_hash
+    publication_bindings=[]
+    for part in data.parts:
+        try:publications=topic_publications(db,w,part)if part.topicRefs else []
+        except DomainError as exc:publications=[dict(blocker=exc.code)]
+        publication_bindings.append(dict(partLabel=part.label,mappingHash=mapping_hash(part.model_dump(mode='json')),publications=publications))
     value=dict(changeSetId=str(key),number=q.number,baseRevision=q.revision,baseContentHash=payload.expectedContentHash,
         changes=changes,carriedForwardParts=[p.label for p in data.parts if p.label not in selected],
         affectedParts=sorted(selected),sourceVersions=analyses.source_manifest(db,w),
-        sharedFields=payload.sharedFields,visualDecisions=[v.model_dump(mode='json')for v in payload.visualDecisions],noInference=True,formalPublication=False)
+        assembledPrompt=dict(before=before.prompt,after=data.prompt)if before.prompt!=data.prompt else None,publicationBindings=publication_bindings,sharedFields=payload.sharedFields,visualDecisions=[v.model_dump(mode='json')for v in payload.visualDecisions],issueDecisions=[v.model_dump(mode='json')for v in payload.issueDecisions],gateImpact=[dict(partLabel=c['partLabel'],sourceRecheckRequired=bool(c['fields']),scoringBefore=c['before']['assessmentReadiness'],scoringAfter=c['after']['assessmentReadiness'],releaseDependenciesChanged=bool(c['fields'])) for c in changes],noInference=True,formalPublication=False)
     value['previewHash']=digest(value)
     return value
 
@@ -189,6 +201,7 @@ def _analysis_payload(db,w,q,old,payload,previous_data,previous_bindings,baselin
                 raise DomainError('review_carry_invalid','Unchanged source evidence cannot be established; supply a new comparison.',409)
             parts.append(copy.deepcopy(prior[label]));origins[label]=dict(kind='carried_forward',analysisId=str(old.id))
     question=payload.questionFinding.model_dump(mode='json')if payload.questionFinding else copy.deepcopy(old.analysis_data['question'])
+    question['percent']=min(question['percent'],*(part['percent']for part in parts))
     from .accuracy_jobs import _version
     analysis=RecordQuestionAnalysis(expectedQuestionRevision=q.revision,expectedAnalysisVersion=_version(db,q),
         expectedContentHash=analyses.content_hash(db,q,analyses.source_manifest(db,w)),stage='accuracy',
@@ -272,9 +285,10 @@ def apply(db,principal,paper,key,request,*,commit=True):
 
 
 def history(db,paper,limit=50,offset=0):
-    reviews._workspace(db,paper)
-    return [dict(id=str(r.id),action=r.action,createdAt=r.created_at,data=r.event_data)for r in db.scalars(select(AuditEvent).where(
-        AuditEvent.target_id==str(paper),AuditEvent.action.in_([STAGED,APPLIED,BATCH,'developer_review.batch_attempt','developer_review.approval'])).order_by(AuditEvent.created_at.desc(),AuditEvent.id.desc()).offset(offset).limit(limit))]
+    w=reviews._workspace(db,paper)
+    ids=[str(value)for value in db.scalars(select(OfficialPaperReviewQuestion.id).where(OfficialPaperReviewQuestion.workspace_id==w.id))]
+    relevant=or_(and_(AuditEvent.target_id==str(paper),or_(AuditEvent.action.like('developer_review.%'),AuditEvent.action.like('official_review.%'))),and_(AuditEvent.target_id.in_(ids),or_(AuditEvent.action.like('official_review.%'),AuditEvent.action.like('tutor_paper.%'))))
+    return [dict(id=str(r.id),actorId=str(r.actor_id)if r.actor_id else None,action=r.action,createdAt=r.created_at,targetId=r.target_id,data=r.event_data)for r in db.scalars(select(AuditEvent).where(relevant).order_by(AuditEvent.created_at.desc(),AuditEvent.id.desc()).offset(offset).limit(limit))]
 
 
 def readiness(db,paper,numbers=None):
@@ -292,14 +306,16 @@ def readiness(db,paper,numbers=None):
             if estimate and estimate['percent']<=75:blockers.append(dict(code='confidence_below_threshold',gate='contentApproval',action='compare_original_sources'))
             issues=paper_source_issues.blocking(analysis,part.label,paper_source_issues.decisions(db,[q.id]))
             blockers.extend(dict(code='source_'+i['kind'],gate='sourceIssues',issueId=i['id'],action='correct_or_adjudicate_source')for i in issues)
+            for blocker in blockers:blocker.update(severity='blocking',needsSourceInterpretation=blocker['gate']in {'sourceAccuracy','sourceIssues'},usesModel=False)
+            report_check=next((s for s in (estimate or {}).get('sourceChecks',[])if s['role']=='report'),None)
             certificate=deterministic_validation.certificate(db,w,q,data,part)if part.scoringRules.deterministic else None
             try:tutor_past_papers.validate_release(db,w,q,part.label);tutor=True
             except DomainError as exc:
-                tutor=False;blockers.append(dict(code=exc.code,gate='tutorRelease',message=exc.message,action='inspect_release_gate'))
+                tutor=False;blockers.append(dict(code=exc.code,gate='tutorRelease',message=exc.message,action='inspect_release_gate',severity='blocking',needsSourceInterpretation=False,usesModel=False))
             rows.append(dict(number=q.number,partLabel=part.label,partRef=review_scopes.part_ref(q,part.label),scopeHash=review_scopes.binding(db,w,q,part.label),
                 revision=q.revision,contentApproval=part.status,sourceAccuracy=dict(current=analysis is not None,percent=estimate['percent']if estimate else None,origin=analysis.analysis_data.get('_reviewOrigins',{}).get(part.label,{}).get('kind','original_comparison')if analysis else None),
                 curriculum=dict(coverage=part.coverage,topicRefs=part.topicRefs),scoringReadiness=dict(status=part.assessmentReadiness,reason=part.assessmentReadinessReason,certificateId=str(certificate.id)if certificate else None),
-                tutorEligible=tutor,blockers=blockers))
+                reportGuidance=dict(status=report_check['status']if report_check else 'not_checked',usable=bool(analysis and paper_source_issues.report_usable(analysis,part.label,paper_source_issues.decisions(db,[q.id])))),evidence=dict(paper=[r.model_dump(mode='json')for r in part.paperSources],scheme=[r.model_dump(mode='json')for r in part.schemeSources],report=[r.model_dump(mode='json')for r in part.reportSources]),warnings=([dict(code='report_guidance_withheld',severity='warning',usesModel=False)]if analysis and not paper_source_issues.report_usable(analysis,part.label,paper_source_issues.decisions(db,[q.id]))else []),tutorRelease=dict(eligible=tutor),formalRelease=dict(wholePaperReady=review.wholePaperReady,automaticAssessmentReady=review.automaticAssessmentReady),tutorEligible=tutor,blockers=blockers))
     return dict(paperId=str(paper),parts=rows,wholePaperReady=review.wholePaperReady,automaticAssessmentReady=review.automaticAssessmentReady,
         blockers=review.blockers,noInference=True)
 
@@ -346,9 +362,22 @@ def approve(db,principal,paper,number,payload):
 def validate_release(db,paper,payload):
     state=readiness(db,paper,payload.numbers)
     if payload.target=='tutor_practice':blockers=[dict(number=p['number'],partLabel=p['partLabel'],blockers=p['blockers'])for p in state['parts']if not p['tutorEligible']]
-    else:blockers=state['blockers']+([]if state['automaticAssessmentReady']else['Complete-paper scoring readiness is not satisfied.'])
+    else:
+        review=reviews.get(db,paper)
+        blockers=list(state['blockers'])+list(review.assessmentBlockers)
+        if not review.assessmentReleaseReady and not blockers:blockers.append('Complete-paper scoring readiness is not satisfied.')
     if payload.target=='formal_exam':
-        blockers=blockers+['Use the official-material draft validation and publication workflow; this review check does not certify a published exam.']
+        from types import SimpleNamespace
+        from .official_materials import publish_review
+        w=reviews._workspace(db,paper)
+        confirmation=SimpleNamespace(confirmCourse=True,confirmSubject=True,confirmComplete=True,confirmSourcePaper=True)
+        for role,document_id in [('paper',w.paper_document_id),('scheme',w.scheme_document_id)]:
+            if not document_id:
+                blockers.append(dict(role=role,code='official_source_missing'));continue
+            transaction=db.begin_nested()
+            try:publish_review(db,None,document_id,confirmation,validate_only=True)
+            except DomainError as exc:blockers.append(dict(role=role,code=exc.code,message=exc.message))
+            finally:transaction.rollback()
     content=dict(target=payload.target,readiness=state,blockers=blockers,passed=not blockers,noInference=True,published=False)
     from datetime import timedelta
     content['validUntil']=(datetime.now(timezone.utc)+timedelta(minutes=10)).isoformat()

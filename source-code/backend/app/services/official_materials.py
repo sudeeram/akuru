@@ -269,7 +269,7 @@ def _published_paper_questions(db: Session, paper_id: uuid.UUID) -> tuple[Offici
     return paper, dict(db.execute(select(OfficialQuestionVersion.question_number, OfficialQuestionVersion.marks).where(OfficialQuestionVersion.material_version_id == paper.id)).all())
 
 
-def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, confirmation):
+def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, confirmation, *, validate_only=False):
     document = _document(db, document_id)
     material = _current(db, document.id)
     if not material or material.status != "draft":
@@ -365,6 +365,8 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
                     raise DomainError("assessment_rules_not_ready", "A scheme with alternative points needs structured scoring limits before publication.", 409)
             if numbers != set(allowed) or any(entry.max_marks != allowed[entry.question_number] for entry in entries):
                 raise DomainError("mark_scheme_reconciliation_failed", "The marking scheme must cover every published question with matching marks.", 409)
+    if validate_only:
+        return {'documentId':str(document.id),'version':material.version_number,'itemCount':count,'ready':True,'published':False}
     now = datetime.now(timezone.utc)
     for old in db.scalars(select(OfficialMaterialVersion).where(OfficialMaterialVersion.document_id == document.id, OfficialMaterialVersion.status == "published").with_for_update()).all():
         old.status = "superseded"; old.superseded_at = now

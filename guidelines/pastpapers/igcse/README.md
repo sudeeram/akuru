@@ -102,3 +102,5 @@ These Markdown rules do not automatically configure OCR or enforce every gate in
 - [2026-11-11 Biology model attribution correction](reviews/2026-11-11-biology-model-attribution.md) — operator-confirmed GPT-6.1 Sol / Light recorded in 136 existing AI-assisted analyses across 17 papers; native-only records, confidence and approval states preserved.
 
 - [2026-11-11 June 2025 Biology exact-evidence linking](reviews/2026-11-11-june-2025-exact-evidence-linking.md) — 554 source-region associations across all 156 subparts; current confidence, guarded AI approval and retained visual/source-conflict gates.
+
+- [Prepared source corrections and carry-forward](prepared-review-workflow.md): source-faithful targeted corrections, honest provenance, immutable preview/apply and independent scoring/release gates.

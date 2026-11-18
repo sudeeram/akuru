@@ -36,6 +36,7 @@ class VisualDecision(Strict):
     altText:str=Field(min_length=10,max_length=2000)
 
 class StageReview(Strict):
+    schemaVersion:Literal[1]=1
     requestId:uuid.UUID
     number:str=Field(min_length=1,max_length=40)
     expectedRevision:int=Field(ge=1)

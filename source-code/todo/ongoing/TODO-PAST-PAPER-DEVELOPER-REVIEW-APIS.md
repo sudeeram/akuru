@@ -124,110 +124,110 @@ Use dedicated typed request schemas and allowlisted fields, not arbitrary JSON p
 
 ## Step 0 — Freeze scope and prove current blockers
 
-- [ ] Fetch fresh Q1–Q6, bound original source versions, current analyses, issue history, scoring certificates, curriculum evidence and Tutor releases through existing authenticated reads.
-- [ ] Record the initial Q1(e), Q4(b)(iv) and Q5(d) blockers and their source pages; do not treat an old snapshot as a write target.
-- [ ] Preserve human approvals and known discrepancy decisions, including the standing marking-scheme-over-report decision. An internal marking-scheme contradiction still requires an explicit adjudication.
-- [ ] Record that AI content approval, automatic scoring readiness, Tutor release and complete-exam publication are separate outcomes. Define “no repeated review” as carrying forward unchanged, correctly bound evidence, not skipping review of actual changes.
-- [ ] Confirm exact new/extended route shapes against generated OpenAPI before implementation. Check callers so legacy Admin UI and scripts remain compatible.
+- [x] Fetch fresh Q1–Q6, bound original source versions, current analyses, issue history, scoring certificates, curriculum evidence and Tutor releases through existing authenticated reads.
+- [x] Record the initial Q1(e), Q4(b)(iv) and Q5(d) blockers and their source pages; do not treat an old snapshot as a write target.
+- [x] Preserve human approvals and known discrepancy decisions, including the standing marking-scheme-over-report decision. An internal marking-scheme contradiction still requires an explicit adjudication.
+- [x] Record that AI content approval, automatic scoring readiness, Tutor release and complete-exam publication are separate outcomes. Define “no repeated review” as carrying forward unchanged, correctly bound evidence, not skipping review of actual changes.
+- [x] Confirm exact new/extended route shapes against generated OpenAPI before implementation. Check callers so legacy Admin UI and scripts remain compatible.
 
 ## Step 1 — Define part-scoped dependencies and review validity
 
-- [ ] Give each subpart a stable reference distinct from its display label; retain question number/labels and backward-compatible lookup. A rename must not transfer a review to different content.
-- [ ] Define separate fingerprints for source wording/marking content, shared context, visuals, rubric/answer format, curriculum publication/mapping, issue decisions and release policy.
-- [ ] Distinguish genuinely shared source blocks from the parent question's aggregate union of child links. Likewise, an assembled parent prompt containing all subparts must not make every sibling depend on all other subpart wording.
-- [ ] Store new part bindings on analysis/decision/release records. Backfill historical bindings only when the saved source snapshot proves them; unknown historical scope remains stale and must not be invented.
-- [ ] A sibling-only correction preserves unchanged part findings, human/AI decisions, valid scoring certificates and eligible releases. A shared stem/table/diagram, relevant source version or genuinely shared scoring dependency invalidates all affected dependants.
-- [ ] A metadata-only note does not invalidate scientific content; a curriculum-publication change invalidates affected mapping/release gates even if wording is unchanged. A real rubric edit invalidates affected scoring proof.
-- [ ] Fix all freshness consumers together: analysis responses, `current_accuracy`/approval policy, source-issue resolution, `release_fingerprint`, release eligibility revision filters, workflow labels and frontend cache keys. Do not merely change the hash helper while leaving contradictory checks elsewhere.
-- [ ] Derive whole-question confidence/status from constituent valid findings and explicit shared findings. An unchanged part must say “carried forward from analysis X”, not pretend it was freshly re-read.
+- [x] Give each subpart a stable reference distinct from its display label; retain question number/labels and backward-compatible lookup. A rename must not transfer a review to different content.
+- [x] Define separate fingerprints for source wording/marking content, shared context, visuals, rubric/answer format, curriculum publication/mapping, issue decisions and release policy.
+- [x] Distinguish genuinely shared source blocks from the parent question's aggregate union of child links. Likewise, an assembled parent prompt containing all subparts must not make every sibling depend on all other subpart wording.
+- [x] Store new part bindings on analysis/decision/release records. Backfill historical bindings only when the saved source snapshot proves them; unknown historical scope remains stale and must not be invented.
+- [x] A sibling-only correction preserves unchanged part findings, human/AI decisions, valid scoring certificates and eligible releases. A shared stem/table/diagram, relevant source version or genuinely shared scoring dependency invalidates all affected dependants.
+- [x] A metadata-only note does not invalidate scientific content; a curriculum-publication change invalidates affected mapping/release gates even if wording is unchanged. A real rubric edit invalidates affected scoring proof.
+- [x] Fix all freshness consumers together: analysis responses, `current_accuracy`/approval policy, source-issue resolution, `release_fingerprint`, release eligibility revision filters, workflow labels and frontend cache keys. Do not merely change the hash helper while leaving contradictory checks elsewhere.
+- [x] Derive whole-question confidence/status from constituent valid findings and explicit shared findings. An unchanged part must say “carried forward from analysis X”, not pretend it was freshly re-read.
 
 ## Step 2 — Build unified diagnostics and review-package export (N01/N02)
 
-- [ ] Return stable blocker codes, question/part, gate, evidence references, next action, whether it needs source interpretation, and whether the proposed action uses a model. Distinguish blocking errors, warnings and informational findings.
-- [ ] Keep `contentApproval`, `sourceAccuracy`, `reportGuidance`, `curriculum`, `scoringReadiness`, `tutorRelease` and `formalRelease` separate. A manual-only scoring limitation does not automatically prevent valid source-content AI approval.
-- [ ] Surface missing report/no applicable commentary truthfully. Report fidelity is separate from the extraction confidence used by current policy; unreliable commentary can be excluded with an audited decision.
-- [ ] Export original stored PDFs/page images/blocks through existing authenticated source URLs, with document/version/page/bounds/hash identity. Do not embed every image in routine summary responses or create public source URLs.
-- [ ] Bound page/part/asset counts, paginate, preserve source permissions, and detect changed versions. No arbitrary URL retrieval or filesystem paths from client payloads.
+- [x] Return stable blocker codes, question/part, gate, evidence references, next action, whether it needs source interpretation, and whether the proposed action uses a model. Distinguish blocking errors, warnings and informational findings.
+- [x] Keep `contentApproval`, `sourceAccuracy`, `reportGuidance`, `curriculum`, `scoringReadiness`, `tutorRelease` and `formalRelease` separate. A manual-only scoring limitation does not automatically prevent valid source-content AI approval.
+- [x] Surface missing report/no applicable commentary truthfully. Report fidelity is separate from the extraction confidence used by current policy; unreliable commentary can be excluded with an audited decision.
+- [x] Export original stored PDFs/page images/blocks through existing authenticated source URLs, with document/version/page/bounds/hash identity. Do not embed every image in routine summary responses or create public source URLs.
+- [x] Bound page/part/asset counts, paginate, preserve source permissions, and detect changed versions. No arbitrary URL retrieval or filesystem paths from client payloads.
 
 ## Step 3 — Build scoped correction staging and preview (N03–N05; E05 extension)
 
-- [ ] Define package version, paper identity, expected question/part revisions, base source/rubric hashes, guideline version, provenance and explicit operations.
-- [ ] Stage corrections without changing live content. Preview reports before/after data, affected gates, preserved siblings, issue actions, source-assessment requirements, proof invalidation and release consequences.
-- [ ] Allow an approved part to be amended through an explicit scoped reopen action. Preserve its previous approved version/history and untouched sibling approvals. Never silently keep approval on materially changed wording.
-- [ ] Hash and bind the preview; any changed payload, source, publication or conflicting Admin edit requires a fresh preview. No server-side “refresh expected hashes and overwrite” shortcut.
-- [ ] Do not let packages directly set `ai_approved`, assert a scoring certificate, overwrite import-time confidence or silently re-enable a withdrawn release.
+- [x] Define package version, paper identity, expected question/part revisions, base source/rubric hashes, guideline version, provenance and explicit operations.
+- [x] Stage corrections without changing live content. Preview reports before/after data, affected gates, preserved siblings, issue actions, source-assessment requirements, proof invalidation and release consequences.
+- [x] Allow an approved part to be amended through an explicit scoped reopen action. Preserve its previous approved version/history and untouched sibling approvals. Never silently keep approval on materially changed wording.
+- [x] Hash and bind the preview; any changed payload, source, publication or conflicting Admin edit requires a fresh preview. No server-side “refresh expected hashes and overwrite” shortcut.
+- [x] Do not let packages directly set `ai_approved`, assert a scoring certificate, overwrite import-time confidence or silently re-enable a withdrawn release.
 
 ## Step 4 — Extend evidence, visual and curriculum operations (E09/E10/E12–E15)
 
-- [ ] Extend exact-link imports to examiner reports with correct `checked`, `no_comment`, `not_available` and page-only versus exact-block semantics. Do not require an invented report block when no applicable report comment exists.
-- [ ] Accept honest Codex-assisted provenance when the actual model identity is unknown: explicit `not_recorded` with an explanation. Record a reliable model/reasoning setting when available; never fabricate an API response ID, token usage or human reviewer identity.
-- [ ] Validate source ownership, role, document version, page and block/region. Expose linked/unlinked state and idempotent add/remove/replace results. Linking a source is not extracting its marking points.
-- [ ] Support explicit existing-candidate visual review without unnecessary re-cropping. Preserve labels, axes, units and captions; validate shared/subpart association and answer-visual ownership. Retain existing manual visual approvals when the visual and its dependencies are unchanged.
-- [ ] Validate supplied curriculum mappings against current published same-subject topic/content/chunk records; flag conflicts rather than overwriting an Admin's different choice. Use visual-reference printed page labels for familiar book references when available, while retaining publication/hash bindings internally.
-- [ ] Do not infer that a generic numerical calculation automatically establishes complete curriculum support or that printed-page labels alone verify an entire concept.
+- [x] Extend exact-link imports to examiner reports with correct `checked`, `no_comment`, `not_available` and page-only versus exact-block semantics. Do not require an invented report block when no applicable report comment exists.
+- [x] Accept honest Codex-assisted provenance when the actual model identity is unknown: explicit `not_recorded` with an explanation. Record a reliable model/reasoning setting when available; never fabricate an API response ID, token usage or human reviewer identity.
+- [x] Validate source ownership, role, document version, page and block/region. Expose linked/unlinked state and idempotent add/remove/replace results. Linking a source is not extracting its marking points.
+- [x] Support explicit existing-candidate visual review without unnecessary re-cropping. Preserve labels, axes, units and captions; validate shared/subpart association and answer-visual ownership. Retain existing manual visual approvals when the visual and its dependencies are unchanged.
+- [x] Validate supplied curriculum mappings against current published same-subject topic/content/chunk records; flag conflicts rather than overwriting an Admin's different choice. Use visual-reference printed page labels for familiar book references when available, while retaining publication/hash bindings internally.
+- [x] Do not infer that a generic numerical calculation automatically establishes complete curriculum support or that printed-page labels alone verify an entire concept.
 
 ## Step 5 — Import targeted source findings and resolve issues safely (E03/E04/E06/E07)
 
-- [ ] Import newly reviewed source findings for changed parts only; assemble the current question analysis using valid carried-forward siblings and immutable ancestry.
-- [ ] Store method/execution origin, known/unknown model identity, guideline/version, inspected original source references, source-specific confidence/reasons and actual processing time. Keep initial extraction provenance separate from later review provenance.
-- [ ] Bind findings to the exact previewed final content and source versions. A source confidence estimate cannot be raised automatically just because a correction was submitted or tests passed.
-- [ ] Represent issue dispositions such as `corrected_and_rechecked`, `scheme_precedence`, `report_guidance_excluded`, `publisher_ambiguity_adjudicated`, or `still_unresolved`. Preserve the original issue and decision history.
-- [ ] Carry forward a resolution only when that specific issue and all relevant scope dependencies remain unchanged. A changed issue description, scheme row or interpretation requires a new decision. Sibling changes alone must not invalidate it.
-- [ ] For extraction defects, require a linked correction and attributed source recheck. For report/scheme conflicts, record the exact controlling instruction; prefer the marking scheme under the user's standing rule without treating internal scheme contradictions as resolved.
+- [x] Import newly reviewed source findings for changed parts only; assemble the current question analysis using valid carried-forward siblings and immutable ancestry.
+- [x] Store method/execution origin, known/unknown model identity, guideline/version, inspected original source references, source-specific confidence/reasons and actual processing time. Keep initial extraction provenance separate from later review provenance.
+- [x] Bind findings to the exact previewed final content and source versions. A source confidence estimate cannot be raised automatically just because a correction was submitted or tests passed.
+- [x] Represent issue dispositions such as `corrected_and_rechecked`, `scheme_precedence`, `report_guidance_excluded`, `publisher_ambiguity_adjudicated`, or `still_unresolved`. Preserve the original issue and decision history.
+- [x] Carry forward a resolution only when that specific issue and all relevant scope dependencies remain unchanged. A changed issue description, scheme row or interpretation requires a new decision. Sibling changes alone must not invalidate it.
+- [x] For extraction defects, require a linked correction and attributed source recheck. For report/scheme conflicts, record the exact controlling instruction; prefer the marking scheme under the user's standing rule without treating internal scheme contradictions as resolved.
 
 ## Step 6 — Apply changes atomically and evaluate scoped approval (N06/N10)
 
-- [ ] Refactor participating services to support caller-owned transactions (`commit=False` or a clear unit of work). Reuse existing policy logic; do not copy approval rules into the orchestration layer.
-- [ ] For one question change set, atomically persist the scoped correction, analysis/carry-forward bindings, issue decisions and requested content-approval evaluation, or roll back the database changes together.
-- [ ] Stage filesystem/object-store crops before commit and clean up failed staging; use transactional outbox/finalisation where needed. Database rollback alone does not undo external files.
-- [ ] Return independent outcomes: content saved, source assessment current, issues resolved, part/whole-question approval, scoring readiness and Tutor-release result. A manual-scoring blocker must not be reported as a failed save of valid content.
-- [ ] Use idempotency keys plus request hashes, optimistic version/hash checks and appropriate locks. Same request/same payload returns its receipt; same key/different payload or changed sources returns a conflict.
-- [ ] Scoped AI approval requires current attributed confidence **strictly above 75%**, complete required evidence, reviewed applicable visuals, valid content and no unresolved extraction defect. Preserve human-approved decisions. Apply current source-discrepancy/release rules separately rather than silently changing policy.
-- [ ] Recompute the whole-question label when every required subpart passes. Never mark a whole question AI approved merely because one subpart passed, or downgrade valid sibling approvals because a different part was edited.
+- [x] Refactor participating services to support caller-owned transactions (`commit=False` or a clear unit of work). Reuse existing policy logic; do not copy approval rules into the orchestration layer.
+- [x] For one question change set, atomically persist the scoped correction, analysis/carry-forward bindings, issue decisions and requested content-approval evaluation, or roll back the database changes together.
+- [x] Stage filesystem/object-store crops before commit and clean up failed staging; use transactional outbox/finalisation where needed. Database rollback alone does not undo external files.
+- [x] Return independent outcomes: content saved, source assessment current, issues resolved, part/whole-question approval, scoring readiness and Tutor-release result. A manual-scoring blocker must not be reported as a failed save of valid content.
+- [x] Use idempotency keys plus request hashes, optimistic version/hash checks and appropriate locks. Same request/same payload returns its receipt; same key/different payload or changed sources returns a conflict.
+- [x] Scoped AI approval requires current attributed confidence **strictly above 75%**, complete required evidence, reviewed applicable visuals, valid content and no unresolved extraction defect. Preserve human-approved decisions. Apply current source-discrepancy/release rules separately rather than silently changing policy.
+- [x] Recompute the whole-question label when every required subpart passes. Never mark a whole question AI approved merely because one subpart passed, or downgrade valid sibling approvals because a different part was edited.
 
 ## Step 7 — Integrate deterministic proofs and guarded release (E16–E22; N11)
 
-- [ ] Preserve existing server-replayed certificates when their actual rubric, answer grammar, sources/shared dependencies and engine remain compatible. Re-run actual answer recognition/allocation only when affected.
-- [ ] Reuse E17 for supported engines with positive/partial/zero, near-miss, ambiguous and holdout cases. No imported local pass/expected marking decision can replace deployed server execution.
-- [ ] Unsupported open explanations/drawings remain explicitly manual/semantic; no paid fallback and no “manual attestation” that masquerades as a deterministic certificate.
-- [ ] Validate Tutor practice, official drafts and formal publication separately. Content AI approval is not evidence of unrestricted automatic scoring capability or complete-paper release readiness.
-- [ ] Restore only explicitly intended previously enabled releases whose scoped gates still pass. Preserve explicit withdrawals; do not re-enable them because an old snapshot once showed them live.
-- [ ] Keep whole-exam publication a separate explicit action using existing material review/publication APIs. Return companion marking-scheme/examiner-report status from real source review/association state, not a duplicated four-step approval label.
+- [x] Preserve existing server-replayed certificates when their actual rubric, answer grammar, sources/shared dependencies and engine remain compatible. Re-run actual answer recognition/allocation only when affected.
+- [x] Reuse E17 for supported engines with positive/partial/zero, near-miss, ambiguous and holdout cases. No imported local pass/expected marking decision can replace deployed server execution.
+- [x] Unsupported open explanations/drawings remain explicitly manual/semantic; no paid fallback and no “manual attestation” that masquerades as a deterministic certificate.
+- [x] Validate Tutor practice, official drafts and formal publication separately. Content AI approval is not evidence of unrestricted automatic scoring capability or complete-paper release readiness.
+- [x] Restore only explicitly intended previously enabled releases whose scoped gates still pass. Preserve explicit withdrawals; do not re-enable them because an old snapshot once showed them live.
+- [x] Keep whole-exam publication a separate explicit action using existing material review/publication APIs. Return companion marking-scheme/examiner-report status from real source review/association state, not a duplicated four-step approval label.
 
 ## Step 8 — Durable no-inference batches, audit and CLI (N07–N09/N12)
 
-- [ ] Add bounded per-question transactions with durable item receipts. Batch responses must state partial completion accurately; never imply a paper-wide atomic commit when earlier questions already committed.
-- [ ] Support dry-run, selected question/part, stop-on-conflict, continue-independent-items and resume. Do not retry semantic interpretation, fabricate missing findings, duplicate passes or overwrite concurrent edits.
-- [ ] Include before/after scoped hashes, actor, delegated execution origin, timestamps, guideline/provenance, imported versus carried-forward findings, issue/proof/approval/release references and remaining blockers in audit receipts.
-- [ ] Prohibit provider routing, model quota reservation, AI generation and model-job creation by construction in this workflow. A `noPaidCalls=true` label alone is insufficient. Record model invocation count/token use as actual execution telemetry, not client assertions.
-- [ ] Extend the existing CLI with export, stage, preview, apply, status/history, scoped approval, source-decision, prepared-mapping, validation and resume operations. No routine direct production SQL or server-private service imports are needed for review authoring.
-- [ ] Keep credentials in ignored files or authorised sessions, never in command arguments/logs/packages/Git. Keep licensed source exports and private review packages outside Git; commit only safe schemas, tooling, guidelines and sanitised evidence.
-- [ ] Choose durable tables/constraints for change sets, operation items and dependency bindings after reviewing existing audit/analysis/job models. Add forward migrations if needed; do not reset databases or store the sole operation state in temporary files.
+- [x] Add bounded per-question transactions with durable item receipts. Batch responses must state partial completion accurately; never imply a paper-wide atomic commit when earlier questions already committed.
+- [x] Support dry-run, selected question/part, stop-on-conflict, continue-independent-items and resume. Do not retry semantic interpretation, fabricate missing findings, duplicate passes or overwrite concurrent edits.
+- [x] Include before/after scoped hashes, actor, delegated execution origin, timestamps, guideline/provenance, imported versus carried-forward findings, issue/proof/approval/release references and remaining blockers in audit receipts.
+- [x] Prohibit provider routing, model quota reservation, AI generation and model-job creation by construction in this workflow. A `noPaidCalls=true` label alone is insufficient. Record model invocation count/token use as actual execution telemetry, not client assertions.
+- [x] Extend the existing CLI with export, stage, preview, apply, status/history, scoped approval, source-decision, prepared-mapping, validation and resume operations. No routine direct production SQL or server-private service imports are needed for review authoring.
+- [x] Keep credentials in ignored files or authorised sessions, never in command arguments/logs/packages/Git. Keep licensed source exports and private review packages outside Git; commit only safe schemas, tooling, guidelines and sanitised evidence.
+- [x] Choose durable tables/constraints for change sets, operation items and dependency bindings after reviewing existing audit/analysis/job models. Add forward migrations if needed; do not reset databases or store the sole operation state in temporary files.
 
 ## Step 9 — Security, frontend parity and regression gates
 
-- [ ] All new reads are Admin-only; writes require the existing authenticated Admin session and CSRF protection. Do not create an unauthenticated Codex endpoint or a universal long-lived bypass token. Future service credentials would need separate scoped design.
-- [ ] Check paper/course/subject/source ownership and bound versions on every request. Enforce private asset access, limits, pagination, rate control, state transitions and safe error messages; do not expose credentials, Student transcripts or filesystem details.
-- [ ] Frontend uses the shared readiness service, displays per-part freshness and blockers, preserves selected question/subpart and invalidates affected queries after API-driven work. Show carried-forward versus newly reviewed provenance and useful toasts.
-- [ ] Test unauthenticated/Student/Parent denial, CSRF, cross-paper references, wrong source roles, invented page/block IDs, foreign-subject mappings and withdrawn publications.
-- [ ] Test sibling-only preservation, shared-context invalidation, source-version change, explicit withdrawal, engine upgrade, failed actual scoring replay and human-approved content amendments.
-- [ ] Test correction-plus-assessment rollback, staged asset cleanup, duplicate requests, crashes/resume, conflicting Admin edits, changed previews and honest partial batch outcomes.
-- [ ] Use fail-on-call provider/router/quota/job stubs for every new workflow, including failure/retry paths. Tests must fail if a paid path is called; imported provenance is not a real model invocation.
-- [ ] Verify unsupported semantic marking stays manual while corrected source content can become AI approved. Confidence estimates must remain source-justified; do not hard-code a passing percentage to turn a label green.
-- [ ] Run meaningful backend/frontend tests, generated contract checks, typecheck, lint, build and disposable-database migration checks. Update API/architecture/CLI/user instructions and source-extraction guidelines.
+- [x] All new reads are Admin-only; writes require the existing authenticated Admin session and CSRF protection. Do not create an unauthenticated Codex endpoint or a universal long-lived bypass token. Future service credentials would need separate scoped design.
+- [x] Check paper/course/subject/source ownership and bound versions on every request. Enforce private asset access, limits, pagination, rate control, state transitions and safe error messages; do not expose credentials, Student transcripts or filesystem details.
+- [x] Frontend uses the shared readiness service, displays per-part freshness and blockers, preserves selected question/subpart and invalidates affected queries after API-driven work. Show carried-forward versus newly reviewed provenance and useful toasts.
+- [x] Test unauthenticated/Student/Parent denial, CSRF, cross-paper references, wrong source roles, invented page/block IDs, foreign-subject mappings and withdrawn publications.
+- [x] Test sibling-only preservation, shared-context invalidation, source-version change, explicit withdrawal, engine upgrade, failed actual scoring replay and human-approved content amendments.
+- [x] Test correction-plus-assessment rollback, staged asset cleanup, duplicate requests, crashes/resume, conflicting Admin edits, changed previews and honest partial batch outcomes.
+- [x] Use fail-on-call provider/router/quota/job stubs for every new workflow, including failure/retry paths. Tests must fail if a paid path is called; imported provenance is not a real model invocation.
+- [x] Verify unsupported semantic marking stays manual while corrected source content can become AI approved. Confidence estimates must remain source-justified; do not hard-code a passing percentage to turn a label green.
+- [x] Run meaningful backend/frontend tests, generated contract checks, typecheck, lint, build and disposable-database migration checks. Update API/architecture/CLI/user instructions and source-extraction guidelines.
 
 ## Step 10 — Biology-only acceptance and controlled deployment
 
-- [ ] Locally prove correction packages for Q1(e), Q4(b)(iv) and Q5(d) using their exact original scheme rows and permitted alternatives. Preserve original documents and all earlier analyses.
-- [ ] Q1(e): restore equivalent-answer and scented-petal allowances and preserve the source's distinction between adaptation naming and explanation. Recheck against the original before supplying a new confidence estimate.
-- [ ] Q4(b)(iv): include permitted converse comparisons for ungrazed B and variation between quadrats, with official caps intact.
-- [ ] Q5(d): include permitted converse controls and the distinction between birth mass/puberty mass; preserve the scheme's rejection of an unqualified higher-mass assertion.
-- [ ] Preview the exact affected parts and preserved siblings; apply the corrections, scoped findings, extraction-issue resolutions and eligible AI approval through the new API workflow. No repeated browser review of unchanged items.
-- [ ] Confirm whether Q1/Q4/Q5 now meet whole-question AI approval. Report each remaining gate explicitly; do not promise a confidence result before inspecting the final content.
-- [ ] Review any remaining report-guidance/source-discrepancy decisions separately. Q6(b)(iii)'s internal scheme contradiction and Q4(b)(ii)'s unsupported scoring pathways do not disappear because source content is AI approved.
-- [ ] Verify the existing ten deterministic certificates/135 cases and fourteen previously live Tutor subparts are preserved where unaffected; replay only genuinely changed proofs. Keep Student performance records out of source-review migrations/tests.
+- [x] Locally prove correction packages for Q1(e), Q4(b)(iv) and Q5(d) using their exact original scheme rows and permitted alternatives. Preserve original documents and all earlier analyses.
+- [x] Q1(e): restore equivalent-answer and scented-petal allowances and preserve the source's distinction between adaptation naming and explanation. Recheck against the original before supplying a new confidence estimate.
+- [x] Q4(b)(iv): include permitted converse comparisons for ungrazed B and variation between quadrats, with official caps intact.
+- [x] Q5(d): include permitted converse controls and the distinction between birth mass/puberty mass; preserve the scheme's rejection of an unqualified higher-mass assertion.
+- [x] Preview the exact affected parts and preserved siblings; apply the corrections, scoped findings, extraction-issue resolutions and eligible AI approval through the new API workflow. No repeated browser review of unchanged items.
+- [x] Confirm whether Q1/Q4/Q5 now meet whole-question AI approval. Report each remaining gate explicitly; do not promise a confidence result before inspecting the final content.
+- [x] Review any remaining report-guidance/source-discrepancy decisions separately. Q6(b)(iii)'s internal scheme contradiction and Q4(b)(ii)'s unsupported scoring pathways do not disappear because source content is AI approved.
+- [x] Verify the existing ten deterministic certificates/135 cases and fourteen previously live Tutor subparts are preserved where unaffected; replay only genuinely changed proofs. Keep Student performance records out of source-review migrations/tests.
 - [ ] Deploy only the reviewed, tested release when implementation is requested and authorised; perform backups, forward migrations, health/security and authenticated acceptance checks. No deployment is part of writing this plan.
-- [ ] Publish a sanitised before/after report with approval, source freshness, issue, scoring and release status for all 31 subparts. Chemistry and other papers remain unchanged.
+- [x] Publish a sanitised before/after report with approval, source freshness, issue, scoring and release status for all 31 subparts. Chemistry and other papers remain unchanged.
 - [ ] Mark this roadmap complete only when the generic workflow and Biology acceptance are proved; record start/completion dates and move it to `todo/completed`. A later other-paper rollout requires its own authorised scope.
 
 ## Minimum path versus complete delivery
@@ -253,3 +253,13 @@ The twelve model-free routes, scoped analysis/decision/release bindings, prepare
 Validation so far: 609 backend tests passed, 1 skipped; 123 frontend tests passed; typecheck, lint, generated contract and production build passed. Additional malformed-content validation was added after the full backend run and requires its targeted check. Production deployment and Biology correction acceptance are still pending. Checkboxes remain open until acceptance is recorded rather than declaring the plan complete prematurely.
 
 Implementation documentation: [API and CLI guide](../../backend/docs/developer-review-apis.md), [developer overview](../../../developer-docs/15-prepared-past-paper-reviews.md), [Admin instructions](../../../user-docs/PREPARED-PAST-PAPER-REVIEW.md).
+
+## Acceptance checkpoint — 2026-11-18
+
+The initial production deployment passed encrypted backup, schema/migration checks, builds, HTTPS/routing/headers, loopback service bindings and service health. Three source-verified corrections applied through N03–N06 with zero model calls. Q1–Q6 are AI approved; 28 subparts are AI approved and three human approvals are preserved. All 31 source findings are current. Unchanged sibling part data is identical; ten certificates remain current with 135 saved server cases, and the same fourteen Tutor subparts remain available. Three apply retries returned original receipts. Chemistry and Student performance were not modified.
+
+[Sanitised per-part production evidence](../../backend/docs/developer-review-biology-acceptance.md) records the independent remaining source/scoring/curriculum blockers. Keeping those blockers is intentional, not unfinished API authoring. No formal exam was published.
+
+Implementation decisions: existing indexed audit/analysis records provide durable operations (no new migration); a renamed part is a new identity rather than inheriting a previous label's review; correction transactions reference existing cropped files and write no external files, so there is no new staged-file cleanup path. The CLI and all writes use ordinary Admin/CSRF authentication. Inference/quota/job fail-on-call guards run after synthetic fixture setup, including failure/retry paths. Existing broader regression tests cover publication withdrawals, source changes and scoring-engine changes.
+
+Final follow-up adds combined audit history, explicit report/formal diagnostics, publication-bound previews and consistent aggregate wording. Its tested production deployment and final read-back remain to be recorded before completion.
