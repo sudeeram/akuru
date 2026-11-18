@@ -1916,3 +1916,30 @@ class EvidenceLinkJob(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     __table_args__ = (CheckConstraint("status IN ('queued','processing','completed','failed')",name='ck_evidence_job_status'),)
+
+
+class TutorQuestionSet(Base):
+    """Private frozen practice items and indicative feedback; never official bank rows."""
+    __tablename__ = "tutor_question_sets"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    public_ref: Mapped[str] = mapped_column(String(56), unique=True, index=True)
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tutor_sessions.id", ondelete="CASCADE"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("student_profiles.student_id", ondelete="CASCADE"), index=True)
+    request_key: Mapped[str] = mapped_column(String(100))
+    status: Mapped[str] = mapped_column(String(16), default="active", server_default="active")
+    source_kind: Mapped[str] = mapped_column(String(16))
+    requested_count: Mapped[int] = mapped_column(Integer)
+    position: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
+    topic_refs: Mapped[list] = mapped_column(JSON)
+    items: Mapped[list] = mapped_column(JSON, default=list)
+    provenance: Mapped[dict] = mapped_column(JSON, default=dict)
+    processing_key: Mapped[str | None] = mapped_column(String(100))
+    processing_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    __table_args__ = (
+        UniqueConstraint("session_id", "request_key", name="uq_tutor_question_set_request"),
+        CheckConstraint("status IN ('active','completed','abandoned')", name="ck_tutor_question_set_status"),
+        CheckConstraint("source_kind IN ('official','generated')", name="ck_tutor_question_set_kind"),
+        CheckConstraint("requested_count BETWEEN 1 AND 20", name="ck_tutor_question_set_count"),
+        Index("uq_active_tutor_question_set", "session_id", unique=True, postgresql_where=text("status = 'active'")),
+    )

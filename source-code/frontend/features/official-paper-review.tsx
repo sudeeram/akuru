@@ -1248,9 +1248,10 @@ export function OfficialPaperReview({
       {!!review?.assessmentBlockers?.length && (
         <details>
           <summary>
-            Automatic-marking readiness · {review.assessmentBlockers.length}{' '}
+            Optional certified scoring · {review.assessmentBlockers.length}{' '}
             items to check
           </summary>
+          <p>These checks apply to the separate certified-scoring workflow. They do not block approved Tutor practice or indicative AI feedback.</p>
           <ul>
             {review.assessmentBlockers.map((message, index) => (
               <li key={index}>{message}</li>

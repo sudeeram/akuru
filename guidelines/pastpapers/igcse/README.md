@@ -2,15 +2,17 @@
 
 Guideline ID: `akuru-igcse-pastpapers`
 
-Version: `1.5.0`
+Version: `1.6.0`
 
 Created: 2026-10-21
 
-Last updated: 2026-11-12
+Last updated: 2026-11-18
 
 Status: documented standard; automated enforcement is incomplete.
 
 See also [deterministic scoring certification](deterministic-scoring-certification.md) for actual answer-to-score validation, distinct from extraction confidence and allocation-only tests.
+
+For Tutor learning release, apply the [formative practice policy](formative-practice-release.md): scoring certificates and manual grading are not prerequisites for indicative feedback. Exact source quality and Student permissions remain mandatory.
 
 ## Scope and required reading
 

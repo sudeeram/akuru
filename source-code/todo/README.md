@@ -4,6 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
+- [Formative AI feedback and topic-based practice](ongoing/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md) — high priority before further Biology intake; retire mandatory manual-marking/certificate gates for learning, add counted topic practice and verify Biology June 2025 2BR. Supersedes compulsory scoring certification for formative release.
+
 - [Deterministic scoring and readiness](ongoing/TODO-DETERMINISTIC-SCORING-AND-READINESS.md) — complete supported question/subpart scoring preparation, actual answer recognition, no-paid server validation and audited readiness through the developer/API workflow; first pilot Q3(b), then all Q1–Q6 parts.
 
 - [Pearson Biology past-paper intake](ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md) — audited 132 PDFs; staged 1B/2B pilot, reviewed source/rubric/visual intake, then standard and regional expansion.
@@ -32,6 +34,7 @@ These roadmaps already contain completed work and still have outstanding actions
 - [Admin official-paper review workspace](ongoing/TODO-OFFICIAL-PAPER-REVIEW-WORKSPACE.md)
 
 ## Planned
+
 
 
 

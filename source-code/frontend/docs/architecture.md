@@ -85,3 +85,7 @@ npm run lint
 npm run build
 npm run test:frontend
 ```
+
+## Formative practice presentation
+
+Tutor room renders the authenticated current question set with progress, saved responses, answer/retry/reveal/skip controls and separate indicative feedback/improved-answer sections. Original paper items and AKURU-generated exam-style items are explicitly distinguished. Optional certified-scoring controls are not Tutor-release blockers. See [the developer implementation guide](../../../developer-docs/16-formative-topic-practice.md).

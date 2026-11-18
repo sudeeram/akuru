@@ -246,8 +246,13 @@ def complete_turn(db: Session, settings: Settings, principal: Principal, session
     if discovery is not None:
         _record_safety(db, session, repository.replay(db, session.id, payload.requestKey))
         return discovery
+    from app.services import tutor_question_sets
+    set_reply = tutor_question_sets.handle(db, settings, principal, session, payload, generator)
+    if set_reply is not None:
+        return set_reply
     from app.services import tutor_past_papers
-    exam_reply = tutor_past_papers.handle(db, settings, principal, session, payload, generator)
+    active_set = tutor_question_sets.latest(db, session)
+    exam_reply = None if active_set and active_set.status == 'active' else tutor_past_papers.handle(db, settings, principal, session, payload, generator)
     if exam_reply is not None:
         return exam_reply
     mode, approach_reason = tutor_intent.select_approach(payload.message, session.subject_id, repository.recent(db, session.id))

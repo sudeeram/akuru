@@ -129,7 +129,7 @@ def summaries(db, document_ids):
                 if score and score['percent'] <= 75:
                     approved = part['status'] == 'approved' and any((e.target_id == str(q.id) and e.event_data.get('part') == part['label'] and (e.event_data.get('analysisId') == str(a.id)) and (e.event_data.get('contentHash') == a.content_hash) for e in manual_checks))
                 source_issues_ok = not paper_source_issues.blocking(a, part['label'], issue_decisions) if part_current else False
-                marking_ready = part.get('assessmentReadiness') == 'automatic' or (part.get('assessmentReadiness') == 'manual_only' and part.get('responseType') == 'drawing')
+                marking_ready = True  # Formative learning does not require scoring certification.
                 assessed_done += int(bool(part_current and mapping_ok and approved and images_ok and marking_ready and source_issues_ok))
                 for role in ('scheme', 'report'):
                     source = next((s for s in (score or {}).get('sourceChecks', []) if s['role'] == role), None)

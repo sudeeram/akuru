@@ -284,6 +284,9 @@ export function MarkingRulesEditor({
           }],
         })}>Add calculation score bands</Button>
       </fieldset>
+      <details>
+        <summary>Optional validated scoring configuration</summary>
+        <p>Not required for Tutor practice. Approved content can receive indicative AI feedback without certification.</p>
       <DeterministicRulesEditor part={part} onChange={onChange} />
       <label>
         Automatic-marking readiness
@@ -301,11 +304,11 @@ export function MarkingRulesEditor({
           <option value="automatic" disabled={!!rules.deterministic && !rules.deterministic.certificateId}>
             All scoring rules represented and checked
           </option>
-          <option value="manual_only">Manual marking required</option>
+          <option value="manual_only">Indicative AI feedback (no scoring certificate)</option>
         </select>
       </label>
       <label>
-        Readiness notes (required for manual marking)
+        Scoring implementation notes
         <Textarea
           value={part.assessmentReadinessReason ?? ''}
           onChange={(e) =>
@@ -318,6 +321,7 @@ export function MarkingRulesEditor({
         represented. Content can be approved while marking rules remain
         unchecked.
       </p>
+      </details>
     </fieldset>
   );
 }

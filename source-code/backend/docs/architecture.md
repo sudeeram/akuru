@@ -235,3 +235,7 @@ Before migration, freeze and back up local JSON and file bytes, map legacy ident
 Use real PostgreSQL integration tests for transactions and constraints, plus HTTP tests for authentication and ownership. Cover all overall-architecture acceptance criteria, including foreign-family private file access; inactive courses; cross-subject and cross-textbook mappings; unmapped/partially reviewed questions; all-units filtering; empty pools; frozen exam versions; publication races; retry/idempotency; and complete preservation of equation/diagram source evidence.
 
 The frontend's local tests are behavioral examples, not proof of production database or infrastructure correctness. Add a small reviewed corpus per subject and evaluate extraction/mapping/marking accuracy before allowing automatic publication or assessment.
+
+## Formative topic practice
+
+Approved formative Tutor content does not require certified automatic marking. Private, resumable topic question sets and checked generated exam-style items use the existing authenticated Tutor/account boundary. Migration `0023_tutor_question_sets` preserves source/certificate/history records; the separate formal assessment workflow is unchanged. See [the developer implementation guide](../../../developer-docs/16-formative-topic-practice.md).

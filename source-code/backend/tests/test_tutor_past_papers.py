@@ -147,7 +147,8 @@ def test_saved_answer_respects_marking_gate_and_formal_assessment_block(auth_cli
         return client.post(path,headers=sh,json={'message':text,'requestKey':key or uuid.uuid4().hex})
     first=send('Ask me a question from an igcse chemistry paper').json()['pastPaper']
     aid=uuid.UUID(first['practice']['assessmentId'])
-    monkeypatch.setattr('app.services.tutor_agent._invoke',lambda *a,**kw:pytest.fail('An unreleased marking model must not be called'))
+    def unavailable(*a,**kw): raise DomainError('provider_unavailable','Feedback unavailable.',503)
+    monkeypatch.setattr('app.services.tutor_agent._invoke',unavailable)
     monkeypatch.setattr('app.services.evaluations.automatic_feedback_allowed',lambda *a,**kw:(False,'Missing evaluation'))
     submitted_key=uuid.uuid4().hex
     saved=send('My answer: One spot means one dye.',submitted_key)
@@ -208,7 +209,7 @@ def test_sibling_student_cannot_read_another_students_practice(auth_client,monke
 
 
 @pytest.mark.integration
-def test_released_marking_reuses_two_pass_router_quotas_and_preserves_unaided_attempt(auth_client,monkeypatch):
+def test_formative_marking_reuses_accounted_router_without_certified_grade_gate(auth_client,monkeypatch):
     from app.ai.base import AIResult, AIUsage
     from app.models import AIInvocation, StudentAIUsage
     client,headers,db,root,child,topic,paper,scheme,settings=_ready(auth_client,monkeypatch)
@@ -225,17 +226,17 @@ def test_released_marking_reuses_two_pass_router_quotas_and_preserves_unaided_at
     def generate(router,request,**kwargs):
         import json
         data=json.loads(request.task);observed.append((request.purpose,request.prompt_name,request.metadata))
-        decisions=[dict(pointId=p['pointId'],criterion=p['criterion'],maxMarks=p['maxMarks'],awarded=True,marksAwarded=p['maxMarks'],studentEvidence='One spot; separated dyes.',rationale='The student explicitly matches the criterion.',confidence=.99) for p in data['officialMarkingPoints']]
-        if request.output_type.__name__=='AssessmentPassOne':output=request.output_type(decisions=decisions,overallConfidence=.99)
-        else:output=request.output_type(decisions=decisions,confidence=.99,improvedAnswer='One spot; separated dyes.',teachingExplanation='Your response identifies the spots and dyes.')
+        output=request.output_type(matches=[dict(pointId=p['code'],matched=True,evidence='One spot; separated dyes.',reason='Meaning matches.') for p in data['question']['markingPoints']],
+            correctPoints=['Identifies the spots.'],mistakes=[],omissions=[],improvedAnswer='One spot; separated dyes.',
+            explanation='Your response identifies the spots and dyes.',uncertainty='Indicative feedback.')
         return AIResult(output=output,provider='fake',model='fake-assessment',response_id='test-only',usage=AIUsage(input_tokens=50,output_tokens=20,total_tokens=70),latency_ms=1,attempt_count=1)
     monkeypatch.setattr('app.ai.router.AIAccountRouter.generate',generate)
     reply=send('My answer: One spot; separated dyes.')
-    assert len(observed)==2
+    assert len(observed)==1
     assert all(purpose=='assessment' and metadata['session_ref']==ref for purpose,_,metadata in observed)
     assert reply['pastPaper']['practice']['question']['result']['awardedMarks']==2
-    assert db.scalar(select(func.count()).select_from(AIInvocation).where(AIInvocation.actor_id==child.id,AIInvocation.purpose=='assessment'))==2
-    assert db.scalar(select(func.count()).select_from(StudentAIUsage).where(StudentAIUsage.student_id==child.id,StudentAIUsage.dimension=='request',StudentAIUsage.event_type=='reserve'))==2
+    assert db.scalar(select(func.count()).select_from(AIInvocation).where(AIInvocation.actor_id==child.id,AIInvocation.purpose=='assessment'))==1
+    assert db.scalar(select(func.count()).select_from(StudentAIUsage).where(StudentAIUsage.student_id==child.id,StudentAIUsage.dimension=='request',StudentAIUsage.event_type=='reserve'))==1
     feedback=send('Show approved answer')['pastPaper']
     assert feedback['answerRevealed'] is False
     assert db.scalar(select(func.count()).select_from(AssessmentInteraction).where(AssessmentInteraction.assessment_id==uuid.UUID(selected['practice']['assessmentId']),AssessmentInteraction.kind=='worked_answer'))==0

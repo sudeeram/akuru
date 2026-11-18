@@ -217,6 +217,7 @@ export type PastPaperChatState = {
   message: string;
 };
 export type TutorAgentReply = {
+  practiceSet?: TutorQuestionSet | null;
   answerBasis?:
     | 'grounded'
     | 'supplementary'
@@ -347,3 +348,18 @@ export type RealtimeLanguageMode =
   | 'french_conversation'
   | 'french_vocabulary'
   | 'french_pronunciation';
+
+export type TutorQuestionSet = {
+  setRef: string; status: 'active' | 'completed' | 'abandoned'; sourceKind: 'official' | 'generated';
+  requestedCount: number; availableCount: number; position: number; completedCount: number;
+  topicTitles: string[]; processing: boolean; itemStatus: string; assisted: boolean; message: string;
+  answer: string | null;
+  question: { prompt: string; sharedStem?: string; marks: number; label: string; sourceLabel: string;
+    origin: string; assets?: {url: string; alt: string}[];
+    answerAssets?: {url: string; alt: string; origin: string; caption: string}[];
+    markingGuidance?: {code: string; text: string}[]; suggestedAnswer?: string;
+    alternatives?: string[]; examinerAdvice?: string[] } | null;
+  feedback: {score: number | null; maximum: number; correctPoints: string[]; mistakes: string[];
+    omissions: string[]; improvedAnswer: string; explanation: string; uncertainty: string} | null;
+  summary: {indicativeMarks?: number; maximumMarks?: number; assistedOrSkipped?: number; strengths?: string[]; revisionSuggestions?: string[]};
+};

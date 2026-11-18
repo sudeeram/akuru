@@ -92,7 +92,11 @@ class TutorTopicMatch(BaseModel):
     active: bool
 
 
+from app.schemas.tutor_question_sets import TutorQuestionSetState
+
+
 class TutorAgentTurnResponse(BaseModel):
+    practiceSet: TutorQuestionSetState | None = None
     topicMatches: list[TutorTopicMatch] = Field(default_factory=list)
     answerBasis: AnswerBasis | None = None
     teachingSections: list[TutorTeachingSection] = Field(default_factory=list)

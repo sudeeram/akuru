@@ -22,3 +22,5 @@ Developers and operators should start with the [developer handbook](../developer
 - [Past-paper practice in Tutor chat](TUTOR-PAST-PAPER-PRACTICE.md)
 
 - [Biology past-paper Admin review](BIOLOGY-PAST-PAPER-REVIEW.md) — draft intake, source exceptions and separate approval/release gates.
+
+- [Topic practice and indicative feedback](TUTOR-PAST-PAPER-PRACTICE.md): original or newly generated questions, counted sets and better-answer guidance.

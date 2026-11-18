@@ -137,6 +137,15 @@ def purge(db: Session, principal: Principal, days: int, reason: str) -> dict:
     preview = purge_preview(db, days); now = datetime.now(timezone.utc)
     result = db.execute(update(TutorTurn).where(TutorTurn.created_at < preview["cutoff"], TutorTurn.purged_at.is_(None)).values(
         content="[Transcript content purged by an administrator.]", response_data={}, purged_at=now))
+    # Remove private copies of old conversational answers/feedback as well.
+    from app.models import TutorQuestionSet
+    old_sets = db.scalars(select(TutorQuestionSet).where(TutorQuestionSet.created_at < preview["cutoff"])).all()
+    removed_sets = 0
+    for practice_set in old_sets:
+        touched = practice_set.provenance.get('updatedAt')
+        if touched and datetime.fromisoformat(touched) >= preview['cutoff']:
+            continue
+        db.delete(practice_set); removed_sets += 1
     db.add(AuditEvent(actor_id=principal.user.id, action="tutor_transcript.purged", target_type="tutor_turn",
-        target_id=f"before:{preview['cutoff'].isoformat()}", event_data={"reason": reason, "turnCount": result.rowcount, "olderThanDays": days}))
+        target_id=f"before:{preview['cutoff'].isoformat()}", event_data={"reason": reason, "turnCount": result.rowcount, "olderThanDays": days, "questionSetsRemoved": removed_sets}))
     db.commit(); return {**preview, "purgedTurnCount": result.rowcount}

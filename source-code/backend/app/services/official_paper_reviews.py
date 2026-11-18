@@ -527,7 +527,7 @@ def visual_requirement_issues(data, assets):
 
 
 def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
-                       status: str, data: ReviewQuestionData, previous_data: dict | None = None, question_number: str | None = None):
+                       status: str, data: ReviewQuestionData, previous_data: dict | None = None, question_number: str | None = None, *, formative: bool = False):
     _validate_evidence(db, workspace.paper_version_id, data.paperSources, "paper")
     for part in data.parts:
         previous_part = next((item for item in (previous_data or {}).get("parts", []) if item.get("label") == part.label), {})
@@ -537,21 +537,22 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
         if part.status in {"ready_for_approval", "approved", "ai_approved"} and (part.answerVisualRequired or part.responseType == "drawing"):
             if not any(v.status == "approved" for v in part.answerVisuals) or any(v.status == "proposed" for v in part.answerVisuals):
                 raise DomainError("answer_visual_review_required", f"Part {part.label}: approve the model-answer visuals or reject remaining proposals.", 409)
-        if part.responseType == "drawing" and part.assessmentReadiness == "automatic":
-            raise DomainError("drawing_manual_review_required", "Drawing assessment requires manual review until its evaluation gate passes. Select manual only.", 409)
-        if part.scoringRules.deterministic and part.scoringRules.deterministic.parts:
-            raise DomainError("deterministic_composite_server_only", "Composite scoring contexts are generated from individually certified subparts.", 422)
-        if part.assessmentReadiness == "automatic" and part.scoringRules.deterministic:
-            from .deterministic_validation import certificate
-            reviewed_row = db.scalar(select(OfficialPaperReviewQuestion).where(
-                OfficialPaperReviewQuestion.workspace_id == workspace.id,
-                OfficialPaperReviewQuestion.number == question_number)) if question_number else None
-            if not reviewed_row or not certificate(db, workspace, reviewed_row, data, part):
-                raise DomainError("deterministic_certificate_required", "A passing current server-side answer validation is required for deterministic readiness.", 409)
-        if part.assessmentReadiness == "automatic":
-            marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
-        if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
-            raise DomainError("manual_marking_reason_required", f"Part {part.label}: explain why manual marking is required.", 422)
+        if not formative:
+            if part.responseType == "drawing" and part.assessmentReadiness == "automatic":
+                raise DomainError("drawing_manual_review_required", "Drawing assessment requires manual review until its evaluation gate passes. Select manual only.", 409)
+            if part.scoringRules.deterministic and part.scoringRules.deterministic.parts:
+                raise DomainError("deterministic_composite_server_only", "Composite scoring contexts are generated from individually certified subparts.", 422)
+            if part.assessmentReadiness == "automatic" and part.scoringRules.deterministic:
+                from .deterministic_validation import certificate
+                reviewed_row = db.scalar(select(OfficialPaperReviewQuestion).where(
+                    OfficialPaperReviewQuestion.workspace_id == workspace.id,
+                    OfficialPaperReviewQuestion.number == question_number)) if question_number else None
+                if not reviewed_row or not certificate(db, workspace, reviewed_row, data, part):
+                    raise DomainError("deterministic_certificate_required", "A passing current server-side answer validation is required for deterministic readiness.", 409)
+            if part.assessmentReadiness == "automatic":
+                marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
+            if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
+                raise DomainError("manual_marking_reason_required", f"Part {part.label}: explain why manual marking is required.", 422)
         _validate_evidence(db, workspace.paper_version_id, part.paperSources, "paper")
         _validate_evidence(db, workspace.scheme_version_id, part.schemeSources, "scheme")
         _validate_evidence(db, workspace.report_version_id, part.reportSources, "examiner report")

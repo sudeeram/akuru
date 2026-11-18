@@ -127,12 +127,9 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
             raise DomainError('practice_curriculum_required', 'Reassess current published textbook evidence and resolve mapping uncertainty.', 409)
     if re.search(r'using (?:your|the) (?:answer|result)|(?:answer|result) (?:to|from) (?:part|\()', part.prompt, re.I):
         raise DomainError('practice_dependency_review', 'Release only self-contained subparts with all required information.', 409)
-    if part.scoringRules.deterministic:
-        from .deterministic_validation import certificate
-        if not certificate(db, workspace, question, data, part):
-            raise DomainError('deterministic_certificate_required', 'Revalidate the current deterministic scoring rules before release.', 409)
-    if part.assessmentReadiness not in {'automatic', 'manual_only'} or (part.assessmentReadiness == 'manual_only' and part.responseType != 'drawing'):
-        raise DomainError('practice_marking_not_ready', 'Confirm automatic marking or supported manual drawing review first.', 409)
+    # Formative feedback is not certification of automatic exam grading.
+    # Keep content, source, visual and curriculum checks; scoring implementation
+    # and deterministic proofs must not prevent learning from an approved rubric.
     if not part.topicRefs or not part.markingPoints or not any(v.blockId for v in part.schemeSources):
         raise DomainError('practice_evidence_required', 'Exact scheme evidence and published topic mappings are required.', 409)
     if sum(p.marks for p in data.parts) != data.marks or data.candidateVisualAssetIds:
@@ -143,7 +140,7 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     scoped.parts = [part.model_copy(deep=True)]
     scoped.marks = part.marks
     scoped.parts[0].status = 'approved'
-    official_paper_reviews._validate_question(db, workspace, 'approved', scoped, question.review_data, question.number)
+    official_paper_reviews._validate_question(db, workspace, 'approved', scoped, question.review_data, question.number, formative=True)
     from .official_question_analyses import content_hash, source_manifest
     from .review_scopes import binding
     return data, part, topic_publications(db, workspace, part), binding(db, workspace, question, part.label)
@@ -308,6 +305,9 @@ def state(db, settings, principal, session):
         AssessmentInteraction.question_id == question.id, AssessmentInteraction.kind == 'worked_answer')))
     visible = revealed or bool(assessment.submitted_at)
     result = tutor_practice._response(db, practice)
+    if result.question.result and result.question.result.deterministicChecks.get('indicative') and result.question.result.deterministicChecks.get('scorePending'):
+        safe_result=result.question.result.model_copy(update={'awardedMarks':None})
+        result.question=result.question.model_copy(update={'result':safe_result})
     if visible:
         result.question = result.question.model_copy(update={'rubric': question.rubric})
     else:
@@ -410,7 +410,7 @@ def select_question(db, settings, principal, session, key, message):
         duration_minutes=60, started_at=now, ends_at=now + timedelta(hours=1), curriculum_snapshot_id=snapshot.id)
     db.add(assessment); db.flush()
     ids = list(dict.fromkeys(snap['sharedVisuals'] + part['visualAssetIds']))
-    rubric = {'markingPoints': part['markingPoints'], 'scoringRules': part['scoringRules'],
+    rubric = {'formativeFeedback': True, 'markingPoints': part['markingPoints'], 'scoringRules': part['scoringRules'],
         'alternatives': part['alternatives'], 'examinerAdvice': [part['examinerAdvice']] if part['examinerAdvice'] and part['reportSources'] else [],
         'commonMistakes': [], 'answerVisuals': part.get('answerVisuals', []),
         'drawingParts': [part['label']] if part['responseType'] == 'drawing' else [],
@@ -477,6 +477,7 @@ def intent(message, active=False):
     if re.search(r'\b(?:question|q)\s*\d', text) or ('paper' in text and re.search(r'\b(ask|question|practi[cs]e|discuss|help|available)\b', text)):
         return 'select'
     if text in {'return to textbook', 'stop past-paper practice', 'stop practice'}: return 'stop'
+    if text == 'retry feedback': return 'retry'
     if text.startswith(('my answer:', 'answer:')): return 'answer'
     if active and (not re.search(r'\?|^(?:why|how|what|can|explain|tell)\b', text)):
         return 'answer'
@@ -546,12 +547,14 @@ def handle(db, settings, principal, session, payload, generator=None):
             else: content += '\n\nNo reviewed examiner guidance is available for this item.'
             content += ('\n\nThis is assisted practice. Revealing the answer does not award marks or independent mastery.' if current.answerRevealed else '\n\nThis is reviewed marking guidance, not a newly generated official answer.')
             choices = ['Next question']
-        elif action == 'answer':
+        elif action in {'answer', 'retry'}:
             if not previous: raise DomainError('practice_not_started', 'Ask for a past-paper question first.', 409)
             _release_for_practice(db, settings, principal, session, previous)
             assessment = db.get(Assessment, previous.assessment_id)
-            if assessment.submitted_at and assessment.submission_key != payload.requestKey:
+            if assessment.submitted_at and assessment.submission_key != payload.requestKey and action != 'retry':
                 raise DomainError('practice_already_submitted', 'This answer is already submitted. Ask to see the approved answer or request another question.', 409)
+            if action == 'retry' and not assessment.submitted_at:
+                raise DomainError('practice_answer_missing', 'Submit your answer before retrying feedback.', 409)
             if not assessment.submitted_at:
                 text = re.sub(r'^(?:my answer|answer):\s*', '', payload.message.strip(), flags=re.I)
                 if not text.strip():
@@ -567,18 +570,23 @@ def handle(db, settings, principal, session, payload, generator=None):
                 request.metadata['session_ref'] = session.public_ref
                 return tutor_agent._invoke(mark_db, mark_settings, principal, request, uuid.uuid4(), generator)
             try:
-                assessment_marking.evaluate(db, settings, assessment, payload.requestKey, generator=generate)
+                question = db.get(AssessmentQuestion, previous.question_id)
+                if question.rubric.get('formativeFeedback'):
+                    from .tutor_question_sets import evaluate_legacy_practice
+                    evaluate_legacy_practice(db, settings, assessment, [question], assessment.submission_key or payload.requestKey, generate)
+                else:
+                    assessment_marking.evaluate(db, settings, assessment, payload.requestKey, generator=generate)
                 current = state(db, settings, principal, session)
                 result = current.practice.question.result
                 if result and result.status == 'published':
-                    content = f'**Feedback · {result.awardedMarks}/{result.maxMarks} marks**\n\n{result.teachingExplanation}\n\n**How to improve**\n\n{result.improvedAnswer}'
+                    content = (f'**Indicative AI feedback · {result.awardedMarks}/{result.maxMarks} marks**' if result.awardedMarks is not None else '**Guidance without a score**') + f'\n\n{result.teachingExplanation}\n\n**AKURU suggested better answer**\n\n{result.improvedAnswer}'
                 else:
                     content = 'Your answer is saved. Automatic feedback has not passed its release/review checks, so no score is being shown. You can still compare your answer with the approved marking guidance.'
             except DomainError as error:
                 if error.status_code < 400: raise
                 content = 'Your answer is saved, but automatic marking is currently unavailable. No score has been awarded. You can still show the approved marking guidance.'
                 current = state(db, settings, principal, session)
-            choices = ['Show approved answer', 'Next question']
+            choices = ['Retry feedback', 'Show approved answer', 'Next question'] if not current.practice.question.result else ['Show approved answer', 'Next question']
         else:
             if not previous: raise DomainError('practice_not_started', 'Ask for a past-paper question first.', 409)
             _release_for_practice(db, settings, principal, session, previous)

@@ -14084,6 +14084,16 @@
               }
             ]
           },
+          "practiceSet": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TutorQuestionSetState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "promptName": {
             "title": "Promptname",
             "type": "string"
@@ -14958,6 +14968,126 @@
           "active"
         ],
         "title": "TutorProfileResponse",
+        "type": "object"
+      },
+      "TutorQuestionSetState": {
+        "properties": {
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "assisted": {
+            "title": "Assisted",
+            "type": "boolean"
+          },
+          "availableCount": {
+            "title": "Availablecount",
+            "type": "integer"
+          },
+          "completedCount": {
+            "title": "Completedcount",
+            "type": "integer"
+          },
+          "feedback": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback"
+          },
+          "itemStatus": {
+            "title": "Itemstatus",
+            "type": "string"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "processing": {
+            "default": false,
+            "title": "Processing",
+            "type": "boolean"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "requestedCount": {
+            "title": "Requestedcount",
+            "type": "integer"
+          },
+          "setRef": {
+            "title": "Setref",
+            "type": "string"
+          },
+          "sourceKind": {
+            "enum": [
+              "official",
+              "generated"
+            ],
+            "title": "Sourcekind",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "completed",
+              "abandoned"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "title": "Summary",
+            "type": "object"
+          },
+          "topicTitles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Topictitles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "setRef",
+          "status",
+          "sourceKind",
+          "requestedCount",
+          "availableCount",
+          "position",
+          "completedCount",
+          "topicTitles",
+          "itemStatus",
+          "assisted"
+        ],
+        "title": "TutorQuestionSetState",
         "type": "object"
       },
       "TutorRecommendationBrief": {
@@ -40784,6 +40914,178 @@
           }
         },
         "summary": "Submit Practice",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/question-set": {
+      "get": {
+        "operationId": "question_set_state_api_v1_tutoring_sessions__session_ref__question_set_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/TutorQuestionSetState"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Question Set State Api V1 Tutoring Sessions  Session Ref  Question Set Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Question Set State",
+        "tags": [
+          "tutoring"
+        ]
+      }
+    },
+    "/api/v1/tutoring/sessions/{session_ref}/question-set/assets/{asset_id}": {
+      "get": {
+        "operationId": "question_set_asset_api_v1_tutoring_sessions__session_ref__question_set_assets__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_ref",
+            "required": true,
+            "schema": {
+              "title": "Session Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Question Set Asset",
         "tags": [
           "tutoring"
         ]

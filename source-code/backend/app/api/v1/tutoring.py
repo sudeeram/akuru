@@ -478,3 +478,37 @@ def approved_chat_visual(session_ref: str, asset_id: uuid.UUID,
     stored = tutor_chat_visuals.open_visual(db, settings, principal, storage, session_ref, asset_id)
     return Response(content=stored.content, media_type=stored.content_type,
         headers={"Cache-Control":"private, no-store", "X-Content-Type-Options":"nosniff"})
+
+
+from app.schemas.tutor_question_sets import TutorQuestionSetState
+
+
+@router.get('/sessions/{session_ref}/question-set', response_model=TutorQuestionSetState | None)
+def question_set_state(session_ref: str,
+    principal: Annotated[Principal, Depends(require_roles('student'))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)]):
+    from app.services import tutor_question_sets
+    session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+    from app.services.tutor_past_papers import require_access
+    require_access(db, settings, principal, session)
+    return tutor_question_sets.current(db, settings, principal, session)
+
+
+@router.get('/sessions/{session_ref}/question-set/assets/{asset_id}')
+def question_set_asset(session_ref: str, asset_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles('student'))],
+    settings: Annotated[Settings, Depends(get_settings)], db: Annotated[Session, Depends(get_db)],
+    storage: Annotated[ObjectStorage, Depends(get_storage)]):
+    from app.services import tutor_question_sets
+    session = tutor_sessions._owned_session(db, principal.user.id, session_ref)
+    asset = tutor_question_sets.asset(db, settings, principal, session, asset_id)
+    if not asset:
+        from app.errors import DomainError
+        raise DomainError('practice_asset_missing', 'Source not found.', 404)
+    try:
+        stored = storage.get(asset.object_key, asset.mime_type)
+    except FileNotFoundError as exc:
+        from app.errors import DomainError
+        raise DomainError('practice_asset_missing', 'The reviewed visual file is unavailable.', 404) from exc
+    return Response(content=stored.content, media_type=stored.content_type,
+        headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})

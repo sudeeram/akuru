@@ -149,9 +149,19 @@ def test_real_student_submission_has_no_provider_or_quota_calls(auth_client,monk
 
 
  r=c.post(endpoint,headers=sh,json=dict(message='Next question',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
+ # Unrecognised practice prose now falls through to indicative semantic
+ # feedback rather than creating a mandatory human-marking task.
+ fallback_calls=[]
+ def formative_fallback(db,settings,principal,request,op,generator):
+  fallback_calls.append(request.prompt_name)
+  output=request.output_type(matches=[dict(pointId=p['code'],matched=False,evidence='',reason='No relevant statement.')for p in legacy],
+   correctPoints=[],mistakes=[],omissions=['State the relevant observation.'],improvedAnswer='Use the approved observations and their conclusions.',
+   explanation='The response does not identify an observation.',uncertainty='An unclear response may need clarification.')
+  return AIResult(output,'fixture','formative-fallback',None,AIUsage(0,0,0),0,1)
+ monkeypatch.setattr('app.services.tutor_agent._invoke',formative_fallback)
  r=c.post(endpoint,headers=sh,json=dict(message='My answer: unclear',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
- pending=r.json()['pastPaper']['practice']['question']['result'];assert pending['status']=='needs_review'and pending['markingDecisions']==[] and pending['awardedMarks'] is None
- assert 'no score' in r.json()['content'].lower()
+ pending=r.json()['pastPaper']['practice']['question']['result'];assert pending['status']=='published'and pending['awardedMarks']==0
+ assert pending['deterministicChecks']['indicative'] and fallback_calls==['formative-answer-feedback']
 
 @pytest.mark.integration
 def test_full_question_compilation_preserves_proofs_and_rejects_forgery(auth_client):

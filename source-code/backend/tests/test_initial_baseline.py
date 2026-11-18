@@ -28,10 +28,11 @@ def test_baseline_matches_topic_only_metadata_inventory():
                     "flashcard_sessions", "flashcard_reviews", "flashcard_learning_states",
                         "textbook_topic_visual_assets", "flashcard_reports",
                             "password_reset_receipts", "official_paper_review_workspaces",
-                            "official_paper_review_questions", "community_profiles", "community_follows",
+                            "tutor_question_sets", "official_paper_review_questions", "community_profiles", "community_follows",
                             "community_blocks", "community_notifications", "community_reports"}
     assert "op.create_table('evidence_link_jobs'" in (MIGRATIONS / 'versions' / '0021_exact_evidence_jobs.py').read_text()
     assert "'job_kind'" in (MIGRATIONS / 'versions' / '0022_accuracy_reassessment_jobs.py').read_text()
+    assert "op.create_table('tutor_question_sets'" in (MIGRATIONS / 'versions' / '0023_tutor_question_sets.py').read_text()
     for table_name in set(Base.metadata.tables) - later_tables:
         assert f"op.create_table('{table_name}'" in text
 

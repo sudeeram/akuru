@@ -64,7 +64,7 @@ export function TutorPastPaperReleases({
         <p>
           This releases individual self-contained practice items, not a complete
           paper. A subpart must be human approved or AI approved, mapped to
-          published topics and have confirmed marking readiness. Independent
+          published topics and have reliable approved source evidence. Scoring certificates are optional for indicative AI feedback. Independent
           subparts can pass while siblings remain blocked; shared context must
           still be complete. Changing the reviewed source invalidates its
           release.
@@ -104,7 +104,7 @@ export function TutorPastPaperReleases({
                       ? 'Released for practice'
                       : ready
                         ? 'Ready for release review'
-                        : 'Approval or marking readiness required'}
+                        : 'Content approval or source checks required'}
                   </span>
                   <Button
                     disabled={busy || (!ready && !released)}

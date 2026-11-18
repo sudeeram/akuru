@@ -222,6 +222,14 @@ def admin_assessment(db, assessment_id):
         raise DomainError("assessment_not_submitted", "Only submitted assessments can be reassessed.", 409)
     return row
 
+def _visible_result(result):
+    from .assessment_marking import result_response
+    value = result_response(result)
+    if result.deterministic_checks.get('indicative') and result.deterministic_checks.get('scorePending'):
+        value['awardedMarks'] = None
+    return value
+
+
 def response(db, row):
     if row.status == "active" and row.ends_at <= _now(): row.status = "expired"; db.commit(); db.refresh(row)
     visible = row.status in {"submitted", "expired"} and row.submitted_at is not None
@@ -248,7 +256,7 @@ def response(db, row):
             drawingParts=q.rubric.get("drawingParts", []),
             drawingFiles=answers[q.id].drawing_files if q.id in answers else {},
             rubric=q.rubric if visible or q.id in revealed else None,
-            result=assessment_marking.result_response(results[q.id]) if q.id in results else None) for q in questions])
+            result=_visible_result(results[q.id]) if q.id in results else None) for q in questions])
 
 def list_assessments(db, principal):
     rows = db.scalars(select(Assessment).where(Assessment.student_id == principal.user.id).order_by(Assessment.started_at.desc())).all()

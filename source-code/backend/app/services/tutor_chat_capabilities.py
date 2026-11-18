@@ -75,7 +75,7 @@ def help_response(db,settings,principal,session,kind):
     else:
         content=f'I can help you study {subject}:\n\n- Explain concepts using your approved textbook material and references.\n- Ask revision questions and help you reason through an idea.\n- Show relevant approved figures when available; I do not generate images.'
         if session.chat_scope=='subject': content+='\n- Connect ideas across the published, covered topics released for you.'
-        if capabilities['pastPapers']: content+='\n- Practise released past-paper questions and compare your answer with approved marking guidance. Automatic scores have separate review and release requirements.'
+        if capabilities['pastPapers']: content+='\n- Request a counted set of released past-paper questions from a topic, receive indicative AI feedback and compare your answer with approved marking guidance. You can also request new AKURU-generated exam-style topic questions; these are clearly labelled and checked against published evidence.'
         if capabilities['guidedPractice']: content+='\n- Open an eligible saved guided-practice question using the practice tools.'
         if capabilities['voice']: content+='\n- Use the voice tools, subject to your microphone permission and remaining allowance.'
         if capabilities['recommendations']: content+='\n- Use Find next topic for evidence-based guidance; I will say when there are not enough assessed results to personalise it.'

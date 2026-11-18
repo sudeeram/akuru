@@ -334,7 +334,8 @@ export function AccuracyReassessment({
       )}
       {!!review.assessmentBlockers?.length && (
         <details>
-          <summary>Remaining release / scoring blockers</summary>
+          <summary>Optional certified-scoring checks</summary>
+          <p>Not required for formative Tutor practice or indicative AI feedback.</p>
           <ul>
             {review.assessmentBlockers.map((b, i) => (
               <li key={i}>{b}</li>

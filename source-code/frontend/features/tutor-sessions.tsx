@@ -3,6 +3,8 @@ import { DeterministicAnswerInput } from './deterministic-answer-input';
 
 import { tutorLearningContextChanged } from '@/lib/tutor-session-context';
 import { request } from '@/api/core/client';
+import { TutorQuestionSetCard } from './tutor-question-set-card';
+import type { TutorQuestionSet } from '@/api/tutoring/tutor.types';
 import { TutorPastPaperCard } from './tutor-past-paper-card';
 import type { PastPaperChatState } from '@/api/tutoring/tutor.types';
 import { ModelAnswerVisuals, PracticeWorkedAnswer } from './answer-visuals';
@@ -94,6 +96,7 @@ export function TutorSessions({
     [busy, setBusy] = useState(false);
   const [pendingMessage, setPendingMessage] = useState('');
   const [agentReply, setAgentReply] = useState<TutorAgentReply | null>(null);
+  const [questionSet, setQuestionSet] = useState<TutorQuestionSet | null>(null);
   const [pastPaper, setPastPaper] = useState<PastPaperChatState | null>(null);
   const [practice, setPractice] = useState<TutorPractice | null>(null),
     [practiceAnswer, setPracticeAnswer] = useState('');
@@ -181,7 +184,12 @@ export function TutorSessions({
         : undefined;
       setAgentReply((retained?.structured as TutorAgentReply) || null);
       setPastPaper(null);
+      setQuestionSet(null);
       if (active) {
+        if (!(retained?.structured as TutorAgentReply | undefined)?.pastPaper) {
+          await request<TutorQuestionSet | null>(`tutoring/sessions/${active.sessionRef}/question-set`)
+            .then(setQuestionSet).catch(() => setQuestionSet(null));
+        }
         await request<PastPaperChatState | null>(
           `tutoring/sessions/${active.sessionRef}/past-paper`,
         )
@@ -762,7 +770,19 @@ export function TutorSessions({
             )}
           </div>
         )}
-        {pastPaper && (
+        {questionSet && (
+          <TutorQuestionSetCard key={`${questionSet.setRef}:${questionSet.position}`} value={questionSet} busy={busy} send={async content => {
+            setBusy(true); setError('');
+            try {
+              const reply = await addTutorAgentTurn(session.sessionRef, content, 'auto', key());
+              setAgentReply(reply);
+              if (reply.practiceSet) setQuestionSet(reply.practiceSet);
+              await load();
+            } catch (cause) { setError(errorMessage(cause)); }
+            finally { setBusy(false); }
+          }} />
+        )}
+        {!questionSet && pastPaper && (
           <TutorPastPaperCard
             key={pastPaper.practice.assessmentId}
             value={pastPaper}
@@ -772,7 +792,8 @@ export function TutorSessions({
               try {
                 const reply = await addTutorAgentTurn(session.sessionRef, `My answer: ${answer}`, 'auto', key());
                 setAgentReply(reply);
-                if (reply.pastPaper) setPastPaper(reply.pastPaper);
+                if (reply.pastPaper) { setPastPaper(reply.pastPaper); setQuestionSet(null); }
+                if (reply.practiceSet) setQuestionSet(reply.practiceSet);
                 await load();
               } catch (cause) { setError(errorMessage(cause)); }
               finally { setBusy(false); }
@@ -789,7 +810,7 @@ export function TutorSessions({
         )}
         <div className="tutor-chat-compose-area">
           <small>
-            Ask naturally: “Explain this”, “Quiz me”, or “Help me revise”. AKURU
+            Ask naturally: “Give me 5 questions from Coordination”, “Generate 3 new questions from Topic 6”, or “Explain this”. AKURU
             adapts the approach to your request.
           </small>
           <form
@@ -809,7 +830,8 @@ export function TutorSessions({
                   key(),
                 );
                 setAgentReply(reply);
-                if (reply.pastPaper) setPastPaper(reply.pastPaper);
+                if (reply.pastPaper) { setPastPaper(reply.pastPaper); setQuestionSet(null); }
+                if (reply.practiceSet) setQuestionSet(reply.practiceSet);
                 setMessage('');
                 const [refreshed, allowance] = await Promise.all([
                   getTutorSessions(),
