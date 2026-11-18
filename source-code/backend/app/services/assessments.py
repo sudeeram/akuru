@@ -113,6 +113,9 @@ def _rubric(db, paper_version_id, number):
         MarkSchemeEntryVersion.question_number == number)) if scheme else None
     comment = db.scalar(select(ExaminerCommentVersion).where(ExaminerCommentVersion.material_version_id == report.id,
         ExaminerCommentVersion.question_number == number)) if report else None
+    if report and comment is None:
+        parent=db.scalar(select(OfficialQuestionVersion.parent_number).where(OfficialQuestionVersion.material_version_id==paper_version_id,OfficialQuestionVersion.question_number==number))
+        if parent:comment=db.scalar(select(ExaminerCommentVersion).where(ExaminerCommentVersion.material_version_id==report.id,ExaminerCommentVersion.question_number==parent))
     return {"rubricVersion": str(entry.material_version_id) if entry else None,
         "examinerReportVersion": str(comment.material_version_id) if comment else None,
         "answerVisuals": entry.answer_visuals if entry else [],

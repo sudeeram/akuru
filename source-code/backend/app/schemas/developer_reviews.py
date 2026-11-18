@@ -15,7 +15,7 @@ class PartCorrection(Strict):
     sourceFinding:PartAccuracy|None=None
     @model_validator(mode='after')
     def allowed_fields(self):
-        allowed=set(ReviewPart.model_fields)-{'label','status','assessmentReadiness','assessmentReadinessReason','extractionConfidence'}
+        allowed=set(ReviewPart.model_fields)-{'label','status','assessmentReadiness','extractionConfidence'}
         if set(self.fields)-allowed:raise ValueError('Only typed content, evidence, mapping and rubric corrections are permitted')
         if self.sourceFinding and self.sourceFinding.label!=self.partLabel:raise ValueError('Finding label must match the corrected part')
         return self

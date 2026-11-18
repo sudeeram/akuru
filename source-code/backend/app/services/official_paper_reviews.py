@@ -135,7 +135,8 @@ def _response(db: Session, workspace: OfficialPaperReviewWorkspace) -> PaperRevi
                 assessment_blockers.append(f"Q{question.number}({part.label}): automatic-marking rules are {part.assessmentReadiness.replace('_', ' ')}.")
         if all(p.assessmentReadiness == "automatic" for p in question.data.parts):
             try:
-                marking_rules.compile_review(question.data)
+                from .review_assessment_items import validate
+                validate(question.data)
             except DomainError as exc:
                 assessment_blockers.append(f"Q{question.number}: {exc}")
     return PaperReviewResponse(
@@ -862,29 +863,31 @@ def prepare_official_drafts(db: Session, principal: Principal, paper_id: uuid.UU
         data = row.data
         if any(not (part.assessmentReadiness == "automatic" or (part.assessmentReadiness == "manual_only" and part.responseType == "drawing")) for part in data.parts):
             raise DomainError("assessment_rules_not_ready", f"Question {row.number}: content is approved, but every subpart needs an automatic or manual marking decision before preparing an assessment release.", 409)
-        locations = _exact_locations(db, [*data.paperSources,
-            *(source for part in data.parts for source in part.paperSources)])
-        scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
-        if not locations or not scheme_locations:
-            raise DomainError("exact_block_required", "Every approved question needs exact paper and scheme blocks.", 409)
-        assets = list(dict.fromkeys([*data.visualAssetIds,
-            *(asset_id for part in data.parts for asset_id in part.visualAssetIds)]))
-        paper_questions.append(OfficialQuestionReview(
-            number=row.number, prompt=data.prompt, sharedStem=data.sharedStem,
-            marks=data.marks, assetIds=assets,
-            visualPlacements={"shared": data.visualAssetIds, **{
-                part.label: part.visualAssetIds for part in data.parts if part.visualAssetIds}},
-            sourceLocations=locations,
-        ))
-        compiled_points, rules = marking_rules.compile_review(data)
-        points = [MarkingPoint.model_validate(p) for p in compiled_points]
-        alternatives = [value for part in data.parts for value in part.alternatives]
-        scheme_entries.append(MarkSchemeEntryReview(
-            questionNumber=row.number, maxMarks=data.marks,
-            markingPoints=points, scoringRules=rules, alternatives=alternatives, sourceLocations=scheme_locations,
-            answerVisuals=[v.model_copy(update={"partLabel": part.label}) for part in data.parts for v in part.answerVisuals if v.status == "approved"],
-            drawingParts=[part.label for part in data.parts if part.responseType == "drawing"],
-        ))
+        from .review_assessment_items import items
+        for item_number,parent_number,data in items(row.number,data):
+            locations = _exact_locations(db, [*data.paperSources,
+                *(source for part in data.parts for source in part.paperSources)])
+            scheme_locations = _exact_locations(db, [source for part in data.parts for source in part.schemeSources])
+            if not locations or not scheme_locations:
+                raise DomainError("exact_block_required", "Every approved question needs exact paper and scheme blocks.", 409)
+            assets = list(dict.fromkeys([*data.visualAssetIds,
+                *(asset_id for part in data.parts for asset_id in part.visualAssetIds)]))
+            paper_questions.append(OfficialQuestionReview(
+                number=item_number, parentNumber=parent_number, prompt=data.prompt, sharedStem=data.sharedStem,
+                marks=data.marks, assetIds=assets,
+                visualPlacements={"shared": data.visualAssetIds, **{
+                    part.label: part.visualAssetIds for part in data.parts if part.visualAssetIds}},
+                sourceLocations=locations,
+            ))
+            compiled_points, rules = marking_rules.compile_review(data)
+            points = [MarkingPoint.model_validate(p) for p in compiled_points]
+            alternatives = [value for part in data.parts for value in part.alternatives]
+            scheme_entries.append(MarkSchemeEntryReview(
+                questionNumber=item_number, maxMarks=data.marks,
+                markingPoints=points, scoringRules=rules, alternatives=alternatives, sourceLocations=scheme_locations,
+                answerVisuals=[v.model_copy(update={"partLabel": part.label}) for part in data.parts for v in part.answerVisuals if v.status == "approved"],
+                drawingParts=[part.label for part in data.parts if part.responseType == "drawing"],
+            ))
     paper_payload = SaveOfficialMaterialReview(
         expectedItemCount=len(paper_questions), completenessConfirmed=True,
         questions=paper_questions,

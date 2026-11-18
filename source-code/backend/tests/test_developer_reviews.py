@@ -254,3 +254,21 @@ def test_incompatible_finding_policy_is_a_safe_atomic_error(auth_client,monkeypa
  result=c.post(root+f'/change-sets/{key}/apply',headers=h,json={'requestId':str(uuid.uuid4()),'expectedPreviewHash':preview['previewHash']})
  assert result.status_code==422 and result.json()['error']['code']=='review_analysis_invalid'
  assert c.get(root).json()['questions'][0]['revision']==q['revision']
+
+@pytest.mark.integration
+def test_readiness_note_is_metadata_and_preserves_human_source_review(auth_client,monkeypatch):
+ from app.models import OfficialPaperReviewQuestion
+ c,h,db,root,q,body=package(auth_client,monkeypatch)
+ row=db.scalar(select(OfficialPaperReviewQuestion));data=copy.deepcopy(row.review_data);data['parts'][0]['status']='approved';row.review_data=data;db.commit()
+ q=c.get(root).json()['questions'][0]
+ body['corrections'][0]['fields']={'assessmentReadinessReason':'Manual semantic interpretation remains required; the source content is approved.'}
+ body['corrections'][0]['sourceFinding']=None
+ staged=c.post(root+'/change-sets',headers=h,json=body);assert staged.status_code==201,staged.text
+ key=staged.json()['id'];preview=c.get(root+f'/change-sets/{key}/preview').json()
+ assert 'assessmentReadinessReason'in preview['changes'][0]['fields']
+ result=c.post(root+f'/change-sets/{key}/apply',headers=h,json={'requestId':str(uuid.uuid4()),'expectedPreviewHash':preview['previewHash']});assert result.status_code==200,result.text
+ saved=c.get(root).json()['questions'][0]
+ assert saved['data']['parts'][0]['status']=='approved'
+ assert saved['data']['parts'][0]['assessmentReadiness']==q['data']['parts'][0]['assessmentReadiness']
+ assert saved['accuracyAnalysis']['reviewOrigins'][body['corrections'][0]['partLabel']]['kind']=='carried_forward'
+ assert saved['accuracyAnalysis']['isCurrent']

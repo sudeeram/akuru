@@ -295,7 +295,9 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
         if material.source_document_version_id != expected_version:
             raise DomainError("review_source_changed", "The reviewed PDF version differs from this draft.", 409)
         if material.kind == "past_paper":
-            reviewed = {row.number: row.review_data for row in review_rows}
+            from .review_assessment_items import items
+            from app.schemas.official_paper_reviews import ReviewQuestionData
+            reviewed = {number: data.model_dump(mode='json') for row in review_rows for number,_parent,data in items(row.number,ReviewQuestionData.model_validate(row.review_data))}
             published_rows = db.scalars(select(OfficialQuestionVersion).where(
                 OfficialQuestionVersion.material_version_id == material.id)).all()
             if len(published_rows) != len(reviewed) or any(
@@ -308,7 +310,9 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
         else:
             if workspace.scheme_document_id != document.id:
                 raise DomainError("review_draft_mismatch", "The scheme differs from the reviewed companion.", 409)
-            reviewed = {row.number: row.review_data for row in review_rows}
+            from .review_assessment_items import items
+            from app.schemas.official_paper_reviews import ReviewQuestionData
+            reviewed = {number: data.model_dump(mode='json') for row in review_rows for number,_parent,data in items(row.number,ReviewQuestionData.model_validate(row.review_data))}
             scheme_rows = db.scalars(select(MarkSchemeEntryVersion).where(
                 MarkSchemeEntryVersion.material_version_id == material.id)).all()
             from app.schemas.answer_visuals import AnswerVisual
@@ -347,6 +351,9 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
         material.textbook_id = source_paper_version.textbook_id
         model = MarkSchemeEntryVersion if material.kind == "mark_scheme" else ExaminerCommentVersion
         numbers = set(db.scalars(select(model.question_number).where(model.material_version_id == material.id)).all())
+        if material.kind=='examiner_report':
+            parents=set(db.scalars(select(OfficialQuestionVersion.parent_number).where(OfficialQuestionVersion.material_version_id==source_paper_version.id,OfficialQuestionVersion.parent_number.is_not(None))))
+            allowed={**allowed,**{parent:0 for parent in parents}}
         if not numbers.issubset(allowed):
             raise DomainError("unmatched_question_reference", "Every entry must reference a question in the published source paper.", 409)
         if material.kind == "mark_scheme":
@@ -354,7 +361,8 @@ def publish_review(db: Session, principal: Principal, document_id: uuid.UUID, co
             for entry in entries:
                 from app.schemas.answer_visuals import AnswerVisual
                 from app.services.answer_visuals import validate_visuals
-                validate_visuals(db, material.source_document_version_id, [AnswerVisual.model_validate(v) for v in entry.answer_visuals], question_number=entry.question_number)
+                source_parent=db.scalar(select(OfficialQuestionVersion.parent_number).where(OfficialQuestionVersion.material_version_id==source_paper_version.id,OfficialQuestionVersion.question_number==entry.question_number))
+                validate_visuals(db, material.source_document_version_id, [AnswerVisual.model_validate(v) for v in entry.answer_visuals], question_number=source_parent or entry.question_number)
                 if any(v["status"] != "approved" for v in entry.answer_visuals):
                     raise DomainError("answer_visual_review_required", "Only approved answer visuals may be published.", 409)
                 if entry.drawing_parts and any(not any(v["partLabel"] == part for v in entry.answer_visuals) for part in entry.drawing_parts):

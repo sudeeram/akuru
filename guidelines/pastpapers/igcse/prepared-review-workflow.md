@@ -20,3 +20,11 @@ Use this procedure when reviewing stored question, scheme and examiner-report ex
 10. Inspect post-apply readiness and record remaining blockers. Tutor practice, official drafts and formal publication are distinct. A complete source review is not a statement that an entire exam is automatically markable or published.
 
 API and CLI reference: [prepared review workflow](../../../source-code/backend/docs/developer-review-apis.md).
+
+## Curriculum applications and companion documents
+
+Search the full published topic before treating a limited retrieval candidate set as a textbook gap. Cite explicit passages when available. For unfamiliar applications, distinguish the published biological/practical foundation from facts supplied by the question; do not demand that every exam scenario appear verbatim in the book or claim that an inferred extension was literally extracted. Record a reasoned mapping confidence and retain uncertainty where the foundation really is missing.
+
+A publisher discrepancy decision must identify the controlling instruction and retain the original wording. In an internal mark-count conflict, reconcile the question maximum, scheme mark column, individual point weights and corroborating examples; do not automatically equate every maximum with a number of points. Changes to explanatory readiness notes must not erase human source approval or count as a fresh source comparison.
+
+Where independently scored subparts use different marking engines, keep their original parent question in source review and prepare separate official assessment items with parent/subpart identity. Preserve deterministic certificates, exact companion scheme rows and parent-report fallback; never remove a validated recognizer merely to make compilation succeed.

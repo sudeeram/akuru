@@ -61,11 +61,12 @@ def _target(db,w,q,payload,base_scopes=None):
         if new_certificate is not None and new_certificate!=old_certificate:
             raise DomainError('review_certificate_forbidden','Scoring certificates must come from server validation.',422)
         changed=[k for k in correction.fields if supplied[k]!=part.model_dump(mode='json').get(k)]
-        if changed and part.status=='approved' and not payload.reopenApproved:
+        scientific=set(changed)-{'assessmentReadinessReason','coverage','topicRefs','textbookEvidence','coverageReason'}
+        if scientific and part.status=='approved' and not payload.reopenApproved:
             raise DomainError('review_reopen_required','Explicitly reopen only the corrected approved subpart.',409)
-        if changed and not correction.sourceFinding:
+        if set(changed)-{'assessmentReadinessReason'} and not correction.sourceFinding:
             raise DomainError('review_finding_required','Supply a source comparison for the changed subpart.',409)
-        if changed:
+        if scientific:
             updated.status='unreviewed'
             if updated.scoringRules.deterministic:
                 from .deterministic_validation import certificate
@@ -114,7 +115,7 @@ def _target(db,w,q,payload,base_scopes=None):
                     part.scoringRules.deterministic.certificateId=None;part.assessmentReadiness='unreviewed'
         existing=next(c for c in changes if c['partLabel']==part.label)if part.label in selected else None
         if existing:
-            fields=[key for key in type(part).model_fields if key not in {'status','assessmentReadiness','assessmentReadinessReason'}and existing['before'].get(key)!=part.model_dump(mode='json').get(key)]
+            fields=[key for key in type(part).model_fields if key not in {'status','assessmentReadiness'}and existing['before'].get(key)!=part.model_dump(mode='json').get(key)]
             existing.update(after=part.model_dump(mode='json'),fields=fields or (['visualMetadata']if affected else []))
     if before.sharedStem!=data.sharedStem or any('prompt'in change['fields']for change in changes):
         if not data.sharedStem and 'sharedStem'not in payload.sharedFields:
@@ -231,7 +232,8 @@ def _apply(db,principal,paper,key,request,*,commit=True):
     from . import paper_source_issues
     old_decisions=paper_source_issues.decisions(db,[q.id])
     old_issues=[(None,i)for i in old.analysis_data['question'].get('issues',[])]+[(p['label'],i)for p in old.analysis_data['parts']for i in p.get('issues',[])]
-    changed={c['partLabel']for c in changes if c['fields']}
+    prospective=type('Prospective',(),dict(review_data=data.model_dump(mode='json')))()
+    changed={part.label for part in data.parts if base_scopes[part.label]!=review_scopes.binding(db,w,prospective,part.label)}
     # Only the selected changed part is reopened. Human sibling decisions survive.
     q.review_data=data.model_dump(mode='json');q.revision+=1
     if changed:q.status='unreviewed'

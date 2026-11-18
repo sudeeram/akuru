@@ -53,3 +53,7 @@ See [Biology production acceptance](developer-review-biology-acceptance.md) for 
 Carried-forward part provenance is resolved through its original analysis ancestry, rather than inheriting the newest question-level model header. New records also save the effective original per-source provenance explicitly. Historical analyses remain immutable. Renewed release versions are deduplicated for new Student question choices while remaining available to existing practice records.
 
 For long questions exceeding the existing combined source-context page cap, use the paginated review-package export and its authenticated original-document/page-asset links; the CLI does not bypass that safety limit.
+
+Readiness-note corrections are allowed through `assessmentReadinessReason` while the actual readiness state remains protected. Note-only changes retain human approval and carry forward bound source findings. Curriculum-only updates retain source-content approval while replacing the mapping assessment; changed wording, guidance, rubric or visuals still require their source comparison and scoped reopen rules.
+
+Mixed deterministic/semantic source questions are projected into separate official draft items, for example `2(a)` and `2(b)`, with parent `2`. The source question inventory remains unchanged. Paper/scheme publication checks use the same projection; exact child examiner advice takes precedence, with parent advice available as a fallback. The deterministic engine and its certificate fingerprint are unchanged by this projection.
