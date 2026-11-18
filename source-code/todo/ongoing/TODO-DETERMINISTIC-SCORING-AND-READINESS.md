@@ -170,10 +170,12 @@ A supported question/subpart can be taken from original source analysis to **“
 
 ## Implementation evidence — 2026-11-18
 
-- Core schema, bounded recognizers, authenticated server replay/certificates, no-model assessment dispatch, Admin controls and Student answer fields deployed as `4cebd96`; developer CLI and resumable manifest workflow implemented.
-- Backend full regression: 597 passed, 1 skipped; frontend 123 passed, typecheck, lint, contract and production build passed. Added formal/mixed-engine dispatcher coverage also passes. Production: ten current server certificates, 135 actual answer cases, 14 live Tutor parts; all six source assessments current.
+- Core schema, bounded recognizers, authenticated server replay/certificates, no-model assessment dispatch, Admin controls and Student answer fields deployed as `75ebbc9`; developer CLI and resumable manifest workflow implemented.
+- Backend full regression: 598 passed, 1 skipped; an additional engine-upgrade regression passed separately; frontend 123 passed, typecheck, lint, contract and production build passed. Added formal/mixed-engine dispatcher coverage also passes. Production: ten current server certificates, 135 actual answer cases, 14 live Tutor parts; all six source assessments current.
 - Existing audit records provide durable validation storage; no migration needed. Capability limits and developer commands are documented in [the backend guide](../../backend/docs/deterministic-scoring-and-readiness.md).
 - Biology rollout verified end to end; [all 31 subparts and remaining source/semantic blockers](../../backend/docs/deterministic-scoring-pilot.md) are recorded. Seventeen parts remain manual-only; four legacy automatic parts retain their basis. The complete formal paper was not published.
 - Live Student Q3(b): 0.057 returned 2/2 using deterministic provenance. Synthetic test mastery contribution segregated with rollback evidence; original result/transcript retained. Existing pilot expiry extended seven days only with explicit user approval.
 - Open engineering boundaries: automatic unit conversion/general symbolic algebra and part-scoped sibling release/source-issue freshness. Explicit numeric ranges and editable method controls are implemented. Existing whole-question freshness requires explicit source-checked restoration; certificates themselves are part-scoped.
 - A second-paper Chemistry package was prepared/read-only checked but **not applied**: the user declined production changes to Chemistry and requested Biology first. That demonstration remains deferred. The shared roadmap stays ongoing; do not call every checkbox complete.
+
+Biology pilot rollout completed and verified: 2026-11-18. Final engine: `75ebbc9`. Resumable CLI recognised ten current server certificates without duplicating runs. The broader roadmap remains ongoing for the explicitly unchecked boundaries and the user-deferred second-paper demonstration.

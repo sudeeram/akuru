@@ -169,3 +169,19 @@ def test_full_question_compilation_preserves_proofs_and_rejects_forgery(auth_cli
  assert v.engine.recognize(json.dumps({label:'AB'}),assessment_marking._official_points(frozen),frozen.marks,rules)[0]==2
  rules['deterministic']['parts'][0]['prompt']='Forged context'
  with pytest.raises(Exception,match='certificate|context|rules'):v.require_frozen_certificate(db,frozen)
+
+@pytest.mark.integration
+def test_engine_build_upgrade_requires_fresh_server_replay(auth_client,monkeypatch):
+ c,h,db,root,q,pkg=configured(auth_client)
+ endpoint=root+'/questions/1/validate-deterministic'
+ first=c.post(endpoint,headers=h,json=pkg)
+ assert first.status_code==200 and first.json()['passed']
+ monkeypatch.setattr(v.engine,'engine_hash',lambda:'a'*64)
+ assert c.get(root+'/questions/1/deterministic-validations').json()[0]['current']is False
+ current=c.get(root).json()['questions'][0]
+ pkg.update(requestId=str(uuid.uuid4()),expectedRevision=current['revision'],expectedEngineHash='a'*64)
+ second=c.post(endpoint,headers=h,json=pkg)
+ assert second.status_code==200 and second.json()['passed'],second.text
+ history=c.get(root+'/questions/1/deterministic-validations').json()
+ assert len(history)==2 and sum(row['current']for row in history)==1
+ assert c.get(root).json()['questions'][0]['accuracyAnalysis']['isCurrent']

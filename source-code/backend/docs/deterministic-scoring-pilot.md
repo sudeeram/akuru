@@ -1,9 +1,10 @@
 # Biology June 2025 2BR deterministic-scoring rollout
 
-Verified: 2026-11-18. Runtime release: `4cebd96781f2200ceefa08a67e681584da48f1f1`.
+Verified: 2026-11-18. Runtime release: `75ebbc9b5f87df9e1cbaf4193400628589c3b423`. All ten certificates were replayed after this final engine update.
 
 - All 31 subparts inspected and inventoried. Ten bounded-response subparts have current deployed-server certificates covering 135 actual answer cases, with no model calls.
 - Four existing legacy/model-validated automatic parts remain identifiable separately: Q1(a), Q1(b), Q2(b), Q3(d)(i). Their history and prior safe releases were preserved. There are 14 automatic/live Tutor parts in total and 17 manual-only parts.
+- Precise manual-only reasons were appended to the seventeen affected subparts through Admin APIs, preserving existing human notes.
 - All six source-accuracy assessments are current. Human approvals, exact source references, visuals and curriculum mappings were preserved. Q1(b)’s unchanged scheme-over-report decision was explicitly re-recorded after source freshness changed.
 - The complete paper and complete automatic assessment remain unready; no formal exam was published. Unsupported explanations/source contradictions were not hidden by higher confidence or keyword rules.
 - A normal signed-in Student submitted `0.057` for Q3(b) and saw 2/2 with deterministic provenance. The synthetic acceptance result/transcript remain audited; its test-only mastery projection was rolled back and excluded from future independent evidence.
