@@ -10,6 +10,8 @@ Last updated: 2026-11-12
 
 Status: documented standard; automated enforcement is incomplete.
 
+See also [deterministic scoring certification](deterministic-scoring-certification.md) for actual answer-to-score validation, distinct from extraction confidence and allocation-only tests.
+
 ## Scope and required reading
 
 Apply this standard when preparing questions here, in AKURU, or through another processing agent. The initial reference set is Pearson Edexcel International GCSE Chemistry, June 2025, standard 1C/2C. The reference corpus also includes June 2025 standard Biology 1B/2B. Regional papers remain distinct sources even when their syllabus is shared.

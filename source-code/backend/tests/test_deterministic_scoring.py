@@ -70,3 +70,17 @@ def test_required_member_set_and_extra_member_zero():
 def test_duplicate_fields_and_extreme_precision_refer_instead_of_false_zero():
  for s in ['{"final":"0.057","final":"0.572"}','0.057291666666666666666666666']:
   with pytest.raises(DomainError):e.recognize(s,POINTS,2,RULES)
+
+
+def test_explicit_source_range_is_inclusive_and_not_an_inferred_tolerance():
+ ps=[dict(pointId='R',criterion='Reviewed permitted interval',maxMarks=1)]
+ rules=dict(version=3,deterministic=dict(matchers=[dict(pointId='R',kind='numeric',values=[dict(minimumValue='1/2',maximumValue='0.75')],units=['g'])]))
+ for answer,score in [('0.5',1),('0.75 g',1),('6e-1',1),('0.499999',0),('0.750001',0),('-0.6',0)]:
+  assert e.recognize(answer,ps,1,rules)[0]==score
+ with pytest.raises(DomainError):e.recognize('0.6 kg',ps,1,rules)
+ bad=copy.deepcopy(rules);bad['deterministic']['matchers'][0]['values'][0]['minimumValue']='2'
+ with pytest.raises(DomainError):e.validate(ps,1,bad)
+ with pytest.raises(ValueError):MarkingRules.model_validate(dict(version=3,deterministic=dict(matchers=[dict(pointId='R',kind='numeric',values=[dict(value='0.6',minimumValue='0.5',maximumValue='0.75')])])))
+ # New optional bounds do not change serialization/fingerprints of earlier rules.
+ value=MarkingRules.model_validate(RULES).model_dump()['deterministic']['matchers'][0]['values'][0]
+ assert 'minimumValue'not in value and 'maximumValue'not in value

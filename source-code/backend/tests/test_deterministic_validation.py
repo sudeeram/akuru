@@ -87,15 +87,70 @@ def test_real_student_submission_has_no_provider_or_quota_calls(auth_client,monk
  monkeypatch.setattr('app.services.evaluations.automatic_feedback_allowed',forbidden)
  endpoint=f'/api/v1/tutoring/sessions/{ref}/agent-turns'
  r=c.post(endpoint,headers=sh,json=dict(message='Ask me a question from an igcse chemistry paper',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
+ assert c.get(root+'/deterministic-capabilities').status_code==403
+ assert c.post(root+'/questions/1/validate-deterministic',headers=sh,json=package).status_code==403
  assert r.json()['pastPaper']['practice']['question']['rubric'] is None
  assert r.json()['pastPaper']['practice']['question']['answerFormat']['fields']==['']
  r=c.post(endpoint,headers=sh,json=dict(message='My answer: AB',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
  result=r.json()['pastPaper']['practice']['question']['result'];assert result['status']=='published'and result['awardedMarks']==2
  saved=db.scalar(select(AssessmentResult).join(Assessment).where(Assessment.student_id==child.id))
  assert saved.provider=='deterministic'and saved.subject_engine=='deterministic-v1'
+ # Exercise the same certified rule through a separate formal assessment item.
+ from app.models import AssessmentQuestion,AssessmentAnswer,OfficialMaterialVersion,OfficialQuestionVersion
+ from app.schemas.official_paper_reviews import ReviewQuestionData
+ from app.services import marking_rules
+ from datetime import datetime,timezone
+ original=db.get(Assessment,saved.assessment_id)
+ formal=Assessment(student_id=child.id,subject_id=original.subject_id,mode='official_paper',status='submitted',
+  curriculum_snapshot_id=original.curriculum_snapshot_id,title='Synthetic formal scoring test',target_marks=2,duration_minutes=10,
+  ends_at=datetime.now(timezone.utc),submitted_at=datetime.now(timezone.utc))
+ db.add(formal);db.flush()
+ data=ReviewQuestionData.model_validate(q['data']);compiled,compiled_rules=marking_rules.compile_review(data)
+ original_question=db.get(AssessmentQuestion,saved.question_id)
+ material=OfficialMaterialVersion(document_id=paper[0].id,source_document_version_id=paper[1].id,version_number=1,
+  kind='past_paper',course_id=paper[0].course_id,subject_id=paper[0].subject_id,created_by=paper[0].uploaded_by)
+ db.add(material);db.flush()
+ source_question=OfficialQuestionVersion(material_version_id=material.id,question_number='1',prompt=data.prompt,shared_stem=data.sharedStem,marks=2)
+ db.add(source_question);db.flush()
+ formal_question=AssessmentQuestion(assessment_id=formal.id,sequence=1,source_question_version_id=source_question.id,source_document_version_id=original_question.source_document_version_id,
+  question_number='1',prompt=data.prompt,shared_stem=data.sharedStem,marks=2,equations=[],asset_ids=[],topic_ids=original_question.topic_ids,
+  source_locations=original_question.source_locations,rubric=dict(markingPoints=compiled,scoringRules=compiled_rules))
+ db.add(formal_question);db.flush()
+ import json
+ db.add(AssessmentAnswer(assessment_id=formal.id,question_id=formal_question.id,idempotency_key='synthetic-formal-answer',answer_text=json.dumps({p['label']:'AB'})))
+ db.flush()
+ assessment_marking.evaluate(db,settings,formal,'formal-deterministic-test')
+ formal_result=db.scalar(select(AssessmentResult).where(AssessmentResult.assessment_id==formal.id))
+ assert formal_result.provider=='deterministic' and formal_result.awarded_marks==2 and formal_result.status=='published'
+
+ # Mixed-engine paper: only the semantic item reaches the supplied fixture model
+ # and reserves two passes. The certified item is marked locally again.
+ legacy=[point.model_dump(mode='json') for point in data.parts[0].markingPoints]
+ semantic_source=OfficialQuestionVersion(material_version_id=material.id,question_number='2',prompt='Semantic fixture',shared_stem='',marks=2)
+ db.add(semantic_source);db.flush()
+ semantic=AssessmentQuestion(assessment_id=formal.id,sequence=2,source_question_version_id=semantic_source.id,
+  source_document_version_id=original_question.source_document_version_id,question_number='2',prompt='Semantic fixture',
+  shared_stem='',marks=2,equations=[],asset_ids=[],topic_ids=original_question.topic_ids,source_locations=original_question.source_locations,
+  rubric=dict(markingPoints=legacy,scoringRules=dict(version=1,groups=[],combinedResponses=[])))
+ db.add(semantic);db.flush();formal.target_marks=4
+ db.add(AssessmentAnswer(assessment_id=formal.id,question_id=semantic.id,idempotency_key='mixed-semantic-fixture',answer_text='AB'));db.flush()
+ reserved=[];model_calls=[];gates=[]
+ monkeypatch.setattr('app.services.usage_limits.reserve_assessment',lambda db,settings,assessment,key,count:reserved.append(count))
+ monkeypatch.setattr('app.services.evaluations.automatic_feedback_allowed',lambda *a,**k:(gates.append(True)or True,''))
+ from app.ai.base import AIResult,AIUsage
+ def fixture_model(db,settings,request):
+  model_calls.append(request.prompt_name)
+  decisions=[dict(pointId=p['code'],criterion=p['text'],maxMarks=1,awarded=True,marksAwarded=1,studentEvidence='AB',rationale='Synthetic dispatcher fixture.',confidence=1)for p in legacy]
+  if request.output_type.__name__=='AssessmentPassOne':output=request.output_type(decisions=decisions,overallConfidence=1)
+  else:output=request.output_type(decisions=decisions,confidence=1,improvedAnswer='Fixture',teachingExplanation='Fixture')
+  return AIResult(output,'fixture','fixture-model',None,AIUsage(0,0,0),0,1)
+ assessment_marking.evaluate(db,settings,formal,'mixed-engine-fixture',generator=fixture_model)
+ assert reserved==[2] and len(model_calls)==2 and len(gates)==1
+
+
  r=c.post(endpoint,headers=sh,json=dict(message='Next question',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
  r=c.post(endpoint,headers=sh,json=dict(message='My answer: unclear',requestKey=uuid.uuid4().hex));assert r.status_code==200,r.text
- pending=r.json()['pastPaper']['practice']['question']['result'];assert pending['status']=='needs_review'and pending['markingDecisions']==[]
+ pending=r.json()['pastPaper']['practice']['question']['result'];assert pending['status']=='needs_review'and pending['markingDecisions']==[] and pending['awardedMarks'] is None
  assert 'no score' in r.json()['content'].lower()
 
 @pytest.mark.integration

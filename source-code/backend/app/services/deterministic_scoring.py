@@ -16,7 +16,7 @@ from app.schemas.marking_rules import MarkingRules
 from app.services import marking_rules
 
 ENGINE='deterministic-v1'
-# Bump the version and source hash whenever recognition/allocation policy changes.
+# Incompatible grammars require a policy version; every build is source-hashed and replayed.
 def _compute_engine_hash():
     from pathlib import Path
     from app.schemas import deterministic_scoring as schema
@@ -65,7 +65,10 @@ def reference(value):
         return Decimal(value)
 
 def numeric_match(condition,parsed):
-    value,sf,dp,_,_=parsed;target=reference(condition.value)
+    value,sf,dp,_,_=parsed
+    if condition.minimumValue is not None:
+        return reference(condition.minimumValue)<=value<=reference(condition.maximumValue)
+    target=reference(condition.value)
     if condition.allowPowerOfTenScaling:
         if value == 0 or target == 0:return value == target
         a,b=value.normalize().as_tuple(),target.normalize().as_tuple()
@@ -110,7 +113,10 @@ def validate(points,maximum,rules):
     ids=[m.pointId for m in config.matchers];known={p.get('pointId',p.get('code'))for p in points}
     if len(set(ids))!=len(ids) or set(ids)!=known:fail('Configure exactly one matcher for every marking criterion.')
     for matcher in config.matchers:
-        for value in matcher.values:reference(value.value)
+        for value in matcher.values:
+            if value.minimumValue is not None:
+                if reference(value.minimumValue)>reference(value.maximumValue):fail('Range bounds must be ordered as in the reviewed source.')
+            else:reference(value.value)
         for value in matcher.incorrectValues:reference(value)
         for method in matcher.methods:
             reference(method.right)
@@ -166,7 +172,7 @@ def recognize(answer,points,maximum,rules):
                 if n[3] and n[3] not in {plain(u)for u in m.units}:fail('Unit is not approved for this answer.')
                 if not n[3] and not m.allowMissingUnit:fail('An explicit approved unit is required.')
                 hit=any(numeric_match(v,n)for v in m.values)
-                if any(not v.roundedFrom and n[0]==reference(v.value)for v in m.values)and not hit:near_precision.add(key)
+                if any(v.value is not None and not v.roundedFrom and n[0]==reference(v.value)for v in m.values)and not hit:near_precision.add(key)
                 supporting=raw
                 for method in m.methods:
                     for (op,a,b),line in ops:

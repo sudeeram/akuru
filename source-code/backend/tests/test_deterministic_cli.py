@@ -54,3 +54,32 @@ def test_cli_apply_receipt_and_server_validation(cli, monkeypatch, tmp_path):
     with pytest.raises(ValueError,match='changed'):
         cli.main()
     assert sum(path.endswith('/validate-deterministic') for path,_ in calls)==1
+    # An engine-upgrade replay validates existing rules without reapplying them.
+    package['cases'][0]['expectedMarks']=1
+    package.update(expectedRevision=2,expectedContentHash='source-after')
+    file.write_text(json.dumps(package))
+    monkeypatch.setattr(sys,'argv',common+['replay','--output',str(output)])
+    cli.main()
+    assert sum(path.endswith('/questions') for path,_ in calls)==1
+    assert sum(path.endswith('/validate-deterministic') for path,_ in calls)==2
+
+
+
+def test_batch_resumes_only_current_server_proofs(cli,monkeypatch,tmp_path):
+    from types import SimpleNamespace
+    rules=dict(version=3,deterministic=dict(engine='deterministic-v1',matchers=[]))
+    package=dict(paperId='paper',number='1',partLabel='a',rules=rules,cases=[dict(answer='A',expectedMarks=1)],sourceNotes='Reviewed exact original source.',provenance={})
+    file=tmp_path/'item.json';file.write_text(json.dumps(package))
+    manifest=tmp_path/'manifest.json';manifest.write_text(json.dumps([dict(number='1',partLabel='a',package='item.json')]))
+    class Client:
+        def __init__(self,*args):pass
+        def call(self,path,payload=None):
+            if path=='auth/logout':return {}
+            if path.endswith('/deterministic-validations'):return [dict(part='a',current=True,passed=True,fixtureHash=cli.case_hash(package['cases']))]
+            return dict(questions=[dict(number='1',analysisContentHash='source',data=dict(parts=[dict(label='a',scoringRules=rules,assessmentReadiness='automatic')]))])
+    monkeypatch.setattr(cli.intake,'Client',Client)
+    def no_replay(*args,**kwargs):pytest.fail('A current identical server certificate must not be repeated')
+    monkeypatch.setattr(cli.subprocess,'run',no_replay)
+    out=tmp_path/'receipts.json'
+    cli.batch(SimpleNamespace(package=manifest,base_url='https://example.test',credentials=tmp_path/'private.env',paper='paper',output=out,enable_tutor=False))
+    assert json.loads(out.read_text())==[dict(number='1',part='a',certified=True,resumed=True)]

@@ -19,7 +19,7 @@ export type CoverageStatus =
   | 'outside_current_coverage';
 export type DeterministicMatcher = {
   pointId: string; kind: 'numeric' | 'choice' | 'set'; answerKey?: string;
-  values?: { value: string; significantFigures?: number | null; decimalPlaces?: number | null; roundedFrom?: boolean; allowPowerOfTenScaling?: boolean; minimumSignificantFigures?: number }[];
+  values?: { value?: string | null; minimumValue?: string | null; maximumValue?: string | null; significantFigures?: number | null; decimalPlaces?: number | null; roundedFrom?: boolean; allowPowerOfTenScaling?: boolean; minimumSignificantFigures?: number }[];
   requiredMembers?: string[][]; extraMembers?: string[];
   accepted?: string[]; rejected?: string[]; units?: string[]; allowMissingUnit?: boolean;
   incorrectValues?: string[];

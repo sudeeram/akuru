@@ -186,9 +186,21 @@ export function DeterministicRulesEditor({
                     <fieldset key={k}>
                       <legend>Allowed numeric outcome {k + 1}</legend>
                       <label>
+                        Outcome grammar
+                        <select value={v.minimumValue != null ? 'range' : 'exact'} onChange={e => update(i, {values: m.values!.map((x,j) => j === k ? e.target.value === 'range' ? {minimumValue:'',maximumValue:''} : {value:''} : x)})}>
+                          <option value="exact">Exact value / reviewed precision</option>
+                          <option value="range">Source-authorised inclusive range</option>
+                        </select>
+                      </label>
+                      {v.minimumValue != null ? <>
+                        <label>Inclusive lower bound<Input value={v.minimumValue} onChange={e=>update(i,{values:m.values!.map((x,j)=>j===k?{...x,minimumValue:e.target.value}:x)})}/></label>
+                        <label>Inclusive upper bound<Input value={v.maximumValue ?? ''} onChange={e=>update(i,{values:m.values!.map((x,j)=>j===k?{...x,maximumValue:e.target.value}:x)})}/></label>
+                        <p>Only use explicit bounds authorised by the source; do not infer a tolerance.</p>
+                      </> : <>
+                      <label>
                         Exact value or reviewed fraction
                         <Input
-                          value={v.value}
+                          value={v.value ?? ''}
                           onChange={(e) =>
                             update(i, {
                               values: m.values!.map((x, j) =>
@@ -290,6 +302,7 @@ export function DeterministicRulesEditor({
                           />
                         </label>
                       )}
+                      </>}
                       <Button
                         variant="outline"
                         onClick={() =>
@@ -333,19 +346,19 @@ export function DeterministicRulesEditor({
                   <label>Explicitly recognised zero-credit final values
                     <LinesInput key={(m.incorrectValues ?? []).join('\n')} value={m.incorrectValues ?? []} onChange={incorrectValues => update(i, {incorrectValues})} />
                   </label>
-                  {!!m.methods?.length && (
-                    <details>
-                      <summary>
-                        Source-authorised working stages (prepared through API)
-                      </summary>
-                      {m.methods.map((step, j) => (
-                        <p key={j}>
-                          {step.operator} by {step.right}; allowed left values:{' '}
-                          {step.allowAnyLeft ? 'any bounded left operand (explicit source allowance)' : step.leftValues.join(', ')}
-                        </p>
-                      ))}
-                    </details>
-                  )}
+                  <fieldset className="stack">
+                    <legend>Source-authorised working stages</legend>
+                    <p>Use only operations and operands explicitly allowed by the marking scheme. Unsupported reasoning stays manual.</p>
+                    {(m.methods ?? []).map((step,j)=><fieldset key={j} className="stack">
+                      <legend>Stage {j+1}</legend>
+                      <label>Operation<select value={step.operator} onChange={e=>update(i,{methods:m.methods!.map((x,k)=>k===j?{...x,operator:e.target.value as 'divide'|'multiply'}:x)})}><option value="divide">Divide</option><option value="multiply">Multiply</option></select></label>
+                      <label>Right operand<Input value={step.right} onChange={e=>update(i,{methods:m.methods!.map((x,k)=>k===j?{...x,right:e.target.value}:x)})}/></label>
+                      <label>Permitted left operands<LinesInput key={step.leftValues.join('\n')} value={step.leftValues} onChange={leftValues=>update(i,{methods:m.methods!.map((x,k)=>k===j?{...x,leftValues}:x)})}/></label>
+                      <label><input type="checkbox" checked={step.allowAnyLeft ?? false} onChange={e=>update(i,{methods:m.methods!.map((x,k)=>k===j?{...x,allowAnyLeft:e.target.checked}:x)})}/>Source explicitly permits any bounded left operand</label>
+                      <Button variant="outline" onClick={()=>update(i,{methods:m.methods!.filter((_,k)=>k!==j)})}>Remove working stage</Button>
+                    </fieldset>)}
+                    <Button variant="outline" onClick={()=>update(i,{methods:[...(m.methods ?? []),{operator:'divide',right:'',leftValues:[],allowAnyLeft:false}]})}>Add reviewed working stage</Button>
+                  </fieldset>
                 </>
               )}
             </fieldset>

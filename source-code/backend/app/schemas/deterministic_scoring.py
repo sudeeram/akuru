@@ -1,18 +1,38 @@
 """Bounded declarative matchers. No executable expressions or model decisions."""
 from typing import Literal, Annotated
-from pydantic import BaseModel, ConfigDict, Field, model_validator, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, model_validator, model_serializer, StringConstraints
 
 Alias=Annotated[str,StringConstraints(strip_whitespace=True,min_length=1,max_length=300)]
 Unit=Annotated[str,StringConstraints(strip_whitespace=True,min_length=1,max_length=40)]
 
 class NumericAnswer(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    value: str = Field(min_length=1,max_length=80)
+    value: str | None = Field(default=None,min_length=1,max_length=80)
+    minimumValue: str | None = Field(default=None,min_length=1,max_length=80)
+    maximumValue: str | None = Field(default=None,min_length=1,max_length=80)
     significantFigures: int | None = Field(default=None,ge=1,le=15)
     decimalPlaces: int | None = Field(default=None,ge=0,le=20)
     roundedFrom: bool = False
     allowPowerOfTenScaling: bool = False
     minimumSignificantFigures: int = Field(default=1,ge=1,le=15)
+
+
+    @model_serializer(mode='wrap')
+    def compatible_dump(self,handler):
+        result=handler(self)
+        for key in ('minimumValue','maximumValue'):
+            if result.get(key)is None:result.pop(key,None)
+        return result
+
+    @model_validator(mode='after')
+    def numeric_policy(self):
+        is_range=self.minimumValue is not None or self.maximumValue is not None
+        if is_range:
+            if self.minimumValue is None or self.maximumValue is None or self.value is not None or self.roundedFrom or self.allowPowerOfTenScaling or self.significantFigures is not None or self.decimalPlaces is not None:
+                raise ValueError('A reviewed inclusive range needs both bounds and no unrelated exact/precision rules')
+        elif self.value is None:
+            raise ValueError('An exact numeric rule needs its reviewed value')
+        return self
 
 class MethodStep(BaseModel):
     model_config=ConfigDict(extra='forbid')

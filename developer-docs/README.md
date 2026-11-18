@@ -16,6 +16,8 @@ This handbook explains the current AKURU implementation for developers. It descr
 
 10. [Student Community](11-student-community.md) — public identities, course discovery, following, privacy and moderation.
 
+See [deterministic scoring and readiness](14-deterministic-scoring.md) for no-model marking, source-bound validation certificates and the authenticated developer CLI.
+
 See also [prepared screenshot textbook import](../source-code/backend/docs/screenshot-textbook-packages.md) for the local draft archive/review workflow and its security boundary.
 
 ## Architectural principles

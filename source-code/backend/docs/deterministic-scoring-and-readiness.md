@@ -12,14 +12,14 @@ Extraction confidence, content approval, scoring readiness and Tutor release are
 
 | Recognition | Input | Allocation | Boundary |
 | --- | --- | --- | --- |
-| Numeric | Decimal/scientific final, optional approved unit | Independent criteria, existing groups, highest weighted band | Exact decimal/rational reference; explicitly authorised precision, rounding/truncation or power-of-ten alternatives only |
+| Numeric | Decimal/scientific final, optional approved unit | Independent criteria, existing groups, highest weighted band | Exact decimal/rational reference; explicit inclusive source ranges, precision, rounding/truncation or power-of-ten alternatives only |
 | Arithmetic method | Structured final plus bounded arithmetic expressions | Explicit criterion, alternative band | Only source-reviewed multiply/divide operations and operands; no free prose reasoning |
 | Fixed choice/name | Entire reviewed alias or recognised source distractor | Independent point/group | Unknown synonym, negation or conflicting choice refers for review |
 | Labelled answers | Exact keyed fields | Independent labelled points/caps | Correct names in wrong fields do not earn credit |
 | Member set | Reviewed atomic member aliases | Source-defined all-required set | Known extra members can score zero; unknown grammar refers |
 | Open explanation, drawing, handwriting | Unsupported | Manual/semantic route | Never substitute keyword occurrence for understanding |
 
-Version-2 allocator restrictions still apply to combinations/dependencies with weighted bands. Mixed-engine **papers** can contain separate deterministic and semantic assessment items. A single compiled main-question item mixing those engines is explicitly rejected pending safe item splitting; deterministic certificates must never be silently discarded. Arbitrary tolerances/ranges, unit conversion and general symbolic algebra are not supported by this initial engine.
+Version-2 allocator restrictions still apply to combinations/dependencies with weighted bands. Mixed-engine **papers** can contain separate deterministic and semantic assessment items. A single compiled main-question item mixing those engines is explicitly rejected pending safe item splitting; deterministic certificates must never be silently discarded. Inferred tolerances, unit conversion and general symbolic algebra are unsupported. Explicit inclusive numeric bounds require both source-reviewed endpoints; they cannot be combined with an exact value or an unrelated rounding policy.
 
 ## Actual validation and persistence
 
@@ -46,7 +46,9 @@ Common arguments: `--credentials tmp/akuru-admin.env --paper <paper UUID> --numb
 5. `validate --package ... --receipt ...`: replay server engine; reuse only an identical current passing fixture receipt. Failed runs exit nonzero.
 6. `history`: inspect current/historical validation evidence.
 7. `release --enable-tutor`: explicit guarded release for the named eligible part. This never publishes a formal exam.
-8. `inventory`: list per-part status/engine/readiness.
+8. `replay --package <fresh reviewed package>`: revalidate unchanged configured rules after an engine update, with exact current revision/content hash and saved-rule/point comparison. This does not rewrite the rubric and needs no old apply receipt.
+9. `inventory`: list per-part status/engine/readiness.
+10. `batch --package <manifest> --output <private progress file>`: execute up to 100 reviewed entries sequentially. A manifest entry contains `number`, `partLabel`, relative `package` and optional `enableTutor`. Reuse only current matching **server** certificates; otherwise use private apply receipts with exact content/rule/package checks. Stale packages stop rather than being rebased automatically. Tutor release additionally requires the top-level `--enable-tutor` flag. Refresh/review each untouched package before its first application when a sibling change alters question-wide preconditions.
 
 Prepared packages include schema, paper/question/part identity, expected revision/content hash, complete rules, optional source-faithful points, synthetic cases, source notes and provenance. Private source packages/receipts are mode 0600. Review every new source version before updating preconditions. Do not blindly rewrite stale hashes to force an overwrite.
 

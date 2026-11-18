@@ -7392,12 +7392,38 @@
             ],
             "title": "Decimalplaces"
           },
+          "maximumValue": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maximumvalue"
+          },
           "minimumSignificantFigures": {
             "default": 1,
             "maximum": 15.0,
             "minimum": 1.0,
             "title": "Minimumsignificantfigures",
             "type": "integer"
+          },
+          "minimumValue": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minimumvalue"
           },
           "roundedFrom": {
             "default": false,
@@ -7418,15 +7444,19 @@
             "title": "Significantfigures"
           },
           "value": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Value",
-            "type": "string"
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
           }
         },
-        "required": [
-          "value"
-        ],
         "title": "NumericAnswer",
         "type": "object"
       },
