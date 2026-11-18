@@ -1,9 +1,10 @@
 # Formative AI feedback and topic-based past-paper practice
 
 Created: 2026-11-18
-Status: ongoing
+Status: completed
 Started: 2026-11-18
-Implementation requested by the user; production rollout follows tests and targeted acceptance.
+Completed: 2026-11-18
+Implementation and production rollout completed after tests and targeted Student acceptance.
 Priority: high; complete before resuming analysis of the remaining Biology papers.
 Acceptance paper: Biology June 2025 2BR, `eea024fe-978f-4392-b330-c0011201cf63` (six questions, 31 subparts).
 
@@ -95,31 +96,35 @@ This decision supersedes the mandatory-certification/manual-only release require
 
 ## Step 6 — Deploy and accept Biology June 2025 2BR
 
-- [ ] Commit/push and deploy only after implementation is requested and checks pass, using the normal reviewed backup/deployment/rollback workflow.
-- [ ] Use authenticated Admin APIs to preview and apply the pilot eligibility/release reconciliation. No direct production SQL bypass, source approval fabrication or blanket release of other papers.
-- [ ] Confirm former manual-only cases are selectable only where all retained content/access gates pass; report any genuine remaining source/dependency blockers individually.
-- [ ] With an authorised Student session, test “Give me 5 questions from Coordination”, answer a question, inspect indicative feedback/improved answer and complete/resume the set. Verify another topic and insufficient-availability request.
-- [ ] Record deployed revision, test evidence, Student-visible behaviour, remaining limitations and rollback instructions. Preserve existing attempts, source history and per-child performance.
+- [x] Commit/push and deploy only after implementation is requested and checks pass, using the normal reviewed backup/deployment/rollback workflow.
+- [x] Use authenticated Admin APIs to preview and apply the pilot eligibility/release reconciliation. No direct production SQL bypass, source approval fabrication or blanket release of other papers.
+- [x] Confirm former manual-only cases are selectable only where all retained content/access gates pass; report any genuine remaining source/dependency blockers individually.
+- [x] With an authorised Student session, test “Give me 5 questions from Coordination”, answer a question, inspect indicative feedback/improved answer and complete/resume the set. Verify another topic and insufficient-availability request.
+- [x] Record deployed revision, test evidence, Student-visible behaviour, remaining limitations and rollback instructions. Preserve existing attempts, source history and per-child performance.
 
-## Step 7 — Resume the remaining Biology papers
+## Step 7 — Hand off the remaining Biology papers
 
-- [ ] Only after pilot acceptance, refresh the live inventory against local supplied papers and the [Biology intake roadmap](../ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md). Distinguish already imported, source-reviewed, curriculum-mapped and Tutor-released papers; do not assume any particular batch is still missing.
-- [ ] Agree the next latest incomplete batch from that inventory and continue one paper at a time using the updated extraction guidelines and authenticated developer-review APIs.
-- [ ] For each batch, validate exact question/scheme/report links, crops/labels, marking instructions, source conflicts, confidence/provenance and curriculum; apply the established above-75% AI-approval policy with its retained content gates.
-- [ ] Release eligible content for formative practice without repeating source reviews or generating scoring certificates solely to unlock it. Record source exceptions that genuinely require human input.
-- [ ] No paid model calls are implied by source preparation in this development chat; paid backend evaluations need a separately agreed budget. No Chemistry edits or formal-exam publication are included.
+- [x] Refresh the live inventory: all 44 supplied Biology paper sets are imported; distinguish extraction from final source review and Tutor release.
+- [x] Record the next recommended batch: finish June 2025 standard 1B, then 2B, then regional 1BR. Source review/release continues through the existing Biology intake roadmap, without reimporting or blanket release.
+- [x] Transfer the subsequent paper-analysis actions to that roadmap and link the updated extraction/formative-release policy. Further-paper analysis is follow-on work, not an unfinished feature prerequisite.
 
 ## Completion criteria
 
 A Student can request either original approved past-paper questions or explicitly labelled newly generated exam-style questions from a topic, work through a counted set, answer approved questions (including formerly manual-only written questions), receive source-grounded indicative feedback and a better answer, and resume/complete the set. No human grading or deterministic certificate is required to unlock this learning flow. Source quality, authorised coverage, answer protection and Student isolation remain enforced. The Biology 2BR pilot is verified on production before further paper analysis resumes.
 
 
-## Implementation evidence (in progress)
+## Implementation evidence
 
-Shared formative eligibility and private counted sets are implemented; generated questions use a hidden structured rubric and a separate content check. Existing single-item cards retain compatibility, including optional certified recognition without model calls; unsupported prose can receive formative feedback. The deterministic engine hash files remain unchanged. One additive migration, no status/Student-results rewrite.
+The implementation reuses authenticated Tutor/account services, shared credit allocation and approved source release checks. Source eligibility is separate from optional scoring certification. One additive migration stores private resumable sets; there was no source/status/Student-history reset. Generated and original practice were both verified in the normal production Student UI, including hidden answers, informative feedback and durable reload/completion.
 
-Live AKURU-Evaluation checks used the explicitly approved US$1 ceiling and private persistent ledger. A generated Coordination question passed its content check; full/partial/wrong responses received 5/5, 1/5 and 0/5. An original Biology Q1(d) any-two case was capped at 2/2. This is a small behaviour sample, not a general accuracy guarantee. Private evidence: `tmp/formative-practice-evaluation/` (never committed). Production Student browser acceptance and targeted release reconciliation remain to be recorded below.
+## Final production acceptance
 
-Step 7 is the follow-on Biology intake handoff: inventory and recommend the next batch after this feature's acceptance. Actual further-paper analysis belongs to the existing Biology intake roadmap and does not authorise blanket releases or unrelated paper edits.
+Runtime release: `6be2a8d0ccbeeb9bd61824a432517df4caf454b5`. Production migration `0023_tutor_question_sets`, schema consistency, health, HTTPS/security headers, route boundaries and service bindings passed. Deployment evidence: `/data/akuru/release-evidence/deployed-6be2a8d0ccbeeb9bd61824a432517df4caf454b5-20261118T175328Z.txt`.
 
-Pre-deployment validation: 631 backend tests passed, 1 skipped; final focused regression 53 passed. All 123 frontend tests, typecheck, lint, build and contract check passed. Existing engine hash files are unchanged. Live evaluation conservative charged bound US$0.047367; actual estimate recorded in the private ledger.
+All 31 pilot subparts are current and released, and all four paper workflow stages are complete. Source data/approvals/confidence history and ten certificate IDs were preserved. Full final backend suite: 631 passed, 1 skipped. All 123 frontend tests, typecheck, lint, build and contract checks passed. Fifteen focused persistence regressions cover semantic and deterministic feedback through reload and real invocation commits.
+
+Normal production Student UI as Roshinika verified: two available Coordination items from a five-item request, reviewed diagram, hidden answer then assisted reveal, second-item reload/resume, skip and complete; Q3(b)'s 0.057 answer received 2/2, persisted after retry and full reload, and completed with a 2/2 summary. Formerly manual-only Q1(d) was selectable with its approved shared context/visuals; the test set was stopped to leave no active QA set. Original-paper Student checks used no paid production inference. A separately approved US$0.25 AKURU-backend test then generated and checked one new Coordination question, assessed a partial response at 2/5 with correct/missing points, supplied a complete better answer and uncertainty, retained feedback across reload and completed the set. Three calls used 3,581 input and 1,272 output tokens; estimated US$0.019882, conservative recorded-usage bound US$0.026007. Student quotas were unchanged. Separate Evaluation-project testing used six calls, estimated US$0.036932 and conservative bound US$0.047367 of US$1. Both budgets remain separate in private ledgers.
+
+Only the two expressly approved redundant rollout backup sets were removed to restore backup capacity. The pre-change/latest and earlier backups were retained; the final deployment used a fresh encrypted backup. No backup/security checks were bypassed.
+
+See [the acceptance report](../../backend/docs/formative-practice-biology-acceptance.md), [implementation guide](../../../developer-docs/16-formative-topic-practice.md), [Student/Admin guide](../../../user-docs/TUTOR-PAST-PAPER-PRACTICE.md) and [continuing Biology intake](../ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md).

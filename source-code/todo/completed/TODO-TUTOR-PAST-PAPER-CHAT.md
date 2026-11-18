@@ -1,6 +1,6 @@
 # Past-paper questions, approved answers and practice in Tutor chat
 
-Policy update (2026-11-18): mandatory scoring certification/manual grading no longer gates formative Tutor practice. Historical results and optional deterministic validation remain intact. See [the formative learning plan](../ongoing/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md). Do not repeat source review merely to certify indicative feedback.
+Policy update (2026-11-18): mandatory scoring certification/manual grading no longer gates formative Tutor practice. Historical results and optional deterministic validation remain intact. See [the formative learning plan](../completed/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md). Do not repeat source review merely to certify indicative feedback.
 
 Created: 2026-11-02
 Started: 2026-11-02

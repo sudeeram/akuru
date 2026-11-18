@@ -280,3 +280,15 @@ See [the curriculum-mapping audit](../../../guidelines/pastpapers/igcse/reviews/
 - [ ] Complete independent Admin visual adjudication and publisher-conflict handling before release. Remaining 28 preliminary papers still require source comparison in explicit batches.
 
 See [acceptance evidence](../../../guidelines/pastpapers/igcse/reviews/2026-11-11-june-2025-exact-evidence-linking.md) and [completed implementation plan](../completed/TODO-AI-EXACT-EVIDENCE-LINKING.md).
+
+
+## Next delivery — final formative review and release (18 November 2026 handoff)
+
+The [formative learning feature](../completed/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md) is implemented. All 44 supplied Biology paper sets are already imported. June 2025 2BR is the accepted pilot with all 31 subparts current/released and all four workflow stages complete. Do not reimport the corpus or require scoring certificates to unlock approved learning content.
+
+Recommended next order: **June 2025 standard 1B**, then **2B**, then **1BR**. Latest workflow inventory: 1B 10 questions/46 subparts, image checks complete for 3/10 questions; 2B 6/30, images 0/6; 1BR 10/49, images 0/10. These counts distinguish workflow completion from existing extraction accuracy; they do not mean extraction confidence is zero.
+
+- [ ] Confirm the next paper/batch with the owner and continue one paper at a time through the existing authenticated developer-review APIs.
+- [ ] Use intake standard 1.6.0 and its formative policy: exact paper/scheme/report evidence, reviewed crops/labels, marking instructions/caps, source adjudications, confidence/provenance and current curriculum mappings. Keep genuine low-confidence/source blockers explicit.
+- [ ] Apply the established above-75% guarded AI approval policy and release eligible independent content for formative practice. Do not repeat completed source reviews merely to generate scoring certificates, and do not fabricate evidence or override withdrawals.
+- [ ] Record per-paper Student availability and any genuine image/source exceptions requiring manual input. No paid backend source evaluations or formal-exam publication are implicit in this handoff; agree any paid budget separately.

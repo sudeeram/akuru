@@ -1,11 +1,11 @@
 # Deterministic scoring and readiness from the development workflow
 
-Policy update (2026-11-18): mandatory scoring certification/manual grading no longer gates formative Tutor practice. Historical results and optional deterministic validation remain intact. See [the formative learning plan](../ongoing/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md). Do not repeat source review merely to certify indicative feedback.
+Policy update (2026-11-18): mandatory scoring certification/manual grading no longer gates formative Tutor practice. Historical results and optional deterministic validation remain intact. See [the formative learning plan](../completed/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md). Do not repeat source review merely to certify indicative feedback.
 
 Created: 2026-11-18
 Started: 2026-11-18
-Status: ongoing
-Priority: high
+Status: optional follow-on; mandatory formative-release objective superseded
+Priority: deferred for optional certified scoring; not a prerequisite for Biology intake
 First acceptance paper: Pearson Edexcel Biology June 2025 2BR, Q1–Q6 (31 subparts)
 
 ## Required outcome

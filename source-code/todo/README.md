@@ -4,9 +4,8 @@ This directory separates active delivery work, future plans and finished impleme
 
 ## Ongoing
 
-- [Formative AI feedback and topic-based practice](ongoing/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md) — high priority before further Biology intake; retire mandatory manual-marking/certificate gates for learning, add counted topic practice and verify Biology June 2025 2BR. Supersedes compulsory scoring certification for formative release.
 
-- [Deterministic scoring and readiness](ongoing/TODO-DETERMINISTIC-SCORING-AND-READINESS.md) — complete supported question/subpart scoring preparation, actual answer recognition, no-paid server validation and audited readiness through the developer/API workflow; first pilot Q3(b), then all Q1–Q6 parts.
+- [Optional certified scoring](ongoing/TODO-DETERMINISTIC-SCORING-AND-READINESS.md) — historical implementation and deferred follow-on work. Mandatory certification/manual grading for formative learning is superseded; this is not a prerequisite for further Biology intake.
 
 - [Pearson Biology past-paper intake](ongoing/TODO-PEARSON-BIOLOGY-PAST-PAPERS.md) — audited 132 PDFs; staged 1B/2B pilot, reviewed source/rubric/visual intake, then standard and regional expansion.
 
@@ -65,6 +64,8 @@ These roadmaps already contain completed work and still have outstanding actions
 The [top-level OpenClaw folder](../../openclaw/README.md) holds its own build artifacts and [delivery plans](../../openclaw/todo/README.md). The earlier [combined OpenClaw proposal](planned/TODO-FUTURE-LOWEST-OPENCLAW.md) remains a requirements reference; its per-child quota extensions are separate work.
 
 ## Completed
+
+- [Formative AI feedback and topic-based practice](completed/TODO-FORMATIVE-ASSESSMENT-AND-TOPIC-PRACTICE.md) — deployed and Student-verified: counted original/generated practice, indicative feedback and durable results; Biology 2BR all 31 subparts released. Remaining-paper analysis continues in the Biology intake roadmap.
 
 - [Biology June 2025 2BR source readiness](completed/TODO-BIOLOGY-2025-2BR-FINAL-READINESS.md) — complete source/curriculum/guidance assessment and mixed-engine assembly support; 17 independent manual-scoring gates remain.
 
