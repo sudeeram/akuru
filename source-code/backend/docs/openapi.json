@@ -643,6 +643,120 @@
         "title": "AnalysisProvenance",
         "type": "object"
       },
+      "AnswerMatcher": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "title": "Accepted",
+            "type": "array"
+          },
+          "allowMissingUnit": {
+            "default": true,
+            "title": "Allowmissingunit",
+            "type": "boolean"
+          },
+          "answerKey": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Answerkey",
+            "type": "string"
+          },
+          "extraMembers": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Extramembers",
+            "type": "array"
+          },
+          "incorrectValues": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 40,
+            "title": "Incorrectvalues",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "numeric",
+              "choice",
+              "set"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "methods": {
+            "items": {
+              "$ref": "#/components/schemas/MethodStep"
+            },
+            "maxItems": 10,
+            "title": "Methods",
+            "type": "array"
+          },
+          "pointId": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Pointid",
+            "type": "string"
+          },
+          "rejected": {
+            "items": {
+              "maxLength": 300,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 100,
+            "title": "Rejected",
+            "type": "array"
+          },
+          "requiredMembers": {
+            "items": {
+              "items": {
+                "maxLength": 300,
+                "minLength": 1,
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "maxItems": 20,
+            "title": "Requiredmembers",
+            "type": "array"
+          },
+          "units": {
+            "items": {
+              "maxLength": 40,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Units",
+            "type": "array"
+          },
+          "values": {
+            "items": {
+              "$ref": "#/components/schemas/NumericAnswer"
+            },
+            "maxItems": 50,
+            "title": "Values",
+            "type": "array"
+          }
+        },
+        "required": [
+          "pointId",
+          "kind"
+        ],
+        "title": "AnswerMatcher",
+        "type": "object"
+      },
       "AnswerSave": {
         "properties": {
           "answer": {
@@ -1043,6 +1157,18 @@
             "title": "Answer",
             "type": "string"
           },
+          "answerFormat": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answerformat"
+          },
           "assetDescriptions": {
             "additionalProperties": {
               "type": "string"
@@ -1288,8 +1414,15 @@
       "AssessmentResultResponse": {
         "properties": {
           "awardedMarks": {
-            "title": "Awardedmarks",
-            "type": "integer"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Awardedmarks"
           },
           "conceptualMistakes": {
             "items": {
@@ -1787,6 +1920,53 @@
           "status"
         ],
         "title": "BlueprintResponse",
+        "type": "object"
+      },
+      "Case": {
+        "additionalProperties": false,
+        "properties": {
+          "answer": {
+            "maxLength": 3000,
+            "minLength": 1,
+            "title": "Answer",
+            "type": "string"
+          },
+          "expectedMarks": {
+            "anyOf": [
+              {
+                "maximum": 200.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expectedmarks"
+          },
+          "expectedPoints": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Expectedpoints",
+            "type": "array"
+          },
+          "holdout": {
+            "default": false,
+            "title": "Holdout",
+            "type": "boolean"
+          },
+          "requiresReview": {
+            "default": false,
+            "title": "Requiresreview",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "answer"
+        ],
+        "title": "Case",
         "type": "object"
       },
       "CatalogResponse": {
@@ -3200,6 +3380,51 @@
           "altText"
         ],
         "title": "DeterministicMediaCreate",
+        "type": "object"
+      },
+      "DeterministicRules": {
+        "additionalProperties": false,
+        "properties": {
+          "certificateId": {
+            "anyOf": [
+              {
+                "pattern": "^[a-f0-9-]{36}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Certificateid"
+          },
+          "engine": {
+            "const": "deterministic-v1",
+            "default": "deterministic-v1",
+            "title": "Engine",
+            "type": "string"
+          },
+          "matchers": {
+            "items": {
+              "$ref": "#/components/schemas/AnswerMatcher"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Matchers",
+            "type": "array"
+          },
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/FrozenScoringPart"
+            },
+            "maxItems": 200,
+            "title": "Parts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "matchers"
+        ],
+        "title": "DeterministicRules",
         "type": "object"
       },
       "DiagramInput": {
@@ -5666,6 +5891,52 @@
         "title": "FlashcardWithdrawRequest",
         "type": "object"
       },
+      "FrozenScoringPart": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "markingPoints": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Markingpoints",
+            "type": "array"
+          },
+          "marks": {
+            "maximum": 200.0,
+            "minimum": 0.0,
+            "title": "Marks",
+            "type": "integer"
+          },
+          "prompt": {
+            "maxLength": 12000,
+            "title": "Prompt",
+            "type": "string"
+          },
+          "scoringRules": {
+            "additionalProperties": true,
+            "title": "Scoringrules",
+            "type": "object"
+          }
+        },
+        "required": [
+          "label",
+          "marks",
+          "prompt",
+          "markingPoints",
+          "scoringRules"
+        ],
+        "title": "FrozenScoringPart",
+        "type": "object"
+      },
       "GenerateWorkedAnswer": {
         "additionalProperties": false,
         "properties": {
@@ -6511,6 +6782,16 @@
             "title": "Combinedresponses",
             "type": "array"
           },
+          "deterministic": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DeterministicRules"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "groups": {
             "items": {
               "$ref": "#/components/schemas/MarkingGroup"
@@ -6529,7 +6810,7 @@
           },
           "version": {
             "default": 1,
-            "maximum": 2.0,
+            "maximum": 3.0,
             "minimum": 1.0,
             "title": "Version",
             "type": "integer"
@@ -6877,6 +7158,44 @@
         "title": "MediaSourceResponse",
         "type": "object"
       },
+      "MethodStep": {
+        "additionalProperties": false,
+        "properties": {
+          "allowAnyLeft": {
+            "default": false,
+            "title": "Allowanyleft",
+            "type": "boolean"
+          },
+          "leftValues": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Leftvalues",
+            "type": "array"
+          },
+          "operator": {
+            "enum": [
+              "divide",
+              "multiply"
+            ],
+            "title": "Operator",
+            "type": "string"
+          },
+          "right": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Right",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operator",
+          "right"
+        ],
+        "title": "MethodStep",
+        "type": "object"
+      },
       "NextTopicRecommendation": {
         "properties": {
           "activity": {
@@ -7052,6 +7371,65 @@
         "title": "NoticeRead",
         "type": "object"
       },
+      "NumericAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "allowPowerOfTenScaling": {
+            "default": false,
+            "title": "Allowpoweroftenscaling",
+            "type": "boolean"
+          },
+          "decimalPlaces": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decimalplaces"
+          },
+          "minimumSignificantFigures": {
+            "default": 1,
+            "maximum": 15.0,
+            "minimum": 1.0,
+            "title": "Minimumsignificantfigures",
+            "type": "integer"
+          },
+          "roundedFrom": {
+            "default": false,
+            "title": "Roundedfrom",
+            "type": "boolean"
+          },
+          "significantFigures": {
+            "anyOf": [
+              {
+                "maximum": 15.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Significantfigures"
+          },
+          "value": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "NumericAnswer",
+        "type": "object"
+      },
       "OfficialMaterialReview": {
         "properties": {
           "completenessConfirmed": {
@@ -7223,6 +7601,70 @@
           "sourceLocations"
         ],
         "title": "OfficialQuestionReview",
+        "type": "object"
+      },
+      "Package": {
+        "additionalProperties": false,
+        "properties": {
+          "cases": {
+            "items": {
+              "$ref": "#/components/schemas/Case"
+            },
+            "maxItems": 200,
+            "minItems": 4,
+            "title": "Cases",
+            "type": "array"
+          },
+          "confirmSourceReviewed": {
+            "title": "Confirmsourcereviewed",
+            "type": "boolean"
+          },
+          "expectedEngineHash": {
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Expectedenginehash",
+            "type": "string"
+          },
+          "expectedRevision": {
+            "minimum": 1.0,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "partLabel": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Partlabel",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "maxProperties": 10,
+            "title": "Provenance",
+            "type": "object"
+          },
+          "requestId": {
+            "format": "uuid",
+            "title": "Requestid",
+            "type": "string"
+          },
+          "sourceNotes": {
+            "maxLength": 4000,
+            "minLength": 20,
+            "title": "Sourcenotes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "partLabel",
+          "expectedRevision",
+          "expectedEngineHash",
+          "confirmSourceReviewed",
+          "sourceNotes",
+          "cases"
+        ],
+        "title": "Package",
         "type": "object"
       },
       "PaperAutoApprovalResponse": {
@@ -17222,6 +17664,83 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/deterministic-capabilities": {
+      "get": {
+        "operationId": "deterministic_capabilities_api_v1_admin_official_paper_reviews__paper_id__deterministic_capabilities_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Deterministic Capabilities",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-job-batch": {
       "post": {
         "operationId": "create_evidence_job_batch_api_v1_admin_official_paper_reviews__paper_id__evidence_link_job_batch_post",
@@ -18491,6 +19010,92 @@
         ]
       }
     },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/deterministic-validations": {
+      "get": {
+        "operationId": "deterministic_history_api_v1_admin_official_paper_reviews__paper_id__questions__number__deterministic_validations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Deterministic History",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
     "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/source-issues": {
       "get": {
         "operationId": "source_issues_api_v1_admin_official_paper_reviews__paper_id__questions__number__source_issues_get",
@@ -18684,6 +19289,118 @@
           }
         },
         "summary": "Resolve Source Issue",
+        "tags": [
+          "official-paper-reviews"
+        ]
+      }
+    },
+    "/api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/validate-deterministic": {
+      "post": {
+        "operationId": "validate_deterministic_api_v1_admin_official_paper_reviews__paper_id__questions__number__validate_deterministic_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "number",
+            "required": true,
+            "schema": {
+              "title": "Number",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Csrf-Token"
+            }
+          },
+          {
+            "in": "cookie",
+            "name": "akuru_session",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Akuru Session"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Package"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Authentication required"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Permission denied"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Validation failed"
+          }
+        },
+        "summary": "Validate Deterministic",
         "tags": [
           "official-paper-reviews"
         ]

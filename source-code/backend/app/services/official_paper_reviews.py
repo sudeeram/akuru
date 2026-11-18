@@ -533,6 +533,15 @@ def _validate_question(db: Session, workspace: OfficialPaperReviewWorkspace,
                 raise DomainError("answer_visual_review_required", f"Part {part.label}: approve the model-answer visuals or reject remaining proposals.", 409)
         if part.responseType == "drawing" and part.assessmentReadiness == "automatic":
             raise DomainError("drawing_manual_review_required", "Drawing assessment requires manual review until its evaluation gate passes. Select manual only.", 409)
+        if part.scoringRules.deterministic and part.scoringRules.deterministic.parts:
+            raise DomainError("deterministic_composite_server_only", "Composite scoring contexts are generated from individually certified subparts.", 422)
+        if part.assessmentReadiness == "automatic" and part.scoringRules.deterministic:
+            from .deterministic_validation import certificate
+            reviewed_row = db.scalar(select(OfficialPaperReviewQuestion).where(
+                OfficialPaperReviewQuestion.workspace_id == workspace.id,
+                OfficialPaperReviewQuestion.number == question_number)) if question_number else None
+            if not reviewed_row or not certificate(db, workspace, reviewed_row, data, part):
+                raise DomainError("deterministic_certificate_required", "A passing current server-side answer validation is required for deterministic readiness.", 409)
         if part.assessmentReadiness == "automatic":
             marking_rules.validate_rules([p.model_dump() for p in part.markingPoints], part.marks, part.scoringRules.model_dump())
         if part.assessmentReadiness == "manual_only" and not part.assessmentReadinessReason.strip():
@@ -642,6 +651,14 @@ def save_question(db: Session, principal: Principal, paper_id: uuid.UUID,
         previous = {part.label: part for part in original.parts}
         for part in payload.data.parts:
             prior = previous.get(part.label)
+            if (prior and prior.assessmentReadiness == 'automatic' and prior.scoringRules.deterministic
+                    and part.scoringRules.deterministic and part.assessmentReadiness == 'automatic'
+                    and prior.scoringRules.deterministic.certificateId == part.scoringRules.deterministic.certificateId):
+                from .deterministic_validation import certificate
+                if not certificate(db, workspace, row, payload.data, part):
+                    part.assessmentReadiness = 'unreviewed'
+                    part.assessmentReadinessReason = 'Deterministic rules or source changed; replay validation.'
+                    part.scoringRules.deterministic.certificateId = None
             if (prior and prior.assessmentReadinessReason.startswith(PASS_PREFIX)
                     and part.assessmentReadiness == 'automatic'
                     and rubric_hash(original, prior) != rubric_hash(payload.data, part)):

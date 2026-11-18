@@ -17,8 +17,16 @@ export type CoverageStatus =
   | 'supported'
   | 'partial_or_uncertain'
   | 'outside_current_coverage';
+export type DeterministicMatcher = {
+  pointId: string; kind: 'numeric' | 'choice' | 'set'; answerKey?: string;
+  values?: { value: string; significantFigures?: number | null; decimalPlaces?: number | null; roundedFrom?: boolean; allowPowerOfTenScaling?: boolean; minimumSignificantFigures?: number }[];
+  requiredMembers?: string[][]; extraMembers?: string[];
+  accepted?: string[]; rejected?: string[]; units?: string[]; allowMissingUnit?: boolean;
+  incorrectValues?: string[];
+  methods?: {operator: 'divide' | 'multiply'; right: string; leftValues: string[]; allowAnyLeft?: boolean}[];
+};
 export type MarkingRules = {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   groups: {
     id: string;
     pointIds: string[];
@@ -27,6 +35,7 @@ export type MarkingRules = {
   }[];
   combinedResponses: { phrase: string; pointIds: string[] }[];
   scoreBands?: { id: string; bands: { pointId: string; marks: number }[] }[];
+  deterministic?: {engine: 'deterministic-v1'; matchers: DeterministicMatcher[]; certificateId?: string | null} | null;
 };
 export type TextbookPageEvidence = {
   topicRef: string;

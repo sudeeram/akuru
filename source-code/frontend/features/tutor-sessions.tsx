@@ -1,4 +1,5 @@
 'use client';
+import { DeterministicAnswerInput } from './deterministic-answer-input';
 
 import { tutorLearningContextChanged } from '@/lib/tutor-session-context';
 import { request } from '@/api/core/client';
@@ -763,7 +764,19 @@ export function TutorSessions({
         )}
         {pastPaper && (
           <TutorPastPaperCard
+            key={pastPaper.practice.assessmentId}
             value={pastPaper}
+            submitAnswer={async answer => {
+              setBusy(true);
+              setError('');
+              try {
+                const reply = await addTutorAgentTurn(session.sessionRef, `My answer: ${answer}`, 'auto', key());
+                setAgentReply(reply);
+                if (reply.pastPaper) setPastPaper(reply.pastPaper);
+                await load();
+              } catch (cause) { setError(errorMessage(cause)); }
+              finally { setBusy(false); }
+            }}
             busy={busy}
             refresh={() => {
               void request<PastPaperChatState | null>(
@@ -1169,6 +1182,7 @@ export function TutorSessions({
               )}
               {practice.status === 'active' ? (
                 <>
+                  {practice.question.answerFormat ? <DeterministicAnswerInput format={practice.question.answerFormat} value={practiceAnswer} onChange={setPracticeAnswer} disabled={busy}/> : (
                   <label className="stack">
                     <span>Your answer</span>
                     <textarea
@@ -1179,6 +1193,7 @@ export function TutorSessions({
                       }
                     />
                   </label>
+                  )}
                   {practice.latestHint && (
                     <p className="source-note">
                       <strong>Hint {practice.hintCount}:</strong>{' '}
@@ -1269,8 +1284,7 @@ export function TutorSessions({
                   <div className="spread">
                     <h3>Authoritative AKURU assessment</h3>
                     <strong>
-                      {practice.question.result.awardedMarks}/
-                      {practice.question.result.maxMarks}
+                      {practice.question.result.status === 'published' ? `${practice.question.result.awardedMarks}/${practice.question.result.maxMarks}` : 'Awaiting review — no score released'}
                     </strong>
                   </div>
                   <h4>How each mark was decided</h4>

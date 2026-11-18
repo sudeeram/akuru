@@ -1,4 +1,5 @@
 'use client';
+import { DeterministicValidation } from './deterministic-validation';
 import { Toaster, toast } from '@/components/ui/toast';
 import {
   getReviewTopicEvidence,
@@ -2136,6 +2137,22 @@ export function OfficialPaperReview({
                           onChange={updatePart}
                         />
                         {part.responseType === 'text' && revision > 0 && (
+                          (part.scoringRules?.deterministic ? (
+                          <DeterministicValidation
+                            key={`${selected}:${part.label}`}
+                            paperId={paperId}
+                            number={selected}
+                            part={part.label}
+                            revision={revision}
+                            onSaved={() => { void act(() => getPaperReview(paperId), "Scoring readiness updated."); }}
+                            disabled={
+                              busy ||
+                              dirty ||
+                              workedDirty ||
+                              !['approved', 'ai_approved'].includes(part.status)
+                            }
+                          />
+                          ) : (
                           <ScoringValidation
                             key={`${selected}:${part.label}`}
                             paperId={paperId}
@@ -2149,6 +2166,7 @@ export function OfficialPaperReview({
                               !['approved', 'ai_approved'].includes(part.status)
                             }
                           />
+                          ))
                         )}
                         <label>
                           Accepted alternatives · one per line{' '}

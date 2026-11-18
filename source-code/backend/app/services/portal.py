@@ -140,7 +140,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                 assessment_questions.append({"id": qid, "subject": item.subjectId, "topic": item.title,
                     "title": f"Question {question.number}", "prompt": question.prompt, "marks": question.marks,
                     "type": "written", "diagram": "none", "source": "Frozen approved assessment source",
-                    "topicRefs": question.topicRefs, "generatedWorkedAnswerAvailable": question.generatedWorkedAnswerAvailable, "drawingParts": question.drawingParts, "drawingFiles": question.drawingFiles, "rubric": question.rubric, "assetIds": question.assetIds,
+                    "answerFormat": question.answerFormat, "topicRefs": question.topicRefs, "generatedWorkedAnswerAvailable": question.generatedWorkedAnswerAvailable, "drawingParts": question.drawingParts, "drawingFiles": question.drawingFiles, "rubric": question.rubric, "assetIds": question.assetIds,
                     "visualPlacements": question.visualPlacements, "assetDescriptions": question.assetDescriptions,
                     "equations": question.equations,
                     "assessmentId": str(item.id)})
@@ -158,7 +158,7 @@ def get_portal_state(db: Session, principal: Principal) -> dict:
                     "answerVisuals": (question.rubric or {}).get("answerVisuals", []),
                     "drawingFiles": question.drawingFiles,
                     "improvedAnswer": result.improvedAnswer, "recommendations": result.recommendations,
-                    "confidence": result.confidence, "resultVersion": result.version,
+                    "confidence": None if result.subjectEngine.startswith("deterministic-") else result.confidence, "resultVersion": result.version,
                     "reviewReasons": result.reviewReasons, "strengths": result.strengths,
                     "smallMistakes": result.smallMistakes, "conceptualMistakes": result.conceptualMistakes,
                     "markingDecisions": [decision.model_dump(mode="json") for decision in result.markingDecisions],

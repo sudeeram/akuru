@@ -118,6 +118,10 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
             raise DomainError('practice_curriculum_required', 'Reassess current published textbook evidence and resolve mapping uncertainty.', 409)
     if re.search(r'using (?:your|the) (?:answer|result)|(?:answer|result) (?:to|from) (?:part|\()', part.prompt, re.I):
         raise DomainError('practice_dependency_review', 'Release only self-contained subparts with all required information.', 409)
+    if part.scoringRules.deterministic:
+        from .deterministic_validation import certificate
+        if not certificate(db, workspace, question, data, part):
+            raise DomainError('deterministic_certificate_required', 'Revalidate the current deterministic scoring rules before release.', 409)
     if part.assessmentReadiness not in {'automatic', 'manual_only'} or (part.assessmentReadiness == 'manual_only' and part.responseType != 'drawing'):
         raise DomainError('practice_marking_not_ready', 'Confirm automatic marking or supported manual drawing review first.', 409)
     if not part.topicRefs or not part.markingPoints or not any(v.blockId for v in part.schemeSources):

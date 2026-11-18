@@ -8,6 +8,7 @@ from app.errors import DomainError
 from app.models import (Assessment, AssessmentAnswer, AssessmentBlueprint, AssessmentInteraction, AssessmentQuestion, AssessmentWorkingFile,
     Document, DocumentAsset, ExaminerCommentVersion, MarkSchemeEntryVersion, OfficialMaterialVersion,
     OfficialQuestionTopicMapping, OfficialQuestionVersion, StudentProgression, StudentSubject, TextbookTopic)
+from app.services.deterministic_scoring import answer_format
 from app.schemas.assessments import AssessmentListResponse, AssessmentQuestionResponse, AssessmentResponse, BlueprintCreate, BlueprintResponse
 from app.security import Principal
 from app.services.curriculum_plans import snapshot, student_coverage
@@ -231,7 +232,7 @@ def response(db, row):
     return AssessmentResponse(id=row.id, studentId=row.student_id, subjectId=row.subject_id, mode=row.mode, status=row.status,
         title=row.title, targetMarks=row.target_marks, durationMinutes=row.duration_minutes, startedAt=row.started_at,
         endsAt=row.ends_at, submittedAt=row.submitted_at, skills=row.skills, difficultyProfile=row.difficulty_profile,
-        feedbackVisible=visible, questions=[AssessmentQuestionResponse(id=q.id, number=q.question_number, prompt=q.prompt,
+        feedbackVisible=visible, questions=[AssessmentQuestionResponse(answerFormat=answer_format(q.rubric), id=q.id, number=q.question_number, prompt=q.prompt,
             sharedStem=q.shared_stem, marks=q.marks, equations=q.equations, assetIds=q.asset_ids,
             visualPlacements=q.visual_placements,
             assetDescriptions={asset_id: descriptions.get(asset_id, "") for asset_id in q.asset_ids},

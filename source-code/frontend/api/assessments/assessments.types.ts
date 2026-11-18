@@ -195,7 +195,7 @@ export type AssessmentResult = {
   id: string;
   version: number;
   status: 'published' | 'needs_review';
-  awardedMarks: number;
+  awardedMarks: number | null;
   maxMarks: number;
   confidence: number;
   strengths: string[];

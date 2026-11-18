@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DeterministicRulesEditor } from './deterministic-rules-editor';
 /* eslint-disable jsx-a11y/label-has-associated-control */
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -283,6 +284,7 @@ export function MarkingRulesEditor({
           }],
         })}>Add calculation score bands</Button>
       </fieldset>
+      <DeterministicRulesEditor part={part} onChange={onChange} />
       <label>
         Automatic-marking readiness
         <select
@@ -296,7 +298,7 @@ export function MarkingRulesEditor({
           }
         >
           <option value="unreviewed">Rules not checked</option>
-          <option value="automatic">
+          <option value="automatic" disabled={!!rules.deterministic && !rules.deterministic.certificateId}>
             All scoring rules represented and checked
           </option>
           <option value="manual_only">Manual marking required</option>

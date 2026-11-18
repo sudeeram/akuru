@@ -234,6 +234,22 @@ def compile_review(data):
         for c in part.scoringRules.combinedResponses:
             combined.append({"phrase": c.phrase, "pointIds": [prefix+i for i in c.pointIds]})
     rules = {"version":2 if bands else 1,"groups":groups,"combinedResponses":combined}
+    deterministic_parts = [p for p in data.parts if p.scoringRules.deterministic]
+    if deterministic_parts:
+        if len(deterministic_parts) != len(data.parts):
+            _invalid("Mixed semantic/deterministic subparts must be prepared as separate assessment items; do not discard deterministic certificates.")
+        matchers = []
+        contexts = []
+        for part in deterministic_parts:
+            contexts.append(dict(label=part.label, marks=part.marks, prompt=part.prompt,
+                markingPoints=[p.model_dump(mode='json') for p in part.markingPoints],
+                scoringRules=part.scoringRules.model_dump(mode='json')))
+            for matcher in part.scoringRules.deterministic.matchers:
+                value = matcher.model_dump(mode='json')
+                value.update(pointId=part.label+'.'+matcher.pointId,
+                    answerKey=part.label+('.'+matcher.answerKey if matcher.answerKey else ''))
+                matchers.append(value)
+        rules.update(version=3, deterministic=dict(engine='deterministic-v1', matchers=matchers, parts=contexts))
     if bands:
         rules["scoreBands"] = bands
     rules = validate_rules(points, data.marks, rules).model_dump()

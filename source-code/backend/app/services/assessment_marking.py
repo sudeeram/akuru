@@ -122,12 +122,12 @@ def _validate(decisions, points: list[dict], question_marks: int, rules=None, an
 
 
 def result_response(row: AssessmentResult) -> dict:
-    pending_drawing = row.subject_engine == "drawing" and row.status == "needs_review"
+    pending_drawing = row.status == "needs_review" and (row.subject_engine == "drawing" or row.deterministic_checks.get("scorePending"))
     return ({"id": row.id, "version": row.version_number, "status": row.status,
-            "awardedMarks": row.awarded_marks, "maxMarks": row.max_marks, "confidence": row.confidence,
+            "awardedMarks": None if pending_drawing else row.awarded_marks, "maxMarks": row.max_marks, "confidence": row.confidence,
             "markingDecisions": [] if pending_drawing else row.marking_decisions, "strengths": row.strengths,
             "smallMistakes": row.small_mistakes, "conceptualMistakes": row.conceptual_mistakes,
-            "improvedAnswer": "See the approved model-answer diagrams." if pending_drawing else row.improved_answer, "teachingExplanation": "Your drawing is saved and awaiting review. No score has been released." if pending_drawing else row.teaching_explanation,
+            "improvedAnswer": "Awaiting review; no model answer has been released." if pending_drawing else row.improved_answer, "teachingExplanation": "Your answer is saved and awaiting review. No score has been released." if pending_drawing else row.teaching_explanation,
             "topicEvidence": row.topic_evidence, "recommendations": row.recommendations,
             "reviewReasons": row.review_reasons, "createdAt": row.created_at}
             | {"subjectEngine": row.subject_engine, "subjectEngineVersion": row.subject_engine_version,
@@ -167,6 +167,35 @@ def latest_results(db: Session, assessment_id: uuid.UUID) -> dict[uuid.UUID, Ass
 def mark_text_answer(db, settings, question, answer, points, sources, selected_policy,
                      deterministic, handwriting, answer_text, metadata, generate):
     """Run the same two marking passes and deterministic allocation for any text answer."""
+    if (question.rubric.get("scoringRules") or {}).get("deterministic"):
+        from . import deterministic_scoring, deterministic_validation
+        deterministic_validation.require_frozen_certificate(db, question)
+        deterministic['confidenceBasis'] = 'rule_execution_not_model_estimate'
+        review = []
+        try:
+            if handwriting:
+                raise DomainError('deterministic_requires_review', 'Handwritten/OCR answers require original review.', 409)
+            awarded, final, audit = deterministic_scoring.recognize(answer_text, points, question.marks, question.rubric['scoringRules'])
+            deterministic['rubricScoring'] = audit
+        except DomainError as exc:
+            if exc.code != 'deterministic_requires_review':
+                raise
+            review = [exc.message]
+            from app.schemas.assessments import MarkingDecision
+            awarded = 0
+            final = [MarkingDecision(pointId=p['pointId'], criterion=p['criterion'], maxMarks=1,
+                awarded=False, marksAwarded=0, studentEvidence=answer_text[:2000] or 'No typed answer',
+                rationale='Pending human review; not an automatic zero.', confidence=1) for p in points]
+            deterministic.update(scorePending=True, noModelCalls=True, recognitionReason=exc.message)
+        from app.ai.base import AIUsage
+        pass_one = AssessmentPassOne(decisions=final, overallConfidence=1, reviewReasons=review)
+        pass_two = AssessmentPassTwo(decisions=final, confidence=1, reviewReasons=review,
+            improvedAnswer='Refer to the approved marking criteria.',
+            teachingExplanation='Your answer needs review; no score has been released.' if review else
+                'Source-bound deterministic scoring applied. Only the highest applicable band and official score limits earn credit.')
+        first = AIResult(pass_one, 'deterministic', deterministic_scoring.ENGINE, None, AIUsage(0,0,0), 0, 0)
+        second = AIResult(pass_two, 'deterministic', deterministic_scoring.ENGINE, None, AIUsage(0,0,0), 0, 0)
+        return first, second, awarded, final, 1, review
     prompt = get_prompt("assessment")
     try:
         instructions = f"Copy pointId, criterion and maxMarks EXACTLY from officialMarkingPoints for every decision. Do not paraphrase, reformat, fix spelling or change capitalization in criterion. For awarded points, studentEvidence must be an EXACT contiguous substring of studentAnswer, without added quotation marks, ellipses or commentary. If a point is not evidenced, do not award it. For structured rubrics, return evidence matches for every point before caps. For scoreBands, each raw decision remains a binary one-mark evidence match: never assign the band score yourself. Evaluate the full criterion including rounding, method and exclusions; the server selects the highest matching band and its score. Quote exact student wording for each awarded match. Distinct points may share evidence; synonyms for one point never create extra points. Backend code applies all caps. Do not describe unused alternatives as errors once sufficient marks are earned; do not claim a numerical total in generated feedback. {prompt.instructions} Subject policy: {selected_policy.instructions} Deterministic signals are advisory and cannot create marking points or marks."
@@ -198,7 +227,12 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         raise DomainError("assessment_submission_required", "Submit the assessment before AKURU marks it.", 409)
     questions = db.scalars(select(AssessmentQuestion).where(AssessmentQuestion.assessment_id == assessment.id).order_by(AssessmentQuestion.sequence)).all()
     chat_questions = [q for q in questions if q.tutor_paper_release_id]
+    model_chat_questions = [q for q in chat_questions if not (q.rubric.get("scoringRules") or {}).get("deterministic")]
     if chat_questions:
+        from .tutor_past_papers import authorize_assessment
+        from app.security import Principal
+        authorize_assessment(db, settings, Principal(user=db.get(User, assessment.student_id), session=None), assessment)
+    if model_chat_questions:
         from app.models import AIProviderAccount
         from app.security import Principal
         from app.services.tutor_past_papers import authorize_assessment
@@ -207,14 +241,14 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
         selected = db.scalar(select(AIProviderAccount).where(AIProviderAccount.enabled.is_(True)).order_by(AIProviderAccount.priority))
         model = selected.model if selected else settings.openai_model or "unconfigured"
         allowed, reason = evaluations.automatic_feedback_allowed(db, assessment.subject_id, 1.0, model, get_prompt("assessment").version)
-        if not allowed and any(not q.rubric.get("drawingParts") for q in chat_questions):
+        if not allowed and any(not q.rubric.get("drawingParts") for q in model_chat_questions):
             raise DomainError("assessment_feedback_not_released", reason, 409)
         if generator is None:
             from app.services import tutor_agent
             def generate(mark_db, mark_settings, request):
                 request.metadata["session_ref"] = chat_questions[0].rubric["tutorSessionRef"]
                 return tutor_agent._invoke(mark_db, mark_settings, principal, request, uuid.uuid4(), None)
-    request_count = sum((1 if settings.assessment_drawing_suggestions_enabled else 0) if q.rubric.get("drawingParts") else 2 for q in questions)
+    request_count = sum((1 if settings.assessment_drawing_suggestions_enabled else 0) if q.rubric.get("drawingParts") else 0 if (q.rubric.get("scoringRules") or {}).get("deterministic") else 2 for q in questions)
     if request_count:
         usage_limits.reserve_assessment(db, settings, assessment, request_key, request_count)
     used_tokens = 0
@@ -279,11 +313,14 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             review.append(f"Confidence {confidence:.2f} is below the {settings.assessment_confidence_threshold:.2f} publication threshold.")
         if assessment.subject_id == "english" and confidence < 0.9:
             review.append("Subjective English response requires review below 0.90 confidence.")
-        if selected_policy.subjective and not all(deterministic.get("rubricCoverage", {}).values()):
+        if second.provider != "deterministic" and selected_policy.subjective and not all(deterministic.get("rubricCoverage", {}).values()):
             review.append(f"The approved {selected_policy.name.title()} rubric does not explicitly cover every required dimension.")
-        automatic_allowed, gate_reason = evaluations.automatic_feedback_allowed(
-            db, assessment.subject_id, confidence, second.model, prompt.version
-        )
+        if second.provider == 'deterministic':
+            automatic_allowed, gate_reason = True, ''
+        else:
+            automatic_allowed, gate_reason = evaluations.automatic_feedback_allowed(
+                db, assessment.subject_id, confidence, second.model, prompt.version
+            )
         if not automatic_allowed:
             review.append(gate_reason)
         version = (db.scalar(select(func.max(AssessmentResult.version_number)).where(AssessmentResult.question_id == question.id)) or 0) + 1
@@ -295,10 +332,12 @@ def evaluate(db: Session, settings: Settings, assessment: Assessment, request_ke
             small_mistakes=second.output.smallMistakes, conceptual_mistakes=second.output.conceptualMistakes,
             improved_answer=second.output.improvedAnswer, teaching_explanation=second.output.teachingExplanation,
             topic_evidence=[item.model_dump(mode="json") for item in second.output.topicEvidence], recommendations=second.output.recommendations,
-            review_reasons=review, provider=second.provider, model=second.model, prompt_name=prompt.name,
-            prompt_version=prompt.version, rubric_snapshot=question.rubric, source_manifest=sources,
+            review_reasons=review, provider=second.provider, model=second.model,
+            prompt_name='deterministic-answer-recognition' if second.provider == 'deterministic' else prompt.name,
+            prompt_version=second.model if second.provider == 'deterministic' else prompt.version, rubric_snapshot=question.rubric, source_manifest=sources,
             pass_one_output=first.output.model_dump(), pass_two_output=second.output.model_dump(),
-            subject_engine=selected_policy.name, subject_engine_version=subject_marking.ENGINE_VERSION,
+            subject_engine=second.model if second.provider == 'deterministic' else selected_policy.name,
+            subject_engine_version=second.model if second.provider == 'deterministic' else subject_marking.ENGINE_VERSION,
             deterministic_checks=deterministic)
         db.add(row); db.flush()
         mastery.record_result(db, row, commit=False)

@@ -1,4 +1,5 @@
 'use client';
+import { DeterministicAnswerInput } from './deterministic-answer-input';
 import { DrawingSubmissions } from './drawing-submissions';
 import { ModelAnswerVisuals, PracticeWorkedAnswer } from './answer-visuals';
 import { subjectAccent } from '@/lib/subject-accent';
@@ -482,6 +483,7 @@ export function Practice(p: FeatureProps) {
                     ? 'Your answer and working'
                     : 'Explain your thinking'}
                 </label>
+{q.answerFormat ? <DeterministicAnswerInput format={q.answerFormat} value={answer} onChange={setAnswer} disabled={!!result}/> : (
                 <Textarea
                   id="answer"
                   value={answer}
@@ -495,6 +497,7 @@ export function Practice(p: FeatureProps) {
                   }}
                   disabled={!!result}
                 />
+)}
                 <div className="answer-tools">
                   <label className="upload-button">
                     <Upload size={16} />
@@ -872,6 +875,7 @@ export function Exams(p: FeatureProps) {
             <section className="panel">
               <DrawingSubmissions key={q.id} assessmentId={exam.id} questionId={q.id} parts={q.drawingParts} files={q.drawingFiles} disabled={!remaining || busy} onSaved={p.refresh} />
               <label htmlFor="exam-answer">Your answer and working</label>
+{q.answerFormat ? <DeterministicAnswerInput format={q.answerFormat} value={draft} onChange={(value) => { setDraft(value); setDirty(true); }} disabled={!remaining || busy}/> : (
               <Textarea
                 id="exam-answer"
                 value={draft}
@@ -881,6 +885,7 @@ export function Exams(p: FeatureProps) {
                   setDirty(true);
                 }}
               />
+)}
               <p className="source-note">
                 {dirty
                   ? 'Unsaved changes — save before moving to another question.'

@@ -14,6 +14,7 @@ export interface Schemas {
   "AdminQuotaListResponse": { "quotas": Array<Schemas["StudentQuotaResponse"]>; };
   "AdminQuotaUpdate": { "periodDays": number; "requestAllowance": number; "textTokenAllowance": number; "voiceMinuteAllowance": number; "enabled"?: boolean; "reason": string; };
   "AnalysisProvenance": { "role": "paper" | "scheme" | "report"; "method": "native_pdf" | "ocr" | "deterministic" | "codex_assisted" | "openai_api" | "manual" | "unknown"; "provider"?: string | null; "modelId"?: string | null; "modelName"?: string | null; "modelIdentitySource"?: "provider_response" | "operator_recorded" | "not_recorded"; "responseId"?: string | null; "guidelineId"?: string | null; "guidelineVersion"?: string | null; "promptVersion"?: string | null; "processedAt"?: string | null; "notes"?: string; };
+  "AnswerMatcher": { "pointId": string; "kind": "numeric" | "choice" | "set"; "answerKey"?: string; "values"?: Array<Schemas["NumericAnswer"]>; "requiredMembers"?: Array<Array<string>>; "extraMembers"?: Array<string>; "accepted"?: Array<string>; "rejected"?: Array<string>; "incorrectValues"?: Array<string>; "methods"?: Array<Schemas["MethodStep"]>; "units"?: Array<string>; "allowMissingUnit"?: boolean; };
   "AnswerSave": { "questionId": string; "answer"?: string; "fileId"?: string | null; "idempotencyKey": string; };
   "AnswerVisual": { "assetId": string; "partLabel"?: string; "pointCodes"?: Array<string>; "caption"?: string; "altText": string; "status"?: "proposed" | "approved" | "rejected"; "origin"?: "official_scheme" | "ai_generated"; "workedAnswerId"?: string | null; "explanation"?: string; "limitations"?: string; "dataText"?: string; };
   "AssessmentAuditListResponse": { "results": Array<Schemas["AssessmentAuditResponse"]>; };
@@ -21,9 +22,9 @@ export interface Schemas {
   "AssessmentEvaluateRequest": { "idempotencyKey": string; };
   "AssessmentListResponse": { "assessments": Array<Schemas["AssessmentResponse"]>; };
   "AssessmentMode": "practice" | "official_paper" | "mock";
-  "AssessmentQuestionResponse": { "generatedWorkedAnswerAvailable"?: boolean; "drawingParts"?: Array<string>; "drawingFiles"?: { [key: string]: string; }; "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "visualPlacements"?: { [key: string]: Array<string>; }; "assetDescriptions"?: { [key: string]: string; }; "sourceLocations": Array<unknown>; "topicRefs"?: Array<string>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; "result"?: Schemas["AssessmentResultResponse"] | null; };
+  "AssessmentQuestionResponse": { "answerFormat"?: { [key: string]: unknown; } | null; "generatedWorkedAnswerAvailable"?: boolean; "drawingParts"?: Array<string>; "drawingFiles"?: { [key: string]: string; }; "id": string; "number": string; "prompt": string; "sharedStem": string; "marks": number; "equations": Array<unknown>; "assetIds": Array<unknown>; "visualPlacements"?: { [key: string]: Array<string>; }; "assetDescriptions"?: { [key: string]: string; }; "sourceLocations": Array<unknown>; "topicRefs"?: Array<string>; "skills": Array<unknown>; "difficulty": string; "answer"?: string; "fileId"?: string | null; "saveRevision"?: number; "rubric"?: { [key: string]: unknown; } | null; "result"?: Schemas["AssessmentResultResponse"] | null; };
   "AssessmentResponse": { "id": string; "studentId": string; "subjectId": string; "mode": string; "status": string; "title": string; "targetMarks": number; "durationMinutes": number; "startedAt": string; "endsAt": string; "submittedAt": string | null; "skills": Array<unknown>; "difficultyProfile": { [key: string]: unknown; }; "feedbackVisible": boolean; "questions": Array<Schemas["AssessmentQuestionResponse"]>; };
-  "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "topicEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "subjectEngine": string; "subjectEngineVersion": string; "deterministicChecks": { [key: string]: unknown; }; "createdAt": string; };
+  "AssessmentResultResponse": { "id": string; "version": number; "status": string; "awardedMarks": number | null; "maxMarks": number; "confidence": number; "markingDecisions": Array<Schemas["MarkingDecision"]>; "strengths": Array<string>; "smallMistakes": Array<string>; "conceptualMistakes": Array<string>; "improvedAnswer": string; "teachingExplanation": string; "topicEvidence": Array<{ [key: string]: unknown; }>; "recommendations": Array<string>; "reviewReasons": Array<string>; "subjectEngine": string; "subjectEngineVersion": string; "deterministicChecks": { [key: string]: unknown; }; "createdAt": string; };
   "AssessmentReviewRequest": { "idempotencyKey": string; "markingDecisions": Array<Schemas["MarkingDecision"]>; "feedback": string; "improvedAnswer": string; "strengths"?: Array<string>; "smallMistakes"?: Array<string>; "conceptualMistakes"?: Array<string>; "reason": string; };
   "AssessmentStart": { "mode": Schemas["AssessmentMode"]; "subjectId": string; "blueprintId"?: string | null; "paperId"?: string | null; };
   "AttachWorkedAnswer": { "expectedQuestionRevision": number; "reopenApproved"?: boolean; };
@@ -31,6 +32,7 @@ export interface Schemas {
   "Axis": { "label": string; "minimum": number; "maximum": number; "tick": number; };
   "BlueprintCreate": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; };
   "BlueprintResponse": { "name": string; "subjectId": string; "grade": 10 | 11; "term": 1 | 2 | 3; "mode"?: "mock"; "targetMarks": number; "durationMinutes": number; "questionCount": number; "skills"?: Array<string>; "difficultyProfile"?: { [key: string]: number; }; "id": string; "status": string; };
+  "Case": { "answer": string; "expectedMarks"?: number | null; "expectedPoints"?: Array<string>; "requiresReview"?: boolean; "holdout"?: boolean; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
   "CombinedResponse": { "phrase": string; "pointIds": Array<string>; };
@@ -64,6 +66,7 @@ export interface Schemas {
   "CurriculumEvidence": { "chunkId": string; "topicRef": string; "title": string; "publicationId": string; "publicationVersion": number; "documentVersionId": string; "page": number; "contentHash": string; };
   "CurriculumPlanResponse": { "versionNumber": number; "status": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "groupLabel"?: string; "groups"?: Array<Schemas["PlanTopicGroupResponse"]>; "periods": Array<Schemas["PlanPeriod"]>; "publishedPeriods"?: Array<Schemas["PlanPeriod"]>; "changes"?: Array<Schemas["PlanChangeResponse"]>; "requiresPublishedChangeConfirmation"?: boolean; "basedOnVersion"?: number | null; "createdAt"?: string | null; "publishedAt"?: string | null; };
   "DeterministicMediaCreate": { "kind": "circuit_svg" | "forces_svg" | "geometry_svg" | "plot_svg"; "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "parameters"?: { [key: string]: unknown; }; };
+  "DeterministicRules": { "engine"?: "deterministic-v1"; "matchers": Array<Schemas["AnswerMatcher"]>; "parts"?: Array<Schemas["FrozenScoringPart"]>; "certificateId"?: string | null; };
   "DiagramInput": { "schemaVersion": "science-diagram-v1"; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "partLabels": Array<string>; "verificationNote": string; };
   "DiagramSolution": { "schemaVersion": "science-diagram-v1"; "title": string; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "steps": Array<Schemas["DiagramStep"]>; "limitations": string; "confidencePercent": number; "confidenceBasis": string; };
   "DiagramStep": { "partLabel": string; "explanation": string; };
@@ -111,6 +114,7 @@ export interface Schemas {
   "FlashcardStudyOption": { "mode": "review" | "difficult"; "title": string; "description": string; "availableCount": number; "sessionSize": number; "enabled": boolean; "supportedCounts"?: Array<number>; "difficulties"?: Array<string>; };
   "FlashcardStudyOptionsResponse": { "deckRef": string; "options": Array<Schemas["FlashcardStudyOption"]>; "summary"?: { [key: string]: number; }; };
   "FlashcardWithdrawRequest": { "reason": string; };
+  "FrozenScoringPart": { "label": string; "marks": number; "prompt": string; "markingPoints": Array<{ [key: string]: unknown; }>; "scoringRules": { [key: string]: unknown; }; };
   "GenerateWorkedAnswer": { "expectedQuestionRevision": number; "graph": Schemas["GraphInput"]; "regenerate"?: boolean; };
   "GraphInput": { "xAxis": Schemas["Axis"]; "yAxis": Schemas["Axis"]; "points": Array<Schemas["Point"]>; "partLabels": Array<string>; "verificationNote": string; };
   "GraphSolution": { "schemaVersion"?: "graph-v1"; "title": string; "xAxis": Schemas["Axis"]; "yAxis": Schemas["Axis"]; "points": Array<Schemas["Point"]>; "steps": Array<Schemas["WorkedStep"]>; "limitations": string; "confidencePercent"?: number | null; "confidenceBasis"?: string | null; };
@@ -131,7 +135,7 @@ export interface Schemas {
   "MarkingDecision": { "pointId": string; "criterion": string; "awarded": boolean; "marksAwarded": number; "maxMarks": number; "studentEvidence": string; "rationale": string; "confidence": number; };
   "MarkingGroup": { "id": string; "pointIds": Array<string>; "maxMarks": number; "requiredForFullCredit"?: Array<string>; };
   "MarkingPoint": { "code": string; "text": string; "kind"?: "method" | "accuracy" | "independent" | "communication" | "other"; "dependsOn"?: string | null; "followThrough"?: boolean; "acceptedAnswers"?: Array<string>; };
-  "MarkingRules": { "version"?: number; "groups"?: Array<Schemas["MarkingGroup"]>; "combinedResponses"?: Array<Schemas["CombinedResponse"]>; "scoreBands"?: Array<Schemas["ScoreBandGroup"]>; };
+  "MarkingRules": { "version"?: number; "groups"?: Array<Schemas["MarkingGroup"]>; "combinedResponses"?: Array<Schemas["CombinedResponse"]>; "scoreBands"?: Array<Schemas["ScoreBandGroup"]>; "deterministic"?: Schemas["DeterministicRules"] | null; };
   "MasteryDimensionResponse": { "dimension": string; "score": number; "evidenceWeight": number; };
   "MasteryEventResponse": { "id": string; "previousScore": number | null; "newScore": number; "previousConfidence": string | null; "newConfidence": string; "explanation": string; "createdAt": string; };
   "MasteryResponse": { "studentId": string; "topics"?: Array<Schemas["TopicMasteryResponse"]>; "groups"?: Array<Schemas["GroupMasteryResponse"]>; };
@@ -139,13 +143,16 @@ export interface Schemas {
   "MediaResponse": { "id": string; "subjectId": string; "topicId": string; "sourceChunkId": string; "kind": string; "title": string; "altText": string; "prompt": string; "promptVersion": string; "parameters": { [key: string]: unknown; }; "sourceManifest": Array<{ [key: string]: unknown; }>; "provider": string; "model": string; "responseId": string | null; "contentType": string; "status": string; "reviewNotes": string; "createdAt": string; "reviewedAt": string | null; "contentUrl": string; };
   "MediaReview": { "decision": "published" | "rejected"; "notes": string; };
   "MediaSourceResponse": { "id": string; "subjectId": string; "topicRef": string; "topicCode": string; "topicTitle": string; "groupCode": string; "documentTitle": string; "page": number; "excerpt": string; };
+  "MethodStep": { "operator": "divide" | "multiply"; "right": string; "leftValues"?: Array<string>; "allowAnyLeft"?: boolean; };
   "NextTopicRecommendation": { "topic": Schemas["PlanTopicResponse"]; "reason": string; "evidenceRefs": Array<string>; "activity": Schemas["RecommendationActivity"]; "requiresStudentAction"?: boolean; "moveAction": { [key: string]: unknown; }; };
   "NextTopicRequest": { "subjectId": string; "requestKey": string; };
   "NextTopicResponse": { "status": "ready" | "no_evidence" | "no_eligible_topics"; "message": string; "algorithmVersion": string; "contextOperationRef"?: string | null; "contextVersion"?: string | null; "recommendation"?: Schemas["NextTopicRecommendation"] | null; "ranking"?: Array<Schemas["RankedTopic"]>; "tutorBrief"?: Schemas["TutorRecommendationBrief"] | null; };
   "NormalPasswordChangeRequest": { "currentPassword": string; "newPassword": string; };
   "NoticeRead": { "read": boolean; };
+  "NumericAnswer": { "value": string; "significantFigures"?: number | null; "decimalPlaces"?: number | null; "roundedFrom"?: boolean; "allowPowerOfTenScaling"?: boolean; "minimumSignificantFigures"?: number; };
   "OfficialMaterialReview": { "versionNumber": number; "status": string; "kind": "past_paper" | "mark_scheme" | "examiner_report"; "courseId": string; "subjectId": string; "sourcePaperId"?: string | null; "sourcePaperVersionId"?: string | null; "expectedItemCount": number; "completenessConfirmed"?: boolean; "questions"?: Array<Schemas["OfficialQuestionReview"]>; "markSchemeEntries"?: Array<Schemas["MarkSchemeEntryReview"]>; "examinerComments"?: Array<Schemas["ExaminerCommentReview"]>; };
   "OfficialQuestionReview": { "number": string; "parentNumber"?: string | null; "prompt": string; "sharedStem"?: string; "marks": number; "equations"?: Array<string>; "assetIds"?: Array<string>; "visualPlacements"?: { [key: string]: Array<string>; }; "sourceLocations": Array<Schemas["SourceLocation"]>; };
+  "Package": { "requestId": string; "partLabel": string; "expectedRevision": number; "expectedEngineHash": string; "confirmSourceReviewed": boolean; "sourceNotes": string; "provenance"?: { [key: string]: string; }; "cases": Array<Schemas["Case"]>; };
   "PaperAutoApprovalResponse": { "policy": string; "thresholdExclusive": number; "results": Array<Schemas["AutoApprovalResult"]>; };
   "PaperReviewResponse": { "paperDocumentId": string; "paperVersionId": string; "schemeDocumentId": string | null; "reportDocumentId": string | null; "expectedQuestionCount": number; "questionCount": number; "approvedCount": number; "wholePaperReady": boolean; "assessmentReleaseReady"?: boolean; "automaticAssessmentReady"?: boolean; "assessmentBlockers"?: Array<string>; "blockers": Array<string>; "questions": Array<Schemas["ReviewQuestionResponse"]>; };
   "ParagraphOperationRequest": { "action": "join_previous" | "split" | "restore_extracted"; "splitOffset"?: number | null; };
@@ -357,6 +364,7 @@ export interface ApiOperations {
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/auto-tutor-release": { request: unknown; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-release-readiness": { request: unknown; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/chat-releases": { request: unknown; response: unknown };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/deterministic-capabilities": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-job-batch": { request: Schemas["EvidenceBatch"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-jobs": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/evidence-link-jobs": { request: Schemas["ProposeEvidenceLinks"]; response: unknown };
@@ -370,8 +378,10 @@ export interface ApiOperations {
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: unknown; response: Array<Schemas["QuestionAnalysisResponse"]> };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/analyses": { request: Schemas["RecordQuestionAnalysis"]; response: Schemas["QuestionAnalysisResponse"] };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/chat-release": { request: Schemas["ReleasePastPaperPart"]; response: unknown };
+  "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/deterministic-validations": { request: unknown; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/source-issues": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/source-issues/resolve": { request: Schemas["ResolveSourceIssue"]; response: unknown };
+  "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/validate-deterministic": { request: Schemas["Package"]; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/validate-scoring": { request: Schemas["ValidateScoring"]; response: unknown };
   "GET /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: unknown; response: unknown };
   "POST /api/v1/admin/official-paper-reviews/{paper_id}/questions/{number}/worked-answers": { request: Schemas["GenerateWorkedAnswer"]; response: unknown };

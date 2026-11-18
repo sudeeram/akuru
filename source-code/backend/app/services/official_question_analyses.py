@@ -33,6 +33,9 @@ def content_hash(db, question, manifest, *, block_rows=None, asset_rows=None):
     data = json.loads(json.dumps(question.review_data))
     data.pop("extractionConfidence", None)
     for part in data.get("parts", []):
+        config = part.get("scoringRules", {}).get("deterministic")
+        if config:
+            config.pop("certificateId", None)  # Validation receipt is not source content.
         for field in ("status", "coverage", "topicRefs", "textbookEvidence", "coverageReason",
                       "assessmentReadiness", "assessmentReadinessReason", "extractionConfidence"):
             part.pop(field, None)

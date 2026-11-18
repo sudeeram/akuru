@@ -348,3 +348,33 @@ def apply_confidence_approval(paper_id: uuid.UUID,
     db: Annotated[Session, Depends(get_db)]):
     from app.services.question_auto_approval import apply_paper
     return apply_paper(db, principal, paper_id)
+
+
+from app.services import deterministic_validation
+
+
+@router.get('/{paper_id}/deterministic-capabilities')
+def deterministic_capabilities(paper_id: uuid.UUID,
+    principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    official_paper_reviews._workspace(db, paper_id)
+    return {"engine": deterministic_validation.engine.ENGINE,
+        "engineHash": deterministic_validation.engine.engine_hash(),
+        "matchers": ["numeric", "choice", "set"], "noModelCalls": True, "maximumCases": 200,
+        "unsupported": ["unrestricted natural language", "handwriting", "drawings", "ambiguous final answers"]}
+
+
+@router.post('/{paper_id}/questions/{number}/validate-deterministic')
+def validate_deterministic(paper_id: uuid.UUID, number: str, payload: deterministic_validation.Package,
+    principal: Annotated[Principal, Depends(require_csrf_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    return deterministic_validation.run(db, principal, paper_id, number, payload)
+
+
+@router.get('/{paper_id}/questions/{number}/deterministic-validations')
+def deterministic_history(paper_id: uuid.UUID, number: str,
+    principal: Annotated[Principal, Depends(require_roles("admin"))],
+    db: Annotated[Session, Depends(get_db)]):
+    from app.services import evidence_links
+    workspace, question, _ = evidence_links._context(db, paper_id, number)
+    return deterministic_validation.history(db, workspace, question)

@@ -1,4 +1,7 @@
 'use client';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DeterministicAnswerInput } from './deterministic-answer-input';
 import type { PastPaperChatState } from '@/api/tutoring/tutor.types';
 import { DrawingSubmissions } from './drawing-submissions';
 import { ModelAnswerVisuals } from './answer-visuals';
@@ -9,11 +12,14 @@ export function TutorPastPaperCard({
   value,
   busy,
   refresh,
+  submitAnswer,
 }: {
   value: PastPaperChatState;
   busy: boolean;
   refresh: () => void;
+  submitAnswer: (answer: string) => Promise<void>;
 }) {
+  const [answer, setAnswer] = useState('');
   const p = value.practice;
   const q = p.question;
   return (
@@ -56,6 +62,13 @@ export function TutorPastPaperCard({
             Type your response in the chat. Start with “My answer:” to submit
             it. Hints and answer reveals count as assisted practice.
           </p>
+          {q.answerFormat && <form className="stack" onSubmit={async event => {
+            event.preventDefault();
+            if (!busy && answer.trim()) await submitAnswer(answer);
+          }}>
+            <DeterministicAnswerInput format={q.answerFormat} value={answer} onChange={setAnswer} disabled={busy} />
+            <Button type="submit" disabled={busy || !answer.trim()}>Submit final answer</Button>
+          </form>}
           <DrawingSubmissions
             assessmentId={p.assessmentId}
             questionId={q.id}

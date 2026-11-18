@@ -35,7 +35,7 @@ def _response(db: Session, row: TutorPractice, latest_hint: str | None = None) -
     payload = assessments.response(db, assessment)
     question = next(item for item in payload.questions if item.id == row.question_id)
     feedback_visible = bool(payload.feedbackVisible and question.result and question.result.status == "published")
-    if question.result and question.result.status != "published":
+    if question.result and question.result.status != "published" and not question.result.deterministicChecks.get("scorePending"):
         question = question.model_copy(update={"result": None})
     hints = db.scalar(select(func.count()).select_from(AssessmentInteraction).where(
         AssessmentInteraction.assessment_id == row.assessment_id,

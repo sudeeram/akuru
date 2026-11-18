@@ -151,6 +151,16 @@ const cardStubs = {
   ),
   './tutor-chat-elements': url(source),
 };
+let answerSource = ts.transpileModule(readFileSync(new URL('../features/deterministic-answer-input.tsx', import.meta.url), 'utf8'), {
+  compilerOptions: {target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022, jsx: ts.JsxEmit.ReactJSX},
+}).outputText;
+const controls = url(`import {createElement as h} from ${JSON.stringify(reactURL)}; export const Input=p=>h('input',p); export const Textarea=p=>h('textarea',p); export const Button=p=>h('button',p);`);
+for (const [name,target] of Object.entries({'react':reactURL,'react/jsx-runtime':import.meta.resolve('react/jsx-runtime'),'@/components/ui/input':controls,'@/components/ui/textarea':controls})) {
+  answerSource=answerSource.replaceAll(JSON.stringify(name),JSON.stringify(target)).replaceAll(`'${name}'`,JSON.stringify(target));
+}
+cardStubs['react']=reactURL;
+cardStubs['@/components/ui/button']=controls;
+cardStubs['./deterministic-answer-input']=url(answerSource);
 let cardSource = ts.transpileModule(
   readFileSync(
     new URL('../features/tutor-past-paper-card.tsx', import.meta.url),
@@ -274,4 +284,13 @@ test('topic discovery renders safe evidence and uses current session state after
   assert.match(current, /Current topic/);
   assert.match(render(TutorTopicMatches, {...props, busy: true}), /disabled=""/);
   assert.equal(render(TutorTopicMatches, {...props, matches: []}), '');
+});
+
+test('deterministic practice offers labelled answer controls without rubric leakage', () => {
+  const value=structuredClone(practiceCard);
+  value.practice.question.answerFormat={engine:'deterministic-v1',fields:['W','X','Y'],allowWorking:false};
+  const html=render(TutorPastPaperCard,{value,busy:false,refresh:()=>{},submitAnswer:async()=>{}});
+  assert.equal((html.match(/<input/g)||[]).length,3);
+  assert.match(html,/Submit final answer/);
+  assert.doesNotMatch(html,/Secret scheme guidance|acceptedAliases|correctAnswer/);
 });

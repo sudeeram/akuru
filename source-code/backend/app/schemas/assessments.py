@@ -96,7 +96,7 @@ class AssessmentResultResponse(BaseModel):
     id: uuid.UUID
     version: int
     status: str
-    awardedMarks: int
+    awardedMarks: int | None
     maxMarks: int
     confidence: float
     markingDecisions: list[MarkingDecision]
@@ -122,6 +122,7 @@ class WorkingFileResponse(BaseModel):
     needsReview: bool
 
 class AssessmentQuestionResponse(BaseModel):
+    answerFormat: dict | None = None
     generatedWorkedAnswerAvailable: bool = False
     drawingParts: list[str] = Field(default_factory=list)
     drawingFiles: dict[str, str] = Field(default_factory=dict)

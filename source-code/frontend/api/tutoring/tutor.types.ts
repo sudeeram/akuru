@@ -296,6 +296,7 @@ export type TutorPractice = {
   groupCode: string;
   groupTitle: string;
   question: {
+    answerFormat?: {engine:string;fields:string[];allowWorking:boolean} | null;
     generatedWorkedAnswerAvailable?: boolean;
     drawingParts?: string[];
     drawingFiles?: Record<string, string>;

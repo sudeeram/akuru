@@ -3768,9 +3768,9 @@ function AssessmentAuditPanel({
                   {row.model}
                 </p>
               </div>
-              <span>{Math.round(row.confidence * 100)}% confidence</span>
+              <span>{row.provider === 'deterministic' ? 'Deterministic rule execution' : `${Math.round(row.confidence * 100)}% confidence`}</span>
               <strong>
-                {row.awardedMarks}/{row.maxMarks}
+                {row.status === 'published' ? `${row.awardedMarks}/${row.maxMarks}` : 'Awaiting review'}
               </strong>
             </button>
           ))}
@@ -3826,9 +3826,9 @@ function AssessmentAuditPanel({
               )}
               <div className="source-note">
                 <strong>
-                  {chosen.awardedMarks}/{chosen.maxMarks}
+                  {chosen.status === 'published' ? `${chosen.awardedMarks}/${chosen.maxMarks}` : 'Awaiting review'}
                 </strong>{' '}
-                · {Math.round(chosen.confidence * 100)}% confidence ·{' '}
+                · {chosen.provider === 'deterministic' ? 'Deterministic rule execution' : `${Math.round(chosen.confidence * 100)}% confidence`} ·{' '}
                 {chosen.status.replaceAll('_', ' ')} · version {chosen.version}
               </div>
               {!!chosen.reviewReasons.length && (
@@ -3858,7 +3858,7 @@ function AssessmentAuditPanel({
                   </div>
                   <p>Evidence: {point.studentEvidence}</p>
                   <p>
-                    {point.rationale} · {Math.round(point.confidence * 100)}%
+                    {point.rationale}{chosen.provider !== 'deterministic' && ` · ${Math.round(point.confidence * 100)}%`}
                     confidence
                   </p>
                 </article>
