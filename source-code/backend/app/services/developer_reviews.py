@@ -199,7 +199,8 @@ def _analysis_payload(db,w,q,old,payload,previous_data,previous_bindings,baselin
             certified=old.analysis_data.get('_scopeBindings',{}).get(label) or (previous_bindings[label]if baseline_current else None)
             if label not in prior or certified!=review_scopes.binding(db,w,q,label):
                 raise DomainError('review_carry_invalid','Unchanged source evidence cannot be established; supply a new comparison.',409)
-            parts.append(copy.deepcopy(prior[label]));origins[label]=dict(kind='carried_forward',analysisId=str(old.id))
+            carried=copy.deepcopy(prior[label]);carried['provenance']=copy.deepcopy(analyses.effective_provenance(db,old,label))
+            parts.append(carried);origins[label]=dict(kind='carried_forward',analysisId=str(old.id))
     question=payload.questionFinding.model_dump(mode='json')if payload.questionFinding else copy.deepcopy(old.analysis_data['question'])
     question['percent']=min(question['percent'],*(part['percent']for part in parts))
     from .accuracy_jobs import _version

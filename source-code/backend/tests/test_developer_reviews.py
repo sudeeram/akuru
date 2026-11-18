@@ -96,11 +96,15 @@ def test_unchanged_sibling_finding_and_approval_are_carried_forward(auth_client,
  q=c.get(root).json()['questions'][0];before=copy.deepcopy(q['data']['parts'][1]);exports=c.get(root+'/review-package').json()['questions'][0]
  body.update(requestId=str(uuid.uuid4()),expectedRevision=q['revision'],expectedAnalysisVersion=q['analysisVersion'],expectedContentHash=q['analysisContentHash'])
  body['corrections'][0]['expectedScopeHash']=exports['scopes'][body['corrections'][0]['partLabel']]
+ original_scheme=next(p for p in q['accuracyAnalysis']['provenance']if p['role']=='scheme')
+ body['provenance']=[dict(role='scheme',method='codex_assisted',modelId='new-correction-model',notes='Synthetic new model attribution.')if p['role']=='scheme'else p for p in body['provenance']]
  key=c.post(root+'/change-sets',headers=h,json=body).json()['id'];preview=c.get(root+f'/change-sets/{key}/preview').json()
  result=c.post(root+f'/change-sets/{key}/apply',headers=h,json=dict(requestId=str(uuid.uuid4()),expectedPreviewHash=preview['previewHash']));assert result.status_code==200,result.text
  current=c.get(root).json()['questions'][0]
  assert current['data']['parts'][1]==before
  assert current['accuracyAnalysis']['reviewOrigins']['b']['kind']=='carried_forward'
+ sibling=next(p for p in current['accuracyAnalysis']['parts']if p['label']=='b')
+ assert next(p for p in sibling['provenance']if p['role']=='scheme')['modelId']==original_scheme['modelId']
  # A later actual edit to a only invalidates a; b retains its bound AI approval.
  row=db.scalar(select(OfficialPaperReviewQuestion));edited=copy.deepcopy(row.review_data);edited['parts'][0]['prompt']+=' Changed source.';row.review_data=edited;db.commit()
  shown=c.get(root).json()['questions'][0]

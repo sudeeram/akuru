@@ -61,11 +61,31 @@ def content_hash(db, question, manifest, *, block_rows=None, asset_rows=None):
         "blocks": blocks, "assets": assets}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
 
 
-def response(row, digest, part_current=None):
-    return QuestionAnalysisResponse(reviewOrigins=row.analysis_data.get('_reviewOrigins',{}),partCurrent=part_current or {p['label']:row.content_hash==digest for p in row.analysis_data['parts']},id=str(row.id), version=row.version_number, stage=row.stage,
+def effective_provenance(db, row, label):
+    """Follow immutable carry-forward ancestry rather than the newest header."""
+    seen=set()
+    while db is not None and row.id not in seen:
+        seen.add(row.id)
+        origin=row.analysis_data.get('_reviewOrigins',{}).get(label,{})
+        if origin.get('kind')!='carried_forward' or not origin.get('analysisId'):break
+        ancestor=db.get(OfficialQuestionAnalysis,uuid.UUID(origin['analysisId']))
+        if not ancestor or ancestor.question_id!=row.question_id:break
+        row=ancestor
+    part=next((p for p in row.analysis_data['parts']if p['label']==label),{})
+    values={p['role']:p for p in row.analysis_data['provenance']}
+    values.update({p['role']:p for p in part.get('provenance',[])})
+    return [values[role] for role in ROLES if role in values]
+
+
+def response(row, digest, part_current=None, *, db=None):
+    data=json.loads(json.dumps(row.analysis_data))
+    for part in data['parts']:
+        if db is not None and data.get('_reviewOrigins',{}).get(part['label'],{}).get('kind')=='carried_forward':
+            part['provenance']=effective_provenance(db,row,part['label'])
+    return QuestionAnalysisResponse(reviewOrigins=data.get('_reviewOrigins',{}),partCurrent=part_current or {p['label']:row.content_hash==digest for p in data['parts']},id=str(row.id), version=row.version_number, stage=row.stage,
         questionRevision=row.question_revision, contentHash=row.content_hash,
         sourceManifest=row.source_manifest, createdAt=row.created_at, isCurrent=row.content_hash == digest,
-        **row.analysis_data)
+        **data)
 
 
 def summaries(db, workspace, questions):
@@ -84,8 +104,8 @@ def summaries(db, workspace, questions):
         accuracy = next((row for row in rows if row.stage == "accuracy"), None)
         extraction = next((row for row in rows if row.stage == "extraction"), None)
         result[question.id] = dict(analysisContentHash=digest, analysisVersion=rows[0].version_number if rows else 0,
-            accuracyAnalysis=response(accuracy, digest, {p['label']:accuracy.content_hash==digest or accuracy.analysis_data.get('_scopeBindings',{}).get(p['label'])==review_scopes.binding(db,workspace,question,p['label']) for p in question.review_data['parts']}) if accuracy else None,
-            extractionAnalysis=response(extraction, digest) if extraction else None)
+            accuracyAnalysis=response(accuracy, digest, {p['label']:accuracy.content_hash==digest or accuracy.analysis_data.get('_scopeBindings',{}).get(p['label'])==review_scopes.binding(db,workspace,question,p['label']) for p in question.review_data['parts']},db=db) if accuracy else None,
+            extractionAnalysis=response(extraction, digest,db=db) if extraction else None)
     return result
 
 
@@ -103,7 +123,7 @@ def _context(db, paper_id, number, *, lock=False):
 def history(db, paper_id, number):
     workspace, question = _context(db, paper_id, number)
     digest = content_hash(db, question, source_manifest(db, workspace))
-    return [response(row, digest) for row in db.scalars(select(OfficialQuestionAnalysis).where(
+    return [response(row, digest,db=db) for row in db.scalars(select(OfficialQuestionAnalysis).where(
         OfficialQuestionAnalysis.question_id == question.id).order_by(OfficialQuestionAnalysis.version_number.desc()))]
 
 
@@ -156,7 +176,7 @@ def record(db, principal, paper_id, number, payload: RecordQuestionAnalysis, *, 
         db.refresh(row)
     else:
         db.flush()
-    return response(row, digest)
+    return response(row, digest,db=db)
 
 
 def record_import(db, principal, workspace, question, supplied_provenance, question_provenance=None, part_provenance=None):
