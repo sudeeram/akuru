@@ -4,7 +4,8 @@ from app.schemas.tutor_practice import TutorPracticeResponse
 
 
 class ReleasePastPaperPart(BaseModel):
-    partLabel: str = Field(min_length=1, max_length=40)
+    # An empty label identifies an actual, unlettered whole question.
+    partLabel: str = Field(max_length=40)
     revision: int = Field(gt=0)
     confirmSelfContained: bool
     enabled: bool = True

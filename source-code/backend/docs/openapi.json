@@ -9962,7 +9962,6 @@
           },
           "partLabel": {
             "maxLength": 40,
-            "minLength": 1,
             "title": "Partlabel",
             "type": "string"
           },

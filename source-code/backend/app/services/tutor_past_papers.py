@@ -146,6 +146,10 @@ def validate_release(db, workspace, question, label, *, require_curriculum=False
     return data, part, topic_publications(db, workspace, part), binding(db, workspace, question, part.label)
 
 
+def question_label(number, part_label):
+    return f"{number}({part_label})" if part_label else str(number)
+
+
 def release_part(db, principal, paper_id, number, payload, *, automatic=False, commit=True):
     w = official_paper_reviews._workspace(db, paper_id)
     official_paper_reviews._validate_bound_versions(db, w)
@@ -336,7 +340,7 @@ def state(db, settings, principal, session):
         safe_rubric = {**question.rubric, 'examinerAdvice': []}
         result.question = result.question.model_copy(update={'rubric': safe_rubric})
     return PastPaperChatState(practice=result, paperTitle=snap['paperTitle'],
-        questionLabel=f"{snap['number']}({release.part_label})", answerRevealed=revealed,
+        questionLabel=question_label(snap['number'], release.part_label), answerRevealed=revealed,
         markingGuidance=question.rubric['markingPoints'] if visible else [],
         alternatives=question.rubric.get('alternatives', []) if visible else [],
         examinerAdvice=question.rubric.get('examinerAdvice', []) if visible and guidance_allowed else [], sources=sources,
@@ -382,7 +386,7 @@ def select_question(db, settings, principal, session, key, message):
     if requested['part']:
         pool = [r for r in pool if r.part_label == requested['part']]
     elif requested['number'] and len(pool) > 1:
-        raise DomainError('practice_question_ambiguous', 'Choose a subpart: ' + ', '.join(f"{r.snapshot['component']} Q{r.snapshot['number']}({r.part_label})" for r in pool[:12]), 409)
+        raise DomainError('practice_question_ambiguous', 'Choose a subpart: ' + ', '.join(f"{r.snapshot['component']} Q{question_label(r.snapshot['number'], r.part_label)}" for r in pool[:12]), 409)
     if not pool:
         raise DomainError('practice_question_unavailable', 'No released past-paper question matches within your published, covered topics. Try asking for any available question in this subject, or ask Admin to release more reviewed items.', 409)
     replay = db.scalar(select(TutorPractice).where(TutorPractice.session_id == session.id, TutorPractice.request_key == key))
@@ -406,7 +410,7 @@ def select_question(db, settings, principal, session, key, message):
     snapshot = curriculum_plans.snapshot(db, f'tutor-paper:{uuid.uuid4()}', principal.user.id, session.subject_id)
     now = datetime.now(timezone.utc)
     assessment = Assessment(student_id=principal.user.id, subject_id=session.subject_id, mode='practice',
-        title=f"{snap['component']} Q{snap['number']}({release.part_label})", target_marks=part['marks'],
+        title=f"{snap['component']} Q{question_label(snap['number'], release.part_label)}", target_marks=part['marks'],
         duration_minutes=60, started_at=now, ends_at=now + timedelta(hours=1), curriculum_snapshot_id=snapshot.id)
     db.add(assessment); db.flush()
     ids = list(dict.fromkeys(snap['sharedVisuals'] + part['visualAssetIds']))
