@@ -45,6 +45,12 @@ class CodominantCrossFacts(StrictModel):
     parents: Literal['roan_x_roan']
     target: Literal['male_roan']
 
+class PTCCrossFacts(StrictModel):
+    """Source-bound heterozygous PTC-taster cross; outcomes are derived."""
+    kind: Literal['ptc_cross']
+    parents: Literal['Tt_x_Tt']
+    target: Literal['male_taster']
+
 class PotometerFacts(StrictModel):
     kind: Literal['bubble_potometer']
     measurement: Literal['water_uptake_proxy']
@@ -56,7 +62,7 @@ class ClottingFacts(StrictModel):
     maximumC: Literal[42]
     quantity: Literal['time_to_clot']
 
-DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts | CodominantCrossFacts | PotometerFacts | ClottingFacts, Field(discriminator='kind')]
+DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts | CodominantCrossFacts | PTCCrossFacts | PotometerFacts | ClottingFacts, Field(discriminator='kind')]
 
 class DiagramInput(StrictModel):
     schemaVersion: Literal['science-diagram-v1']

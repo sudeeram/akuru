@@ -79,3 +79,7 @@ The `science-diagram-v1` import path also accepts three strictly typed examples:
 - `clotting_temperature`: a qualitative time-to-clot curve over the question's 30–42°C range, with its minimum at the stated 37°C optimum. No numerical clotting-time values are accepted or drawn.
 
 These are bounded templates, not a general apparatus or genetics generator. Unsupported crosses, different optima, measured time arrays, arbitrary SVG and drawing instructions are rejected. Renderer provenance is `science-diagram-renderer-v2`; the input schema remains backward compatible. No migration or paid provider call is needed. Admin uses the existing preview, edit, approve-and-attach controls. Approval remains a separate authenticated action after source comparison and visual inspection; it does not automatically approve the source question or release it. Current source assessment, curriculum evidence, source-issue adjudication and Tutor-release gates still apply.
+
+### PTC inheritance example — 2026-11-19
+
+`ptc_cross` is an additional bounded template for `Tt_x_Tt` parents and a `male_taster` target. The renderer derives TT, Tt, Tt, tt; three quarters taste PTC, so independent male-and-taster probability is 3/8. It cannot accept caller-supplied probabilities, a different parental cross or an unsupported target. This remains distinct from the codominant roan example. Renderer provenance is now `science-diagram-renderer-v3`; existing v1 science inputs remain supported. Source-bound approval, private answer visibility and release gates are unchanged.

@@ -4,7 +4,7 @@ from html import escape
 import pymupdf
 from app.schemas.scientific_diagrams import DiagramSolution
 
-RENDERER_VERSION='science-diagram-renderer-v2'
+RENDERER_VERSION='science-diagram-renderer-v3'
 
 def describe_facts(facts):
     if facts.kind=='volume_time':
@@ -13,6 +13,8 @@ def describe_facts(facts):
         return f'Reactants: {facts.reactants}. Products: {facts.products}. Products have lower energy. Activation energy points upwards from reactants to peak; delta H points downwards from reactants to products.'
     if facts.kind=='roan_cross':
         return 'Roan parents CᵂCᴿ × CᵂCᴿ; gametes Cᵂ or Cᴿ from each. Offspring: 1 CᵂCᵂ (white), 2 CᵂCᴿ (roan), 1 CᴿCᴿ (red). P(male and roan) = 1/2 × 1/2 = 1/4 = 25%, assuming independent sex and coat-colour inheritance.'
+    if facts.kind=='ptc_cross':
+        return 'Parents Tt × Tt; gametes T or t from each. Offspring TT, Tt, Tt, tt. T is dominant for tasting PTC; 3/4 taste PTC. P(male and taster) = 3/4 × 1/2 = 3/8 = 37.5%, assuming independent sex and PTC inheritance.'
     if facts.kind=='bubble_potometer':
         return 'Labelled leafy shoot, airtight seal, water-filled capillary tube, air bubble and scale. Bubble movement estimates water uptake per unit time, a proxy for transpiration; not a direct measurement of all water lost.'
     if facts.kind=='clotting_temperature':
@@ -56,18 +58,19 @@ def render(solution: DiagramSolution, index: int) -> bytes:
             text((140,180,280,250),'Activation energy, Eₐ',13)
             text((650,354,760,392),'ΔH < 0',15)
             text((110,547,735,576),'Arrows: Eₐ upwards to the peak; ΔH downwards to the product level.',11)
-        elif facts.kind=='roan_cross':
-            text((85,95,735,130),'Parents: roan CᵂCᴿ  ×  roan CᵂCᴿ',18)
-            text((85,135,735,165),'Gametes from each parent: Cᵂ or Cᴿ',16)
+        elif facts.kind in ('roan_cross','ptc_cross'):
+            ptc=facts.kind=='ptc_cross'
+            text((85,95,735,130),'Parents: Tt  ×  Tt (both PTC tasters)' if ptc else 'Parents: roan CᵂCᴿ  ×  roan CᵂCᴿ',18)
+            text((85,135,735,165),'Gametes from each parent: T or t' if ptc else 'Gametes from each parent: Cᵂ or Cᴿ',16)
             xs=[230,340,500,660]; ys=[190,245,325,405]
             for x in xs: line((x,ys[0]),(x,ys[-1]))
             for y in ys: line((xs[0],y),(xs[-1],y))
-            cells=[['Gametes','Cᵂ','Cᴿ'],['Cᵂ','CᵂCᵂ (white)','CᵂCᴿ (roan)'],['Cᴿ','CᵂCᴿ (roan)','CᴿCᴿ (red)']]
+            cells=([['Gametes','T','t'],['T','TT (taster)','Tt (taster)'],['t','Tt (taster)','tt (non-taster)']] if ptc else [['Gametes','Cᵂ','Cᴿ'],['Cᵂ','CᵂCᵂ (white)','CᵂCᴿ (roan)'],['Cᴿ','CᵂCᴿ (roan)','CᴿCᴿ (red)']])
             for r,row in enumerate(cells):
                 for c,value in enumerate(row): text((xs[c]+8,ys[r]+14,xs[c+1]-4,ys[r+1]-3),value,15)
-            text((85,433,740,470),'Roan offspring: 2 out of 4 = 1/2',17)
-            text((85,477,740,517),'P(male and roan) = 1/2 × 1/2 = 1/4 = 25%',18)
-            text((85,535,740,575),'Assumes independent inheritance of sex and coat colour.',12)
+            text((85,433,740,470),'Taster offspring: 3 out of 4 = 3/4 (T is dominant)' if ptc else 'Roan offspring: 2 out of 4 = 1/2',17)
+            text((85,477,740,517),'P(male and taster) = 1/2 × 3/4 = 3/8 = 37.5%' if ptc else 'P(male and roan) = 1/2 × 1/2 = 1/4 = 25%',18)
+            text((85,535,740,575),'Assumes independent inheritance of sex and PTC tasting.' if ptc else 'Assumes independent inheritance of sex and coat colour.',12)
         elif facts.kind=='bubble_potometer':
             # Water-filled bent glass tube: connected to the sealed leafy shoot.
             blue=(.12,.4,.7)

@@ -3535,6 +3535,7 @@
                 "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "ptc_cross": "#/components/schemas/PTCCrossFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
@@ -3552,6 +3553,9 @@
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PTCCrossFacts"
               },
               {
                 "$ref": "#/components/schemas/PotometerFacts"
@@ -3614,6 +3618,7 @@
                 "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "ptc_cross": "#/components/schemas/PTCCrossFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
@@ -3631,6 +3636,9 @@
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PTCCrossFacts"
               },
               {
                 "$ref": "#/components/schemas/PotometerFacts"
@@ -7800,6 +7808,34 @@
           "sourceLocations"
         ],
         "title": "OfficialQuestionReview",
+        "type": "object"
+      },
+      "PTCCrossFacts": {
+        "additionalProperties": false,
+        "description": "Source-bound heterozygous PTC-taster cross; outcomes are derived.",
+        "properties": {
+          "kind": {
+            "const": "ptc_cross",
+            "title": "Kind",
+            "type": "string"
+          },
+          "parents": {
+            "const": "Tt_x_Tt",
+            "title": "Parents",
+            "type": "string"
+          },
+          "target": {
+            "const": "male_taster",
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "parents",
+          "target"
+        ],
+        "title": "PTCCrossFacts",
         "type": "object"
       },
       "Package": {

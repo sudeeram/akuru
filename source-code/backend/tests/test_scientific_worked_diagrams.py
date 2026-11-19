@@ -17,6 +17,8 @@ FACTS=[{'kind':'volume_time','xLabel':'Time','yLabel':'Volume'},
        {'kind':'clotting_temperature','optimumC':37,'minimumC':30,'maximumC':42,'quantity':'time_to_clot'},
        {'kind':'ionic_pair','ions':[{'symbol':'Mg','atomicNumber':12,'charge':2},{'symbol':'O','atomicNumber':8,'charge':-2}]}]
 
+FACTS.append({'kind':'ptc_cross','parents':'Tt_x_Tt','target':'male_taster'})
+
 def payload(facts):
     graph={'schemaVersion':'science-diagram-v1','facts':facts,'partLabels':['a'],
            'verificationNote':'Verified all scientific facts against the exact original question and scheme.'}
@@ -119,3 +121,13 @@ def test_biology_accessible_descriptions_preserve_scientific_limits():
     assert '1/4 = 25%' in descriptions[0] and 'independent' in descriptions[0]
     assert 'proxy' in descriptions[1] and 'not a direct' in descriptions[1]
     assert 'minimum at 37' in descriptions[2] and 'No numerical clotting' in descriptions[2]
+
+
+def test_ptc_cross_keeps_dominant_inheritance_distinct_from_roan():
+    from app.services.worked_answers.scientific_diagrams import describe_facts
+    body=payload(FACTS[-1]);solution=ImportWorkedAnswerDraft.model_validate(body).solution
+    description=describe_facts(solution.facts)
+    assert '3/8 = 37.5%' in description and 'TT, Tt, Tt, tt' in description
+    assert 'roan' not in description
+    body['graph']['facts']['parents']='tt_x_Tt'
+    with pytest.raises(ValidationError):ImportWorkedAnswerDraft.model_validate(body)
