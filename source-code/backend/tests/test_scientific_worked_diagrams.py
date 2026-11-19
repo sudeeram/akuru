@@ -19,6 +19,12 @@ FACTS=[{'kind':'volume_time','xLabel':'Time','yLabel':'Volume'},
 
 FACTS.append({'kind':'ptc_cross','parents':'Tt_x_Tt','target':'male_taster'})
 
+FACTS.extend([
+    {'kind':'monohybrid_cross','dominantAllele':'B','recessiveAllele':'b','parents':['Bb','Bb'],'dominantPhenotype':'black','recessivePhenotype':'brown','target':'phenotype_ratio'},
+    {'kind':'paired_line_graph','xAxis':{'label':'Time / days','minimum':0,'maximum':120,'tick':20},'yAxis':{'label':'Mean leaf area / cm²','minimum':0,'maximum':8000,'tick':1000},'labelA':'Room A','labelB':'Room B','points':[{'x':20,'yA':6,'yB':10},{'x':40,'yA':50,'yB':800}]},
+    {'kind':'starch_leaf_halves','left':'outside_jar_starch_present','right':'inside_co2_absorbing_jar_starch_absent'},
+])
+
 def payload(facts):
     graph={'schemaVersion':'science-diagram-v1','facts':facts,'partLabels':['a'],
            'verificationNote':'Verified all scientific facts against the exact original question and scheme.'}
@@ -125,9 +131,36 @@ def test_biology_accessible_descriptions_preserve_scientific_limits():
 
 def test_ptc_cross_keeps_dominant_inheritance_distinct_from_roan():
     from app.services.worked_answers.scientific_diagrams import describe_facts
-    body=payload(FACTS[-1]);solution=ImportWorkedAnswerDraft.model_validate(body).solution
+    body=payload(FACTS[6]);solution=ImportWorkedAnswerDraft.model_validate(body).solution
     description=describe_facts(solution.facts)
     assert '3/8 = 37.5%' in description and 'TT, Tt, Tt, tt' in description
     assert 'roan' not in description
     body['graph']['facts']['parents']='tt_x_Tt'
+    with pytest.raises(ValidationError):ImportWorkedAnswerDraft.model_validate(body)
+
+
+def test_monohybrid_outcomes_are_derived_and_cannot_override_probability():
+    from fractions import Fraction
+    from app.schemas.biology_worked_diagrams import MonohybridFacts
+    f=MonohybridFacts(**(FACTS[7]|{'target':'male_dominant'}))
+    assert f.outcomes()==['BB','Bb','Bb','bb'] and f.probability()==Fraction(3,8)
+    f=MonohybridFacts(**(FACTS[7]|{'parents':['Bb','bb'],'target':'recessive'}))
+    assert f.probability()==Fraction(1,2)
+    for mutation in [{'parents':['Bb','CC']},{'recessiveAllele':'c'},{'probability':1}]:
+        with pytest.raises(ValidationError):MonohybridFacts(**(FACTS[7]|mutation))
+
+
+def test_paired_graph_rejects_unverified_geometry_and_source_data_changes():
+    for mutate in ['outside','duplicate','labels']:
+        body=payload(copy.deepcopy(FACTS[8]));f=body['graph']['facts']
+        if mutate=='outside':f['points'][0]['yA']=9000
+        if mutate=='duplicate':f['points'][1]['x']=20
+        if mutate=='labels':f['labelB']=f['labelA']
+        with pytest.raises(ValidationError):ImportWorkedAnswerDraft.model_validate(body)
+    parsed=ImportWorkedAnswerDraft.model_validate(payload(FACTS[8]));source=parsed.graph.model_dump();source['facts']['points'][0]['yA']=7
+    with pytest.raises(ValueError,match='scientific facts'):validate_source(parsed.solution,source)
+
+
+def test_starch_regions_are_not_reversed_silently():
+    body=payload(FACTS[9]);body['graph']['facts']=dict(body['graph']['facts'],left='starch_absent')
     with pytest.raises(ValidationError):ImportWorkedAnswerDraft.model_validate(body)

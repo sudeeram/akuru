@@ -3535,8 +3535,11 @@
                 "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "monohybrid_cross": "#/components/schemas/MonohybridFacts",
+                "paired_line_graph": "#/components/schemas/PairedLineFacts",
                 "ptc_cross": "#/components/schemas/PTCCrossFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
+                "starch_leaf_halves": "#/components/schemas/StarchLeafFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
               "propertyName": "kind"
@@ -3550,6 +3553,15 @@
               },
               {
                 "$ref": "#/components/schemas/IonFacts"
+              },
+              {
+                "$ref": "#/components/schemas/MonohybridFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PairedLineFacts"
+              },
+              {
+                "$ref": "#/components/schemas/StarchLeafFacts"
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
@@ -3618,8 +3630,11 @@
                 "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "monohybrid_cross": "#/components/schemas/MonohybridFacts",
+                "paired_line_graph": "#/components/schemas/PairedLineFacts",
                 "ptc_cross": "#/components/schemas/PTCCrossFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
+                "starch_leaf_halves": "#/components/schemas/StarchLeafFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
               "propertyName": "kind"
@@ -3633,6 +3648,15 @@
               },
               {
                 "$ref": "#/components/schemas/IonFacts"
+              },
+              {
+                "$ref": "#/components/schemas/MonohybridFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PairedLineFacts"
+              },
+              {
+                "$ref": "#/components/schemas/StarchLeafFacts"
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
@@ -7373,6 +7397,71 @@
         "title": "MethodStep",
         "type": "object"
       },
+      "MonohybridFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "dominantAllele": {
+            "pattern": "^[A-Z]$",
+            "title": "Dominantallele",
+            "type": "string"
+          },
+          "dominantPhenotype": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Dominantphenotype",
+            "type": "string"
+          },
+          "kind": {
+            "const": "monohybrid_cross",
+            "title": "Kind",
+            "type": "string"
+          },
+          "parents": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "title": "Parents",
+            "type": "array"
+          },
+          "recessiveAllele": {
+            "pattern": "^[a-z]$",
+            "title": "Recessiveallele",
+            "type": "string"
+          },
+          "recessivePhenotype": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Recessivephenotype",
+            "type": "string"
+          },
+          "target": {
+            "enum": [
+              "phenotype_ratio",
+              "dominant",
+              "recessive",
+              "male_dominant",
+              "male_recessive",
+              "female_dominant",
+              "female_recessive"
+            ],
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "dominantAllele",
+          "recessiveAllele",
+          "parents",
+          "dominantPhenotype",
+          "recessivePhenotype",
+          "target"
+        ],
+        "title": "MonohybridFacts",
+        "type": "object"
+      },
       "NextTopicRecommendation": {
         "properties": {
           "activity": {
@@ -7900,6 +7989,83 @@
           "cases"
         ],
         "title": "Package",
+        "type": "object"
+      },
+      "PairedLineFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "paired_line_graph",
+            "title": "Kind",
+            "type": "string"
+          },
+          "labelA": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Labela",
+            "type": "string"
+          },
+          "labelB": {
+            "maxLength": 50,
+            "minLength": 1,
+            "title": "Labelb",
+            "type": "string"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/PairedPoint"
+            },
+            "maxItems": 40,
+            "minItems": 2,
+            "title": "Points",
+            "type": "array"
+          },
+          "xAxis": {
+            "$ref": "#/components/schemas/PlotAxis"
+          },
+          "yAxis": {
+            "$ref": "#/components/schemas/PlotAxis"
+          }
+        },
+        "required": [
+          "kind",
+          "xAxis",
+          "yAxis",
+          "labelA",
+          "labelB",
+          "points"
+        ],
+        "title": "PairedLineFacts",
+        "type": "object"
+      },
+      "PairedPoint": {
+        "additionalProperties": false,
+        "properties": {
+          "x": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "X",
+            "type": "number"
+          },
+          "yA": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Ya",
+            "type": "number"
+          },
+          "yB": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Yb",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "yA",
+          "yB"
+        ],
+        "title": "PairedPoint",
         "type": "object"
       },
       "PaperAutoApprovalResponse": {
@@ -8529,6 +8695,42 @@
           "groupTitle"
         ],
         "title": "PlanTopicResponse",
+        "type": "object"
+      },
+      "PlotAxis": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "maximum": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Maximum",
+            "type": "number"
+          },
+          "minimum": {
+            "maximum": 1000000000.0,
+            "minimum": -1000000000.0,
+            "title": "Minimum",
+            "type": "number"
+          },
+          "tick": {
+            "exclusiveMinimum": 0.0,
+            "title": "Tick",
+            "type": "number"
+          }
+        },
+        "required": [
+          "label",
+          "minimum",
+          "maximum",
+          "tick"
+        ],
+        "title": "PlotAxis",
         "type": "object"
       },
       "Point": {
@@ -11732,6 +11934,33 @@
           "corrections"
         ],
         "title": "StageReview",
+        "type": "object"
+      },
+      "StarchLeafFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "starch_leaf_halves",
+            "title": "Kind",
+            "type": "string"
+          },
+          "left": {
+            "const": "outside_jar_starch_present",
+            "title": "Left",
+            "type": "string"
+          },
+          "right": {
+            "const": "inside_co2_absorbing_jar_starch_absent",
+            "title": "Right",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "left",
+          "right"
+        ],
+        "title": "StarchLeafFacts",
         "type": "object"
       },
       "StartPaperReview": {

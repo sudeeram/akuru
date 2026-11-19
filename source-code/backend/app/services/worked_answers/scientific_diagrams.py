@@ -4,9 +4,12 @@ from html import escape
 import pymupdf
 from app.schemas.scientific_diagrams import DiagramSolution
 
-RENDERER_VERSION='science-diagram-renderer-v3'
+RENDERER_VERSION='science-diagram-renderer-v4'
 
 def describe_facts(facts):
+    if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves'):
+        from .biology_diagrams import describe
+        return describe(facts)
     if facts.kind=='volume_time':
         return f'{facts.yLabel} against {facts.xLabel}: smooth curve from zero, rising to a horizontal plateau; no numerical data supplied.'
     if facts.kind=='exothermic_profile':
@@ -37,7 +40,10 @@ def render(solution: DiagramSolution, index: int) -> bytes:
         text((35,16,765,55),solution.title,18)
         text((35,56,765,83),f'Part {step.partLabel} · illustrative worked solution',12)
         facts=solution.facts
-        if facts.kind=='volume_time':
+        if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves'):
+            from .biology_diagrams import render as render_biology
+            render_biology(page,facts,text,line,arrow)
+        elif facts.kind=='volume_time':
             arrow((110,480),(710,480));arrow((110,480),(110,110))
             text((55,270,108,315),facts.yLabel,14);text((360,495,540,530),facts.xLabel)
             text((88,481,108,507),'0',12)
