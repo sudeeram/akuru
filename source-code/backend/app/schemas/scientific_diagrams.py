@@ -39,7 +39,24 @@ class IonFacts(StrictModel):
             raise ValueError('Show a cation followed by an anion.')
         return self
 
-DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts, Field(discriminator='kind')]
+class CodominantCrossFacts(StrictModel):
+    """Bounded roan × roan example; offspring and probability are derived."""
+    kind: Literal['roan_cross']
+    parents: Literal['roan_x_roan']
+    target: Literal['male_roan']
+
+class PotometerFacts(StrictModel):
+    kind: Literal['bubble_potometer']
+    measurement: Literal['water_uptake_proxy']
+
+class ClottingFacts(StrictModel):
+    kind: Literal['clotting_temperature']
+    optimumC: Literal[37]
+    minimumC: Literal[30]
+    maximumC: Literal[42]
+    quantity: Literal['time_to_clot']
+
+DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts | CodominantCrossFacts | PotometerFacts | ClottingFacts, Field(discriminator='kind')]
 
 class DiagramInput(StrictModel):
     schemaVersion: Literal['science-diagram-v1']

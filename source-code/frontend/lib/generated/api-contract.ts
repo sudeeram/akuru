@@ -36,6 +36,8 @@ export interface Schemas {
   "Case": { "answer": string; "expectedMarks"?: number | null; "expectedPoints"?: Array<string>; "requiresReview"?: boolean; "holdout"?: boolean; };
   "CatalogResponse": { "courses": Array<Schemas["CourseResponse"]>; "subjects": Array<Schemas["SubjectResponse"]>; };
   "ChangePasswordRequest": { "newPassword": string; };
+  "ClottingFacts": { "kind": "clotting_temperature"; "optimumC": 37; "minimumC": 30; "maximumC": 42; "quantity": "time_to_clot"; };
+  "CodominantCrossFacts": { "kind": "roan_cross"; "parents": "roan_x_roan"; "target": "male_roan"; };
   "CombinedResponse": { "phrase": string; "pointIds": Array<string>; };
   "CommunityChoice": { "id": string; "name": string; };
   "CommunityFeed": { "notifications": Array<Schemas["CommunityNotice"]>; "unreadCount": number; "hasMore": boolean; "page": number; };
@@ -68,8 +70,8 @@ export interface Schemas {
   "CurriculumPlanResponse": { "versionNumber": number; "status": string; "subjectId": string; "textbookTitle": string; "textbookEdition": string; "groupLabel"?: string; "groups"?: Array<Schemas["PlanTopicGroupResponse"]>; "periods": Array<Schemas["PlanPeriod"]>; "publishedPeriods"?: Array<Schemas["PlanPeriod"]>; "changes"?: Array<Schemas["PlanChangeResponse"]>; "requiresPublishedChangeConfirmation"?: boolean; "basedOnVersion"?: number | null; "createdAt"?: string | null; "publishedAt"?: string | null; };
   "DeterministicMediaCreate": { "kind": "circuit_svg" | "forces_svg" | "geometry_svg" | "plot_svg"; "subjectId": string; "sourceChunkId": string; "title": string; "altText": string; "parameters"?: { [key: string]: unknown; }; };
   "DeterministicRules": { "engine"?: "deterministic-v1"; "matchers": Array<Schemas["AnswerMatcher"]>; "parts"?: Array<Schemas["FrozenScoringPart"]>; "certificateId"?: string | null; };
-  "DiagramInput": { "schemaVersion": "science-diagram-v1"; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "partLabels": Array<string>; "verificationNote": string; };
-  "DiagramSolution": { "schemaVersion": "science-diagram-v1"; "title": string; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"]; "steps": Array<Schemas["DiagramStep"]>; "limitations": string; "confidencePercent": number; "confidenceBasis": string; };
+  "DiagramInput": { "schemaVersion": "science-diagram-v1"; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"] | Schemas["CodominantCrossFacts"] | Schemas["PotometerFacts"] | Schemas["ClottingFacts"]; "partLabels": Array<string>; "verificationNote": string; };
+  "DiagramSolution": { "schemaVersion": "science-diagram-v1"; "title": string; "facts": Schemas["VolumeTimeFacts"] | Schemas["EnergyFacts"] | Schemas["IonFacts"] | Schemas["CodominantCrossFacts"] | Schemas["PotometerFacts"] | Schemas["ClottingFacts"]; "steps": Array<Schemas["DiagramStep"]>; "limitations": string; "confidencePercent": number; "confidenceBasis": string; };
   "DiagramStep": { "partLabel": string; "explanation": string; };
   "DocumentExtractionResponse": { "documentId": string; "versionId": string; "status": string; "pages"?: Array<Schemas["ExtractionPageResponse"]>; };
   "DocumentJobResponse": { "id": string; "documentId": string; "documentVersionId": string; "stage": string; "status": string; "progress": number; "attemptCount": number; "extractionVersion": string; "errorCode"?: string | null; "errorMessage"?: string | null; "result"?: { [key: string]: unknown; }; "queuedAt": string; "startedAt"?: string | null; "completedAt"?: string | null; };
@@ -171,6 +173,7 @@ export interface Schemas {
   "Point": { "x": number; "y": number; };
   "PortalCatalogResponse": { "courses": Array<string>; "activeCourses": Array<string>; "grades": Array<string>; "terms": Array<string>; "kinds": Array<string>; "progressionPairs": Array<Schemas["ProgressionPairResponse"]>; };
   "PortalStateResponse": { "user": Schemas["UserResponse"]; "catalog": Schemas["PortalCatalogResponse"]; "accounts": Array<Schemas["AccountSummaryResponse"]>; "subjects": Array<Schemas["SubjectPresentationResponse"]>; "students": Array<Schemas["StudentResponse"]>; "drafts"?: { [key: string]: unknown; }; "questions"?: Array<{ [key: string]: unknown; }>; "attempts"?: Array<{ [key: string]: unknown; }>; "assignments"?: Array<{ [key: string]: unknown; }>; "documents"?: Array<{ [key: string]: unknown; }>; "exams"?: Array<{ [key: string]: unknown; }>; "assessmentBlueprints"?: Array<{ [key: string]: unknown; }>; "officialPapers"?: Array<{ [key: string]: unknown; }>; "reviews"?: Array<{ [key: string]: unknown; }>; "plans"?: { [key: string]: unknown; }; "mastery"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; "masteryGroups"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; "recommendations"?: { [key: string]: Array<{ [key: string]: unknown; }>; }; };
+  "PotometerFacts": { "kind": "bubble_potometer"; "measurement": "water_uptake_proxy"; };
   "PreparedReviewRequest": { "contentHash": string; "confirmWholeDocument": boolean; "decisions"?: { [key: string]: string; }; };
   "ProgressionPairResponse": { "grade": string; "term": string; };
   "ProgressionResponse": { "grade": string; "term": string; };

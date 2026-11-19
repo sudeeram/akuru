@@ -2039,6 +2039,73 @@
         "title": "ChangePasswordRequest",
         "type": "object"
       },
+      "ClottingFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "clotting_temperature",
+            "title": "Kind",
+            "type": "string"
+          },
+          "maximumC": {
+            "const": 42,
+            "title": "Maximumc",
+            "type": "integer"
+          },
+          "minimumC": {
+            "const": 30,
+            "title": "Minimumc",
+            "type": "integer"
+          },
+          "optimumC": {
+            "const": 37,
+            "title": "Optimumc",
+            "type": "integer"
+          },
+          "quantity": {
+            "const": "time_to_clot",
+            "title": "Quantity",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "optimumC",
+          "minimumC",
+          "maximumC",
+          "quantity"
+        ],
+        "title": "ClottingFacts",
+        "type": "object"
+      },
+      "CodominantCrossFacts": {
+        "additionalProperties": false,
+        "description": "Bounded roan \u00d7 roan example; offspring and probability are derived.",
+        "properties": {
+          "kind": {
+            "const": "roan_cross",
+            "title": "Kind",
+            "type": "string"
+          },
+          "parents": {
+            "const": "roan_x_roan",
+            "title": "Parents",
+            "type": "string"
+          },
+          "target": {
+            "const": "male_roan",
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "parents",
+          "target"
+        ],
+        "title": "CodominantCrossFacts",
+        "type": "object"
+      },
       "CombinedResponse": {
         "additionalProperties": false,
         "properties": {
@@ -3464,8 +3531,11 @@
           "facts": {
             "discriminator": {
               "mapping": {
+                "bubble_potometer": "#/components/schemas/PotometerFacts",
+                "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
               "propertyName": "kind"
@@ -3479,6 +3549,15 @@
               },
               {
                 "$ref": "#/components/schemas/IonFacts"
+              },
+              {
+                "$ref": "#/components/schemas/CodominantCrossFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PotometerFacts"
+              },
+              {
+                "$ref": "#/components/schemas/ClottingFacts"
               }
             ],
             "title": "Facts"
@@ -3531,8 +3610,11 @@
           "facts": {
             "discriminator": {
               "mapping": {
+                "bubble_potometer": "#/components/schemas/PotometerFacts",
+                "clotting_temperature": "#/components/schemas/ClottingFacts",
                 "exothermic_profile": "#/components/schemas/EnergyFacts",
                 "ionic_pair": "#/components/schemas/IonFacts",
+                "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
               },
               "propertyName": "kind"
@@ -3546,6 +3628,15 @@
               },
               {
                 "$ref": "#/components/schemas/IonFacts"
+              },
+              {
+                "$ref": "#/components/schemas/CodominantCrossFacts"
+              },
+              {
+                "$ref": "#/components/schemas/PotometerFacts"
+              },
+              {
+                "$ref": "#/components/schemas/ClottingFacts"
               }
             ],
             "title": "Facts"
@@ -8628,6 +8719,27 @@
           "students"
         ],
         "title": "PortalStateResponse",
+        "type": "object"
+      },
+      "PotometerFacts": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "bubble_potometer",
+            "title": "Kind",
+            "type": "string"
+          },
+          "measurement": {
+            "const": "water_uptake_proxy",
+            "title": "Measurement",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "measurement"
+        ],
+        "title": "PotometerFacts",
         "type": "object"
       },
       "PreparedReviewRequest": {

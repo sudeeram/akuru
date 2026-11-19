@@ -4,13 +4,19 @@ from html import escape
 import pymupdf
 from app.schemas.scientific_diagrams import DiagramSolution
 
-RENDERER_VERSION='science-diagram-renderer-v1'
+RENDERER_VERSION='science-diagram-renderer-v2'
 
 def describe_facts(facts):
     if facts.kind=='volume_time':
         return f'{facts.yLabel} against {facts.xLabel}: smooth curve from zero, rising to a horizontal plateau; no numerical data supplied.'
     if facts.kind=='exothermic_profile':
         return f'Reactants: {facts.reactants}. Products: {facts.products}. Products have lower energy. Activation energy points upwards from reactants to peak; delta H points downwards from reactants to products.'
+    if facts.kind=='roan_cross':
+        return 'Roan parents CᵂCᴿ × CᵂCᴿ; gametes Cᵂ or Cᴿ from each. Offspring: 1 CᵂCᵂ (white), 2 CᵂCᴿ (roan), 1 CᴿCᴿ (red). P(male and roan) = 1/2 × 1/2 = 1/4 = 25%, assuming independent sex and coat-colour inheritance.'
+    if facts.kind=='bubble_potometer':
+        return 'Labelled leafy shoot, airtight seal, water-filled capillary tube, air bubble and scale. Bubble movement estimates water uptake per unit time, a proxy for transpiration; not a direct measurement of all water lost.'
+    if facts.kind=='clotting_temperature':
+        return 'Temperature (°C), 30–42, against time to clot (qualitative). Time decreases to a minimum at 37°C, then increases. No numerical clotting times supplied or invented.'
     return '; '.join(f'{ion.symbol}: charge {ion.charge:+d}, electron arrangement '+','.join(map(str,ion.shells())) for ion in facts.ions)
 
 
@@ -50,7 +56,56 @@ def render(solution: DiagramSolution, index: int) -> bytes:
             text((140,180,280,250),'Activation energy, Eₐ',13)
             text((650,354,760,392),'ΔH < 0',15)
             text((110,547,735,576),'Arrows: Eₐ upwards to the peak; ΔH downwards to the product level.',11)
-        else:
+        elif facts.kind=='roan_cross':
+            text((85,95,735,130),'Parents: roan CᵂCᴿ  ×  roan CᵂCᴿ',18)
+            text((85,135,735,165),'Gametes from each parent: Cᵂ or Cᴿ',16)
+            xs=[230,340,500,660]; ys=[190,245,325,405]
+            for x in xs: line((x,ys[0]),(x,ys[-1]))
+            for y in ys: line((xs[0],y),(xs[-1],y))
+            cells=[['Gametes','Cᵂ','Cᴿ'],['Cᵂ','CᵂCᵂ (white)','CᵂCᴿ (roan)'],['Cᴿ','CᵂCᴿ (roan)','CᴿCᴿ (red)']]
+            for r,row in enumerate(cells):
+                for c,value in enumerate(row): text((xs[c]+8,ys[r]+14,xs[c+1]-4,ys[r+1]-3),value,15)
+            text((85,433,740,470),'Roan offspring: 2 out of 4 = 1/2',17)
+            text((85,477,740,517),'P(male and roan) = 1/2 × 1/2 = 1/4 = 25%',18)
+            text((85,535,740,575),'Assumes independent inheritance of sex and coat colour.',12)
+        elif facts.kind=='bubble_potometer':
+            # Water-filled bent glass tube: connected to the sealed leafy shoot.
+            blue=(.12,.4,.7)
+            line((205,244),(205,391),2,blue);line((205,391),(680,391),2,blue)
+            line((225,244),(225,375),2,blue);line((225,375),(680,375),2,blue)
+            page.draw_rect((190,218,240,244),color=(.3,.3,.3),fill=(.8,.8,.75))
+            line((215,268),(215,125),4,(.1,.4,.2))
+            for x,y,dx in [(215,145,-55),(215,175,65),(215,205,-65)]:
+                line((x,y),(x+dx,y-22),3,(.1,.4,.2))
+                page.draw_oval((min(x+dx,x+dx*.4),y-50,max(x+dx,x+dx*.4)+20,y-12),color=(.1,.4,.2),fill=(.65,.83,.64))
+            page.draw_oval((430,377,458,389),color=blue,fill=(1,1,1))
+            # Unnumbered scale avoids fabricated measurements.
+            line((300,415),(675,415))
+            for x in range(300,676,15):line((x,415),(x,425 if x%30==0 else 421))
+            text((35,92,195,130),'Leafy shoot (plant)',14);line((175,125),(185,148))
+            text((270,200,650,234),'Airtight seal / petroleum jelly',14);line((280,233),(239,232))
+            text((390,280,715,315),'Water-filled capillary tube',14);line((530,316),(555,375))
+            text((340,330,460,360),'Air bubble',14);line((420,356),(444,378))
+            text((490,445,720,478),'Scale / ruler',14);line((550,445),(550,420))
+            arrow((470,355),(380,355));text((360,240,720,274),'Bubble moves towards the shoot',12)
+            text((70,500,745,543),'Measure bubble displacement per unit time; water uptake is a proxy for transpiration.',14)
+            text((70,549,745,578),'Schematic only: no invented readings or apparatus dimensions.',11)
+        elif facts.kind=='clotting_temperature':
+            left,right,base,top=135,710,470,125
+            arrow((left,base),(right+15,base));arrow((left,base),(left,top))
+            text((20,220,125,310),'Time to clot\n(qualitative)',14)
+            text((315,515,710,552),'Temperature (°C)',16)
+            def px(t):return left+(t-30)/12*(right-left)
+            for t in (30,32,34,36,37,38,40,42):
+                x=px(t);line((x,base),(x,base+6));text((x-13,base+10,x+20,base+35),str(t),12)
+            shape=page.new_shape()
+            shape.draw_bezier((px(30),175),(px(33),310),(px(35.5),410),(px(37),410))
+            shape.draw_bezier((px(37),410),(px(38),410),(px(40),260),(px(42),150))
+            shape.finish(color=(.05,.35,.6),width=2.5,closePath=False);shape.commit()
+            text((280,105,710,141),'Shortest clotting time at 37°C',15)
+            arrow((495,155),(px(37),400))
+            text((95,554,740,579),'Qualitative sketch: no numerical clotting-time data supplied.',12)
+        elif facts.kind=='ionic_pair':
             for cx,ion in zip((225,580),facts.ions):
                 shells=ion.shells()
                 for shell,count in enumerate(shells):

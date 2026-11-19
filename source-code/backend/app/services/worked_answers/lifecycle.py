@@ -10,6 +10,7 @@ from app.services.official_paper_reviews import _workspace, _validate_bound_vers
 from app.schemas.worked_answers import parse_solution
 from app.schemas.scientific_diagrams import DiagramSolution
 from .graphs import validate_source, render, LABEL, RENDERER_VERSION
+from .scientific_diagrams import RENDERER_VERSION as SCIENCE_RENDERER_VERSION
 
 
 def fingerprint(db, workspace, question):
@@ -131,7 +132,7 @@ def import_draft(db,principal,paper_id,number,payload):
         graph_input=graph_input,solution=solution,created_by=principal.user.id,status='awaiting_review',revision=1,
         provenance={'sourceQuestionRevision':q.revision,'provider':'Codex conversation',
             'model':'Codex-prepared draft','promptVersion':'operator-assisted-science-v1' if scientific else 'operator-assisted-graph-v1',
-            'rendererVersion':'science-diagram-renderer-v1' if scientific else RENDERER_VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),
+            'rendererVersion':SCIENCE_RENDERER_VERSION if scientific else RENDERER_VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),
             'generationNote':payload.generationNote,
             'checks':(['verified scientific facts unchanged'] if scientific else ['verified axes unchanged','verified points unchanged'])+['subparts matched',
                       'geometry valid','render succeeded'],

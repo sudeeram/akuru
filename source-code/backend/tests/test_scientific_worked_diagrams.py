@@ -12,6 +12,9 @@ from test_official_paper_review_workspace import _setup,_question
 
 FACTS=[{'kind':'volume_time','xLabel':'Time','yLabel':'Volume'},
        {'kind':'exothermic_profile','reactants':'Mg + 2HCl','products':'MgCl₂ + H₂'},
+       {'kind':'roan_cross','parents':'roan_x_roan','target':'male_roan'},
+       {'kind':'bubble_potometer','measurement':'water_uptake_proxy'},
+       {'kind':'clotting_temperature','optimumC':37,'minimumC':30,'maximumC':42,'quantity':'time_to_clot'},
        {'kind':'ionic_pair','ions':[{'symbol':'Mg','atomicNumber':12,'charge':2},{'symbol':'O','atomicNumber':8,'charge':-2}]}]
 
 def payload(facts):
@@ -99,3 +102,20 @@ def test_two_models_on_one_question_keep_both_subpart_answers(auth_client):
     saved=client.get(root).json()['questions'][0]
     assert [p['answerVisuals'][0]['workedAnswerId'] for p in saved['data']['parts']]==[r['id'] for r in drafts]
     assert all(r['status']=='approved' for r in client.get(endpoint).json())
+
+
+def test_biology_templates_reject_invented_measurements_and_unsupported_crosses():
+    for facts,field,value in [(FACTS[2],'parents','red_x_white'),
+                              (FACTS[3],'measurement','direct_transpiration'),
+                              (FACTS[4],'optimumC',35),
+                              (FACTS[4],'clottingSeconds',[10,20])]:
+        body=payload(copy.deepcopy(facts));body['graph']['facts'][field]=value
+        with pytest.raises(ValidationError):ImportWorkedAnswerDraft.model_validate(body)
+
+
+def test_biology_accessible_descriptions_preserve_scientific_limits():
+    from app.services.worked_answers.scientific_diagrams import describe_facts
+    descriptions=[describe_facts(ImportWorkedAnswerDraft.model_validate(payload(f)).solution.facts) for f in FACTS[2:5]]
+    assert '1/4 = 25%' in descriptions[0] and 'independent' in descriptions[0]
+    assert 'proxy' in descriptions[1] and 'not a direct' in descriptions[1]
+    assert 'minimum at 37' in descriptions[2] and 'No numerical clotting' in descriptions[2]
