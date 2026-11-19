@@ -292,3 +292,16 @@ Recommended next order: **June 2025 standard 1B**, then **2B**, then **1BR**. La
 - [ ] Use intake standard 1.6.0 and its formative policy: exact paper/scheme/report evidence, reviewed crops/labels, marking instructions/caps, source adjudications, confidence/provenance and current curriculum mappings. Keep genuine low-confidence/source blockers explicit.
 - [ ] Apply the established above-75% guarded AI approval policy and release eligible independent content for formative practice. Do not repeat completed source reviews merely to generate scoring certificates, and do not fabricate evidence or override withdrawals.
 - [ ] Record per-paper Student availability and any genuine image/source exceptions requiring manual input. No paid backend source evaluations or formal-exam publication are implicit in this handoff; agree any paid budget separately.
+
+
+## Final Paper 2 drawing examples — completed 19 November 2026
+
+Started and completed: 2026-11-19.
+
+- [x] Add bounded, source-checked genetic-cross, labelled bubble-potometer and qualitative clotting-time worked examples; retain permanent AI-generated labels, accessible explanations, confidence and limitations.
+- [x] Test, commit/push and deploy runtime `3842bd6` with encrypted backup, schema/HTTPS/route acceptance and no migration.
+- [x] Through authenticated Admin APIs, approve/attach the three examples, retain exact original rubrics and question grids, refresh their source findings, resolve missing-answer issues and apply guarded AI approval.
+- [x] Release January 2023 2B Q3(b)(ii), January 2021 2BR Q2(b)(ii) and November 2020 2B Q2(a)(ii), preserving previous releases and sibling reviews.
+- [x] Verify all **22 Biology 2B/2BR papers**, **141 questions**, **692/692 Tutor-practice subparts** and all four workflow stages complete. No paid model calls or formal-exam publication.
+
+[Completion record, production links and evidence](../../../../guidelines/pastpapers/igcse/reviews/2026-11-19-biology-paper2-worked-examples.md). Earlier dated counts remain historical. Paper 1 work and separate API hardening tasks remain ongoing.
