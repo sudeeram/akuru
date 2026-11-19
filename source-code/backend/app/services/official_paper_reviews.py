@@ -518,8 +518,13 @@ def visual_requirement_issues(data, assets):
     issues = []
     for part in data['parts']:
         visible = set(data.get('visualAssetIds', [])) | set(part.get('visualAssetIds', []))
+        # Numerical precision instructions do not refer to a supplied visual.
+        visual_prompt = re.sub(r'\b(?:significant|decimal)\s+figures?\b', '', part.get('prompt', ''), flags=re.I)
+        # A requested answer drawing is not a supplied question illustration.
+        visual_prompt = re.sub(r'\binclude\s+(?:a|an)\s+(?:[a-z-]+\s+){0,3}(?:diagram|figure)\s+in\s+your\s+answer\b', '', visual_prompt, flags=re.I)
+        visual_prompt = re.sub(r'\bdraw\s+(?:a|an)\s+(?:(?:fully|labelled|labeled|genetic)\s+){0,3}diagram\b(?!\s+(?:shown|above|below|opposite)\b)', '', visual_prompt, flags=re.I)
         for keyword, kind in (('diagram', 'diagram'), ('figure', 'diagram'), ('graph', 'diagram'), ('chromatogram', 'diagram'), ('table', 'table')):
-            if re.search(r'\b' + keyword + r's?\b', part.get('prompt', ''), re.I) and not any(
+            if re.search(r'\b' + keyword + r's?\b', visual_prompt, re.I) and not any(
                     value in assets and assets[value].asset_metadata.get('kind') == kind
                     and assets[value].asset_metadata.get('reviewCrop') for value in visible):
                 issues.append(f"Part {part['label']}: attach a reviewed {kind} referenced by the question.")
