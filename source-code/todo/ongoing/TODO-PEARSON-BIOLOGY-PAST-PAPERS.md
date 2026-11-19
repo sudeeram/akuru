@@ -305,3 +305,17 @@ Started and completed: 2026-11-19.
 - [x] Verify all **22 Biology 2B/2BR papers**, **141 questions**, **692/692 Tutor-practice subparts** and all four workflow stages complete. No paid model calls or formal-exam publication.
 
 [Completion record, production links and evidence](../../../../guidelines/pastpapers/igcse/reviews/2026-11-19-biology-paper2-worked-examples.md). Earlier dated counts remain historical. Paper 1 work and separate API hardening tasks remain ongoing.
+
+
+## June 2025 Biology 1BR — four-step completion (19 November 2026)
+
+Started and completed: 2026-11-19. Scope: this Paper 1 regional set only; previous Paper 2 releases remain intact.
+
+- [x] Step 1: reconcile original source hashes, 10 questions, 49 exact scheme rows and 110 marks; preserve original extraction/evidence and represent official alternatives, maximum marks, calculation bands and combined responses. Pass 2,997 local allocation combinations.
+- [x] Step 2: review selected source visuals and descriptions, correct both Q5 graph-caption crops, and approve/attach private AI-generated Q6 line-graph and Q9 PTC-cross examples. Preserve blank question grids, pedigree, source measurements and answer privacy.
+- [x] Test/push/deploy bounded PTC renderer support (`4dbf854`) with encrypted backup, 34 worked-answer tests, frontend typecheck, current contracts and production acceptance; no migration.
+- [x] Step 3: record current extraction-only findings and exact publication-bound curriculum evidence for all 49 parts; audit the scheme typo/report contradiction resolutions; guard AI approval above 75% for all 10 questions and 49 parts.
+- [x] Step 4: release sequentially through authenticated revision-checked APIs; verify **49/49 current Tutor releases and all four labels complete**, source data/marks/history preserved, no formal-exam publication or paid model calls.
+- [x] Verify the existing 22 Paper 2 sets retain all four steps complete and 692/692 current releases.
+
+[Completion report, production links and evidence](../../../../guidelines/pastpapers/igcse/reviews/2026-11-19-june-2025-biology-1br-completion.md). Other Paper 1 sets and separate hardening tasks remain ongoing.
