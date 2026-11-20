@@ -378,3 +378,17 @@ Started and completed: 2026-11-20.
 - [x] Verify declared table-only prompt changes, preserved original extraction/marks and authenticated-only private answer previews. No paid calls; formal exam unchanged.
 
 [Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2024-biology-1br-completion.md). Continue with November 2023 standard 1B; remaining Paper 1 work is ongoing.
+
+
+## November 2023 Biology 1B — four-step completion (20 November 2026)
+
+Started and completed: 2026-11-20.
+
+- [x] Reconcile 10 questions, 45 subparts and 110 marks; verify unchanged source identities, extraction history and all existing exact block citations.
+- [x] Inspect and preserve approved source visual assignments and the official Q8(b)(i) scheme diagram unchanged.
+- [x] Prepare, inspect, approve and attach separate AI-labelled nine-point breathing graph and guinea-pig cross examples.
+- [x] Audit and exclude the reversed Q4(a) report comparison using the original diagram and scheme.
+- [x] Complete 45 current publication-bound curriculum/source findings and guarded AI approvals.
+- [x] Verify 45/45 current Tutor-practice releases, four green steps and private-preview authentication. Formal exam unchanged; no paid calls.
+
+[Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-november-2023-biology-1b-completion.md). Continue with January 2023 standard 1B; other Paper 1 work remains ongoing.
