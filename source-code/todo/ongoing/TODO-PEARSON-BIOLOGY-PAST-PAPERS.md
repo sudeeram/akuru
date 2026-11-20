@@ -319,3 +319,18 @@ Started and completed: 2026-11-19. Scope: this Paper 1 regional set only; previo
 - [x] Verify the existing 22 Paper 2 sets retain all four steps complete and 692/692 current releases.
 
 [Completion report, production links and evidence](../../../../guidelines/pastpapers/igcse/reviews/2026-11-19-june-2025-biology-1br-completion.md). Other Paper 1 sets and separate hardening tasks remain ongoing.
+
+
+## June 2025 Biology 1B — four-step completion (20 November 2026)
+
+Started: 2026-11-19. Completed: 2026-11-20. Scope: this standard Paper 1 set only.
+
+- [x] Verify all three original PDF identities and reconcile 10 questions, 46 subparts and 110 marks with exact question/scheme evidence.
+- [x] Preserve official alternatives, caps and partial-credit outcomes; explicitly adjudicate the Q4(b)(ii) three-versus-four publisher allocation discrepancy.
+- [x] Review applicable source crops, retain complete labels/axes/tables, and reject three incomplete blood-diagram duplicates without deleting originals.
+- [x] Inspect, approve and attach separate AI-labelled worked examples for the leaf starch-test result, Bb × Bb cross and paired line graph.
+- [x] Record current final source and published-curriculum findings; verify all 10 questions/46 subparts are AI-approved.
+- [x] Verify 46/46 current Tutor-practice releases and all four workflow steps complete. Formal-exam publication remains unchanged.
+- [x] Verify original extraction/wording/marks/evidence/mappings are preserved and private answer previews reject unauthenticated requests. No paid model calls.
+
+[Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2025-biology-1b-completion.md). Remaining Paper 1 work continues sequentially with November 2024 1B; it is not complete.

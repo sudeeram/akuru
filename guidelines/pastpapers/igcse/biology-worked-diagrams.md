@@ -26,3 +26,13 @@ When the source requests straight joins between consecutive observations, use th
 Graph captions can sit below the plot. Check both the upper and lower crop boundaries against the complete original page: include each graph's own caption and exclude its neighbour's caption. On 1BR Q5(b)(ii), the old lower crop carried the upper graph's Graph 1 caption and omitted its own Graph 2 caption; both complete source crops were prepared as a regression example. Preserving axes alone is insufficient.
 
 A saved response-type flag is not source authority. Check every draw/plot/genetic-diagram instruction against the original question even if an older import classified it as text, and configure separate private answer evidence where needed. The 1BR Q9(b)(ii) PTC cross was found by this check.
+
+## Paper 1 bounded formats — 2026-11-20
+
+Additional source-bound formats are available after the Paper 1 renderer update:
+
+- `monohybrid_cross`: two diploid parental genotypes with one matching uppercase/lowercase allele pair. The renderer derives gametes, offspring, phenotype ratios and any explicitly requested sex probability. Do not reveal a later probability answer in a sibling part's phenotype-only example. Alternative symbols remain valid under the official scheme.
+- `paired_line_graph`: two named series using verified source observations, numbered axes and units. Join adjacent points with straight segments only when that is the source instruction. Preserve the supplied observations; do not invent intermediate observations, regression or extrapolation.
+- `starch_leaf_halves`: the specific carbon-dioxide exclusion experiment with the left region outside the jar and the right region inside a carbon-dioxide-absorbing jar. Show blue-black/starch on the left and yellow/orange/brown/no starch on the right. This is a labelled schematic, not a general template for arbitrary leaf experiments; check the original apparatus orientation first. Colours and labels must agree.
+
+All formats still require exact source comparison, inspection of the production-rendered preview and a separately recorded approval. Renderer validation only checks supported structure and arithmetic, not whether the selected facts match the paper. Recheck shared stems when assigning visuals: a subpart retaining “the table shows…” must retain its applicable source table even when its final instruction is a practical-method question.
