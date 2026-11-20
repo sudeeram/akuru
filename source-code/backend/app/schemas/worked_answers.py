@@ -35,7 +35,8 @@ class WorkedStep(StrictModel):
     explanation: str = Field(min_length=20, max_length=6000)
     showPoints: Literal[True] = True
     circleIndexes: list[int] = Field(default_factory=list, max_length=100)
-    fits: list[Fit] = Field(default_factory=list, max_length=6)
+    # Up to 100 source points can require 99 individual straight joins.
+    fits: list[Fit] = Field(default_factory=list, max_length=99)
 
 
 class GraphSolution(StrictModel):

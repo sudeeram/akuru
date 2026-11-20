@@ -62,3 +62,26 @@ def test_confidence_estimate_requires_a_basis_and_valid_percentage():
     with pytest.raises(ValidationError): GraphSolution.model_validate(raw)
     raw=fixture();raw['confidenceBasis']=None
     with pytest.raises(ValidationError,match='provided together'): GraphSolution.model_validate(raw)
+
+
+def test_eight_source_points_keep_every_straight_join_and_local_reversal():
+    raw = fixture()
+    raw.update(xAxis=dict(label="Stimulus number", minimum=0, maximum=8, tick=1),
+               yAxis=dict(label="Time / seconds", minimum=0, maximum=14, tick=2),
+               points=[dict(x=i, y=y) for i, y in enumerate([12,12,10,11,10,7,5,3], 1)])
+    raw['steps'] = [dict(partLabel="b(i)", explanation="Join each pair of adjacent source observations without smoothing or extrapolation.",
+        fits=[dict(pointIndexes=[i,i+1], fromX=i+1, toX=i+2, label="Straight join") for i in range(7)])]
+    solution = GraphSolution.model_validate(raw)
+    source = {k: solution.model_dump()[k] for k in ('xAxis', 'yAxis', 'points')}
+    source['partLabels'] = ['b(i)']
+    validate_source(solution, source)
+    for fit in solution.steps[0].fits:
+        points = [solution.points[i] for i in fit.pointIndexes]
+        slope, intercept = fit_coefficients(points)
+        for point in points:
+            assert slope * point.x + intercept == pytest.approx(point.y)
+    assert fit_coefficients(solution.points[2:4])[0] > 0
+    assert pymupdf.Pixmap(render(solution, 0)).width == 1200
+    raw['steps'][0]['fits'] *= 15  # Still bounded against oversized specifications.
+    with pytest.raises(ValidationError, match='at most 99'):
+        GraphSolution.model_validate(raw)

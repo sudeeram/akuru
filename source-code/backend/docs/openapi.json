@@ -16742,7 +16742,7 @@
             "items": {
               "$ref": "#/components/schemas/Fit"
             },
-            "maxItems": 6,
+            "maxItems": 99,
             "title": "Fits",
             "type": "array"
           },
