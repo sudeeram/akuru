@@ -392,3 +392,13 @@ Started and completed: 2026-11-20.
 - [x] Verify 45/45 current Tutor-practice releases, four green steps and private-preview authentication. Formal exam unchanged; no paid calls.
 
 [Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-november-2023-biology-1b-completion.md). Continue with January 2023 standard 1B; other Paper 1 work remains ongoing.
+
+
+### January 2023 standard 1B completion — 2026-11-20
+
+- [x] Completed all four workflow steps for 10 questions / 47 subparts / 110 marks; 47 current Tutor-practice releases, formal exam unpublished.
+- [x] Preserved reviewed source crops and official septum answer; added the reviewed, AI-labelled moth graph and current textbook mappings.
+- [x] Audited four publisher discrepancies and verified 3,274 allocation combinations without paid model calls.
+- [x] Verified source/history preservation, current decisions and private-preview authentication.
+- Evidence: `guidelines/pastpapers/igcse/reviews/2026-11-20-january-2023-biology-1b-completion.md`.
+- Next: January 2023 regional 1BR; remaining Paper 1 batch is ongoing.
