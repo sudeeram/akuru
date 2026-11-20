@@ -334,3 +334,18 @@ Started: 2026-11-19. Completed: 2026-11-20. Scope: this standard Paper 1 set onl
 - [x] Verify original extraction/wording/marks/evidence/mappings are preserved and private answer previews reject unauthenticated requests. No paid model calls.
 
 [Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2025-biology-1b-completion.md). Remaining Paper 1 work continues sequentially with November 2024 1B; it is not complete.
+
+
+## November 2024 Biology 1B — four-step completion (20 November 2026)
+
+Started and completed: 2026-11-20.
+
+- [x] Reconcile 10 questions, 45 subparts and 110 marks against three unchanged original PDFs; recover the question-number-only six-blank lungs scheme row.
+- [x] Add exact question/scheme block references, preserving existing page links and original wording/marks/history.
+- [x] Review source crops and replace incomplete dog-diagram assignments with the full labelled crop; retain rejected assets.
+- [x] Inspect, approve and attach separate AI-labelled breathing-rate graph and fruit-fly cross examples.
+- [x] Complete all 45 current published-curriculum mappings and final source findings; all questions/subparts AI-approved.
+- [x] Verify 45/45 current Tutor-practice releases and all four steps green. Formal-exam publication unchanged; no paid calls.
+- [x] Recheck private previews reject unauthenticated requests and previous 22 Paper 2 sets retain 692/692 current releases.
+
+[Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-november-2024-biology-1b-completion.md). Remaining Paper 1 work continues with June 2024 standard 1B.
