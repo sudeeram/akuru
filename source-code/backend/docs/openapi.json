@@ -3538,6 +3538,7 @@
                 "monohybrid_cross": "#/components/schemas/MonohybridFacts",
                 "paired_line_graph": "#/components/schemas/PairedLineFacts",
                 "ptc_cross": "#/components/schemas/PTCCrossFacts",
+                "pyramid_of_numbers": "#/components/schemas/NumberPyramidFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "starch_leaf_halves": "#/components/schemas/StarchLeafFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
@@ -3562,6 +3563,9 @@
               },
               {
                 "$ref": "#/components/schemas/StarchLeafFacts"
+              },
+              {
+                "$ref": "#/components/schemas/NumberPyramidFacts"
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
@@ -3633,6 +3637,7 @@
                 "monohybrid_cross": "#/components/schemas/MonohybridFacts",
                 "paired_line_graph": "#/components/schemas/PairedLineFacts",
                 "ptc_cross": "#/components/schemas/PTCCrossFacts",
+                "pyramid_of_numbers": "#/components/schemas/NumberPyramidFacts",
                 "roan_cross": "#/components/schemas/CodominantCrossFacts",
                 "starch_leaf_halves": "#/components/schemas/StarchLeafFacts",
                 "volume_time": "#/components/schemas/VolumeTimeFacts"
@@ -3657,6 +3662,9 @@
               },
               {
                 "$ref": "#/components/schemas/StarchLeafFacts"
+              },
+              {
+                "$ref": "#/components/schemas/NumberPyramidFacts"
               },
               {
                 "$ref": "#/components/schemas/CodominantCrossFacts"
@@ -7635,6 +7643,55 @@
           "read"
         ],
         "title": "NoticeRead",
+        "type": "object"
+      },
+      "NumberPyramidFacts": {
+        "additionalProperties": false,
+        "description": "Source counts in producer-to-top-consumer order; widths are derived.",
+        "properties": {
+          "kind": {
+            "const": "pyramid_of_numbers",
+            "title": "Kind",
+            "type": "string"
+          },
+          "levels": {
+            "items": {
+              "$ref": "#/components/schemas/NumberPyramidLevel"
+            },
+            "maxItems": 5,
+            "minItems": 2,
+            "title": "Levels",
+            "type": "array"
+          }
+        },
+        "required": [
+          "kind",
+          "levels"
+        ],
+        "title": "NumberPyramidFacts",
+        "type": "object"
+      },
+      "NumberPyramidLevel": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "maximum": 1000000000.0,
+            "minimum": 1.0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "count"
+        ],
+        "title": "NumberPyramidLevel",
         "type": "object"
       },
       "NumericAnswer": {

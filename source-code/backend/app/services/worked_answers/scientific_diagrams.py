@@ -4,10 +4,10 @@ from html import escape
 import pymupdf
 from app.schemas.scientific_diagrams import DiagramSolution
 
-RENDERER_VERSION='science-diagram-renderer-v4'
+RENDERER_VERSION='science-diagram-renderer-v5'
 
 def describe_facts(facts):
-    if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves'):
+    if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves','pyramid_of_numbers'):
         from .biology_diagrams import describe
         return describe(facts)
     if facts.kind=='volume_time':
@@ -40,7 +40,7 @@ def render(solution: DiagramSolution, index: int) -> bytes:
         text((35,16,765,55),solution.title,18)
         text((35,56,765,83),f'Part {step.partLabel} · illustrative worked solution',12)
         facts=solution.facts
-        if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves'):
+        if facts.kind in ('monohybrid_cross','paired_line_graph','starch_leaf_halves','pyramid_of_numbers'):
             from .biology_diagrams import render as render_biology
             render_biology(page,facts,text,line,arrow)
         elif facts.kind=='volume_time':

@@ -23,7 +23,38 @@ FACTS.extend([
     {'kind':'monohybrid_cross','dominantAllele':'B','recessiveAllele':'b','parents':['Bb','Bb'],'dominantPhenotype':'black','recessivePhenotype':'brown','target':'phenotype_ratio'},
     {'kind':'paired_line_graph','xAxis':{'label':'Time / days','minimum':0,'maximum':120,'tick':20},'yAxis':{'label':'Mean leaf area / cm²','minimum':0,'maximum':8000,'tick':1000},'labelA':'Room A','labelB':'Room B','points':[{'x':20,'yA':6,'yB':10},{'x':40,'yA':50,'yB':800}]},
     {'kind':'starch_leaf_halves','left':'outside_jar_starch_present','right':'inside_co2_absorbing_jar_starch_absent'},
+    {'kind':'pyramid_of_numbers','levels':[{'label':'Oak trees','count':4},{'label':'Mice','count':20},{'label':'Foxes','count':2}]},
 ])
+
+def test_number_pyramid_preserves_scale_trophic_order_and_equal_bar_heights():
+    from app.services.worked_answers.biology_diagrams import render as render_biology,describe
+    facts=ImportWorkedAnswerDraft.model_validate(payload(FACTS[-1])).solution.facts
+    class Page:
+        def __init__(self):self.bars=[]
+        def draw_rect(self,rect,**kwargs):self.bars.append(rect)
+    page=Page();labels=[]
+    render_biology(page,facts,lambda rect,text,*args:labels.append(text),lambda *args:None,lambda *args:None)
+    bars=page.bars
+    assert len(bars)==3
+    widths=[b[2]-b[0]for b in bars]
+    assert widths[1]/widths[0]==5 and widths[0]/widths[2]==2
+    assert len({b[3]-b[1]for b in bars})==1
+    assert bars[0][3]>bars[1][3]>bars[2][3]
+    assert len({(b[0]+b[2])/2 for b in bars})==1
+    assert ['Oak trees: 4','Mice: 20','Foxes: 2']==[t for t in labels if ':'in t]
+    assert 'bottom to top: Oak trees: 4; Mice: 20; Foxes: 2' in describe(facts)
+
+@pytest.mark.parametrize('levels',[
+    [{'label':'Trees','count':0},{'label':'Mice','count':20}],
+    [{'label':'Trees','count':1.5},{'label':'Mice','count':20}],
+    [{'label':'Trees','count':True},{'label':'Mice','count':20}],
+    [{'label':'Trees','count':4},{'label':' trees ','count':20}],
+    [{'label':' ','count':4},{'label':'Mice','count':20}],
+    [{'label':'Trees','count':1},{'label':'Mice','count':1000}],
+])
+def test_number_pyramid_rejects_invalid_or_unreadable_source_counts(levels):
+    with pytest.raises(ValidationError):
+        ImportWorkedAnswerDraft.model_validate(payload({'kind':'pyramid_of_numbers','levels':levels}))
 
 def payload(facts):
     graph={'schemaVersion':'science-diagram-v1','facts':facts,'partLabels':['a'],

@@ -2,6 +2,8 @@
 from html import escape
 
 def describe(f):
+    if f.kind=='pyramid_of_numbers':
+        return 'Pyramid of numbers, bottom to top: '+ '; '.join(f'{p.label}: {p.count}'for p in f.levels)+'. Centred bars have equal heights; widths are proportional to counts on one linear scale, not biomass or organism size.'
     if f.kind=='monohybrid_cross':
         d=f.dominant_count();text=f'Parents {f.parents[0]} × {f.parents[1]}; gametes from each parent are its individual alleles. Offspring '+', '.join(f.outcomes())+f'. Phenotype ratio {d} {f.dominantPhenotype} : {4-d} {f.recessivePhenotype}.'
         if f.target!='phenotype_ratio':text+=f' P({f.target.replace("_"," and ")}) = {f.probability()}; sex and trait are assumed independent when combined.'
@@ -11,7 +13,19 @@ def describe(f):
     return 'Left/outside the jar: iodine turns blue-black, indicating starch. Right/inside the carbon-dioxide-absorbing jar: iodine remains yellow/orange/brown, indicating no starch. Labels and colours must agree.'
 
 def render(page,f,text,line,arrow):
-    if f.kind=='monohybrid_cross':
+    if f.kind=='pyramid_of_numbers':
+        largest=max(p.count for p in f.levels)
+        height=min(80,300/len(f.levels))
+        for i,p in enumerate(f.levels):
+            half=220*p.count/largest
+            bottom=460-i*height
+            page.draw_rect((330-half,bottom-height,330+half,bottom),color=(.1,.3,.5),fill=(.72,.85,.92))
+            text((575,bottom-height+12,770,bottom-2),f'{p.label}: {p.count}',15)
+            line((330+half,bottom-height/2),(565,bottom-height/2),.8)
+        text((65,108,755,147),'Pyramid of numbers — producer at the bottom',16)
+        text((65,490,755,535),'Equal bar heights; widths proportional to the source counts on a single linear scale.',13)
+        text((65,543,755,577),'Numbers of organisms, not their mass or physical size.',12)
+    elif f.kind=='monohybrid_cross':
         text((65,95,750,130),f'Parents: {f.parents[0]} × {f.parents[1]}',18)
         text((65,135,750,170),'Gametes: '+ ' or '.join(dict.fromkeys(f.parents[0]))+'  ×  '+' or '.join(dict.fromkeys(f.parents[1])),16)
         xs=[220,330,500,670];ys=[190,245,325,405];out=f.outcomes()

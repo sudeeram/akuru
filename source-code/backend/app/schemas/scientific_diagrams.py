@@ -2,7 +2,7 @@
 from typing import Annotated, Literal
 from pydantic import Field, model_validator
 from app.schemas.worked_answers_base import StrictModel
-from app.schemas.biology_worked_diagrams import MonohybridFacts, PairedLineFacts, StarchLeafFacts
+from app.schemas.biology_worked_diagrams import MonohybridFacts, PairedLineFacts, StarchLeafFacts, NumberPyramidFacts
 
 class VolumeTimeFacts(StrictModel):
     kind: Literal['volume_time']
@@ -63,7 +63,7 @@ class ClottingFacts(StrictModel):
     maximumC: Literal[42]
     quantity: Literal['time_to_clot']
 
-DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts | MonohybridFacts | PairedLineFacts | StarchLeafFacts | CodominantCrossFacts | PTCCrossFacts | PotometerFacts | ClottingFacts, Field(discriminator='kind')]
+DiagramFacts = Annotated[VolumeTimeFacts | EnergyFacts | IonFacts | MonohybridFacts | PairedLineFacts | StarchLeafFacts | NumberPyramidFacts | CodominantCrossFacts | PTCCrossFacts | PotometerFacts | ClottingFacts, Field(discriminator='kind')]
 
 class DiagramInput(StrictModel):
     schemaVersion: Literal['science-diagram-v1']

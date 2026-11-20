@@ -59,3 +59,21 @@ class StarchLeafFacts(StrictModel):
     kind: Literal['starch_leaf_halves']
     left: Literal['outside_jar_starch_present']
     right: Literal['inside_co2_absorbing_jar_starch_absent']
+
+class NumberPyramidLevel(StrictModel):
+    label: str=Field(min_length=1,max_length=60)
+    count: int=Field(strict=True,ge=1,le=1000000000)
+
+class NumberPyramidFacts(StrictModel):
+    """Source counts in producer-to-top-consumer order; widths are derived."""
+    kind: Literal['pyramid_of_numbers']
+    levels: list[NumberPyramidLevel]=Field(min_length=2,max_length=5)
+    @model_validator(mode='after')
+    def distinct_labels(self):
+        if len({p.label.strip().casefold()for p in self.levels})!=len(self.levels):
+            raise ValueError('Use distinct trophic-level labels.')
+        if any(not p.label.strip()for p in self.levels):
+            raise ValueError('Use nonblank trophic-level labels.')
+        if min(p.count for p in self.levels)/max(p.count for p in self.levels)<1/200:
+            raise ValueError('Count ratio is too small for a legible linear-scale pyramid; choose another presentation.')
+        return self
