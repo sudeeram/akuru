@@ -349,3 +349,17 @@ Started and completed: 2026-11-20.
 - [x] Recheck private previews reject unauthenticated requests and previous 22 Paper 2 sets retain 692/692 current releases.
 
 [Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-november-2024-biology-1b-completion.md). Remaining Paper 1 work continues with June 2024 standard 1B.
+
+
+## June 2024 standard Biology 1B — four-step completion (20 November 2026)
+
+Started and completed: 2026-11-20.
+
+- [x] Reconcile 10 questions, 45 subparts and 110 marks; verify unchanged original source PDFs and extraction history.
+- [x] Complete exact paper/scheme citations and official caps/partial-credit guidance; reconstruct the reviewed table layouts without changing source values or answer blanks.
+- [x] Review all source visuals, retain complete arrows/labels/keys and reject incomplete duplicate fragments without deleting originals.
+- [x] Inspect, approve and attach separate AI-labelled pondweed graph and CF carrier-cross examples.
+- [x] Record current publication-bound curriculum findings and final source assessments; all 10 questions/45 parts AI-approved.
+- [x] Verify 45/45 current Tutor-practice releases and all four steps complete, with formal-exam publication unchanged and no paid calls.
+
+[Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2024-biology-1b-completion.md). Continue sequentially with June 2024 regional 1BR; other Paper 1 sets remain ongoing.
