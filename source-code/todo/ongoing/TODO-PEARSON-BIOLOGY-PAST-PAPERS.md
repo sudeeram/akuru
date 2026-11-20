@@ -363,3 +363,18 @@ Started and completed: 2026-11-20.
 - [x] Verify 45/45 current Tutor-practice releases and all four steps complete, with formal-exam publication unchanged and no paid calls.
 
 [Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2024-biology-1b-completion.md). Continue sequentially with June 2024 regional 1BR; other Paper 1 sets remain ongoing.
+
+
+## June 2024 regional Biology 1BR — four-step completion (20 November 2026)
+
+Started and completed: 2026-11-20.
+
+- [x] Reconcile 10 questions, 46 subparts and 110 marks; verify unchanged original source identities/history and exact source-block links.
+- [x] Review complete crop labels/keys/pedigrees and the declared snail-table layout repair; retain rejected originals.
+- [x] Inspect, approve and attach AI-labelled eight-observation snail graph and Dd × dd cross.
+- [x] Fix the reusable graph-segment bound, pass 44 relevant tests/contracts/typecheck, deploy backend-only and verify production acceptance.
+- [x] Audit and exclude the contradictory Q7(b)(ii) report caption using the original graph and official scheme.
+- [x] Complete all 46 current published-curriculum/source findings and guarded AI approvals; verify 46/46 current Tutor-practice releases and four green steps.
+- [x] Verify declared table-only prompt changes, preserved original extraction/marks and authenticated-only private answer previews. No paid calls; formal exam unchanged.
+
+[Completion report](../../../../guidelines/pastpapers/igcse/reviews/2026-11-20-june-2024-biology-1br-completion.md). Continue with November 2023 standard 1B; remaining Paper 1 work is ongoing.
