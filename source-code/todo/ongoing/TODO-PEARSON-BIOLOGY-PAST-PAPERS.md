@@ -413,3 +413,14 @@ Started and completed: 2026-11-20.
 - [x] Verified all current releases, source/history preservation and private-preview authentication after the Q7 wording refinement.
 - Evidence: `guidelines/pastpapers/igcse/reviews/2026-11-20-january-2023-biology-1br-completion.md`.
 - Next: June 2022 standard 1B. Whole Paper 1 batch remains ongoing.
+
+
+### June 2022 standard 1B completion — 2026-11-21
+
+- [x] Completed all four steps: 10 questions / 43 parts / 110 marks; 43 current Tutor-practice releases, formal exam unpublished.
+- [x] Backfilled the missing pending-review source inventory; corrected instruction-as-point and numeric extraction errors; bound 86 exact question/scheme evidence-link sets.
+- [x] Reviewed all original crops, restored the complete labelled Q6 cell pair, and separately reviewed AI-labelled pyramid, rat cross and ten-point wheat graph.
+- [x] Preserved conditional guidance and nested caps; checked 4,478 allocation combinations and current published-topic mappings without paid model calls.
+- [x] Audited the Q7 report error and Q8 scheme introductory typo; verified saved rubrics, immutable extraction history and private-preview authentication.
+- Evidence: `guidelines/pastpapers/igcse/reviews/2026-11-21-june-2022-biology-1b-completion.md`.
+- Next: June 2022 regional 1BR. Whole Paper 1 batch remains ongoing.
