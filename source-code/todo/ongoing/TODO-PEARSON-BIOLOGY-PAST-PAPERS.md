@@ -402,3 +402,14 @@ Started and completed: 2026-11-20.
 - [x] Verified source/history preservation, current decisions and private-preview authentication.
 - Evidence: `guidelines/pastpapers/igcse/reviews/2026-11-20-january-2023-biology-1b-completion.md`.
 - Next: January 2023 regional 1BR; remaining Paper 1 batch is ongoing.
+
+
+### January 2023 regional 1BR completion — 2026-11-21
+
+- [x] Completed all four steps for 11 questions / 45 assessed parts / 110 marks, including the seven-blank whole Q6 and Q11; 45 current Tutor-practice releases, formal exam unpublished.
+- [x] Restored the source virus image with its P label; preserved other reviewed source visuals and recovered the exact Q7(c)(ii) scheme row.
+- [x] Prepared and separately reviewed AI-labelled pyramid, paired ant graph and genetic cross; verified current textbook mappings and 3,047 allocation combinations without paid model calls.
+- [x] Deployed tested bounded pyramid renderer b8ca484; 53 tests, contract/typecheck and production acceptance passed.
+- [x] Verified all current releases, source/history preservation and private-preview authentication after the Q7 wording refinement.
+- Evidence: `guidelines/pastpapers/igcse/reviews/2026-11-20-january-2023-biology-1br-completion.md`.
+- Next: June 2022 standard 1B. Whole Paper 1 batch remains ongoing.
